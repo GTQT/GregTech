@@ -60,7 +60,7 @@ public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockControll
                     .buildStructureDefinition());
 
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

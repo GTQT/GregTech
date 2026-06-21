@@ -1,5 +1,24 @@
 package gregtech.api.metatileentity;
 
+import gregtech.api.capability.IParallelMultiblock;
+import gregtech.api.capability.impl.GCYMMultiblockRecipeLogic;
+import gregtech.api.metatileentity.multiblock.MultiMapMultiblockController;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
+import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
+import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.recipes.RecipeMap;
+import gregtech.api.util.GTUtility;
+import gregtech.api.util.tooltips.GGCYMMMultiblockInformation;
+import gregtech.api.util.tooltips.TiredMultiblockInformation;
+import gregtech.api.util.tooltips.TooltipBuilder;
+import gregtech.common.ConfigHolder;
+
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.World;
+
 import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
@@ -9,23 +28,6 @@ import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
-import gregtech.api.capability.IParallelMultiblock;
-import gregtech.api.capability.impl.GCYMMultiblockRecipeLogic;
-import gregtech.api.util.tooltips.GGCYMMMultiblockInformation;
-import gregtech.api.util.tooltips.TiredMultiblockInformation;
-import gregtech.common.GCYMConfigHolder;
-import gregtech.api.metatileentity.multiblock.MultiMapMultiblockController;
-import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
-import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.mui.GTGuis;
-import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.recipes.RecipeMap;
-import gregtech.api.util.GTUtility;
-import gregtech.api.util.tooltips.TooltipBuilder;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,23 +45,12 @@ public abstract class GCYMRecipeMapMultiblockController extends MultiMapMultiblo
         this.recipeMapWorkable = new GCYMMultiblockRecipeLogic(this);
     }
 
-    public static @NotNull TraceabilityPredicate tieredCasing() {
-        return new TraceabilityPredicate(abilities(GCYMMultiblockAbility.TIERED_HATCH)
-                .setMinGlobalLimited(GCYMConfigHolder.globalMultiblocks.enableTieredCasings ? 1 : 0)
-                .setMaxGlobalLimited(1));
-    }
-
-    public static @NotNull TraceabilityPredicate parallelCasing() {
-        return new TraceabilityPredicate(abilities(GCYMMultiblockAbility.PARALLEL_HATCH)
-                .setMaxGlobalLimited(1));
-    }
-
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create()
                 .addIf(isParallel(), new GGCYMMMultiblockInformation())
-                .addIf(GCYMConfigHolder.globalMultiblocks.enableTieredCasings && isTiered(), new TiredMultiblockInformation())
+                .addIf(ConfigHolder.globalMultiblocks.enableTieredCasings && isTiered(), new TiredMultiblockInformation())
                 .build(this, tooltip);
     }
 
@@ -166,7 +157,7 @@ public abstract class GCYMRecipeMapMultiblockController extends MultiMapMultiblo
                 this.getAbilities(GCYMMultiblockAbility.PARALLEL_HATCH).get(0).getMaxParallel();
     }
     public boolean isTiered() {
-        return GCYMConfigHolder.globalMultiblocks.enableTieredCasings;
+        return ConfigHolder.globalMultiblocks.enableTieredCasings;
     }
 
     @Override

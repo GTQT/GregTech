@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IEnergyContainer;
@@ -23,22 +22,19 @@ import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.category.ICategoryOverride;
 import gregtech.api.unification.material.Materials;
-
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.metatileentities.MetaTileEntities;
 
-import net.minecraft.init.Blocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
-
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -229,12 +225,12 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 
     protected static IBlockState getCasingState() {
-        return MetaBlocks.COMPRESSED.get(Materials.Lead).getBlock(Materials.Lead);
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
     }
 
     /** Glass — fire isolation windows between battery modules. */

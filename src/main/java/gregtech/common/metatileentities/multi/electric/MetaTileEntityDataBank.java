@@ -203,7 +203,7 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
     // independently by the sharded checker. Cached via
     // StructureDefinition.getOrBuild() since the structure has no
     // runtime-editable dimensions.
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

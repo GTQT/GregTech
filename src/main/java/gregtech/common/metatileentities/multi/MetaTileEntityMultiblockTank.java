@@ -102,7 +102,7 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
     @Override
     @NotNull
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return StructureDefinition.getOrBuild(metaTileEntityId + "/structure", () -> DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X X", "XXX")

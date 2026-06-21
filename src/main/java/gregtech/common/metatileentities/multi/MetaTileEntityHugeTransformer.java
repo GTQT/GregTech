@@ -111,7 +111,7 @@ public class MetaTileEntityHugeTransformer extends MultiblockWithDisplayBase imp
     }
 
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return StructureDefinition.getOrBuild("gtqt:huge_transformer", () -> StructureDefinition.builder(RIGHT, UP, BACK)
                 .piece("main", "ISI")
                     .where('S', Elements.self(MetaTileEntityHugeTransformer.class))

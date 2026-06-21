@@ -346,7 +346,7 @@ public class ForestryModule extends IntegrationSubmodule {
         // 引蜂器，IDs 2940-2955
         for (int i = 0; i < BEE_ATTRACTORS.length; i++) {
             String tier = VN[i].toLowerCase();
-            BEE_ATTRACTORS[i] = registerMetaTileEntity(2940 + i,
+            BEE_ATTRACTORS[i] = registerMetaTileEntity(4500 + i,
                     new SimpleMachineMetaTileEntity(gregtechId("bee_attractor." + tier),
                             RecipeMaps.ATTRACTOR_RECIPES,
                             Textures.BEE_ATTRACTOR_OVERLAY, i, false));

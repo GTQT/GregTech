@@ -150,7 +150,7 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
     }
 
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

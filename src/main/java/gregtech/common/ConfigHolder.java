@@ -46,6 +46,9 @@ public class ConfigHolder {
     @Config.Comment("Config options for Vanilla Optimize")
     @Config.Name("Vanilla Optimize")
     public static VanillaOptimizeOptions vanillaOptimizeOptions = new VanillaOptimizeOptions();
+    @Config.Comment("Config options applying to all GCYM Multiblocks")
+    @Config.Name("Global Multiblock Options")
+    public static GlobalMultiblocks globalMultiblocks = new GlobalMultiblocks();
 
     public static class VanillaOptimizeOptions {
         @Config.Comment({"对林业的蝴蝶进行立即处死", })
@@ -878,5 +881,12 @@ public class ConfigHolder {
         @Config.RangeInt(min = 1, max = 512)
         @Config.Comment({ "The EU/t consumption of the NanoSaber.", "Default: 64" })
         public int energyConsumption = 64;
+    }
+
+    public static class GlobalMultiblocks {
+
+        @Config.Comment({ "Makes nearly every GCYM Multiblock require blocks which set their maximum voltages.",
+                "Default: false" })
+        public boolean enableTieredCasings = true;
     }
 }

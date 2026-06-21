@@ -26,9 +26,9 @@ import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.ITypedStructureElement;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.pattern.element.StructureElementPreview;
-import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -353,7 +353,7 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     // be checked independently by the sharded checker. The StructureDefinition
     // is cached via StructureDefinition.getOrBuild() since the structure has
     // no runtime-editable dimensions.
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

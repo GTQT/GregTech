@@ -197,6 +197,7 @@ public class CoreModule implements IGregTechModule {
         // Block entirely new Materials from being added in the Post event
         managerInternal.closeRegistries();
         MinecraftForge.EVENT_BUS.post(new PostMaterialEvent());
+        Materials.postMaterialLoad();
 
         // Freeze Material Registry before processing Items, Blocks, and Fluids
         managerInternal.freezeRegistries();

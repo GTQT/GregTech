@@ -84,8 +84,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
-import static gregtech.api.util.RelativeDirection.*;
-
 public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
         implements IOpticalComputationProvider, IControllable, ProgressBarMultiblock {
 
@@ -256,7 +254,7 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     // "bottom" cap) so each section can be checked independently by the
     // sharded checker. Cached via StructureDefinition.getOrBuild() since the
     // structure has no runtime-editable dimensions.
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

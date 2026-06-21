@@ -55,7 +55,7 @@ public class MultiblockThreadProvider implements IProbeInfoProvider {
 
                     if (controller.getThread() == 1) return;
 
-                    horizontalPane.text(TextStyleClass.INFO + "{*gregtech.top.tread*}");
+                    horizontalPane.text(TextStyleClass.INFO + "{*gregtech.top.thread*}");
                     horizontalPane.text(
                             TextStyleClass.INFO + " " + TextFormatting.RED + controller.getThread() + " ");
 

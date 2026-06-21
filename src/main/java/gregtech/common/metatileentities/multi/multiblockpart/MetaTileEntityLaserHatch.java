@@ -3,13 +3,6 @@ package gregtech.common.metatileentities.multi.multiblockpart;
 import gregtech.api.GTValues;
 import gregtech.api.capability.ILaserContainer;
 import gregtech.api.capability.impl.LaserContainerHandler;
-import gregtech.api.gui.GuiTextures;
-import gregtech.api.gui.ModularUI;
-import gregtech.api.gui.widgets.ClickButtonWidget;
-import gregtech.api.gui.widgets.CycleButtonWidget;
-import gregtech.api.gui.widgets.ImageWidget;
-import gregtech.api.gui.widgets.IncrementButtonWidget;
-import gregtech.api.gui.widgets.TextFieldWidget2;
 import gregtech.api.metatileentity.IDataInfoProvider;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -19,12 +12,9 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.client.renderer.texture.Textures;
 
 import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.TextComponentString;
 import net.minecraft.world.World;
@@ -39,7 +29,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-import static gregtech.api.GTValues.*;
+import static gregtech.api.GTValues.V;
+import static gregtech.api.GTValues.VNF;
 
 public class MetaTileEntityLaserHatch extends MetaTileEntityMultiblockPart
                                       implements IMultiblockAbilityPart<ILaserContainer>, IDataInfoProvider {
@@ -102,7 +93,7 @@ public class MetaTileEntityLaserHatch extends MetaTileEntityMultiblockPart
                                boolean advanced) {
         tooltip.add(I18n.format(isOutput ? "gregtech.machine.laser_hatch.source.tooltip1" :
                 "gregtech.machine.laser_hatch.target.tooltip1"));
-        tooltip.add(I18n.format("gregtech.machine.laser_hatch.tooltip2"));
+        tooltip.add(I18n.format("gregtech.machine.laser_hatch.tooltip"));
 
         if (isOutput) {
             tooltip.add(I18n.format("gregtech.universal.tooltip.voltage_out", V[tier], VNF[tier]));

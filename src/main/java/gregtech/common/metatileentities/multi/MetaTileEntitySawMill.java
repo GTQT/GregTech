@@ -34,11 +34,11 @@ public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
 
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:saw_mill", () -> DeclarativePatternBuilder.start()
-                    .aisle("PPPPP", "    F", "    F")
-                    .aisle("PXXXP", "XX XF", "FFFFF")
-                    .aisle("PXXXP", "XX XF", " F  F")
-                    .aisle("PXXXP", "XX XF", "FFFFF")
-                    .aisle("PSPPP", "    F", "    F")
+                    .aisle("PPP", "F F", "   ")
+                    .aisle("PXP", "F F", "FFF")
+                    .aisle("PXP", "F F", "   ")
+                    .aisle("PXP", "F F", "FFF")
+                    .aisle("PSP", "F F", "   ")
                     .self('S', MetaTileEntitySawMill.class)
                     .frames('F', Materials.TreatedWood)
                     .block('X', MetaBlocks.PLANKS.getState(BlockGregPlanks.BlockType.TREATED_PLANK))
@@ -51,7 +51,7 @@ public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
                     .buildStructureDefinition());
 
     @Override
-    protected @NotNull StructureDefinition createStructureDefinition() {
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

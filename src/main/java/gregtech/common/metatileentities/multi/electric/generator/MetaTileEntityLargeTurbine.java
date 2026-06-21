@@ -288,7 +288,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
 
     @NotNull
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
         if (definition == null) {
             throw new IllegalStateException("Unknown turbine type: " + type.getName());

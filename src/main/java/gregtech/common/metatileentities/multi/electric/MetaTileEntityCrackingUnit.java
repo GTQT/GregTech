@@ -73,7 +73,7 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
     }
 
     @Override
-    protected @NotNull StructureDefinition createStructureDefinition() {
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

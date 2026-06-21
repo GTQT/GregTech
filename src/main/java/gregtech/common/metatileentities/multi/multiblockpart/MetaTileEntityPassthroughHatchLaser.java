@@ -76,7 +76,7 @@ public class MetaTileEntityPassthroughHatchLaser extends MetaTileEntityMultibloc
     @Override
     public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
                                boolean advanced) {
-        tooltip.add(I18n.format("gregtech.machine.laser_hatch.tooltip2"));
+        tooltip.add(I18n.format("gregtech.machine.laser_hatch.tooltip"));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
 

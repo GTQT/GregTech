@@ -344,7 +344,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
 
     @NotNull
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(boilerType.getName());
         if (definition == null) {
             throw new IllegalStateException("Unknown boiler type: " + boilerType.getName());

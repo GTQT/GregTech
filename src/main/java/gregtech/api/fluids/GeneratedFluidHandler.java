@@ -1,18 +1,16 @@
 package gregtech.api.fluids;
 
-import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.NotNull;
-
 import gregtech.api.GregTechAPI;
-import gregtech.api.fluids.FluidBuilder;
 import gregtech.api.unification.material.Material;
+import gregtech.api.unification.material.info.MaterialFlags;
 import gregtech.api.unification.material.properties.BlastProperty;
 import gregtech.api.unification.material.properties.FluidProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
-
-import gregtech.api.unification.GCYMMaterialFlags;
 import gregtech.api.unification.properties.AlloyBlastProperty;
 import gregtech.api.unification.properties.GCYMPropertyKey;
+
+import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Handles generation of fluids based on material properties
@@ -30,7 +28,7 @@ public final class GeneratedFluidHandler {
 
     public static void createMoltenFluid(@NotNull Material material) {
         // ignore materials set not to be alloy blast handled
-        if (material.hasFlag(GCYMMaterialFlags.DISABLE_ALLOY_PROPERTY)) return;
+        if (material.hasFlag(MaterialFlags.DISABLE_ALLOY_PROPERTY)) return;
 
         // ignore materials which are not alloys
         if (material.getMaterialComponents().size() <= 1) return;

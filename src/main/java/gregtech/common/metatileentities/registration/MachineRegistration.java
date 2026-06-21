@@ -29,14 +29,6 @@ import static gregtech.api.GTValues.EV;
 import static gregtech.api.util.GTUtility.gregtechId;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
 
-/**
- * Registration for all functional single-block machines:
- * <ul>
- *   <li>Steam boilers and processing machines (IDs 1-40)</li>
- *   <li>Electric processing machines (IDs 50-922)</li>
- *   <li>Single-block generators (IDs 935-959)</li>
- * </ul>
- */
 public final class MachineRegistration {
 
     private MachineRegistration() {}
@@ -46,8 +38,6 @@ public final class MachineRegistration {
         registerElectricMachines();
         registerGenerators();
     }
-
-    // ---- Steam single-block machines ----
 
     private static void registerSteamMachines() {
         STEAM_BOILER_COAL_BRONZE = registerMetaTileEntity(1,
@@ -108,8 +98,6 @@ public final class MachineRegistration {
 
         STEAM_MINER = registerMetaTileEntity(40, new SteamMiner(gregtechId("steam_miner"), 320, 4, 0));
     }
-
-    // ---- Electric processing machines ----
 
     private static void registerElectricMachines() {
         // Electric Furnace, IDs 50-64
@@ -253,7 +241,8 @@ public final class MachineRegistration {
         registerSimpleMetaTileEntity(PACKER, 500, "packer", RecipeMaps.PACKER_RECIPES, Textures.PACKER_OVERLAY, true);
 
         // UnPacker IDs 515-529
-        registerSimpleMetaTileEntity(UNPACKER, 515, "unpacker", RecipeMaps.UNPACKER_RECIPES, Textures.UNPACKER_OVERLAY, true);
+        registerSimpleMetaTileEntity(UNPACKER, 515, "unpacker", RecipeMaps.UNPACKER_RECIPES, Textures.UNPACKER_OVERLAY,
+                true);
 
         // Gas Collectors, IDs 530-544
         registerMetaTileEntities(GAS_COLLECTOR, 530, "gas_collector",
@@ -274,7 +263,8 @@ public final class MachineRegistration {
         registerSimpleMetaTileEntity(SIFTER, 575, "sifter", RecipeMaps.SIFTER_RECIPES, Textures.SIFTER_OVERLAY, true);
 
         // Polisher IDs 590-604
-        registerSimpleMetaTileEntity(POLISHER, 590, "polisher", RecipeMaps.POLISHER_RECIPES, Textures.POLISHER_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
+        registerSimpleMetaTileEntity(POLISHER, 590, "polisher", RecipeMaps.POLISHER_RECIPES, Textures.POLISHER_OVERLAY,
+                true, GTUtility.hvCappedTankSizeFunction);
 
         // Thermal Centrifuge, IDs 605-619
         registerSimpleMetaTileEntity(THERMAL_CENTRIFUGE, 605, "thermal_centrifuge",
@@ -295,45 +285,57 @@ public final class MachineRegistration {
                         RecipeMaps.ROCK_BREAKER_RECIPES, Textures.ROCK_BREAKER_OVERLAY, tier));
 
         // Laminator IDs 755-770
-        registerSimpleMetaTileEntity(LAMINATOR, 755, "laminator", RecipeMaps.LAMINATOR_RECIPES, Textures.LAMINATOR_OVERLAY, true);
+        registerSimpleMetaTileEntity(LAMINATOR, 755, "laminator", RecipeMaps.LAMINATOR_RECIPES,
+                Textures.LAMINATOR_OVERLAY, true);
 
         // Polymerization Tank IDs 770-785
-        registerSimpleMetaTileEntity(POLYMERIZATION_TANK, 770, "polymerization_tank", RecipeMaps.POLYMERIZATION_RECIPES, Textures.POLYMERIZATION_TANK_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
+        registerSimpleMetaTileEntity(POLYMERIZATION_TANK, 770, "polymerization_tank", RecipeMaps.POLYMERIZATION_RECIPES,
+                Textures.POLYMERIZATION_TANK_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
 
         // Desulfurizer IDs 785-800
-        registerSimpleMetaTileEntity(DESULFURIZER, 785, "desulfurizer", RecipeMaps.DESULFURIZATION_RECIPES, Textures.DESULFURIZER_OVERLAY, true);
+        registerSimpleMetaTileEntity(DESULFURIZER, 785, "desulfurizer", RecipeMaps.DESULFURIZATION_RECIPES,
+                Textures.DESULFURIZER_OVERLAY, true);
 
         // Bio Reactor IDs 800-815
-        registerSimpleMetaTileEntity(BIO_REACTOR, 800, "bio_reactor", RecipeMaps.BIO_REACTOR_RECIPES, Textures.BIO_REACTOR_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+        registerSimpleMetaTileEntity(BIO_REACTOR, 800, "bio_reactor", RecipeMaps.BIO_REACTOR_RECIPES,
+                Textures.BIO_REACTOR_OVERLAY, true, GTUtility.defaultTankSizeFunction);
 
         // Component Assembler IDs 815-830
-        registerSimpleMetaTileEntity(COMPONENT_ASSEMBLER, 815, "component_assembler", RecipeMaps.COMPONENT_ASSEMBLER_RECIPES, Textures.ASSEMBLER_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
+        registerSimpleMetaTileEntity(COMPONENT_ASSEMBLER, 815, "component_assembler",
+                RecipeMaps.COMPONENT_ASSEMBLER_RECIPES, Textures.ASSEMBLER_OVERLAY, true,
+                GTUtility.hvCappedTankSizeFunction);
 
         // Loom IDs 830-845
-        registerSimpleMetaTileEntity(LOOM, 830, "loom", RecipeMaps.LOOM_RECIPES, Textures.LOOM_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+        registerSimpleMetaTileEntity(LOOM, 830, "loom", RecipeMaps.LOOM_RECIPES, Textures.LOOM_OVERLAY, true,
+                GTUtility.defaultTankSizeFunction);
 
         // Roaster IDs 845-860
-        registerSimpleMetaTileEntity(ROASTER, 845, "roaster", RecipeMaps.ROASTER_RECIPES, Textures.ROASTER_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+        registerSimpleMetaTileEntity(ROASTER, 845, "roaster", RecipeMaps.ROASTER_RECIPES, Textures.ROASTER_OVERLAY,
+                true, GTUtility.defaultTankSizeFunction);
 
         // Chemical Dehydrator IDs 860-875
-        registerSimpleMetaTileEntity(CHEMICAL_DEHYDRATOR, 860, "chemical_dehydrator", RecipeMaps.CHEMICAL_DEHYDRATOR_RECIPES, Textures.CHEMICAL_DEHYDRATOR_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+        registerSimpleMetaTileEntity(CHEMICAL_DEHYDRATOR, 860, "chemical_dehydrator",
+                RecipeMaps.CHEMICAL_DEHYDRATOR_RECIPES, Textures.CHEMICAL_DEHYDRATOR_OVERLAY, true,
+                GTUtility.defaultTankSizeFunction);
 
         // Lightning Processor IDs 875-890
-        registerSimpleMetaTileEntity(LIGHTNING_PROCESSOR, 875, "lightning_processor", RecipeMaps.LIGHTNING_PROCESSOR_RECIPES, Textures.LIGHTNING_PROCESSOR_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+        registerSimpleMetaTileEntity(LIGHTNING_PROCESSOR, 875, "lightning_processor",
+                RecipeMaps.LIGHTNING_PROCESSOR_RECIPES, Textures.LIGHTNING_PROCESSOR_OVERLAY, true,
+                GTUtility.defaultTankSizeFunction);
 
         // Recycler IDs 890-905
-        registerSimpleMetaTileEntity(RECYCLER, 890, "recycler", RecipeMaps.RECYCLER_RECIPES, Textures.RECYCLER_OVERLAY, true);
+        registerSimpleMetaTileEntity(RECYCLER, 890, "recycler", RecipeMaps.RECYCLER_RECIPES, Textures.RECYCLER_OVERLAY,
+                true);
 
-        // Vulcanizing Press IDs 905-910
-        registerSimpleMetaTileEntity(VULCANIZING_PRESS, 905, "vulcanizing_press", RecipeMaps.VULCANIZING_PRESS_RECIPES, Textures.VULCANIZING_PRESS_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+        // Vulcanizing Press IDs 905-920
+        registerSimpleMetaTileEntity(VULCANIZING_PRESS, 905, "vulcanizing_press", RecipeMaps.VULCANIZING_PRESS_RECIPES,
+                Textures.VULCANIZING_PRESS_OVERLAY, true, GTUtility.defaultTankSizeFunction);
 
         // Chunk Miner, IDs 920-922
         MINER[0] = registerMetaTileEntity(920, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
         MINER[1] = registerMetaTileEntity(921, new MetaTileEntityMiner(gregtechId("miner.mv"), 2, 80, 16, 2));
         MINER[2] = registerMetaTileEntity(922, new MetaTileEntityMiner(gregtechId("miner.hv"), 3, 40, 24, 3));
     }
-
-    // ---- Single-block generators ----
 
     private static void registerGenerators() {
         // Diesel Generator, IDs 935-939
@@ -363,18 +365,18 @@ public final class MachineRegistration {
         // Plasma Generator, IDs 955-959
         PLASMA_GENERATOR[0] = registerMetaTileEntity(955,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.ev"), RecipeMaps.PLASMA_GENERATOR_FUELS,
-                        Textures.PLASMA_TURBINE_OVERLAY, 4, GTUtility.genericGeneratorTankSizeFunction,1));
+                        Textures.PLASMA_TURBINE_OVERLAY, 4, GTUtility.genericGeneratorTankSizeFunction, 1));
         PLASMA_GENERATOR[1] = registerMetaTileEntity(956,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.iv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
-                        Textures.PLASMA_TURBINE_OVERLAY, 5, GTUtility.genericGeneratorTankSizeFunction,1));
+                        Textures.PLASMA_TURBINE_OVERLAY, 5, GTUtility.genericGeneratorTankSizeFunction, 1));
         PLASMA_GENERATOR[2] = registerMetaTileEntity(957,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.luv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
-                        Textures.PLASMA_TURBINE_OVERLAY, 6, GTUtility.genericGeneratorTankSizeFunction,1));
+                        Textures.PLASMA_TURBINE_OVERLAY, 6, GTUtility.genericGeneratorTankSizeFunction, 1));
         PLASMA_GENERATOR[3] = registerMetaTileEntity(958,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.zpm"), RecipeMaps.PLASMA_GENERATOR_FUELS,
-                        Textures.PLASMA_TURBINE_OVERLAY, 7, GTUtility.genericGeneratorTankSizeFunction,1));
+                        Textures.PLASMA_TURBINE_OVERLAY, 7, GTUtility.genericGeneratorTankSizeFunction, 1));
         PLASMA_GENERATOR[4] = registerMetaTileEntity(959,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.uv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
-                        Textures.PLASMA_TURBINE_OVERLAY, 8, GTUtility.genericGeneratorTankSizeFunction,1));
+                        Textures.PLASMA_TURBINE_OVERLAY, 8, GTUtility.genericGeneratorTankSizeFunction, 1));
     }
 }

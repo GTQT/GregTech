@@ -148,7 +148,10 @@ public class MetaBlocks {
     public static BlockCleanroomCasing CLEANROOM_CASING;
     public static BlockComputerCasing COMPUTER_CASING;
     public static BlockBatteryPart BATTERY_BLOCK;
-    public static BlockTankCasing TANK_CASING;
+
+    // GCYM的
+    public static BlockUniqueCasing UNIQUE_CASING;
+    public static BlockLargeMultiblockCasing LARGE_MULTIBLOCK_CASING;
 
     // Forge of the Gods blocks
     public static BlockGodforgeCasing GODFORGE_CASING;
@@ -289,8 +292,11 @@ public class MetaBlocks {
         COMPUTER_CASING.setRegistryName("computer_casing");
         BATTERY_BLOCK = new BlockBatteryPart();
         BATTERY_BLOCK.setRegistryName("battery_block");
-        TANK_CASING = new BlockTankCasing();
-        TANK_CASING.setRegistryName("tank_casing");
+
+        UNIQUE_CASING = new BlockUniqueCasing();
+        UNIQUE_CASING.setRegistryName("unique_casing");
+        LARGE_MULTIBLOCK_CASING = new BlockLargeMultiblockCasing();
+        LARGE_MULTIBLOCK_CASING.setRegistryName("large_multiblock_casing");
 
         // Forge of the Gods blocks
         GODFORGE_CASING = new BlockGodforgeCasing();
@@ -500,6 +506,42 @@ public class MetaBlocks {
                     stack -> MetaTileEntityRenderer.MODEL_LOCATION);
         }
 
+        registerItemModel(BOILER_CASING);
+        registerItemModel(METAL_CASING);
+        registerItemModel(TURBINE_CASING);
+        registerItemModel(MACHINE_CASING);
+        registerItemModel(STEAM_CASING);
+        registerItemModel(WARNING_SIGN);
+        registerItemModel(WARNING_SIGN_1);
+        registerItemModel(HERMETIC_CASING);
+        registerItemModel(CLEANROOM_CASING);
+        registerItemModel(COMPUTER_CASING);
+        registerItemModel(BATTERY_BLOCK);
+        registerItemModel(LARGE_MULTIBLOCK_CASING);
+        registerItemModel(ASPHALT);
+        registerItemModel(RUBBER_LOG);
+        registerItemModel(RUBBER_LEAVES);
+        registerItemModel(RUBBER_SAPLING);
+        registerItemModel(TREE_TAP);
+        registerItemModel(PLANKS);
+        registerItemModel(LD_ITEM_PIPE);
+        registerItemModel(LD_FLUID_PIPE);
+        registerItemModel(BRITTLE_CHARCOAL);
+        registerItemModel(POWDERBARREL);
+        registerItemModel(ITNT);
+        registerItemModel(METAL_SHEET);
+        registerItemModel(LARGE_METAL_SHEET);
+        registerItemModel(STUDS);
+
+        BOILER_FIREBOX_CASING.onModelRegister();
+        WIRE_COIL.onModelRegister();
+        FUSION_CASING.onModelRegister();
+        MULTIBLOCK_CASING.onModelRegister();
+        TRANSPARENT_CASING.onModelRegister();
+        UNIQUE_CASING.onModelRegister();
+        GODFORGE_CASING.onModelRegister();
+        GODFORGE_GLASS.onModelRegister();
+
         for (MaterialRegistry registry : GregTechAPI.materialManager.getRegistries()) {
             for (BlockCable cable : CABLES.get(registry.getModid())) cable.onModelRegister();
             for (BlockHeatConductor pipe : HEAT_CONDUCTOR.get(registry.getModid())) pipe.onModelRegister();
@@ -513,32 +555,23 @@ public class MetaBlocks {
             ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(pipe),
                     stack -> LaserPipeRenderer.INSTANCE.getModelLocation());
 
-        registerItemModel(BOILER_CASING);
-        registerItemModel(METAL_CASING);
-        registerItemModel(TURBINE_CASING);
-        registerItemModel(MACHINE_CASING);
-        registerItemModel(STEAM_CASING);
-        registerItemModel(WARNING_SIGN);
-        registerItemModel(WARNING_SIGN_1);
-        registerItemModel(HERMETIC_CASING);
-        registerItemModel(CLEANROOM_CASING);
-        registerItemModel(COMPUTER_CASING);
-        registerItemModel(BATTERY_BLOCK);
-        registerItemModel(TANK_CASING);
-        GODFORGE_CASING.onModelRegister();
-        GODFORGE_GLASS.onModelRegister();
-        registerItemModel(ASPHALT);
+        for (CoilRegistry r : GregTechAPI.coilManager.getRegistries()) {
+            for (CustomCoilBlock block : r) {
+                block.onModelRegister();
+            }
+        }
+
         for (StoneVariantBlock block : STONE_BLOCKS.values())
             registerItemModel(block);
-        registerItemModel(RUBBER_LOG);
-        registerItemModel(RUBBER_LEAVES);
-        registerItemModel(RUBBER_SAPLING);
-        registerItemModel(TREE_TAP);
-        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(RUBBER_SAPLING), 0,
-                new ModelResourceLocation(Objects.requireNonNull(RUBBER_SAPLING.getRegistryName()), "inventory"));
-        registerItemModel(PLANKS);
-        registerItemModel(LD_ITEM_PIPE);
-        registerItemModel(LD_FLUID_PIPE);
+
+        for (BlockLamp lamp : LAMPS.values()) lamp.onModelRegister();
+        for (BlockLamp lamp : BORDERLESS_LAMPS.values()) lamp.onModelRegister();
+        for (BlockCompressed block : COMPRESSED_BLOCKS) block.onModelRegister();
+        for (BlockFrame block : FRAME_BLOCKS) block.onModelRegister();
+        for (BlockSheet block : SHEET_BLOCKS) block.onModelRegister();
+        for (BlockOre block : ORES) block.onModelRegister();
+
+
         registerItemModelWithOverride(WOOD_SLAB, ImmutableMap.of(BlockSlab.HALF, EnumBlockHalf.BOTTOM));
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(RUBBER_WOOD_STAIRS), 0,
                 new ModelResourceLocation(Objects.requireNonNull(RUBBER_WOOD_STAIRS.getRegistryName()), "inventory"));
@@ -554,33 +587,8 @@ public class MetaBlocks {
         ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(TREATED_WOOD_FENCE_GATE), 0,
                 new ModelResourceLocation(Objects.requireNonNull(TREATED_WOOD_FENCE_GATE.getRegistryName()),
                         "inventory"));
-        registerItemModel(BRITTLE_CHARCOAL);
-        registerItemModel(POWDERBARREL);
-        registerItemModel(ITNT);
-
-        registerItemModel(METAL_SHEET);
-        registerItemModel(LARGE_METAL_SHEET);
-        registerItemModel(STUDS);
-
-        BOILER_FIREBOX_CASING.onModelRegister();
-        WIRE_COIL.onModelRegister();
-        FUSION_CASING.onModelRegister();
-        MULTIBLOCK_CASING.onModelRegister();
-        TRANSPARENT_CASING.onModelRegister();
-
-        for (CoilRegistry r : GregTechAPI.coilManager.getRegistries()) {
-            for (CustomCoilBlock block : r) {
-                block.onModelRegister();
-            }
-        }
-
-        for (BlockLamp lamp : LAMPS.values()) lamp.onModelRegister();
-        for (BlockLamp lamp : BORDERLESS_LAMPS.values()) lamp.onModelRegister();
-
-        for (BlockCompressed block : COMPRESSED_BLOCKS) block.onModelRegister();
-        for (BlockFrame block : FRAME_BLOCKS) block.onModelRegister();
-        for (BlockSheet block : SHEET_BLOCKS) block.onModelRegister();
-        for (BlockOre block : ORES) block.onModelRegister();
+        ModelLoader.setCustomModelResourceLocation(Item.getItemFromBlock(RUBBER_SAPLING), 0,
+                new ModelResourceLocation(Objects.requireNonNull(RUBBER_SAPLING.getRegistryName()), "inventory"));
     }
 
     @SideOnly(Side.CLIENT)

@@ -4,8 +4,11 @@ import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.modules.ModuleContainerRegistryEvent;
 import gregtech.api.persistence.PersistentData;
+import gregtech.client.renderer.texture.GCYMTextures;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.common.ConfigHolder;
+import gregtech.common.Difficulty;
+import gregtech.loaders.recipe.handlers.GCYMMaterialRecipeHandler;
 import gregtech.modules.GregTechModules;
 import gregtech.modules.ModuleManager;
 
@@ -27,15 +30,8 @@ import net.minecraftforge.fml.common.event.FMLServerStartingEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppedEvent;
 import net.minecraftforge.fml.common.event.FMLServerStoppingEvent;
 
-import gregtech.common.Difficulty;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-
-import gregtech.api.util.GCYMLog;
-import gregtech.client.renderer.texture.GCYMTextures;
-import gregtech.common.blocks.GCYMMetaBlocks;
-import gregtech.common.metatileentities.GCYMMetaTileEntities;
-import gregtech.loaders.recipe.handlers.GCYMMaterialRecipeHandler;
 
 import static gregtech.common.Difficulty.fromLevel;
 
@@ -81,11 +77,6 @@ public class GregTechMod {
     public void preInit(FMLPreInitializationEvent event) {
         moduleManager.onPreInit(event);
 
-        // GCYM (Gregicality Multiblocks) initialization
-        // Must be called after module preInit, which sets up mteManager and material registries
-        GCYMLog.init(LOGGER);
-        GCYMMetaBlocks.init();
-        GCYMMetaTileEntities.init();
         if (FMLCommonHandler.instance().getSide().isClient()) {
             GCYMTextures.preInit();
         }

@@ -129,7 +129,7 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
     }
 
     @Override
-    protected @NotNull StructureDefinition createStructureDefinition() {
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

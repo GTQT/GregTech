@@ -109,7 +109,7 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
 
     @NotNull
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITIONS[tier];
     }
 

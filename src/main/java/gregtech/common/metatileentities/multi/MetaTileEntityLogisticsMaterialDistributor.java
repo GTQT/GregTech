@@ -10,6 +10,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.unification.material.Materials;
@@ -48,20 +49,21 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
     List<IFluidTank> outputFluidTanks;
     List<IItemHandlerModifiable> outputItemHandlers;
 
-
     public MetaTileEntityLogisticsMaterialDistributor(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
     }
+
     protected IMultipleTankHandler getInputTank(IItemHandler items) {
         List<IMultipleTankHandler.ITankEntry> tanks = new ArrayList<>();
         if (items instanceof IMultipleTankHandler tankHandler) {
             tanks.addAll(tankHandler.getFluidTanks());
         }
-        return new FluidTankList(false,tanks);
+        return new FluidTankList(false, tanks);
     }
+
     @Override
     protected void updateFormedValid() {
-        if(!isStructureFormed()) return;
+        if (!isStructureFormed()) return;
 
         // 处理物品转移
         if (inputInventory != null) {
@@ -87,11 +89,12 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
                 IMultipleTankHandler.ITankEntry inputTank = inputFluidInventory.getTankAt(i);
                 FluidStack sourceStack = inputTank.getFluid();
 
-                if (sourceStack != null && sourceStack.getFluid()!=null && i < outputFluidTanks.size()) {
+                if (sourceStack != null && sourceStack.getFluid() != null && i < outputFluidTanks.size()) {
                     IFluidTank outputTank = outputFluidTanks.get(i);
 
                     // 计算可以转移的流体量
-                    int amountToTransfer = Math.min(sourceStack.amount, outputTank.getCapacity() - outputTank.getFluidAmount());
+                    int amountToTransfer = Math.min(sourceStack.amount,
+                            outputTank.getCapacity() - outputTank.getFluidAmount());
 
                     if (amountToTransfer > 0) {
                         // 创建要转移的流体栈
@@ -110,8 +113,6 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
         }
     }
 
-
-
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         formStructureWithDisplay(formed);
@@ -126,7 +127,7 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
         }
 
         this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        if(inputFluidInventory==null)
+        if (inputFluidInventory == null)
             this.inputFluidInventory = new FluidTankList(false, getAbilities(MultiblockAbility.IMPORT_FLUIDS));
     }
 
@@ -143,15 +144,16 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
     }
 
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                 .piece("header")
-                    .aisle("ISI", "OEO")
-                    .aisle("XXX", "OEO")
-                    .aisle("XXX", "OEO")
-                    .aisle("XXX", "OEO")
+                .aisle("ISI", "OEO")
+                .aisle("XXX", "OEO")
+                .aisle("XXX", "OEO")
+                .aisle("XXX", "OEO")
                 .repeatablePiece("body", 0, 12)
-                    .aisle(" F ", "XEX")
+                .aisle(" F ", "XEX")
+                .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
                 .self('S', MetaTileEntityLogisticsMaterialDistributor.class)
                 .where('I', Elements.chain(
                         Elements.block(getCasingState()),
@@ -202,6 +204,7 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
-        getFrontOverlay().renderOrientedState(renderState, translation, pipeline, getFrontFacing(), this.isActive(), false);
+        getFrontOverlay().renderOrientedState(renderState, translation, pipeline, getFrontFacing(), this.isActive(),
+                false);
     }
 }

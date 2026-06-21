@@ -101,7 +101,7 @@ gregtech.top.energy_consumption=Using
 gregtech.top.energy_production=Producing
 gregtech.top.energy_required=Requires
 gregtech.top.parallel=Parallel
-gregtech.top.tread=Tread
+gregtech.top.thread=Thread
 gregtech.top.batch=Batch Enabled
 
 gregtech.top.batch_enable=Batch Mode On
@@ -237,6 +237,43 @@ gregtech.multiblock.primitive_water_pump.extra1=Biome Coefficient:/n  Ocean, Riv
 gregtech.multiblock.primitive_water_pump.extra2=Hatch Multipliers:/n  Pump Hatch: 1x/n  ULV Output Hatch: 2x/n  LV Output Hatch: 4x/n/nWhile raining in the Pump's Biome, the total water production will be increased by 50%%.
 gregtech.multiblock.processing_array.description=The Processing Array combines up to 16 single block machine(s) in a single multiblock, effectively easing automation.
 gregtech.multiblock.advanced_processing_array.description=The Processing Array combines up to 64 single block machine(s) in a single multiblock, effectively easing automation.
+gregtech.multiblock.large_macerator.description=A multiblock Macerator for grinding.
+gregtech.multiblock.alloy_blast_smelter.description=A Blast Furnace built for creating alloys in high volumes.
+gregtech.multiblock.large_arc_furnace.description=A multiblock Arc Furnace for recycling.
+gregtech.multiblock.large_assembler.description=A multiblock Assembling Machine for putting things together.
+gregtech.multiblock.large_autoclave.description=A multiblock Autoclave for pressurizing things.
+gregtech.multiblock.large_bender.description=A multiblock Bending Machine, Compressor, Forming Press and Forge Hammer for forming materials.
+gregtech.multiblock.large_brewer.description=A multiblock Brewing Machine and Fermenter for producing brews.
+gregtech.multiblock.large_centrifuge.description=A multiblock Centrifuge and Thermal Centrifuge for separating materials.
+gregtech.multiblock.large_chemical_bath.description=A multiblock Chemical Bath and Ore Washing Plant for cleaning materials.
+gregtech.multiblock.chemical_plant.description=A Chemical Plant for advanced chemistry.
+gregtech.multiblock.large_extractor.description=A multiblock Extractor and Canning Machine for transferring materials.
+gregtech.multiblock.large_cutter.description=A multiblock Cutting Machine and Lathe for cutting things into smaller pieces.
+gregtech.multiblock.large_distillery.description=A multiblock Distillery and Distillation Tower for separating fluids into fractions.
+gregtech.multiblock.large_electrolyzer.description=A multiblock Electrolyzer for separating molecules.
+gregtech.multiblock.large_polarizer.description=A multiblock Polarizer and Electromagnetic Separator for magnetizing materials.
+gregtech.multiblock.large_extruder.description=A multiblock Extruder for shaping materials.
+gregtech.multiblock.large_solidifier.description=A multiblock Fluid Solidifier for casting materials.
+gregtech.multiblock.large_mixer.description=A multiblock Mixer for blending materials.
+gregtech.multiblock.large_packager.description=A multiblock Packager for boxinating items.
+gregtech.multiblock.large_engraver.description=A multiblock Laser Engraver for etching objects.
+gregtech.multiblock.large_sifter.description=A multiblock Sifting Machine for filtering materials.
+gregtech.multiblock.large_wiremill.description=A multiblock Wiremill for producing wires.
+gregtech.multiblock.electric_implosion_compressor.description=An electric version of the implosion compressor for extreme compression.
+gregtech.multiblock.large_mass_fabricator.description=A multiblock Mass Fabricator for turning matter into elementary particles.
+gregtech.multiblock.large_replicator.description=A multiblock Replicator for turning elementary particles into materials.
+gregtech.multiblock.mega_blast_furnace.description=A massive Electric Blast Furnace for extreme volume smelting.
+gregtech.multiblock.mega_vacuum_freezer.description=A massive Vacuum Freezer for extreme volume cooling.
+gregtech.multiblock.steam_engine.description=A large Steam Engine for effective power production.
+gregtech.multiblock.large_circuit_assembler.description=A multiblock Circuit Assembler for fabricating circuits.
+gregtech.multiblock.large_chemical_complex.description=A multiblock chemical reactors for a variety of chemical reactions
+gregtech.multiblock.large_pyrolyser.description=A multiblock pyrolyser for batch pyrolysis wood
+gregtech.multiblock.large_thermal_centrifuge.description=A multiblock Thermal Centrifuge for separating ore into dust.
+gregtech.multiblock.large_sonicator.description=A multiblock sonicator for sonicating things.
+gregtech.multiblock.large_desulfurizer.description=A multiblock Desulfurization Reactor for removing sulfur.
+gregtech.multiblock.large_polymerization.description=A multiblock Polymerization Reactor for polymerization reactions.
+gregtech.multiblock.large_rock_breaker.description=A multiblock Rock Breaker for breaking rocks.
+gregtech.multiblock.large_gas_collector.description=A multiblock Gas Collector for collecting gases.
 
 item.invalid.name=Invalid item
 fluid.empty=Empty
@@ -2524,6 +2561,25 @@ gregtech.material.high_pressure_exhaust_gas=High Pressure Exhaust Gas
 gregtech.material.supercritical_exhaust_gas=Supercritical Exhaust Gas
 gregtech.material.low_temperature_exhaust_gas=Low Temperature Exhaust Gas
 
+gregtech.material.stellite=Stellite
+gregtech.material.watertight_steel=Watertight Steel
+gregtech.material.maraging_steel_250=Maraging Steel 250
+gregtech.material.maraging_steel_300=Maraging Steel 300
+gregtech.material.maraging_steel_350=Maraging Steel 350
+gregtech.material.hastelloy_c_276=Hastelloy-C276
+gregtech.material.hastelloy_x=Hastelloy-X
+gregtech.material.hastelloy_n=Hastelloy-N
+gregtech.material.hastelloy_w=Hastelloy-W
+gregtech.material.trinaquadalloy=Trinaquadalloy
+gregtech.material.zeron_100=Zeron-100
+gregtech.material.titanium_carbide=Titanium Carbide
+gregtech.material.tantalum_carbide=Tantalum Carbide
+gregtech.material.molybdenum_disilicide=Molybdenum Disilicide
+
+gregtech.material.hsla_steel=HSLA Steel
+gregtech.material.titanium_tungsten_carbide=Titanium Tungsten Carbide
+gregtech.material.incoloy_ma_956=Incoloy-MA956
+
 # Third Degree Materials
 gregtech.material.electrotine=Electrotine
 gregtech.material.ender_eye=Endereye
@@ -2810,6 +2866,7 @@ recipemap.godforge_molten.name=Godforge Melting
 recipemap.godforge_plasma.name=Godforge Plasma
 recipemap.godforge_exotic.name=Godforge Exotic Matter
 recipemap.godforge_upgrade_costs.name=Godforge Upgrade Costs
+recipemap.alloy_blast_smelter.name=Alloy Blast Smelting
 
 gregtech.recipe.category.arc_furnace_recycling=Arc Furnace Recycling
 gregtech.recipe.category.macerator_recycling=Macerator Recycling
@@ -3272,6 +3329,30 @@ tile.battery_block.chronos_uxv.name=Tachyon Capacitor (§eUXV§r)
 tile.battery_block.cosmic_opv.name=Cosmic String Capacitor (§aOpV§r)
 tile.battery_block.ultimate_max.name=Genesis Capacitor (§c§lMAX§r)
 tile.battery_block.tooltip_empty=Used to fill structural gaps in your Power Substation
+
+# unique casing
+tile.unique_casing.crushing_wheels.name=Crushing Wheels
+tile.unique_casing.slicing_blades.name=Slicing Blades
+tile.unique_casing.electrolytic_cell.name=Electrolytic Cell
+tile.unique_casing.heat_vent.name=Heat Vent
+tile.unique_casing.molybdenum_disilicide_coil.name=Molybdenum Disilicide Coil Block
+
+# large multiblock casing
+tile.large_multiblock_casing.macerator_casing.name=Secure Maceration Casing
+tile.large_multiblock_casing.blast_casing.name=High Temperature Smelting Casing
+tile.large_multiblock_casing.assembler_casing.name=Large-Scale Assembler Casing
+tile.large_multiblock_casing.stress_proof_casing.name=Stress Proof Casing
+tile.large_multiblock_casing.corrosion_proof_casing.name=Corrosion Proof Casing
+tile.large_multiblock_casing.vibration_safe_casing.name=Vibration-Safe Casing
+tile.large_multiblock_casing.watertight_casing.name=Watertight Casing
+tile.large_multiblock_casing.cutter_casing.name=Shock Proof Cutting Casing
+tile.large_multiblock_casing.nonconducting_casing.name=Nonconducting Casing
+tile.large_multiblock_casing.mixer_casing.name=Reaction-Safe Mixing Casing
+tile.large_multiblock_casing.thermal_processing_casing.name=Thermal Processing Casing
+tile.large_multiblock_casing.engraver_casing.name=Laser-Safe Engraving Casing
+tile.large_multiblock_casing.atomic_casing.name=Atomic Casing
+tile.large_multiblock_casing.naquadah_reinforced_casing.name=Naquadah Reinforced Casing
+tile.large_multiblock_casing.steam_casing.name=Industrial Steam Casing
 
 # Forge of the Gods Casings
 tile.godforge_casing.singularity_reinforced_stellar_shielding.name=Singularity Reinforced Stellar Shielding Casing
@@ -4772,11 +4853,12 @@ gregtech.machine.creative_input_bus.name=Creative Input Bus
 gregtech.machine.creative_input_bus.tooltip=Supplies configured template items infinitely to multiblock recipes.
 gregtech.machine.creative_input_hatch.name=Creative Input Hatch
 gregtech.machine.creative_input_hatch.tooltip=Supplies the configured template fluid infinitely to multiblock recipes.
+gregtech.machine.creative_parallel_hatch.name=创造模式并行控制仓
 gregtech.creative_tooltip.1=§7You just need
 gregtech.creative_tooltip.2= Creative Mode
 gregtech.creative_tooltip.3=§7 to use this
 
-
+gregtech.tooltip.max_energy_hatches=Energy Hatch Limit: §c%d
 # Machine hulls
 gregtech.machine.hull.tooltip=§7You just need §5I§dm§4a§cg§ei§an§ba§3t§7i§1o§5n§7 to use this
 
@@ -5653,6 +5735,25 @@ gregtech.tooltip.perfect_oc_available=-Perfect OC support：
 gregtech.machine.perfect_oc=Does not lose energy efficiency when overclocked.
 gregtech.machine.parallel_limit=Can run up to §b%d§r§7 Recipes at once.
 
+gregtech.tooltip.ctrl=Hold CTRL to show detailed recipe logic
+gregtech.tooltip.shift=Hold SHIFT to show detailed recipe logic
+
+gregtech.tooltip.parallel_avaliable=-Parallel Support:
+gregtech.tooltip.parallel_enabled=Can process in parallel via §bParallel Control Hatch§7.
+tile.gregtech.parallel.tooltip.1=Actual parallel count N = min(hatch limit, floor(input power Pm / base recipe power P0)), total base power PTB = N * P0.
+tile.gregtech.parallel.tooltip.2=If due to hatch limit, 4n < Pm/PTB < 4n+1 (n positive integer), then additionally overclock n times.
+tile.gregtech.parallel.tooltip.3=Note: When recipe voltage equals the multiblock's voltage, the Parallel Control Hatch is disabled, forcing only one recipe per operation.
+
+gregtech.tooltip.thread_avaliable=-Multithreading Support:
+gregtech.tooltip.thread_enabled=Can process with multithreading via §bThread Control Hatch§7.
+tile.gregtech.thread.tooltip.1=This device creates a number of cores based on the thread count in the thread hatch.
+tile.gregtech.thread.tooltip.2=Each thread hatch has independent working logic, recipe lookup, recipe contents, time, and energy consumption.
+tile.gregtech.thread.tooltip.3=With a parallel hatch, each thread hatch has the same number of parallels and benefits from time reduction.
+
+gregtech.tooltip.tiered_avaliable=-Control Unit System:
+gregtech.tooltip.tiered_hatch_enabled=Requires §bControl Unit§7 to operate.
+tile.gregtech.tiered.tooltip.1=The machine can only run recipes with a voltage tier no higher than that of the Control Unit.
+
 gregtech.multiblock.parallel_mode=-Multiblock Parallel Mode:
 gregtech.multiblock.parallel_mode.multiply=Single Recipe Parallel - Expands a single recipe by multiples, processing multiple identical recipes simultaneously
 gregtech.multiblock.parallel_mode.append_items=Item Multi-Recipe Parallel - Allows running multiple different recipes simultaneously, discovering recipes only from item inputs
@@ -6120,6 +6221,48 @@ metaitem.cover.digital.mode.fluid.enabled=Fluid Mode enabled
 
 gregtech.machine.monitor_screen.name=Monitor Screen
 
+gregtech.machine.large_macerator.name=Large Maceration Tower
+gregtech.machine.alloy_blast_smelter.name=Alloy Blast Smelter
+gregtech.machine.large_arc_furnace.name=Large Arc Smelter
+gregtech.machine.large_assembler.name=Large Assembling Factory
+gregtech.machine.large_autoclave.name=Large Autoclave Chamber
+gregtech.machine.large_bender.name=Large Material Press
+gregtech.machine.large_brewer.name=Large Brewing Vat
+gregtech.machine.large_centrifuge.name=Large Centrifuge Unit
+gregtech.machine.large_chemical_bath.name=Large Chemical Bath
+gregtech.machine.chemical_plant.name=Chemical Plant
+gregtech.machine.chemical_plant.tooltip.1=Only runs Large Chemical Recipes in parallel
+gregtech.machine.large_extractor.name=Large Extracting Machine
+gregtech.machine.large_cutter.name=Large Cutting Machine
+gregtech.machine.large_distillery.name=Large Fractionating Distillery
+gregtech.machine.large_electrolyzer.name=Large Electrolysis Plant
+gregtech.machine.large_polarizer.name=Large Electromagnet
+gregtech.machine.large_extruder.name=Large Extrusion Machine
+gregtech.machine.large_solidifier.name=Large Solidification Array
+gregtech.machine.large_mixer.name=Large Mixing Vessel
+gregtech.machine.large_packager.name=Large Packaging Machine
+gregtech.machine.large_engraver.name=Large Engraving Machine
+gregtech.machine.large_sifter.name=Large Sifting Funnel
+gregtech.machine.large_wiremill.name=Large Wire Factory
+gregtech.machine.electric_implosion_compressor.name=Electric Implosion Compressor
+gregtech.machine.large_mass_fabricator.name=Large Mass Fabrication Chamber
+gregtech.machine.large_replicator.name=Large Replication Chamber
+gregtech.machine.mega_blast_furnace.name=Rotary Hearth Furnace
+gregtech.machine.mega_vacuum_freezer.name=Bulk Blast Chiller
+gregtech.machine.mega_alloy_blast_smelter.name=Alloy Blast Smelter
+gregtech.machine.mega_chemical_reactor.name=Mega Chemical Reactor
+gregtech.machine.mega_cracking_unit.name=Mega Cracking Unit
+gregtech.machine.steam_engine.name=Industrial Steam Engine
+gregtech.machine.steam_engine.tooltip.1=Produces up to %s§7 power.
+gregtech.machine.large_circuit_assembler.name=Large Circuit Assembler
+gregtech.machine.large_chemical_complex.name=Large Chemical Complex
+gregtech.machine.large_pyrolyser.name=Large Pyrolyser
+gregtech.machine.large_thermal_centrifuge.name=Large Thermal Centrifuge
+gregtech.machine.large_sonicator.name=Large Sonication Chamber
+gregtech.machine.large_desulfurizer.name=Large Desulfurization Reactor
+gregtech.machine.large_polymerization.name=Large Polymerization Reactor
+gregtech.machine.large_rock_breaker.name=Large Rock Breaker
+gregtech.machine.large_gas_collector.name=Large Gas Collector
 
 # Multiblock Tooltips
 gregtech.machine.primitive_water_pump.tooltip=Endervoir at Home
@@ -6387,6 +6530,38 @@ gregtech.machine.energy_hatch.input_16a.uxv.name=UXV 16A Energy Hatch
 gregtech.machine.energy_hatch.input_16a.opv.name=OpV 16A Energy Hatch
 gregtech.machine.energy_hatch.input_16a.max.name=MAX 16A Energy Hatch
 
+gregtech.machine.energy_hatch.input_64a.ulv.name=64A Energy Hatch (§8ULV§r)
+gregtech.machine.energy_hatch.input_64a.lv.name=64A Energy Hatch (§7LV§r)
+gregtech.machine.energy_hatch.input_64a.mv.name=64A Energy Hatch (§bMV§r)
+gregtech.machine.energy_hatch.input_64a.hv.name=64A Energy Hatch (§6HV§r)
+gregtech.machine.energy_hatch.input_64a.ev.name=64A Energy Hatch (§5EV§r)
+gregtech.machine.energy_hatch.input_64a.iv.name=64A Energy Hatch (§1IV§r)
+gregtech.machine.energy_hatch.input_64a.luv.name=64A Energy Hatch (§dLuV§r)
+gregtech.machine.energy_hatch.input_64a.zpm.name=64A Energy Hatch (§cZPM§r)
+gregtech.machine.energy_hatch.input_64a.uv.name=64A Energy Hatch (§3UV§r)
+gregtech.machine.energy_hatch.input_64a.uhv.name=64A Energy Hatch (§4UHV§r)
+gregtech.machine.energy_hatch.input_64a.uev.name=64A Energy Hatch (§aUEV§r)
+gregtech.machine.energy_hatch.input_64a.uiv.name=64A Energy Hatch (§2UIV§r)
+gregtech.machine.energy_hatch.input_64a.uxv.name=64A Energy Hatch (§eUXV§r)
+gregtech.machine.energy_hatch.input_64a.opv.name=64A Energy Hatch (§9OpV§r)
+gregtech.machine.energy_hatch.input_64a.max.name=64A Energy Hatch (§c§lMAX§r)
+
+gregtech.machine.energy_hatch.input_256a.ulv.name=256A Energy Hatch (§8ULV§r)
+gregtech.machine.energy_hatch.input_256a.lv.name=256A Energy Hatch (§7LV§r)
+gregtech.machine.energy_hatch.input_256a.mv.name=256A Energy Hatch (§bMV§r)
+gregtech.machine.energy_hatch.input_256a.hv.name=256A Energy Hatch (§6HV§r)
+gregtech.machine.energy_hatch.input_256a.ev.name=256A Energy Hatch (§5EV§r)
+gregtech.machine.energy_hatch.input_256a.iv.name=256A Energy Hatch (§1IV§r)
+gregtech.machine.energy_hatch.input_256a.luv.name=256A Energy Hatch (§dLuV§r)
+gregtech.machine.energy_hatch.input_256a.zpm.name=256A Energy Hatch (§cZPM§r)
+gregtech.machine.energy_hatch.input_256a.uv.name=256A Energy Hatch (§3UV§r)
+gregtech.machine.energy_hatch.input_256a.uhv.name=256A Energy Hatch (§4UHV§r)
+gregtech.machine.energy_hatch.input_256a.uev.name=256A Energy Hatch (§aUEV§r)
+gregtech.machine.energy_hatch.input_256a.uiv.name=256A Energy Hatch (§2UIV§r)
+gregtech.machine.energy_hatch.input_256a.uxv.name=256A Energy Hatch (§eUXV§r)
+gregtech.machine.energy_hatch.input_256a.opv.name=256A Energy Hatch (§9OpV§r)
+gregtech.machine.energy_hatch.input_256a.max.name=256A Energy Hatch (§c§lMAX§r)
+
 gregtech.machine.substation_hatch.input.tooltip=Energy Input for the Power Substation
 
 gregtech.machine.substation_hatch.input_64a.ulv.name=ULV 64A Substation Energy Hatch
@@ -6404,6 +6579,23 @@ gregtech.machine.substation_hatch.input_64a.uiv.name=UIV 64A Substation Energy H
 gregtech.machine.substation_hatch.input_64a.uxv.name=UXV 64A Substation Energy Hatch
 gregtech.machine.substation_hatch.input_64a.opv.name=OpV 64A Substation Energy Hatch
 gregtech.machine.substation_hatch.input_64a.max.name=MAX 64A Substation Energy Hatch
+
+gregtech.machine.substation_hatch.input_256a.ulv.name=256A Substation Energy Hatch (§8ULV§r)
+gregtech.machine.substation_hatch.input_256a.lv.name=256A Substation Energy Hatch (§7LV§r)
+gregtech.machine.substation_hatch.input_256a.mv.name=256A Substation Energy Hatch (§bMV§r)
+gregtech.machine.substation_hatch.input_256a.hv.name=256A Substation Energy Hatch (§6HV§r)
+gregtech.machine.substation_hatch.input_256a.ev.name=256A Substation Energy Hatch (§5EV§r)
+gregtech.machine.substation_hatch.input_256a.iv.name=256A Substation Energy Hatch (§1IV§r)
+gregtech.machine.substation_hatch.input_256a.luv.name=256A Substation Energy Hatch (§dLuV§r)
+gregtech.machine.substation_hatch.input_256a.zpm.name=256A Substation Energy Hatch (§cZPM§r)
+gregtech.machine.substation_hatch.input_256a.uv.name=256A Substation Energy Hatch (§3UV§r)
+gregtech.machine.substation_hatch.input_256a.uhv.name=256A Substation Energy Hatch (§4UHV§r)
+gregtech.machine.substation_hatch.input_256a.uev.name=256A Substation Energy Hatch (§aUEV§r)
+gregtech.machine.substation_hatch.input_256a.uiv.name=256A Substation Energy Hatch (§2UIV§r)
+gregtech.machine.substation_hatch.input_256a.uxv.name=256A Substation Energy Hatch (§eUXV§r)
+gregtech.machine.substation_hatch.input_256a.opv.name=256A Substation Energy Hatch (§9OpV§r)
+gregtech.machine.substation_hatch.input_256a.max.name=256A Substation Energy Hatch (§c§lMAX§r)
+
 
 gregtech.machine.energy_hatch.output.tooltip=Energy Output for Multiblocks
 
@@ -6457,6 +6649,38 @@ gregtech.machine.energy_hatch.output_16a.uxv.name=UXV 16A Dynamo Hatch
 gregtech.machine.energy_hatch.output_16a.opv.name=OpV 16A Dynamo Hatch
 gregtech.machine.energy_hatch.output_16a.max.name=MAX 16A Dynamo Hatch
 
+gregtech.machine.energy_hatch.output_64a.ulv.name=64A Dynamo Hatch (§8ULV§r)
+gregtech.machine.energy_hatch.output_64a.lv.name=64A Dynamo Hatch (§7LV§r)
+gregtech.machine.energy_hatch.output_64a.mv.name=64A Dynamo Hatch (§bMV§r)
+gregtech.machine.energy_hatch.output_64a.hv.name=64A Dynamo Hatch (§6HV§r)
+gregtech.machine.energy_hatch.output_64a.ev.name=64A Dynamo Hatch (§5EV§r)
+gregtech.machine.energy_hatch.output_64a.iv.name=64A Dynamo Hatch (§1IV§r)
+gregtech.machine.energy_hatch.output_64a.luv.name=64A Dynamo Hatch (§dLuV§r)
+gregtech.machine.energy_hatch.output_64a.zpm.name=64A Dynamo Hatch (§cZPM§r)
+gregtech.machine.energy_hatch.output_64a.uv.name=64A Dynamo Hatch (§3UV§r)
+gregtech.machine.energy_hatch.output_64a.uhv.name=64A Dynamo Hatch (§4UHV§r)
+gregtech.machine.energy_hatch.output_64a.uev.name=64A Dynamo Hatch (§aUEV§r)
+gregtech.machine.energy_hatch.output_64a.uiv.name=64A Dynamo Hatch (§2UIV§r)
+gregtech.machine.energy_hatch.output_64a.uxv.name=64A Dynamo Hatch (§eUXV§r)
+gregtech.machine.energy_hatch.output_64a.opv.name=64A Dynamo Hatch (§9OpV§r)
+gregtech.machine.energy_hatch.output_64a.max.name=64A Dynamo Hatch (§c§lMAX§r)
+
+gregtech.machine.energy_hatch.output_256a.ulv.name=256A Dynamo Hatch (§8ULV§r)
+gregtech.machine.energy_hatch.output_256a.lv.name=256A Dynamo Hatch (§7LV§r)
+gregtech.machine.energy_hatch.output_256a.mv.name=256A Dynamo Hatch (§bMV§r)
+gregtech.machine.energy_hatch.output_256a.hv.name=256A Dynamo Hatch (§6HV§r)
+gregtech.machine.energy_hatch.output_256a.ev.name=256A Dynamo Hatch (§5EV§r)
+gregtech.machine.energy_hatch.output_256a.iv.name=256A Dynamo Hatch (§1IV§r)
+gregtech.machine.energy_hatch.output_256a.luv.name=256A Dynamo Hatch (§dLuV§r)
+gregtech.machine.energy_hatch.output_256a.zpm.name=256A Dynamo Hatch (§cZPM§r)
+gregtech.machine.energy_hatch.output_256a.uv.name=256A Dynamo Hatch (§3UV§r)
+gregtech.machine.energy_hatch.output_256a.uhv.name=256A Dynamo Hatch (§4UHV§r)
+gregtech.machine.energy_hatch.output_256a.uev.name=256A Dynamo Hatch (§aUEV§r)
+gregtech.machine.energy_hatch.output_256a.uiv.name=256A Dynamo Hatch (§2UIV§r)
+gregtech.machine.energy_hatch.output_256a.uxv.name=256A Dynamo Hatch (§eUXV§r)
+gregtech.machine.energy_hatch.output_256a.opv.name=256A Dynamo Hatch (§9OpV§r)
+gregtech.machine.energy_hatch.output_256a.max.name=256A Dynamo Hatch (§c§lMAX§r)
+
 gregtech.machine.substation_hatch.output.tooltip=Energy Output for the Power Substation
 
 gregtech.machine.substation_hatch.output_64a.ulv.name=ULV 64A Substation Dynamo Hatch
@@ -6474,6 +6698,400 @@ gregtech.machine.substation_hatch.output_64a.uiv.name=UIV 64A Substation Dynamo 
 gregtech.machine.substation_hatch.output_64a.uxv.name=UXV 64A Substation Dynamo Hatch
 gregtech.machine.substation_hatch.output_64a.opv.name=OpV 64A Substation Dynamo Hatch
 gregtech.machine.substation_hatch.output_64a.max.name=MAX 64A Substation Dynamo Hatch
+
+gregtech.machine.substation_hatch.output_256a.ulv.name=256A Substation Dynamo Hatch (§8ULV§r)
+gregtech.machine.substation_hatch.output_256a.lv.name=256A Substation Dynamo Hatch (§7LV§r)
+gregtech.machine.substation_hatch.output_256a.mv.name=256A Substation Dynamo Hatch (§bMV§r)
+gregtech.machine.substation_hatch.output_256a.hv.name=256A Substation Dynamo Hatch (§6HV§r)
+gregtech.machine.substation_hatch.output_256a.ev.name=256A Substation Dynamo Hatch (§5EV§r)
+gregtech.machine.substation_hatch.output_256a.iv.name=256A Substation Dynamo Hatch (§1IV§r)
+gregtech.machine.substation_hatch.output_256a.luv.name=256A Substation Dynamo Hatch (§dLuV§r)
+gregtech.machine.substation_hatch.output_256a.zpm.name=256A Substation Dynamo Hatch (§cZPM§r)
+gregtech.machine.substation_hatch.output_256a.uv.name=256A Substation Dynamo Hatch (§3UV§r)
+gregtech.machine.substation_hatch.output_256a.uhv.name=256A Substation Dynamo Hatch (§4UHV§r)
+gregtech.machine.substation_hatch.output_256a.uev.name=256A Substation Dynamo Hatch (§aUEV§r)
+gregtech.machine.substation_hatch.output_256a.uiv.name=256A Substation Dynamo Hatch (§2UIV§r)
+gregtech.machine.substation_hatch.output_256a.uxv.name=256A Substation Dynamo Hatch (§eUXV§r)
+gregtech.machine.substation_hatch.output_256a.opv.name=256A Substation Dynamo Hatch (§9OpV§r)
+gregtech.machine.substation_hatch.output_256a.max.name=256A Substation Dynamo Hatch (§c§lMAX§r)
+
+gregtech.machine.wireless_controller.ulv.name=Wireless Controller（§8ULV§r）
+gregtech.machine.wireless_controller.lv.name=Wireless Controller（§7LV§r）
+gregtech.machine.wireless_controller.mv.name=Wireless Controller（§bMV§r）
+gregtech.machine.wireless_controller.hv.name=Wireless Controller（§6HV§r）
+gregtech.machine.wireless_controller.ev.name=Wireless Controller（§5EV§r）
+gregtech.machine.wireless_controller.iv.name=Wireless Controller（§1IV§r）
+gregtech.machine.wireless_controller.luv.name=Wireless Controller（§dLuV§r）
+gregtech.machine.wireless_controller.zpm.name=Wireless Controller（§cZPM§r）
+gregtech.machine.wireless_controller.uv.name=Wireless Controller（§3UV§r）
+gregtech.machine.wireless_controller.uhv.name=Wireless Controller（§4UHV§r）
+gregtech.machine.wireless_controller.uev.name=Wireless Controller（§aUEV§r）
+gregtech.machine.wireless_controller.uiv.name=Wireless Controller（§2UIV§r）
+gregtech.machine.wireless_controller.uxv.name=Wireless Controller（§eUXV§r）
+gregtech.machine.wireless_controller.opv.name=Wireless Controller（§9OpV§r）
+gregtech.machine.wireless_controller.max.name=Wireless Controller（§c§lMAX§r）
+gregtech.machine.wireless_energy_hatch.tooltip.1=Stores energy in wireless network, capacity up to 2^(2^31) EU.
+gregtech.machine.wireless_energy_hatch.tooltip.2=No cables needed, automatically interacts with network to draw/store energy.
+gregtech.machine.wireless_energy_hatch.tooltip.shift=Select channel in UI, each channel operates independently.
+
+gregtech.machine.wireless_energy_hatch.input.ulv.name=Wireless Energy Storage (ulv)
+gregtech.machine.wireless_energy_hatch.input.lv.name=Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input.mv.name=Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input.hv.name=Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input.ev.name=Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input.iv.name=Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input.luv.name=Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input.zpm.name=Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input.uv.name=Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input.uhv.name=Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input.uev.name=Wireless Energy Storage (§4UEV§r)
+gregtech.machine.wireless_energy_hatch.input.uiv.name=Wireless Energy Storage (§4UIV§r)
+gregtech.machine.wireless_energy_hatch.input.uxv.name=Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input.opv.name=Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input.max.name=Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output.ulv.name=Wireless Power Storage (ulv)
+gregtech.machine.wireless_energy_hatch.output.lv.name=Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output.mv.name=Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output.hv.name=Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output.ev.name=Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output.iv.name=Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output.luv.name=Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output.zpm.name=Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output.uv.name=Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output.uhv.name=Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output.uev.name=Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output.uiv.name=Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output.uxv.name=Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output.opv.name=Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output.max.name=Wireless Power Storage (§c§lMAX§r)
+
+# Input and Output for 4A
+gregtech.machine.wireless_energy_hatch.input_4a.ulv.name=4A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.lv.name=4A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.mv.name=4A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.hv.name=4A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.ev.name=4A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.iv.name=4A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.luv.name=4A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.zpm.name=4A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_4a.uv.name=4A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.uhv.name=4A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.uev.name=4A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.uiv.name=4A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.uxv.name=4A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.opv.name=4A Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input_4a.max.name=4A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_4a.ulv.name=4A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.lv.name=4A Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.mv.name=4A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.hv.name=4A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.ev.name=4A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.iv.name=4A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.luv.name=4A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.zpm.name=4A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_4a.uv.name=4A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.uhv.name=4A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.uev.name=4A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.uiv.name=4A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.uxv.name=4A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.opv.name=4A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_4a.max.name=4A Wireless Power Storage (§c§lMAX§r)
+
+# Input and Output for 16A
+gregtech.machine.wireless_energy_hatch.input_16a.ulv.name=16A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.lv.name=16A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.mv.name=16A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.hv.name=16A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.ev.name=16A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.iv.name=16A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.luv.name=16A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.zpm.name=16A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_16a.uv.name=16A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.uhv.name=16A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.uev.name=16A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.uiv.name=16A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.uxv.name=16A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.opv.name=16A Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input_16a.max.name=16A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_16a.ulv.name=16A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.lv.name=16A Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.mv.name=16A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.hv.name=16A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.ev.name=16A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.iv.name=16A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.luv.name=16A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.zpm.name=16A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_16a.uv.name=16A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.uhv.name=16A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.uev.name=16A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.uiv.name=16A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.uxv.name=16A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.opv.name=16A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_16a.max.name=16A Wireless Power Storage (§c§lMAX§r)
+
+# Input and Output for 64A
+gregtech.machine.wireless_energy_hatch.input_64a.ulv.name=64A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.lv.name=64A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.mv.name=64A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.hv.name=64A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.ev.name=64A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.iv.name=64A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.luv.name=64A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.zpm.name=64A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_64a.uv.name=64A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.uhv.name=64A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.uev.name=64A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.uiv.name=64A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.uxv.name=64A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.opv.name=64A Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input_64a.max.name=64A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_64a.ulv.name=64A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.lv.name=64A Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.mv.name=64A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.hv.name=64A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.ev.name=64A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.iv.name=64A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.luv.name=64A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.zpm.name=64A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_64a.uv.name=64A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.uhv.name=64A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.uev.name=64A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.uiv.name=64A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.uxv.name=64A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.opv.name=64A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_64a.max.name=64A Wireless Power Storage (§c§lMAX§r)
+
+# Input and Output for 256A
+gregtech.machine.wireless_energy_hatch.input_256a.ulv.name=256A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.lv.name=256A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.mv.name=256A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.hv.name=256A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.ev.name=256A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.iv.name=256A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.luv.name=256A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.zpm.name=256A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_256a.uv.name=256A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.uhv.name=256A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.uev.name=256A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.uiv.name=256A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.uxv.name=256A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.opv.name=256A Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input_256a.max.name=256A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_256a.ulv.name=256A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.lv.name=256A Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.mv.name=256A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.hv.name=256A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.ev.name=256A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.iv.name=256A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.luv.name=256A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.zpm.name=256A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_256a.uv.name=256A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.uhv.name=256A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.uev.name=256A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.uiv.name=256A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.uxv.name=256A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.opv.name=256A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_256a.max.name=256A Wireless Power Storage (§c§lMAX§r)
+
+# Input and Output for 1024A
+gregtech.machine.wireless_energy_hatch.input_1024a.ulv.name=1024A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.lv.name=1024A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.mv.name=1024A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.hv.name=1024A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.ev.name=1024A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.iv.name=1024A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.luv.name=1024A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.zpm.name=1024A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.uv.name=1024A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.uhv.name=1024A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.uev.name=1024A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.uiv.name=1024A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.uxv.name=1024A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.opv.name=1024A Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input_1024a.max.name=1024A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_1024a.ulv.name=1024A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.lv.name=1024A Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.mv.name=1024A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.hv.name=1024A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.ev.name=1024A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.iv.name=1024A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.luv.name=1024A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.zpm.name=1024A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.uv.name=1024A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.uhv.name=1024A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.uev.name=1024A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.uiv.name=1024A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.uxv.name=1024A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.opv.name=1024A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_1024a.max.name=1024A Wireless Power Storage (§c§lMAX§r)
+
+# Input and Output for 4096A
+gregtech.machine.wireless_energy_hatch.input_4096a.ulv.name=4096A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.lv.name=4096A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.mv.name=4096A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.hv.name=4096A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.ev.name=4096A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.iv.name=4096A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.luv.name=4096A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.zpm.name=4096A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.uv.name=4096A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.uhv.name=4096A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.uev.name=4096A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.uiv.name=4096A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.uxv.name=4096A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.opv.name=4096A Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input_4096a.max.name=4096A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_4096a.ulv.name=4096A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.lv.name=4096A Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.mv.name=4096A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.hv.name=4096A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.ev.name=4096A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.iv.name=4096A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.luv.name=4096A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.zpm.name=4096A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.uv.name=4096A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.uhv.name=4096A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.uev.name=4096A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.uiv.name=4096A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.uxv.name=4096A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.opv.name=4096A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_4096a.max.name=4096A Wireless Power Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.input_16384a.ulv.name=16384A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.lv.name=16384A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.mv.name=16384A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.hv.name=16384A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.ev.name=16384A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.iv.name=16384A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.luv.name=16384A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.zpm.name=16384A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.uv.name=16384A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.uhv.name=16384A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.uev.name=16384A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.uiv.name=16384A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.uxv.name=16384A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.opv.name=16384A Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input_16384a.max.name=16384A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_16384a.ulv.name=16384A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.lv.name=16384A Wireless Power Storage (§7
+# UU Matter Production
+gregtech.machine.wireless_energy_hatch.output_16384a.mv.name=16384A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.hv.name=16384A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.ev.name=16384A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.iv.name=16384A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.luv.name=16384A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.zpm.name=16384A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.uv.name=16384A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.uhv.name=16384A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.uev.name=16384A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.uiv.name=16384A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.uxv.name=16384A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.opv.name=16384A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_16384a.max.name=16384A Wireless Power Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.input_65536a.ulv.name=65536A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.lv.name=65536A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.mv.name=65536A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.hv.name=65536A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.ev.name=65536A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.iv.name=65536A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.luv.name=65536A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.zpm.name=65536A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.uv.name=65536A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.uhv.name=65536A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.uev.name=65536A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.uiv.name=65536A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.uxv.name=65536A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.opv.name=65536A Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input_65536a.max.name=65536A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_65536a.ulv.name=65536A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.lv.name=65536A Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.mv.name=65536A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.hv.name=65536A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.ev.name=65536A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.iv.name=65536A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.luv.name=65536A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.zpm.name=65536A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.uv.name=65536A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.uhv.name=65536A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.uev.name=65536A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.uiv.name=65536A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.uxv.name=65536A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.opv.name=65536A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_65536a.max.name=65536A Wireless Power Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.input_262144a.ulv.name=262144A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.lv.name=262144A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.mv.name=262144A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.hv.name=262144A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.ev.name=262144A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.iv.name=262144A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.luv.name=262144A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.zpm.name=262144A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.uv.name=262144A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.uhv.name=262144A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.uev.name=262144A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.uiv.name=262144A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.uxv.name=262144A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.opv.name=262144A Wireless Energy Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.input_262144a.max.name=262144A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_262144a.ulv.name=262144A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.lv.name=262144A Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.mv.name=262144A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.hv.name=262144A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.ev.name=262144A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.iv.name=262144A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.luv.name=262144A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.zpm.name=262144A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.uv.name=262144A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.uhv.name=262144A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.uev.name=262144A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.uiv.name=262144A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.uxv.name=262144A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.opv.name=262144A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_262144a.max.name=262144A Wireless Power Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.input_1048576a.ulv.name=1048576A Wireless Energy Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.lv.name=1048576A Wireless Energy Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.mv.name=1048576A Wireless Energy Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.hv.name=1048576A Wireless Energy Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.ev.name=1048576A Wireless Energy Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.iv.name=1048576A Wireless Energy Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.luv.name=1048576A Wireless Energy Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.zpm.name=1048576A Wireless Energy Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.uv.name=1048576A Wireless Energy Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.uhv.name=1048576A Wireless Energy Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.uev.name=1048576A Wireless Energy Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.uiv.name=1048576A Wireless Energy Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.uxv.name=1048576A Wireless Energy Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.input_1048576a.opv.name=1048576A Wireless Energy Storage (§9OpV§r）
+gregtech.machine.wireless_energy_hatch.input_1048576a.max.name=1048576A Wireless Energy Storage (§c§lMAX§r)
+
+gregtech.machine.wireless_energy_hatch.output_1048576a.ulv.name=1048576A Wireless Power Storage (§8ULV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.lv.name=1048576A Wireless Power Storage (§7LV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.mv.name=1048576A Wireless Power Storage (§bMV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.hv.name=1048576A Wireless Power Storage (§6HV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.ev.name=1048576A Wireless Power Storage (§5EV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.iv.name=1048576A Wireless Power Storage (§1IV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.luv.name=1048576A Wireless Power Storage (§dLuV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.zpm.name=1048576A Wireless Power Storage (§cZPM§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.uv.name=1048576A Wireless Power Storage (§3UV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.uhv.name=1048576A Wireless Power Storage (§4UHV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.uev.name=1048576A Wireless Power Storage (§aUEV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.uiv.name=1048576A Wireless Power Storage (§2UIV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.uxv.name=1048576A Wireless Power Storage (§eUXV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.opv.name=1048576A Wireless Power Storage (§9OpV§r)
+gregtech.machine.wireless_energy_hatch.output_1048576a.max.name=1048576A Wireless Power Storage (§c§lMAX§r)
 
 gregtech.machine.rotor_holder.tooltip1=Rotor Holder for Multiblocks，Holds Rotor in place so it will not fly away
 gregtech.machine.rotor_holder.tooltip2=The area (hollow) in front of you needs to be 3*1*3 is air
@@ -6493,8 +7111,6 @@ gregtech.machine.rotor_holder.max.name=MAX Rotor Holder
 
 # 批处理系统相关说明
 gregtech.tooltip.batch_available=-Batch support:
-gregtech.tooltip.ctrl=Press and hold CTRL to display the detailed batch work logic
-
 gregtech.machine.batch_process.tooltips.1=This multi-block multiplies recipes that take less than 128 ticks to a maximum of 128 ticks
 gregtech.machine.batch_process.tooltips.2=Batch processing is calculated separately after the recipe is overclocked and parallelized, so the energy consumption remains the same and the parallelism is ignored
 gregtech.machine.batch_process.tooltips.3=The special recipe logic that takes time to modify is calculated after the batch process, which may cause the recipe to actually be less than 128 ticks
@@ -6528,6 +7144,9 @@ gregtech.machine.maintenance_hatch_cleanroom_auto.name=Automatic Filtration Main
 gregtech.machine.maintenance_hatch_cleanroom_auto.tooltip.1=For automatically maintaining Multiblocks with Cleaning!
 gregtech.machine.maintenance_hatch.cleanroom_auto.tooltip.2=Cleans as:
 gregtech.machine.maintenance_hatch_sterile_cleanroom_auto.name=Automatic Filtration Sterile Maintenance Hatch
+gregtech.machine.maintenance_hatch_iso_3_cleanroom_auto.name=Automatic ISO 3 Cleanroom Maintenance Hatch
+gregtech.machine.maintenance_hatch_iso_2_cleanroom_auto.name=Automatic ISO 2 Cleanroom Maintenance Hatch
+gregtech.machine.maintenance_hatch_iso_1_cleanroom_auto.name=Automatic ISO 1 Cleanroom Maintenance Hatch
 gregtech.machine.maintenance_hatch_tool_slot.tooltip=Click slot with empty hand when required tools are in inventory to solve problems
 gregtech.machine.maintenance_hatch_tape_slot.tooltip=Insert Tape to prevent problems
 
@@ -6827,11 +7446,46 @@ gregtech.machine.laser_hatch.target_1048576a.max.name=MAX 1048576A Laser Target 
 
 gregtech.machine.laser_hatch.source.tooltip1=Transmitting power at distance
 gregtech.machine.laser_hatch.target.tooltip1=Receiving power from distance
-gregtech.machine.laser_hatch.tooltip2=§cLaser Cables must be in a straight line!§7
+gregtech.machine.laser_hatch.tooltip=§cLaser Cables must be in a straight line!§7
 
 gregtech.machine.fluid_tank.max_multiblock=Max Multiblock Size: %,dx%,dx%,d
 gregtech.machine.fluid_tank.fluid=§9Contains§f %s L of %s
 
+gregtech.machine.parallel_hatch.lv.name=Parallel Hatch(LV)
+gregtech.machine.parallel_hatch.mv.name=Parallel Hatch(MV)
+gregtech.machine.parallel_hatch.hv.name=Parallel Hatch(HV)
+gregtech.machine.parallel_hatch.ev.name=Parallel Hatch(EV)
+gregtech.machine.parallel_hatch.iv.name=Parallel Hatch(IV)
+gregtech.machine.parallel_hatch.luv.name=Parallel Hatch(LuV)
+gregtech.machine.parallel_hatch.zpm.name=Parallel Hatch(ZPM)
+gregtech.machine.parallel_hatch.uv.name=Parallel Hatch(UV)
+gregtech.machine.parallel_hatch.uhv.name=Parallel Hatch(UHV)
+gregtech.machine.parallel_hatch.uev.name=Parallel Hatch(UEV)
+gregtech.machine.parallel_hatch.uiv.name=Parallel Hatch(UIV)
+gregtech.machine.parallel_hatch.uxv.name=Parallel Hatch(UXV)
+gregtech.machine.parallel_hatch.opv.name=Parallel Hatch(OPV)
+gregtech.machine.parallel_hatch.max.name=Parallel Hatch(MAX)
+
+gregtech.machine.parallel_hatch.tooltip=Allows up to §b%s§7 parallel recipes.
+gregtech.machine.parallel_hatch.display=Adjust the maximum parallel of the multiblock
+
+gregtech.machine.tiered_hatch.ulv.name=Primitive Voltage Control Unit
+gregtech.machine.tiered_hatch.lv.name=Basic Voltage Control Unit
+gregtech.machine.tiered_hatch.mv.name=Good Voltage Control Unit
+gregtech.machine.tiered_hatch.hv.name=Advanced Voltage Control Unit
+gregtech.machine.tiered_hatch.ev.name=Extreme Voltage Control Unit
+gregtech.machine.tiered_hatch.iv.name=Elite Voltage Control Unit
+gregtech.machine.tiered_hatch.luv.name=Master Voltage Control Unit
+gregtech.machine.tiered_hatch.zpm.name=Ultimate Voltage Control Unit
+gregtech.machine.tiered_hatch.uv.name=Super Voltage Control Unit
+gregtech.machine.tiered_hatch.uhv.name=Infinite Voltage Control Unit
+gregtech.machine.tiered_hatch.uev.name=Ultra Voltage Control Unit
+gregtech.machine.tiered_hatch.uiv.name=Insane Voltage Control Unit
+gregtech.machine.tiered_hatch.uxv.name=Epic Voltage Control Unit
+gregtech.machine.tiered_hatch.opv.name=Legendary Voltage Control Unit
+gregtech.machine.tiered_hatch.max.name=Maximum Voltage Control Unit
+
+gregtech.machine.tiered_hatch.tooltip=Enables up to %s§7 Voltage.
 # ME Parts
 gregtech.machine.me_import_item_bus.name=ME Input Bus
 gregtech.machine.me.item_import.tooltip=Extracts specified items from the ME network
@@ -6942,6 +7596,10 @@ gregtech.recipe.dimensions=Dimensions: %s
 gregtech.recipe.dimensions_blocked=Blocked Dimensions: %s
 gregtech.recipe.cleanroom=Requires %s
 gregtech.recipe.cleanroom.display_name=Cleanroom
+gregtech.recipe.cleanroom_iso_3.display_name=ISO 3洁净室
+gregtech.recipe.cleanroom_iso_2.display_name=ISO 2洁净室
+gregtech.recipe.cleanroom_iso_1.display_name=ISO 1洁净室
+gregtech.recipe.cleanroom_iso_0.display_name=ISO 0洁净室
 gregtech.recipe.cleanroom_sterile.display_name=Sterile Cleanroom
 gregtech.recipe.research=Requires Research
 gregtech.recipe.scan_for_research=Scan for Assembly Line
@@ -6985,6 +7643,7 @@ gregtech.fluid.state_gas=§aState: Gaseous
 gregtech.fluid.state_liquid=§aState: Liquid
 gregtech.fluid.state_plasma=§aState: Plasma
 gregtech.fluid.type_acid.tooltip=§6Acidic! Handle with care!
+gregtech.fluid.molten=Molten %s
 gregtech.gui.fuel_amount=Fuel Amount:
 gregtech.gui.fluid_amount=Fluid Amount:
 gregtech.gui.amount_raw=Amount:%s

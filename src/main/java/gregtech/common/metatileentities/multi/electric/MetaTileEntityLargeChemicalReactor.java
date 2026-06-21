@@ -69,7 +69,7 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
     }
 
     @Override
-    protected @NotNull StructureDefinition createStructureDefinition() {
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

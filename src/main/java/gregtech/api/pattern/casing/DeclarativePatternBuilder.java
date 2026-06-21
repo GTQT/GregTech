@@ -1,22 +1,25 @@
 package gregtech.api.pattern.casing;
 
+import gregtech.api.metatileentity.GCYMMultiblockAbility;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.FactoryBlockPattern;
+import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.TraceabilityPredicate;
-import gregtech.api.unification.material.Material;
-import gregtech.api.util.BlockInfo;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.impl.CasingElement;
 import gregtech.api.pattern.element.impl.HatchElement;
 import gregtech.api.pattern.element.impl.TieredCasingElement;
+import gregtech.api.unification.material.Material;
+import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
+import gregtech.common.ConfigHolder;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -56,7 +59,7 @@ import java.util.function.Supplier;
  *         .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
  *     .piece("top")
  *         .aisle("XXX", "XXX", "XXX")
- *     .where('S', selfPredicate())
+ *     .self('S', MyMultiblock.class)
  *     .where('#', air())
  *     .casing('Y', casingDef)
  *         .maintenance()
@@ -337,8 +340,8 @@ public class DeclarativePatternBuilder {
      * When named pieces are declared via {@link #piece(String)} / {@link #repeatablePiece(String, int, int)},
      * each piece is registered as a named entry. Otherwise a single piece "main" is created.
      */
-    public StructureDefinition buildStructureDefinition() {
-        StructureDefinition.Builder builder = StructureDefinition.builder(
+    public StructureDefinition<?> buildStructureDefinition() {
+        StructureDefinition.Builder<?> builder = StructureDefinition.builder(
                 structureDir[0], structureDir[1], structureDir[2])
                 .primaryTemplateDescription(computeStructureDescription());
 
@@ -416,7 +419,7 @@ public class DeclarativePatternBuilder {
         return 0;
     }
 
-    private void registerSequencedPiece(@NotNull StructureDefinition.Builder builder,
+    private void registerSequencedPiece(@NotNull StructureDefinition.Builder<?> builder,
                                         @NotNull PieceDef piece,
                                         @Nullable String anchorName,
                                         @Nullable int[] anchorStep,
@@ -509,11 +512,11 @@ public class DeclarativePatternBuilder {
      * For multi-axis pieces, character mappings must be converted from TraceabilityPredicate
      * to IStructureElement via {@link Elements#legacy(TraceabilityPredicate)}.
      */
-    private void registerMultiAxisPiece(@NotNull StructureDefinition.Builder builder,
+    private void registerMultiAxisPiece(@NotNull StructureDefinition.Builder<?> builder,
                                          @NotNull PieceDef piece,
                                          @Nullable String anchorName,
                                          @Nullable int[] anchorStep) {
-        StructureDefinition.RepeatablePieceBuilder rpb = builder.repeatablePiece(
+        StructureDefinition.RepeatablePieceBuilder<?> rpb = builder.repeatablePiece(
                 piece.name, piece.rawPattern, piece.offset);
 
         // Resolve and register every character used in the pattern
@@ -585,7 +588,7 @@ public class DeclarativePatternBuilder {
      *                   declared before this repeatable body; otherwise the first
      *                   slice of the body overlaps the previous piece.
      */
-    private void convertFactoryToMultiAxisPiece(@NotNull StructureDefinition.Builder builder,
+    private void convertFactoryToMultiAxisPiece(@NotNull StructureDefinition.Builder<?> builder,
                                                  @NotNull PieceDef piece,
                                                  @NotNull Vec3i baseOffset,
                                                  @Nullable String anchorName,
@@ -594,7 +597,7 @@ public class DeclarativePatternBuilder {
         // Convert all aisles to a String[][] pattern matrix
         String[][] pattern = flattenAisles(piece.aisles);
 
-        StructureDefinition.RepeatablePieceBuilder rpb = builder.repeatablePiece(
+        StructureDefinition.RepeatablePieceBuilder<?> rpb = builder.repeatablePiece(
                 piece.name, pattern, baseOffset);
 
         // Repeat along the aisle direction (axis 2)
@@ -637,7 +640,7 @@ public class DeclarativePatternBuilder {
      * This lets StructureCompiler use explicit center offsets for pieces without
      * a controller predicate.
      */
-    private void registerFactoryPiece(@NotNull StructureDefinition.Builder builder,
+    private void registerFactoryPiece(@NotNull StructureDefinition.Builder<?> builder,
                                       @NotNull PieceDef piece) {
         registerFactoryPiece(builder, piece, null, null, null);
     }
@@ -655,7 +658,7 @@ public class DeclarativePatternBuilder {
      * body's own offset, so the dynamic formula naturally lands one slice
      * <i>after</i> the body's last slice (rather than one slice inside it).
      */
-    private void registerFactoryPiece(@NotNull StructureDefinition.Builder builder,
+    private void registerFactoryPiece(@NotNull StructureDefinition.Builder<?> builder,
                                       @NotNull PieceDef piece,
                                       @Nullable String anchorPieceName,
                                       @Nullable int[] anchorStep,
@@ -666,7 +669,7 @@ public class DeclarativePatternBuilder {
         // dynamic formula resolves to the correct position relative to the
         // body. Falls back to NULL_VECTOR when no anchor is present.
         Vec3i baseOffset = anchorBaseOffset != null ? anchorBaseOffset : Vec3i.NULL_VECTOR;
-        StructureDefinition.PieceBuilder pb = builder.piece(piece.name, pattern, baseOffset);
+        StructureDefinition.PieceBuilder<?> pb = builder.piece(piece.name, pattern, baseOffset);
 
         addCharMappings(pattern, piece, c -> buildPieceElement(c, piece), pb::where);
 
@@ -992,7 +995,7 @@ public class DeclarativePatternBuilder {
             return parent.buildTemplate();
         }
 
-        public StructureDefinition buildStructureDefinition() {
+        public StructureDefinition<?> buildStructureDefinition() {
             return parent.buildStructureDefinition();
         }
     }
@@ -1143,7 +1146,7 @@ public class DeclarativePatternBuilder {
             return parent.repeatablePiece(name, minRepeat, maxRepeat);
         }
 
-        public StructureDefinition buildStructureDefinition() {
+        public StructureDefinition<?> buildStructureDefinition() {
             return parent.buildStructureDefinition();
         }
     }
@@ -1352,6 +1355,19 @@ public class DeclarativePatternBuilder {
             return optionalHatch(MultiblockAbility.EXPORT_ITEMS, maxCount);
         }
 
+        public CasingSlot tieredHatch() {
+            return hatch(GCYMMultiblockAbility.TIERED_HATCH, 0,
+                    ConfigHolder.globalMultiblocks.enableTieredCasings ? 1 : 0);
+        }
+
+        public CasingSlot parallelHatch() {
+            return hatch(GCYMMultiblockAbility.PARALLEL_HATCH, 0,1);
+        }
+
+        public CasingSlot threadHatch() {
+            return hatch(MultiblockAbility.THREAD_HATCH, 0,1);
+        }
+
         public CasingSlot auto() {
             return muffler()
                     .maintenance()
@@ -1459,7 +1475,7 @@ public class DeclarativePatternBuilder {
             return new BlockPattern(buildTemplate());
         }
 
-        public StructureDefinition buildStructureDefinition() {
+        public StructureDefinition<?> buildStructureDefinition() {
             return builder.buildStructureDefinition();
         }
     }
@@ -1530,7 +1546,7 @@ public class DeclarativePatternBuilder {
             return builder.buildTemplate();
         }
 
-        public StructureDefinition buildStructureDefinition() {
+        public StructureDefinition<?> buildStructureDefinition() {
             return builder.buildStructureDefinition();
         }
     }

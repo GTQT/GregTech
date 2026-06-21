@@ -1,5 +1,6 @@
 package gregtech.api.unification.material;
 
+import gregtech.api.fluids.GeneratedFluidHandler;
 import gregtech.api.unification.material.materials.ElementMaterials;
 import gregtech.api.unification.material.materials.FirstDegreeMaterials;
 import gregtech.api.unification.material.materials.HigherDegreeMaterials;
@@ -9,6 +10,7 @@ import gregtech.api.unification.material.materials.SecondDegreeMaterials;
 import gregtech.api.unification.material.materials.SoftToolAddition;
 import gregtech.api.unification.material.materials.UnknownCompositionMaterials;
 import gregtech.api.unification.ore.OrePrefix;
+import gregtech.api.unification.properties.AlloyBlastPropertyAddition;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -83,6 +85,7 @@ public class Materials {
          */
         MaterialFlagAddition.register();
 
+
         CHEMICAL_DYES = new Material[] {
                 Materials.DyeWhite, Materials.DyeOrange,
                 Materials.DyeMagenta, Materials.DyeLightBlue,
@@ -95,14 +98,15 @@ public class Materials {
         };
 
         // Register soft tools
-        if(!isModLoaded(GTQT_TEST))SoftToolAddition.register();
+        if(!isModLoaded(GTQT_TEST))
+            SoftToolAddition.register();
 
         OrePrefix.init();
     }
 
-
-    static {
-
+    public static void postMaterialLoad() {
+        AlloyBlastPropertyAddition.init();
+        GeneratedFluidHandler.init();
     }
 
     public static final MarkerMaterial NULL = MarkerMaterial.create("null");
@@ -751,6 +755,27 @@ public class Materials {
     public static Material HighPressureExhaustGas;
     public static Material SupercriticalExhaustGas;
     public static Material LowTemperatureExhaustGas;
+
+    /**
+     * GCYM的
+     */
+    public static Material Stellite;
+    public static Material WatertightSteel;
+    public static Material MaragingSteel250;
+    public static Material MaragingSteel300;
+    public static Material MaragingSteel350;
+    public static Material HastelloyC276;
+    public static Material HastelloyX;
+    public static Material HastelloyN;
+    public static Material HastelloyW;
+    public static Material Trinaquadalloy;
+    public static Material Zeron100;
+    public static Material TitaniumCarbide;
+    public static Material TantalumCarbide;
+    public static Material MolybdenumDisilicide;
+    public static Material HSLASteel;
+    public static Material TitaniumTungstenCarbide;
+    public static Material IncoloyMA956;
 
     /**
      * Third Degree Materials

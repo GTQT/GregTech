@@ -19,6 +19,7 @@ public class MaterialIconType {
 
     public static final Map<String, MaterialIconType> ICON_TYPES = new HashMap<>();
 
+
     static int idCounter = 0;
 
     public static final MaterialIconType dustTiny = new MaterialIconType("dustTiny");
@@ -99,6 +100,7 @@ public class MaterialIconType {
     public static final MaterialIconType block = new MaterialIconType("block");
     public static final MaterialIconType frameGt = new MaterialIconType("frameGt");
     public static final MaterialIconType sheet = new MaterialIconType("sheet");
+    public static final MaterialIconType molten = new MaterialIconType("molten");
 
     // USED FOR GREGIFICATION ADDON
     public static final MaterialIconType seed = new MaterialIconType("seed");

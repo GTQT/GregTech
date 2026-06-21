@@ -32,8 +32,8 @@ import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.ITypedStructureElement;
-import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.pattern.element.impl.ChainElement;
 import gregtech.api.pattern.element.impl.HatchElement;
 import gregtech.api.pipenet.tile.IPipeTile;
@@ -83,7 +83,14 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
 import java.lang.ref.WeakReference;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static gregtech.api.util.RelativeDirection.*;
 
@@ -424,7 +431,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     }
 
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

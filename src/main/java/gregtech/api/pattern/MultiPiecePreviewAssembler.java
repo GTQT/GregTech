@@ -1,9 +1,9 @@
 package gregtech.api.pattern;
 
-import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 
@@ -257,7 +257,7 @@ public final class MultiPiecePreviewAssembler {
                     ? null
                     : channelValues.get(aisle.channelName());
             repetitions[i] = value == null
-                    ? aisle.maxRepeat()
+                    ? aisle.minRepeat()
                     : PieceRuntimeState.resolveRepetitionValue(
                             value, aisle.minRepeat(), aisle.maxRepeat());
         }
@@ -301,7 +301,7 @@ public final class MultiPiecePreviewAssembler {
                     ? null
                     : channelValues.get(names[i]);
             repetitions[i] = value == null
-                    ? ranges[i][1]
+                    ? ranges[i][0]
                     : PieceRuntimeState.resolveRepetitionValue(value, ranges[i][0], ranges[i][1]);
         }
         return repetitions;

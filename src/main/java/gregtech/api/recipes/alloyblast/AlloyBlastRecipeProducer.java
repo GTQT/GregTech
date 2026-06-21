@@ -1,24 +1,25 @@
 package gregtech.api.recipes.alloyblast;
 
-import gregtech.api.fluids.GCYMFluidStorageKeys;
-import gregtech.api.recipes.GCYMRecipeMaps;
-import gregtech.api.unification.GCYMMaterialFlags;
 import gregtech.api.GTValues;
+import gregtech.api.fluids.GCYMFluidStorageKeys;
 import gregtech.api.fluids.store.FluidStorageKeys;
+import gregtech.api.recipes.GCYMRecipeMaps;
 import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.builders.BlastRecipeBuilder;
-import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.material.info.MaterialFlags;
 import gregtech.api.unification.material.properties.BlastProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.MaterialStack;
 import gregtech.common.items.MetaItems;
 import gregtech.loaders.recipe.CraftingComponent;
+
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
+
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -51,7 +52,7 @@ public class AlloyBlastRecipeProducer {
      */
     public void produce(@NotNull Material material, @NotNull BlastProperty blastProperty) {
         // do not generate for disabled materials
-        if (material.hasFlag(GCYMMaterialFlags.NO_ALLOY_BLAST_RECIPES)) return;
+        if (material.hasFlag(MaterialFlags.NO_ALLOY_BLAST_RECIPES)) return;
 
         final int componentAmount = material.getMaterialComponents().size();
 

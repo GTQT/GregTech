@@ -7,9 +7,8 @@ import gregtech.api.unification.material.MarkerMaterial;
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
 import static gregtech.api.unification.ore.OrePrefix.circuit;
-import static gregtech.common.metatileentities.MetaTileEntities.*;
 import static gregtech.api.util.MaterialHelper.Plastic;
-import static gregtech.common.metatileentities.GTQTMetaTileEntities.*;
+import static gregtech.common.metatileentities.MetaTileEntities.*;
 
 public class HatchHandlers {
 

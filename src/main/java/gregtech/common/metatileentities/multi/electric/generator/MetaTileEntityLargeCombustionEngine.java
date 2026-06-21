@@ -151,7 +151,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
 
     @NotNull
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITIONS[isExtreme ? 1 : 0].get();
     }
 

@@ -38,7 +38,6 @@ import gregtech.common.blocks.StoneVariantBlock;
 import gregtech.common.covers.GTQTCoverBehavior;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.ToolItems;
-import gregtech.common.metatileentities.GTQTMetaTileEntities;
 import gregtech.common.network.NetworkHandler;
 import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.cable.ItemBlockCable;
@@ -52,9 +51,9 @@ import gregtech.common.pipelike.laser.BlockLaserPipe;
 import gregtech.common.pipelike.laser.ItemBlockLaserPipe;
 import gregtech.common.pipelike.optical.BlockOpticalPipe;
 import gregtech.common.pipelike.optical.ItemBlockOpticalPipe;
-import gregtech.common.wireless.WirelessEnergyServiceImpl;
 import gregtech.common.villager.VillageEngineersHouse;
 import gregtech.common.villager.VillagerHandler;
+import gregtech.common.wireless.WirelessEnergyServiceImpl;
 import gregtech.datafix.GTDataFixers;
 import gregtech.integration.groovy.GroovyScriptModule;
 import gregtech.loaders.MaterialInfoLoader;
@@ -185,7 +184,8 @@ public class CommonProxy {
         registry.register(CLEANROOM_CASING);
         registry.register(COMPUTER_CASING);
         registry.register(BATTERY_BLOCK);
-        registry.register(TANK_CASING);
+        registry.register(UNIQUE_CASING);
+        registry.register(LARGE_MULTIBLOCK_CASING);
         // Forge of the Gods blocks
         registry.register(GODFORGE_CASING);
         registry.register(GODFORGE_GLASS);
@@ -207,7 +207,6 @@ public class CommonProxy {
         registry.register(WARNING_SIGN);
         registry.register(WARNING_SIGN_1);
         registry.register(ASPHALT);
-        for (StoneVariantBlock block : STONE_BLOCKS.values()) registry.register(block);
         registry.register(RUBBER_LOG);
         registry.register(TREE_TAP);
         registry.register(RUBBER_LEAVES);
@@ -230,9 +229,9 @@ public class CommonProxy {
         registry.register(LARGE_METAL_SHEET);
         registry.register(STUDS);
 
+        for (StoneVariantBlock block : STONE_BLOCKS.values()) registry.register(block);
         for (BlockLamp block : LAMPS.values()) registry.register(block);
         for (BlockLamp block : BORDERLESS_LAMPS.values()) registry.register(block);
-
         for (BlockCompressed block : COMPRESSED_BLOCKS) registry.register(block);
         for (BlockFrame block : FRAME_BLOCKS) registry.register(block);
         for (BlockSheet block : SHEET_BLOCKS) registry.register(block);
@@ -333,7 +332,8 @@ public class CommonProxy {
         registry.register(createItemBlock(CLEANROOM_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(COMPUTER_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(BATTERY_BLOCK, VariantItemBlock::new));
-        registry.register(createItemBlock(TANK_CASING, VariantItemBlock::new));
+        registry.register(createItemBlock(UNIQUE_CASING, VariantItemBlock::new));
+        registry.register(createItemBlock(LARGE_MULTIBLOCK_CASING, VariantItemBlock::new));
         // Forge of the Gods blocks
         registry.register(createItemBlock(GODFORGE_CASING, VariantItemBlock::new));
         registry.register(createItemBlock(GODFORGE_GLASS, VariantItemBlock::new));
@@ -501,7 +501,6 @@ public class CommonProxy {
     }
 
     public void onPreLoad() {
-        GTQTMetaTileEntities.initialization();
         NetworkHandler.registerMessages();
     }
 

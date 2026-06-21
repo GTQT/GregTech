@@ -8,7 +8,6 @@ import gregtech.api.capability.IOpticalComputationReceiver;
 import gregtech.api.capability.impl.ComputationRecipeLogic;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
@@ -16,20 +15,12 @@ import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
-import gregtech.api.pattern.PatternStringError;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.StructureEvaluationContext;
-import gregtech.api.pattern.StructureDependency;
-import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
-import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
-import gregtech.api.util.BlockInfo;
 import gregtech.api.util.AssemblyLineManager;
-import gregtech.api.util.ExplicitFrontFacingBlockInfo;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -42,8 +33,6 @@ import gregtech.common.metatileentities.MetaTileEntities;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
-import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -59,13 +48,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Set;
 
 public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         implements IOpticalComputationReceiver {
 
-    @NotNull
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:research_station", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "VVV", "PPP", "PPP", "PPP", "VVV", "XXX")
                     .aisle("XXX", "VAV", "AAA", "AAA", "AAA", "VAV", "XXX")
@@ -80,7 +67,7 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
                     .air('-')
                     .block('V', getVentState())
                     .block('A', getAdvancedState())
-                    .where('H', objectHolderFacingController())
+                    .where('H', abilities(MultiblockAbility.OBJECT_HOLDER))
                     .casing('P', getCasingState())
                     .hatch(MultiblockAbility.INPUT_ENERGY, 1, 4,
                             () -> MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV])
@@ -112,99 +99,6 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
         return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
     }
 
-    @NotNull
-    private static ITypedStructureElement<Object> objectHolderFacingController() {
-        return ObjectHolderElement.INSTANCE;
-    }
-
-    @NotNull
-    private static BlockInfo[] getObjectHolderCandidates() {
-        MetaTileEntityHolder holder = new MetaTileEntityHolder();
-        holder.setMetaTileEntity(MetaTileEntities.OBJECT_HOLDER);
-        holder.getMetaTileEntity().onPlacement();
-        holder.getMetaTileEntity().setFrontFacing(EnumFacing.NORTH);
-        return new BlockInfo[] {
-                new ExplicitFrontFacingBlockInfo(
-                        MetaTileEntities.OBJECT_HOLDER.getBlock().getDefaultState(), holder,
-                        controller -> controller.getFrontFacing().getOpposite())
-        };
-    }
-
-    private static boolean isObjectHolder(TileEntity tileEntity) {
-        if (!(tileEntity instanceof IGregTechTileEntity)) {
-            return false;
-        }
-        return ((IGregTechTileEntity) tileEntity).getMetaTileEntity() instanceof IObjectHolder;
-    }
-
-    private enum ObjectHolderElement implements ITypedStructureElement<Object> {
-        INSTANCE;
-
-        @Override
-        public boolean check(@NotNull StructureEvaluationContext<Object> context) {
-            MetaTileEntityResearchStation controller = context.getController() instanceof MetaTileEntityResearchStation ?
-                    (MetaTileEntityResearchStation) context.getController() : null;
-            if (controller == null) {
-                return false;
-            }
-
-            TileEntity tileEntity = context.getTileEntity();
-            if (!(tileEntity instanceof IGregTechTileEntity)) {
-                return false;
-            }
-            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
-            if (!(metaTileEntity instanceof IObjectHolder objectHolder)) {
-                return false;
-            }
-
-            if (objectHolder.getFrontFacing() != controller.getFrontFacing().getOpposite()) {
-                context.setError(new PatternStringError(
-                        "gregtech.multiblock.pattern.error.object_holder_facing"));
-                return false;
-            }
-
-            return context.transaction(transactionContext ->
-                    transactionContext.getCollector().recordAbility(this, (IMultiblockPart) metaTileEntity));
-        }
-
-        @Override
-        public void collectRequirements(@NotNull StructureEvaluationContext<Object> context) {
-            context.getCollector().declareAbility(
-                    this, MultiblockAbility.OBJECT_HOLDER, 1, 1);
-        }
-
-        @NotNull
-        @Override
-        public StructureIncrementalSupport getIncrementalSupport() {
-            return StructureIncrementalSupport.TYPED_CONTRIBUTION;
-        }
-
-        @NotNull
-        @Override
-        public Set<StructureDependency> getDependencies() {
-            return Collections.emptySet();
-        }
-
-        @NotNull
-        @Override
-        public StructureElementPreview getPreview() {
-            return StructureElementPreview.builder()
-                    .limited(StructureElementPreview.CandidateGroup
-                            .builder(MetaTileEntityResearchStation::getObjectHolderCandidates)
-                            .global(1, 1)
-                            .previewCount(1)
-                            .tooltip(() -> Collections.singletonList(
-                                    "gregtech.multiblock.pattern.error.object_holder_facing"))
-                            .build())
-                    .build();
-        }
-
-        @Override
-        public BlockInfo[] getCandidates() {
-            return getObjectHolderCandidates();
-        }
-    }
-
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityResearchStation(metaTileEntityId);
@@ -230,15 +124,6 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
 
         // should never happen, but would rather do this than have an obscure NPE
         if (computationProvider == null || objectHolder == null) {
-            invalidateStructure();
-        }
-    }
-
-    // force object holder to be facing the controller
-    @Override
-    public void checkStructurePattern() {
-        super.checkStructurePattern();
-        if (isStructureFormed() && objectHolder.getFrontFacing() != getFrontFacing().getOpposite()) {
             invalidateStructure();
         }
     }
@@ -270,7 +155,7 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     }
 
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

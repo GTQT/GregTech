@@ -25,7 +25,7 @@ import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
+import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
@@ -64,7 +64,6 @@ import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
-import gregtech.common.metatileentities.GTQTMetaTileEntities;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -496,8 +495,8 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
     public void getSubItems(CreativeTabs creativeTab, NonNullList<ItemStack> subItems) {
         // override here is gross, but keeps things in order despite
         // IDs being out of order, due to UEV+ being added later
-        if (this == GTQTMetaTileEntities.HUGE_COMPLEX_DUAL_HATCH[0]) {
-            for (var hatch : GTQTMetaTileEntities.HUGE_COMPLEX_DUAL_HATCH) {
+        if (this == MetaTileEntities.HUGE_COMPLEX_DUAL_HATCH[0]) {
+            for (var hatch : MetaTileEntities.HUGE_COMPLEX_DUAL_HATCH) {
                 if (hatch != null) subItems.add(hatch.getStackForm());
             }
         } else if (this.getClass() != MetaTileEntityHugeComplexDualHatch.class) {

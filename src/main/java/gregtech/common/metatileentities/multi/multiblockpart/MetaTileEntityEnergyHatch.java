@@ -197,16 +197,28 @@ public class MetaTileEntityEnergyHatch extends MetaTileEntityMultiblockPart
             for (MetaTileEntityEnergyHatch hatch : MetaTileEntities.ENERGY_INPUT_HATCH_16A) {
                 if (hatch != null) subItems.add(hatch.getStackForm());
             }
+            for (MetaTileEntityEnergyHatch hatch : MetaTileEntities.ENERGY_INPUT_HATCH_64A) {
+                if (hatch != null) subItems.add(hatch.getStackForm());
+            }
             for (MetaTileEntityEnergyHatch hatch : MetaTileEntities.ENERGY_OUTPUT_HATCH_4A) {
                 if (hatch != null) subItems.add(hatch.getStackForm());
             }
             for (MetaTileEntityEnergyHatch hatch : MetaTileEntities.ENERGY_OUTPUT_HATCH_16A) {
                 if (hatch != null) subItems.add(hatch.getStackForm());
             }
+            for (MetaTileEntityEnergyHatch hatch : MetaTileEntities.ENERGY_OUTPUT_HATCH_64A) {
+                if (hatch != null) subItems.add(hatch.getStackForm());
+            }
             for (MetaTileEntityEnergyHatch hatch : MetaTileEntities.SUBSTATION_ENERGY_INPUT_HATCH) {
                 if (hatch != null) subItems.add(hatch.getStackForm());
             }
+            for (MetaTileEntityEnergyHatch hatch : MetaTileEntities.SUBSTATION_ENERGY_INPUT_HATCH_256A) {
+                if (hatch != null) subItems.add(hatch.getStackForm());
+            }
             for (MetaTileEntityEnergyHatch hatch : MetaTileEntities.SUBSTATION_ENERGY_OUTPUT_HATCH) {
+                if (hatch != null) subItems.add(hatch.getStackForm());
+            }
+            for (MetaTileEntityEnergyHatch hatch : MetaTileEntities.SUBSTATION_ENERGY_OUTPUT_HATCH_256A) {
                 if (hatch != null) subItems.add(hatch.getStackForm());
             }
         } else if (this.getClass() != MetaTileEntityEnergyHatch.class &&

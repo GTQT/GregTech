@@ -31,7 +31,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Collections;
 import java.util.List;
 
-import static gregtech.api.pattern.element.Elements.*;
+import static gregtech.api.pattern.element.Elements.block;
+import static gregtech.api.pattern.element.Elements.self;
 
 /**
  * Demo multiblock using irregular repeatable sub-regions with multi-axis repetition.
@@ -59,7 +60,7 @@ import static gregtech.api.pattern.element.Elements.*;
 public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
 
     // Structure definition using DeclarativePatternBuilder
-    private static final StructureDefinition DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:multi_axis_demo", () ->
             DeclarativePatternBuilder.start(RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK)
                     // Fixed base piece: controller sits on the bottom
@@ -121,7 +122,7 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
 
     @Nullable
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return DEFINITION;
     }
 

@@ -74,7 +74,7 @@ public class MetaTileEntityPyrolyseOven extends RecipeMapMultiblockController {
     }
 
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

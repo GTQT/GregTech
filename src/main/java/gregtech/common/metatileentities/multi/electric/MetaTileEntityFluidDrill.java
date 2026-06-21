@@ -192,7 +192,7 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
         if (definition == null) {
             throw new IllegalStateException("Unknown fluid drill type: " + type.getName());

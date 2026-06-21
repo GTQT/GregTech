@@ -6,6 +6,7 @@ import gregtech.api.block.ICleanroomFilter;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.capability.IGenerator;
 import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.capability.IWorkable;
 import gregtech.api.capability.impl.CleanroomLogic;
@@ -15,7 +16,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.SimpleGeneratorMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.CleanroomType;
-import gregtech.api.capability.IGenerator;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.ICleanroomProvider;
 import gregtech.api.metatileentity.multiblock.ICleanroomReceiver;
@@ -26,7 +26,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.PatternStringError;
 import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.StructureContributionKey;
 import gregtech.api.pattern.StructureDependency;
@@ -34,8 +33,8 @@ import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
-import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureOperationRequest;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePreviewResult;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureRuntimeDetectionContext;
@@ -43,9 +42,9 @@ import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.ITypedStructureElement;
+import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.pattern.element.StructureElementPreview;
-import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.impl.ChainElement;
 import gregtech.api.pattern.element.impl.HatchElement;
 import gregtech.api.util.BlockInfo;
@@ -72,7 +71,6 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
@@ -589,7 +587,7 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
 
     @NotNull
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

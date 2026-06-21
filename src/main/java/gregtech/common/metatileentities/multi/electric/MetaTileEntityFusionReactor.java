@@ -45,6 +45,7 @@ import gregtech.client.utils.RenderBufferHelper;
 import gregtech.client.utils.RenderUtil;
 import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
 
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
@@ -71,7 +72,6 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.google.common.collect.Lists;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
@@ -216,7 +216,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     @NotNull
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
         if (definition == null) {
             throw new IllegalStateException("Unknown fusion reactor type: " + type.getName());

@@ -40,8 +40,7 @@ import java.util.function.Function;
 import static gregtech.api.util.RelativeDirection.*;
 
 /**
- * Distillation Tower multiblock controller.
- * Uses the new {@link StructureDefinition} system via
+ * Distillation Tower multiblock controller. Uses the new {@link StructureDefinition} system via
  * {@link DeclarativePatternBuilder#buildStructureDefinition()}.
  */
 public class MetaTileEntityDistillationTower extends RecipeMapMultiblockController implements IDistillationTower {
@@ -51,25 +50,25 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
     private static final StructurePieceKey BODY_PIECE = StructurePieceKey.of(PIECE_BODY);
 
     /** Structure definition registered via TemplatePool for soft-reference caching */
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:distillation_tower", () ->
                     DeclarativePatternBuilder.start(RIGHT, BACK, UP)
                             .piece("bottom")
-                                .aisle("YSY", "YYY", "YYY")
+                            .aisle("YSY", "YYY", "YYY")
                             .repeatablePiece(PIECE_BODY, 1, 11)
-                                .aisle("XXX", "X#X", "XXX")
-                                .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
+                            .aisle("XXX", "X#X", "XXX")
+                            .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
                             .piece("top")
-                                .aisle("XXX", "XXX", "XXX")
+                            .aisle("XXX", "XXX", "XXX")
                             .self('S', MetaTileEntityDistillationTower.class)
                             .air('#')
                             .casing('Y', getCasingState())
-                                .optionalItemOutput(1)
-                                .energyInput(1, 3)
-                                .fluidInput(1)
+                            .optionalItemOutput(1)
+                            .energyInput(1, 3)
+                            .fluidInput(1)
                             .casing('X', getCasingState())
-                                .custom(Elements.abilitiesPerLayer(0, 1, 1, MultiblockAbility.EXPORT_FLUIDS), 11)
-                                .maintenance()
+                            .custom(Elements.abilitiesPerLayer(0, 1, 1, MultiblockAbility.EXPORT_FLUIDS), 11)
+                            .maintenance()
                             .buildStructureDefinition()
     );
 
@@ -88,17 +87,21 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
         } else this.handler = null;
     }
 
+    protected static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(MetalCasingType.STAINLESS_CLEAN);
+    }
+
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityDistillationTower(metaTileEntityId, this.handler != null);
     }
 
     /**
-     * Used if MultiblockPart Abilities need to be sorted a certain way, like
-     * Distillation Tower and Assembly Line. <br>
+     * Used if MultiblockPart Abilities need to be sorted a certain way, like Distillation Tower and Assembly Line.
      * <br>
-     * There will be <i>consequences</i> if this is changed. Make sure to set the logic handler to one with
-     * a properly overriden {@link DistillationTowerLogicHandler#determineOrderedFluidOutputs()}
+     * <br>
+     * There will be <i>consequences</i> if this is changed. Make sure to set the logic handler to one with a properly
+     * overriden {@link DistillationTowerLogicHandler#determineOrderedFluidOutputs()}
      */
     @Override
     protected Function<BlockPos, Integer> multiblockPartSorter() {
@@ -108,8 +111,8 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
     /**
      * Whether this multi can be rotated or face upwards. <br>
      * <br>
-     * There will be <i>consequences</i> if this returns true. Make sure to set the logic handler to one with
-     * a properly overriden {@link DistillationTowerLogicHandler#determineOrderedFluidOutputs()}
+     * There will be <i>consequences</i> if this returns true. Make sure to set the logic handler to one with a properly
+     * overriden {@link DistillationTowerLogicHandler#determineOrderedFluidOutputs()}
      */
     @Override
     public boolean allowsExtendedFacing() {
@@ -137,7 +140,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
 
     @Nullable
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 
@@ -150,10 +153,6 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         return Textures.CLEAN_STAINLESS_STEEL_CASING;
-    }
-
-    protected static IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(MetalCasingType.STAINLESS_CLEAN);
     }
 
     @Override

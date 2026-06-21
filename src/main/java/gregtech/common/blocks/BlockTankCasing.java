@@ -69,7 +69,6 @@ public class BlockTankCasing extends VariantBlock<BlockTankCasing.TankCasingType
 
     public enum TankCasingType implements IStringSerializable, IStateHarvestLevel, IStateSoundType {
 
-        // Wood and Steel are excluded as they use existing casing blocks.
         BRONZE("bronze", 1),
         ALUMINIUM("aluminium", 1),
         CHROME("chrome", 2),

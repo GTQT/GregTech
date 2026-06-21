@@ -304,4 +304,19 @@ public class MaterialFlags {
     public static final MaterialFlag DISABLE_ORE_BLOCK = new MaterialFlag.Builder("disable_ore_block")
             .requireProps(PropertyKey.ORE)
             .build();
+
+    /**
+     * Use to disable alloy blast recipes from generating
+     */
+    public static final MaterialFlag NO_ALLOY_BLAST_RECIPES = new MaterialFlag.Builder("no_alloy_blast_recipes")
+            .requireProps(PropertyKey.BLAST, PropertyKey.FLUID)
+            .build();
+
+    /**
+     * Use to disable everything related to alloy blasting
+     */
+    public static final MaterialFlag DISABLE_ALLOY_PROPERTY = new MaterialFlag.Builder("disable_alloy_property")
+            .requireProps(PropertyKey.BLAST, PropertyKey.FLUID)
+            .requireFlags(NO_ALLOY_BLAST_RECIPES)
+            .build();
 }

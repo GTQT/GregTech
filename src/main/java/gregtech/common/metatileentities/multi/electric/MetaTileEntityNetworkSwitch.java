@@ -97,7 +97,7 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
         return true;
     }
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:network_switch", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "XAX", "XXX")
@@ -112,7 +112,7 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
                     .buildStructureDefinition());
 
     @Override
-    protected @NotNull StructureDefinition createStructureDefinition() {
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

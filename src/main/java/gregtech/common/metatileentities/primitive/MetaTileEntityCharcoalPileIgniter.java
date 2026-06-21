@@ -26,12 +26,12 @@ import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePreviewResult;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureRuntimeDetectionContext;
-import gregtech.api.pattern.element.IStructureElement;
-import gregtech.api.pattern.element.ITypedStructureElement;
-import gregtech.api.pattern.element.StructureElementPreview;
-import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
+import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.Mods;
 import gregtech.api.util.RelativeDirection;
@@ -52,7 +52,12 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.*;
+import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
+import net.minecraft.util.EnumParticleTypes;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
@@ -203,7 +208,7 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
 
     @NotNull
     @Override
-    protected StructureDefinition createStructureDefinition() {
+    protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 

@@ -23,7 +23,7 @@ import java.util.function.Supplier;
  * <pre>{@code
  * private static final SoftTemplate TEMPLATE = SoftTemplate.of(() ->
  *     DeclarativePatternBuilder.start()
- *         .where('S', selfPredicate(...))
+ *         .self('S', MyMultiblock.class)
  *         .aisle(...)
  *         .buildTemplate()
  * );
