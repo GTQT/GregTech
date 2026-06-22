@@ -679,9 +679,9 @@ public class UnknownCompositionMaterials {
                 .color(0x4A4A55)
                 .build();
 
-        // A0 electrode paste: ZnMn mix soaked in NaOH electrolyte solution; fluid form
+        // A0 electrode electrolyte: ZnMn mix soaked in NaOH electrolyte solution; fluid form
         // (viscous alkaline slurry, analogous to how GT handles Battery Electrolyte)
-        ZincManganesePaste = Material.builder(1701, gregtechId("zinc_manganese_paste"))
+        ZincManganeseElectrolyte = Material.builder(1701, gregtechId("zinc_manganese_electrolyte"))
                 .fluid()
                 .color(0x2E2E38)
                 .build();
@@ -694,9 +694,9 @@ public class UnknownCompositionMaterials {
                 .color(0x3A3A4A)
                 .build();
 
-        // A1 electrode paste: LiMn mix dissolved in non-aqueous electrolyte; fluid form
+        // A1 electrode electrolyte: LiMn mix dissolved in non-aqueous electrolyte; fluid form
         // (represents slurried electrode active material ready for cell filling)
-        LithiumManganesePaste = Material.builder(1703, gregtechId("lithium_manganese_paste"))
+        LithiumManganeseElectrolyte = Material.builder(1703, gregtechId("lithium_manganese_electrolyte"))
                 .fluid()
                 .color(0x1E2530)
                 .build();
@@ -842,16 +842,16 @@ public class UnknownCompositionMaterials {
         // uncharged counterparts to visually indicate stored energy.
         // =====================================================================
 
-        // ChargedZincManganesePaste — energised alkaline Zn-Mn electrode paste;
+        // ChargedZincManganeseElectrolyte — energised alkaline Zn-Mn electrolyte;
         // bright amber glow indicating stored electrochemical potential
-        ChargedZincManganesePaste = Material.builder(1720, gregtechId("charged_zinc_manganese_paste"))
+        ChargedZincManganeseElectrolyte = Material.builder(1720, gregtechId("charged_zinc_manganese_electrolyte"))
                 .fluid()
                 .color(0x8E8E48)
                 .build();
 
-        // ChargedLithiumManganesePaste — energised Li-Mn non-aqueous electrode paste;
+        // ChargedLithiumManganeseElectrolyte — energised Li-Mn non-aqueous electrolyte;
         // bright teal glow indicating stored electrochemical potential
-        ChargedLithiumManganesePaste = Material.builder(1721, gregtechId("charged_lithium_manganese_paste"))
+        ChargedLithiumManganeseElectrolyte = Material.builder(1721, gregtechId("charged_lithium_manganese_electrolyte"))
                 .fluid()
                 .color(0x4E6570)
                 .build();

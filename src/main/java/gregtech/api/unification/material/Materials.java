@@ -823,11 +823,11 @@ public class Materials {
      */
     // A0 — Zinc-Manganese intermediates
     public static Material ZincManganeseMix;
-    public static Material ZincManganesePaste;
+    public static Material ZincManganeseElectrolyte;
 
     // A1 — Lithium-Manganese intermediates
     public static Material LithiumManganeseMix;
-    public static Material LithiumManganesePaste;
+    public static Material LithiumManganeseElectrolyte;
 
     // A2 — Nickel-Cadmium intermediates
     public static Material NickelHydroxide;
@@ -862,8 +862,8 @@ public class Materials {
     public static Material LithiumBistriflimide;
 
     // Charged electrolyte fluids for Battery Accumulator multiblock
-    public static Material ChargedZincManganesePaste;
-    public static Material ChargedLithiumManganesePaste;
+    public static Material ChargedZincManganeseElectrolyte;
+    public static Material ChargedLithiumManganeseElectrolyte;
     public static Material ChargedNickelCadmiumElectrolyte;
     public static Material ChargedLeadAcidElectrolyte;
     public static Material ChargedVanadiumElectrolyte;

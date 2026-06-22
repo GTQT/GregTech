@@ -23,15 +23,15 @@ public enum BatteryAccumulatorFluidMapping {
     // A0 — Zinc-Manganese Dry Cell (LV)
     // 20M EU / 10000 mB = 2,000,000 EU per 1000 mB
     ZINC_MANGANESE(
-            Materials.ZincManganesePaste,
-            Materials.ChargedZincManganesePaste,
+            Materials.ZincManganeseElectrolyte,
+            Materials.ChargedZincManganeseElectrolyte,
             2_000_000L),
 
     // A1 — Lithium-Manganese Button Cell (MV)
     // 80M EU / 10000 mB = 8,000,000 EU per 1000 mB
     LITHIUM_MANGANESE(
-            Materials.LithiumManganesePaste,
-            Materials.ChargedLithiumManganesePaste,
+            Materials.LithiumManganeseElectrolyte,
+            Materials.ChargedLithiumManganeseElectrolyte,
             8_000_000L),
 
     // A2 — Nickel-Cadmium Cell (HV)
