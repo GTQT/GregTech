@@ -23,7 +23,6 @@ import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
@@ -81,6 +80,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
 
     private boolean workingEnabled = true;
     private boolean autoCollapse = false;
+    private boolean disallowSameItemInsert = false;
 
     public MetaTileEntityDualHatch(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
@@ -272,6 +272,53 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
 
         boolean hasGhostCircuit = hasGhostCircuitInventory() && circuitInventory != null;
 
+        Flow column = Flow.column()
+                .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 5 - 7 - 4)
+                .width(18).height(18 * 5 + 4)
+                .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 4 + 4))
+                .child(new ToggleButton()
+                        .top(18 * 3)
+                        .value(new BoolValue.Dynamic(workingStateValue::getBoolValue,
+                                workingStateValue::setBoolValue))
+                        .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
+                        .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                .addLine(isExportHatch ?
+                                        (workingStateValue.getBoolValue() ?
+                                                IKey.lang("gregtech.gui.dual_auto_output.tooltip.enabled") :
+                                                IKey.lang("gregtech.gui.dual_auto_output.tooltip.disabled")) :
+                                        (workingStateValue.getBoolValue() ?
+                                                IKey.lang("gregtech.gui.dual_auto_input.tooltip.enabled") :
+                                                IKey.lang("gregtech.gui.dual_auto_input.tooltip.disabled")))));
+
+        // 禁止相同物品 — 仅输入总线
+        if (!isExportHatch) {
+            BooleanSyncValue disallowSameItemValue = new BooleanSyncValue(
+                    this::isDisallowSameItemInsert, this::setDisallowSameItemInsert);
+            column.child(new ToggleButton()
+                    .top(18 * 2)
+                    .value(disallowSameItemValue)
+                    .overlay(GTGuiTextures.BUTTON_LOCK)
+                    .addTooltip(true, IKey.lang("gregtech.machine.disallow_same_item.enabled"))
+                    .addTooltip(false, IKey.lang("gregtech.machine.disallow_same_item.disabled")));
+        }
+
+        column.child(new ToggleButton()
+                .top(18)
+                .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
+                        collapseStateValue::setBoolValue))
+                .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(collapseStateValue.getBoolValue() ?
+                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
+                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))))
+                .childIf(hasGhostCircuit, ()->new GhostCircuitSlotWidget()
+                        .slot(circuitInventory, 0)
+                        .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
+                .childIf(!hasGhostCircuit,  ()->new Widget<>()
+                        .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
+                        .tooltip(t -> t.addLine(
+                                IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))));
+
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7)).child(new Grid()
@@ -280,39 +327,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
                         .minColWidth(18).minRowHeight(18)
                         .alignX(0.5f)
                         .matrix(widgets))
-                .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 5)
-                        .width(18).height(18 * 4 + 5)
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 5))
-                        .child(new ToggleButton()
-                                .top(18 * 2)
-                                .value(new BoolValue.Dynamic(workingStateValue::getBoolValue,
-                                        workingStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(isExportHatch ?
-                                                (workingStateValue.getBoolValue() ?
-                                                        IKey.lang("gregtech.gui.dual_auto_output.tooltip.enabled") :
-                                                        IKey.lang("gregtech.gui.dual_auto_output.tooltip.disabled")) :
-                                                (workingStateValue.getBoolValue() ?
-                                                        IKey.lang("gregtech.gui.dual_auto_input.tooltip.enabled") :
-                                                        IKey.lang("gregtech.gui.dual_auto_input.tooltip.disabled")))))
-                        .child(new ToggleButton()
-                                .top(18)
-                                .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
-                                        collapseStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(collapseStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))))
-                        .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
-                                .slot(circuitInventory, 0)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                        .childIf(!hasGhostCircuit, new Widget<>()
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                                .tooltip(t -> t.addLine(
-                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))));
+                .child(column);
     }
 
     @Override
@@ -320,6 +335,8 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay()) {
+            SimpleOverlayRenderer renderer = isExportHatch ? Textures.PIPE_OUT_OVERLAY : Textures.PIPE_IN_OVERLAY;
+            renderer.renderSided(getFrontFacing(), renderState, translation, pipeline);
             SimpleOverlayRenderer overlay = isExportHatch ? Textures.DUAL_HATCH_OUTPUT_OVERLAY :
                     Textures.DUAL_HATCH_INPUT_OVERLAY;
             overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
@@ -331,6 +348,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         super.writeInitialSyncData(buf);
         buf.writeBoolean(workingEnabled);
         buf.writeBoolean(autoCollapse);
+        buf.writeBoolean(disallowSameItemInsert);
     }
 
     @Override
@@ -338,6 +356,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         super.receiveInitialSyncData(buf);
         workingEnabled = buf.readBoolean();
         autoCollapse = buf.readBoolean();
+        disallowSameItemInsert = buf.readBoolean();
     }
 
     @Override
@@ -384,6 +403,32 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         return autoCollapse;
     }
 
+    public boolean isDisallowSameItemInsert() {
+        return disallowSameItemInsert;
+    }
+
+    public void setDisallowSameItemInsert(boolean disallowSameItemInsert) {
+        this.disallowSameItemInsert = disallowSameItemInsert;
+        if (!getWorld().isRemote) {
+            IItemHandlerModifiable handler = isExportHatch ? getExportItems() : getImportItems();
+            if (handler instanceof DualHandler dual) {
+                handler = dual.getItemDelegate();
+            }
+            if (handler instanceof ItemHandlerList list) {
+                for (var h : list.getBackingHandlers()) {
+                    if (h instanceof GTItemStackHandler gtHandler) {
+                        gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+                    }
+                }
+            } else if (handler instanceof GTItemStackHandler gtHandler) {
+                gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+            }
+            writeCustomData(GregtechDataCodes.UPDATE_DISALLOW_SAME_ITEM,
+                    buf -> buf.writeBoolean(disallowSameItemInsert));
+            markDirty();
+        }
+    }
+
     @Override
     public void receiveCustomData(int dataId, PacketBuffer buf) {
         super.receiveCustomData(dataId, buf);
@@ -391,6 +436,8 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
             workingEnabled = buf.readBoolean();
         } else if (dataId == GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS) {
             autoCollapse = buf.readBoolean();
+        } else if (dataId == GregtechDataCodes.UPDATE_DISALLOW_SAME_ITEM) {
+            disallowSameItemInsert = buf.readBoolean();
         }
     }
 
@@ -415,6 +462,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
 
         data.setBoolean("workingEnabled", workingEnabled);
         data.setBoolean("autoCollapse", autoCollapse);
+        data.setBoolean("DisallowSameItemInsert", disallowSameItemInsert);
 
         if (circuitInventory != null) {
             circuitInventory.write(data);
@@ -429,6 +477,21 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
 
         this.workingEnabled = data.getBoolean("workingEnabled");
         this.autoCollapse = data.getBoolean("autoCollapse");
+        this.disallowSameItemInsert = data.getBoolean("DisallowSameItemInsert");
+        // 同步更新底层 handler
+        IItemHandlerModifiable updateHandler = isExportHatch ? getExportItems() : getImportItems();
+        if (updateHandler instanceof DualHandler dual) {
+            updateHandler = dual.getItemDelegate();
+        }
+        if (updateHandler instanceof ItemHandlerList list) {
+            for (var h : list.getBackingHandlers()) {
+                if (h instanceof GTItemStackHandler gtHandler) {
+                    gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+                }
+            }
+        } else if (updateHandler instanceof GTItemStackHandler gtHandler) {
+            gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+        }
 
         if (circuitInventory != null) {
             circuitInventory.read(data);

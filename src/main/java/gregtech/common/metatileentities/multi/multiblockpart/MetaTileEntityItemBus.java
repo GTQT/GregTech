@@ -68,6 +68,7 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
 
     private boolean workingEnabled;
     private boolean autoCollapse;
+    private boolean disallowSameItemInsert = false;
 
     public MetaTileEntityItemBus(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
@@ -181,6 +182,7 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         super.writeInitialSyncData(buf);
         buf.writeBoolean(workingEnabled);
         buf.writeBoolean(autoCollapse);
+        buf.writeBoolean(disallowSameItemInsert);
     }
 
     @Override
@@ -188,6 +190,7 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         super.receiveInitialSyncData(buf);
         this.workingEnabled = buf.readBoolean();
         this.autoCollapse = buf.readBoolean();
+        this.disallowSameItemInsert = buf.readBoolean();
     }
 
     @Override
@@ -195,6 +198,7 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         super.writeToNBT(data);
         data.setBoolean("workingEnabled", workingEnabled);
         data.setBoolean("autoCollapse", autoCollapse);
+        data.setBoolean("DisallowSameItemInsert", disallowSameItemInsert);
         if (this.circuitInventory != null && !this.isExportHatch) {
             this.circuitInventory.write(data);
         }
@@ -210,6 +214,18 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         if (data.hasKey("autoCollapse")) {
             this.autoCollapse = data.getBoolean("autoCollapse");
         }
+        this.disallowSameItemInsert = data.getBoolean("DisallowSameItemInsert");
+        // 同步更新底层 handler
+        IItemHandlerModifiable updateHandler = isExportHatch ? exportItems : getImportItems();
+        if (updateHandler instanceof ItemHandlerList list) {
+            for (var h : list.getBackingHandlers()) {
+                if (h instanceof GTItemStackHandler gtHandler) {
+                    gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+                }
+            }
+        } else if (updateHandler instanceof GTItemStackHandler gtHandler) {
+            gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+        }
         if (this.circuitInventory != null && !this.isExportHatch) {
             this.circuitInventory.read(data);
         }
@@ -222,6 +238,8 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
             this.autoCollapse = buf.readBoolean();
         } else if (dataId == GregtechDataCodes.WORKING_ENABLED) {
             this.workingEnabled = buf.readBoolean();
+        } else if (dataId == GregtechDataCodes.UPDATE_DISALLOW_SAME_ITEM) {
+            this.disallowSameItemInsert = buf.readBoolean();
         }
     }
 
@@ -255,6 +273,51 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         IItemHandlerModifiable handler = isExportHatch ? exportItems : importItems;
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
 
+        Flow column = Flow.column()
+                .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 5 - 7 - 4)
+                .width(18).height(18 * 5 + 4)
+                .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 4 + 4))
+                .child(new ToggleButton()
+                        .top(18 * 3)
+                        .value(workingStateValue)
+                        .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
+                        .tooltipAutoUpdate(true)
+                        .tooltipBuilder(t -> t.addLine(isExportHatch ?
+                                (workingStateValue.getBoolValue() ?
+                                        IKey.lang("gregtech.gui.item_auto_output.tooltip.enabled") :
+                                        IKey.lang("gregtech.gui.item_auto_output.tooltip.disabled")) :
+                                (workingStateValue.getBoolValue() ?
+                                        IKey.lang("gregtech.gui.item_auto_input.tooltip.enabled") :
+                                        IKey.lang("gregtech.gui.item_auto_input.tooltip.disabled")))));
+
+        // 禁止相同物品 — 仅输入总线
+        if (!isExportHatch) {
+            BooleanSyncValue disallowSameItemValue = new BooleanSyncValue(
+                    this::isDisallowSameItemInsert, this::setDisallowSameItemInsert);
+            column.child(new ToggleButton()
+                    .top(18 * 2)
+                    .value(disallowSameItemValue)
+                    .overlay(GTGuiTextures.BUTTON_LOCK)
+                    .addTooltip(true, IKey.lang("gregtech.machine.disallow_same_item.enabled"))
+                    .addTooltip(false, IKey.lang("gregtech.machine.disallow_same_item.disabled")));
+        }
+
+        column.child(new ToggleButton()
+                .top(18)
+                .value(collapseStateValue)
+                .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
+                .tooltipAutoUpdate(true)
+                .tooltipBuilder(t -> t.addLine(collapseStateValue.getBoolValue() ?
+                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
+                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))))
+                .childIf(hasGhostCircuit, () -> new GhostCircuitSlotWidget()
+                        .slot(circuitInventory, 0)
+                        .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
+                .childIf(!hasGhostCircuit, () -> new Widget<>()
+                        .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
+                        .tooltip(t -> t.addLine(
+                                IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))));
+
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
@@ -273,37 +336,7 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
                                             }
                                         })
                                         .accessibility(!isExportHatch, true))))
-                .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 5)
-                        .width(18).height(18 * 4 + 5)
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 5))
-                        .child(new ToggleButton()
-                                .top(18 * 2)
-                                .value(workingStateValue)
-                                .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
-                                .tooltipAutoUpdate(true)
-                                .tooltipBuilder(t -> t.addLine(isExportHatch ?
-                                        (workingStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.item_auto_output.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.item_auto_output.tooltip.disabled")) :
-                                        (workingStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.item_auto_input.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.item_auto_input.tooltip.disabled")))))
-                        .child(new ToggleButton()
-                                .top(18)
-                                .value(collapseStateValue)
-                                .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
-                                .tooltipAutoUpdate(true)
-                                .tooltipBuilder(t -> t.addLine(collapseStateValue.getBoolValue() ?
-                                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
-                                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))))
-                        .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
-                                .slot(circuitInventory, 0)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                        .childIf(!hasGhostCircuit, new Widget<>()
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                                .tooltip(t -> t.addLine(
-                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))));
+                .child(column);
     }
 
     @Override
@@ -343,6 +376,30 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
             writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
                     packetBuffer -> packetBuffer.writeBoolean(autoCollapse));
             notifyBlockUpdate();
+            markDirty();
+        }
+    }
+
+    public boolean isDisallowSameItemInsert() {
+        return disallowSameItemInsert;
+    }
+
+    public void setDisallowSameItemInsert(boolean disallowSameItemInsert) {
+        this.disallowSameItemInsert = disallowSameItemInsert;
+        if (!getWorld().isRemote) {
+            // 同步更新底层 handler
+            IItemHandlerModifiable handler = isExportHatch ? exportItems : getImportItems();
+            if (handler instanceof ItemHandlerList list) {
+                for (var h : list.getBackingHandlers()) {
+                    if (h instanceof GTItemStackHandler gtHandler) {
+                        gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+                    }
+                }
+            } else if (handler instanceof GTItemStackHandler gtHandler) {
+                gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+            }
+            writeCustomData(GregtechDataCodes.UPDATE_DISALLOW_SAME_ITEM,
+                    buf -> buf.writeBoolean(disallowSameItemInsert));
             markDirty();
         }
     }
