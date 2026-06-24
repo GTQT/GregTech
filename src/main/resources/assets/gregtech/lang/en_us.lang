@@ -2500,6 +2500,9 @@ gregtech.material.charged_vanadium_electrolyte=Charged Vanadium Electrolyte
 gregtech.material.charged_lithium_bisoxalatoborate=Charged Lithium Bis(oxalato)borate
 gregtech.material.charged_lithium_bistriflimide=Charged Lithium Bis(trifluoromethanesulfonyl)imide
 gregtech.material.charged_lithium_hexafluorophosphate=Charged Lithium Hexafluorophosphate
+gregtech.material.honeycomb_extract=Honeycomb Extract
+gregtech.material.premium_honeycomb_extract=Premium Honeycomb Extract
+gregtech.material.premium_grade_honeycomb_extract=Premium-Grade Honeycomb Extract
 
 # Second Degree Materials
 gregtech.material.glass=Glass

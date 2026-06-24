@@ -897,5 +897,18 @@ public class UnknownCompositionMaterials {
                 .fluid()
                 .color(0x80B0F0)
                 .build();
+
+        HoneycombExtract = Material.builder(1728, gregtechId("honeycomb_extract"))
+                .fluid()
+                .color(0xE679C1)
+                .build();
+        PremiumHoneycombExtract = Material.builder(1729, gregtechId("premium_honeycomb_extract"))
+                .fluid()
+                .color(0xF15FA2)
+                .build();
+        PremiumGradeHoneycombExtract = Material.builder(1730, gregtechId("premium_grade_honeycomb_extract"))
+                .fluid()
+                .color(0xE63770)
+                .build();
     }
 }

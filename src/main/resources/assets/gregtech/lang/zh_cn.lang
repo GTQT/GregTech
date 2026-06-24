@@ -2494,6 +2494,9 @@ gregtech.material.charged_vanadium_electrolyte=充能钒电解液
 gregtech.material.charged_lithium_bisoxalatoborate=充能双草酸硼酸锂电解液
 gregtech.material.charged_lithium_bistriflimide=充能双三氟甲磺酰亚胺锂电解液
 gregtech.material.charged_lithium_hexafluorophosphate=充能六氟磷酸锂
+gregtech.material.honeycomb_extract=蜂窝萃取液
+gregtech.material.premium_honeycomb_extract=高级蜂窝萃取液
+gregtech.material.premium_grade_honeycomb_extract=先进蜂窝萃取液
 
 # Second Degree Materials
 gregtech.material.glass=玻璃

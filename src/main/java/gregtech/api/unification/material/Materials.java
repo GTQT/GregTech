@@ -870,4 +870,9 @@ public class Materials {
     public static Material ChargedLithiumBisoxalatoborate;
     public static Material ChargedLithiumBistriflimide;
     public static Material ChargedLithiumHexafluorophosphate;
+
+    //CombExtract
+    public static Material HoneycombExtract;
+    public static Material PremiumHoneycombExtract;
+    public static Material PremiumGradeHoneycombExtract;
 }
