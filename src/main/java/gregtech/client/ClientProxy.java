@@ -16,6 +16,7 @@ import gregtech.api.util.Mods;
 import gregtech.api.util.input.KeyBind;
 import gregtech.client.model.customtexture.CustomTextureModelHandler;
 import gregtech.client.model.customtexture.MetadataSectionCTM;
+import gregtech.client.event.CreativeSprayClientHandler;
 import gregtech.client.renderer.handler.FacadeRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.pipe.CableRenderer;
@@ -37,6 +38,7 @@ import gregtech.common.blocks.BlockFrame;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.ToolItems;
+import gregtech.common.items.behaviors.spray.CreativeSprayBehavior;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -350,8 +352,8 @@ public class ClientProxy extends CommonProxy {
                                         @NotNull EnumHand hand) {
         ItemStack heldStack = playerClient.getHeldItem(hand);
         IMouseEventHandler mouseEventHandler = IMouseEventHandler.getHandler(heldStack);
-        if (mouseEventHandler != null) {
-            mouseEventHandler.handleMouseEventClient(event, playerClient, hand, heldStack);
+        if (mouseEventHandler instanceof CreativeSprayBehavior sprayBehavior) {
+            CreativeSprayClientHandler.handleMouseEvent(event, playerClient, hand, heldStack, sprayBehavior);
         }
     }
 

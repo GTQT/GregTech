@@ -6,19 +6,16 @@ import forestry.api.apiculture.EnumBeeType;
 import forestry.apiculture.genetics.BeeDefinition;
 import forestry.core.fluids.Fluids;
 
-import gregtech.api.GTValues;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTUtility;
-
 import gregtech.api.util.Mods;
 import gregtech.common.items.MetaItems;
 
 import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
-import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.oredict.OreDictionary;
 
 import java.util.List;
@@ -26,13 +23,12 @@ import java.util.stream.Collectors;
 
 public class BeeAttractorRecipeBuild {
 
-    public static void initAttactorRecipes()
-    {
+    public static void initAttractorRecipes() {
         List<ItemStack> allFlowers = OreDictionary.getOres("flower").stream()
                 .flatMap(stack -> GTUtility.getAllSubItems(stack.getItem()).stream())
                 .collect(Collectors.toList());
-        for (ItemStack stack : allFlowers)
-        {
+
+        for (ItemStack stack : allFlowers) {
             RecipeMaps.ATTRACTOR_RECIPES.recipeBuilder().notConsumable(GTUtility.copy(1, stack)).fluidInputs(
                             Fluids.SEED_OIL.getFluid(100))
                     .chancedOutput(BeeManager.beeRoot.getMemberStack(BeeDefinition.FOREST.getIndividual(), EnumBeeType.PRINCESS), 1000, 500)
@@ -132,5 +128,10 @@ public class BeeAttractorRecipeBuild {
                 .chancedOutput(BeeManager.beeRoot.getMemberStack(BeeDefinition.VALIANT.getIndividual(), EnumBeeType.PRINCESS), 100, 500)
                 .chancedOutput(BeeManager.beeRoot.getMemberStack(BeeDefinition.VALIANT.getIndividual(), EnumBeeType.DRONE), 300, 500)
                 .EUt(26).duration(200).buildAndRegister();
+    }
+
+    @Deprecated
+    public static void initAttactorRecipes() {
+        initAttractorRecipes();
     }
 }

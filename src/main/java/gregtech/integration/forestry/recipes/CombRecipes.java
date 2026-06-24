@@ -328,7 +328,7 @@ public class CombRecipes {
             return;
 
         RecipeBuilder<?> builder = RecipeMaps.CHEMICAL_RECIPES.recipeBuilder()
-                .inputs(GTUtility.copy(9, ForestryUtil.getCombStack(comb)))
+                .inputs(GTUtility.copy(6, ForestryUtil.getCombStack(comb)))
                 .input(OrePrefix.crushed, inMaterial)
                 .fluidInputs(volt.getFluid())
                 .output(OrePrefix.crushedPurified, outMaterial, 4)
@@ -360,12 +360,12 @@ public class CombRecipes {
         if (OreDictUnifier.get(OrePrefix.crushedPurified, material, 4).isEmpty()) return;
 
         RecipeBuilder<?> builder = RecipeMaps.AUTOCLAVE_RECIPES.recipeBuilder()
-                .inputs(GTUtility.copy(9, ForestryUtil.getCombStack(comb)))
+                .inputs(GTUtility.copy(6, ForestryUtil.getCombStack(comb)))
                 .circuitMeta(circuitNumber)
                 .fluidInputs(
                         Materials.Mutagen.getFluid((int) Math.max(1, material.getMass() + volt.getMutagenAmount())))
                 .output(OrePrefix.crushedPurified, material, 4)
-                .duration((int) (material.getMass() * 128))
+                .duration((int) (material.getMass() * 64))
                 .EUt(volt.getAutoclaveEnergy());
 
         if (volt.compareTo(Voltage.HV) > 0) {
@@ -500,21 +500,35 @@ public class CombRecipes {
         // Finalize GregTech Map
         builder.buildAndRegister();
     }
-    private static void addCombProductProcess(GTCombType comb, Material[] material, Voltage volt)
-    {
-        Material rongye = volt.ordinal()<4?Materials.HydrofluoricAcid:Materials.PhthalicAcid;
-        RecipeBuilder<?> builder = RecipeMaps.COMBS_PRODUCT.recipeBuilder()
-                .duration(200*(volt.ordinal()+1))
-                .EUt(volt.getAutoclaveEnergy());
-        for (var item:material)
-        {
-            if (OreDictUnifier.get(OrePrefix.crushedPurified, item, 4).isEmpty()) continue;
-            builder.output(OrePrefix.crushedPurified, item, 4);
+    private static void addCombProductProcess(GTCombType comb, Material[] material, Voltage volt) {
+        int duration = 200 * (volt.ordinal() + 1);
+
+        if (volt.ordinal() < 4) {
+            registerCombProductRecipe(comb, material, Materials.HoneycombExtract, 576, 2, duration, volt);
+            registerCombProductRecipe(comb, material, Materials.PremiumHoneycombExtract, 288, 4,
+                    duration / 2, volt);
+            registerCombProductRecipe(comb, material, Materials.PremiumGradeHoneycombExtract, 144, 8,
+                    duration / 4, volt);
+        } else {
+            registerCombProductRecipe(comb, material, Materials.PremiumHoneycombExtract, 288, 4,
+                    duration / 2, volt);
+            registerCombProductRecipe(comb, material, Materials.PremiumGradeHoneycombExtract, 144, 8,
+                    duration / 4, volt);
         }
-        if(builder.getOutputs().size()>0)
-        {
+    }
+
+    private static void registerCombProductRecipe(GTCombType comb, Material[] material, Material extract,
+                                                  int fluidPerOutput, int outputAmount, int duration, Voltage volt) {
+        RecipeBuilder<?> builder = RecipeMaps.COMBS_PRODUCT.recipeBuilder()
+                .duration(duration)
+                .EUt(volt.getAutoclaveEnergy());
+        for (var item : material) {
+            if (OreDictUnifier.get(OrePrefix.crushedPurified, item, outputAmount).isEmpty()) continue;
+            builder.output(OrePrefix.crushedPurified, item, outputAmount);
+        }
+        if (builder.getOutputs().size() > 0) {
             builder.inputs(GTUtility.copy(2 * builder.getOutputs().size(), ForestryUtil.getCombStack(comb)))
-                    .fluidInputs(rongye.getFluid(576 * builder.getOutputs().size()))
+                    .fluidInputs(extract.getFluid(fluidPerOutput * builder.getOutputs().size()))
                     .buildAndRegister();
         }
     }
