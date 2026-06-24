@@ -1,12 +1,10 @@
-package gregtech.api.unification.properties;
+package gregtech.api.unification.material.properties;
 
 import gregtech.api.GregTechAPI;
 import gregtech.api.recipes.alloyblast.CustomAlloyBlastRecipeProducer;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.info.MaterialFlags;
-import gregtech.api.unification.material.properties.BlastProperty;
-import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.stack.MaterialStack;
 
 import org.jetbrains.annotations.ApiStatus;
@@ -26,10 +24,10 @@ public final class AlloyBlastPropertyAddition {
             }
         }
         // Alloy Blast Overriding
-        AlloyBlastProperty property = Materials.NiobiumNitride.getProperty(GCYMPropertyKey.ALLOY_BLAST);
+        AlloyBlastProperty property = Materials.NiobiumNitride.getProperty(PropertyKey.ALLOY_BLAST);
         property.setRecipeProducer(new CustomAlloyBlastRecipeProducer(1, 11, -1));
 
-        property = Materials.IndiumTinBariumTitaniumCuprate.getProperty(GCYMPropertyKey.ALLOY_BLAST);
+        property = Materials.IndiumTinBariumTitaniumCuprate.getProperty(PropertyKey.ALLOY_BLAST);
         property.setRecipeProducer(new CustomAlloyBlastRecipeProducer(-1, -1, 16));
     }
 
@@ -48,7 +46,7 @@ public final class AlloyBlastPropertyAddition {
             return;
         }
 
-        material.setProperty(GCYMPropertyKey.ALLOY_BLAST, new AlloyBlastProperty(material.getBlastTemperature()));
+        material.setProperty(PropertyKey.ALLOY_BLAST, new AlloyBlastProperty(material.getBlastTemperature()));
     }
 
     private static boolean isMaterialStackFluidOnly(@NotNull MaterialStack ms) {

@@ -1,16 +1,11 @@
-package gregtech.api.unification.properties;
-
-import org.jetbrains.annotations.NotNull;
-
-import com.google.common.base.Preconditions;
-
-import gregtech.api.unification.material.Material;
-import gregtech.api.unification.material.properties.IMaterialProperty;
-import gregtech.api.unification.material.properties.MaterialProperties;
-import gregtech.api.unification.material.properties.PropertyKey;
-import gregtech.api.unification.ore.OrePrefix;
+package gregtech.api.unification.material.properties;
 
 import gregtech.api.recipes.alloyblast.AlloyBlastRecipeProducer;
+import gregtech.api.unification.material.Material;
+import gregtech.api.unification.ore.OrePrefix;
+
+import com.google.common.base.Preconditions;
+import org.jetbrains.annotations.NotNull;
 
 public class AlloyBlastProperty implements IMaterialProperty {
 

@@ -2,6 +2,7 @@
   "parent": "item/handheld",
   "textures": {
     "layer0": "gregtech:items/tools/handle_shovel",
-    "layer1": "gregtech:items/tools/spade"
+    "layer1": "gregtech:items/tools/spade",
+    "layer2": "gregtech:items/tools/spade_overlay"
   }
 }

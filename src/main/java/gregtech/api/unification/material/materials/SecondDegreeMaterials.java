@@ -16,7 +16,6 @@ import static gregtech.api.GTValues.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.unification.material.info.MaterialIconSet.*;
-import static gregtech.api.util.GCYMUtil.gcymId;
 import static gregtech.api.util.GTUtility.gregtechId;
 
 public class SecondDegreeMaterials {
@@ -551,7 +550,7 @@ public class SecondDegreeMaterials {
                 .components(Nitrogen, 78, CarbonDioxide, 12, Oxygen, 4, Argon, 2, Water, 1, CarbonMonoxide, 1, NitricOxide, 1, NitrogenDioxide, 1)
                 .build();
 
-        Stellite = new Material.Builder(2071, gcymId("stellite"))
+        Stellite = new Material.Builder(2071, gregtechId("stellite"))
                 .ingot().fluid()
                 .color(0xDEDEFF).iconSet(MaterialIconSet.METALLIC)
                 .components(Materials.Cobalt, 7, Materials.Chrome, 7, Materials.Manganese, 4, Materials.Titanium, 2)
@@ -559,14 +558,14 @@ public class SecondDegreeMaterials {
                 .mix(VA[EV], 80)
                 .build();
 
-        WatertightSteel = new Material.Builder(2072, gcymId("watertight_steel"))
+        WatertightSteel = new Material.Builder(2072, gregtechId("watertight_steel"))
                 .ingot().fluid()
                 .color(0x355D6A).iconSet(MaterialIconSet.METALLIC)
                 .components(Steel, 12, Carbon, 2, Manganese, 1, Silicon, 2, Phosphorus, 1, Sulfur, 1, Aluminium, 4)
                 .blast(b -> b.temp(3850, BlastProperty.GasTier.MID).blastStats(VA[EV], 800))
                 .build();
 
-        MaragingSteel250 = new Material.Builder(2073, gcymId("maraging_steel_250"))
+        MaragingSteel250 = new Material.Builder(2073, gregtechId("maraging_steel_250"))
                 .ingot().fluid()
                 .color(0x9083C0).iconSet(MaterialIconSet.METALLIC)
                 .components(Steel, 16, Molybdenum, 1, Titanium, 1, Nickel, 4, Cobalt, 2)
@@ -574,7 +573,7 @@ public class SecondDegreeMaterials {
                 .blast(2685)
                 .build();
 
-        MaragingSteel300 = new Material.Builder(2074, gcymId("maraging_steel_300"))
+        MaragingSteel300 = new Material.Builder(2074, gregtechId("maraging_steel_300"))
                 .ingot().fluid()
                 .color(0x637087).iconSet(MaterialIconSet.METALLIC)
                 .components(Steel, 16, Titanium, 1, Aluminium, 1, Nickel, 4, Cobalt, 2)
@@ -582,7 +581,7 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[EV], 1000))
                 .build();
 
-        MaragingSteel350 = new Material.Builder(2075, gcymId("maraging_steel_350"))
+        MaragingSteel350 = new Material.Builder(2075, gregtechId("maraging_steel_350"))
                 .ingot().fluid()
                 .color(0x7985B7).iconSet(MaterialIconSet.METALLIC)
                 .components(Steel, 16, Aluminium, 1, Molybdenum, 1, Nickel, 4, Cobalt, 2)
@@ -591,14 +590,14 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[EV], 1000))
                 .build();
 
-        HastelloyC276 = new Material.Builder(2076, gcymId("hastelloy_c_276"))
+        HastelloyC276 = new Material.Builder(2076, gregtechId("hastelloy_c_276"))
                 .ingot().fluid()
                 .color(0xCF3939).iconSet(MaterialIconSet.METALLIC)
                 .components(Nickel, 32, Molybdenum, 8, Chrome, 7, Tungsten, 1, Cobalt, 1, Copper, 1)
                 .blast(b -> b.temp(4625, BlastProperty.GasTier.MID))
                 .build();
 
-        HastelloyX = new Material.Builder(2077, gcymId("hastelloy_x"))
+        HastelloyX = new Material.Builder(2077, gregtechId("hastelloy_x"))
                 .ingot().fluid()
                 .color(0x6BA3E3).iconSet(MaterialIconSet.METALLIC)
                 .components(Nickel, 24, Chrome, 11, Iron, 9, Molybdenum, 4, Manganese, 1, Silicon, 1)
@@ -606,7 +605,7 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[EV], 900))
                 .build();
 
-        HastelloyN = new Material.Builder(2078, gcymId("hastelloy_n"))
+        HastelloyN = new Material.Builder(2078, gregtechId("hastelloy_n"))
                 .ingot().fluid()
                 .color(0x9C97C4).iconSet(MaterialIconSet.METALLIC)
                 .components(Yttrium, 4, Molybdenum, 4, Chrome, 2, Titanium, 2, Nickel, 15)
@@ -614,7 +613,7 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[EV], 800))
                 .build();
 
-        HastelloyW = new Material.Builder(2079, gcymId("hastelloy_w"))
+        HastelloyW = new Material.Builder(2079, gregtechId("hastelloy_w"))
                 .ingot().fluid()
                 .color(0xC0B6D0).iconSet(MaterialIconSet.METALLIC)
                 .components(Iron, 3, Cobalt, 1, Molybdenum, 12, Chrome, 3, Nickel, 31)
@@ -622,7 +621,7 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[HV], 600))
                 .build();
 
-        Trinaquadalloy = new Material.Builder(2080, gcymId("trinaquadalloy"))
+        Trinaquadalloy = new Material.Builder(2080, gregtechId("trinaquadalloy"))
                 .ingot().fluid()
                 .color(0x281832).iconSet(MaterialIconSet.BRIGHT)
                 .components(Trinium, 6, Naquadah, 2, Carbon, 1)
@@ -630,7 +629,7 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[ZPM], 1200))
                 .build();
 
-        Zeron100 = new Material.Builder(2081, gcymId("zeron_100"))
+        Zeron100 = new Material.Builder(2081, gregtechId("zeron_100"))
                 .ingot().fluid()
                 .color(0x325A8C).iconSet(MaterialIconSet.METALLIC)
                 .components(Chrome, 13, Nickel, 3, Molybdenum, 2, Copper, 10, Tungsten, 2, Steel, 20)
@@ -638,7 +637,7 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[LuV]))
                 .build();
 
-        TitaniumCarbide = new Material.Builder(2082, gcymId("titanium_carbide"))
+        TitaniumCarbide = new Material.Builder(2082, gregtechId("titanium_carbide"))
                 .ingot().fluid()
                 .color(0xB20B3A).iconSet(MaterialIconSet.METALLIC)
                 .components(Titanium, 1, Carbon, 1)
@@ -646,7 +645,7 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[EV], 1000))
                 .build();
 
-        TantalumCarbide = new Material.Builder(2083, gcymId("tantalum_carbide"))
+        TantalumCarbide = new Material.Builder(2083, gregtechId("tantalum_carbide"))
                 .ingot().fluid()
                 .color(0x56566A).iconSet(MaterialIconSet.METALLIC)
                 .components(Tantalum, 1, Carbon, 1)
@@ -654,7 +653,7 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[EV], 1200))
                 .build();
 
-        MolybdenumDisilicide = new Material.Builder(2084, gcymId("molybdenum_disilicide"))
+        MolybdenumDisilicide = new Material.Builder(2084, gregtechId("molybdenum_disilicide"))
                 .ingot().fluid()
                 .color(0x6A5BA3).iconSet(MaterialIconSet.METALLIC)
                 .components(Molybdenum, 1, Silicon, 2)
@@ -662,7 +661,7 @@ public class SecondDegreeMaterials {
                         .blastStats(VA[EV], 800))
                 .build();
 
-        HSLASteel = new Material.Builder(2085, gcymId("hsla_steel"))
+        HSLASteel = new Material.Builder(2085, gregtechId("hsla_steel"))
                 .ingot().fluid()
                 .color(0x808080).iconSet(MaterialIconSet.METALLIC)
                 .components(Invar, 2, Vanadium, 1, Titanium, 1, Molybdenum, 1)
@@ -673,7 +672,7 @@ public class SecondDegreeMaterials {
                 .blast(b -> b.temp(1711, BlastProperty.GasTier.LOW).blastStats(VA[HV], 1000))
                 .build();
 
-        TitaniumTungstenCarbide = new Material.Builder(2086, gcymId("titanium_tungsten_carbide"))
+        TitaniumTungstenCarbide = new Material.Builder(2086, gregtechId("titanium_tungsten_carbide"))
                 .ingot().fluid()
                 .color(0x800D0D).iconSet(MaterialIconSet.METALLIC)
                 .components(TungstenCarbide, 1, TitaniumCarbide, 2)
@@ -684,7 +683,7 @@ public class SecondDegreeMaterials {
                 .blast(b -> b.temp(3800, BlastProperty.GasTier.HIGH).blastStats(VA[EV], 1000))
                 .build();
 
-        IncoloyMA956 = new Material.Builder(2087, gcymId("incoloy_ma_956"))
+        IncoloyMA956 = new Material.Builder(2087, gregtechId("incoloy_ma_956"))
                 .ingot().fluid()
                 .color(0x37BF7E).iconSet(MaterialIconSet.METALLIC)
                 .components(VanadiumSteel, 4, Manganese, 2, Aluminium, 5, Yttrium, 2)

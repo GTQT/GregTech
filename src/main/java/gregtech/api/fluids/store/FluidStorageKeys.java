@@ -40,6 +40,17 @@ public final class FluidStorageKeys {
             m -> "gregtech.fluid.plasma",
             FluidState.PLASMA, -1);
 
+    public static final FluidStorageKey MOLTEN = new FluidStorageKey(gregtechId("molten"),
+            MaterialIconType.molten,
+            m -> "molten." + m.getName(),
+            m -> {
+                if (m.hasProperty(PropertyKey.ALLOY_BLAST)) {
+                    return "gregtech.fluid.molten";
+                }
+                return "gregtech.fluid.generic";
+            });
+
+
     private FluidStorageKeys() {}
 
     /**

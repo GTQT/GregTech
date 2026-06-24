@@ -9,8 +9,8 @@ import gregtech.api.unification.material.materials.OrganicChemistryMaterials;
 import gregtech.api.unification.material.materials.SecondDegreeMaterials;
 import gregtech.api.unification.material.materials.SoftToolAddition;
 import gregtech.api.unification.material.materials.UnknownCompositionMaterials;
+import gregtech.api.unification.material.properties.AlloyBlastPropertyAddition;
 import gregtech.api.unification.ore.OrePrefix;
-import gregtech.api.unification.properties.AlloyBlastPropertyAddition;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 

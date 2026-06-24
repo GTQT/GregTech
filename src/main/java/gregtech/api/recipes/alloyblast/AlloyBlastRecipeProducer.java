@@ -1,7 +1,6 @@
 package gregtech.api.recipes.alloyblast;
 
 import gregtech.api.GTValues;
-import gregtech.api.fluids.GCYMFluidStorageKeys;
 import gregtech.api.fluids.store.FluidStorageKeys;
 import gregtech.api.recipes.GCYMRecipeMaps;
 import gregtech.api.recipes.RecipeBuilder;
@@ -60,7 +59,7 @@ public class AlloyBlastRecipeProducer {
         if (componentAmount < 2) return;
 
         // get the output fluid
-        Fluid output = material.getFluid(GCYMFluidStorageKeys.MOLTEN);
+        Fluid output = material.getFluid(FluidStorageKeys.MOLTEN);
         if (output == null) {
             output = material.getFluid(FluidStorageKeys.LIQUID);
             if (output == null) return;
