@@ -1,11 +1,11 @@
 {
-	"animation":{
-		"frametime":2
-	},
-    "ldlib": {
-        "emissive": true
-    },
-    "shimmer": {
-        "bloom": true
+    "animation": {"frametime": 2},
+    "ctm": {
+        "ctm_version": 1,
+        "layer": "BLOOM",
+        "gregtech": true,
+        "extra": {
+            "light": 15
+        }
     }
 }
