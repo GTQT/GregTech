@@ -211,6 +211,7 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
         if (shouldRenderOverlay()) {
             SimpleOverlayRenderer renderer = Textures.PIPE_IN_OVERLAY;
             renderer.renderSided(getFrontFacing(), renderState, translation, pipeline);
+            Textures.PIPE_ITEM_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
             SimpleOverlayRenderer overlay = Textures.ITEM_HATCH_INPUT_OVERLAY;
             overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }

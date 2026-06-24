@@ -70,6 +70,10 @@ public class MetaTileEntitySteamFluidHatch extends MetaTileEntityFluidHatch {
         if (this.shouldRenderOverlay()) {
             SimpleOverlayRenderer renderer = this.isExportHatch ? Textures.PIPE_OUT_OVERLAY : Textures.PIPE_IN_OVERLAY;
             renderer.renderSided(this.getFrontFacing(), renderState, translation, pipeline);
+            Textures.PIPE_FLUID_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
+            SimpleOverlayRenderer overlay = isExportHatch ? Textures.FLUID_HATCH_OUTPUT_OVERLAY :
+                    Textures.FLUID_HATCH_INPUT_OVERLAY;
+            overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
     }
 

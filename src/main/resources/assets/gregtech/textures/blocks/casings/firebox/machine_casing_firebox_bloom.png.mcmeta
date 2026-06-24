@@ -1,4 +1,5 @@
 {
+    "animation": {"frametime": 1},
     "ctm": {
         "ctm_version": 1,
         "layer": "BLOOM",

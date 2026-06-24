@@ -87,6 +87,7 @@ public class MetaTileEntityLDFluidEndpoint extends MetaTileEntityLongDistanceEnd
         Textures.PIPE_IN_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
         Textures.FLUID_HATCH_INPUT_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
         Textures.PIPE_OUT_OVERLAY.renderSided(getOutputFacing(), renderState, translation, pipeline);
+        Textures.PIPE_FLUID_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
         Textures.FLUID_HATCH_OUTPUT_OVERLAY.renderSided(getOutputFacing(), renderState, translation, pipeline);
     }
 
