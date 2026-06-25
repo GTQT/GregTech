@@ -673,6 +673,14 @@ public class UnknownCompositionMaterials {
 
         // --- Disposable Battery Block intermediates (A-series), IDs 1700+ ---
 
+        // Alumina — Al₂O₃, white ceramic powder; raw material for the Ceramic Exchange Membrane
+        // used by EV/IV/LuV disposable batteries. Shared across all ceramic-membrane tiers.
+        Alumina = Material.builder(1725, gregtechId("alumina"))
+                .dust(1)
+                .color(0xF0F0F0)
+                .components(Aluminium, 2, Oxygen, 3)
+                .build();
+
         // A0 electrode dry blend: Zinc powder + MnO₂ (Pyrolusite) powder, grey-black colour
         ZincManganeseMix = Material.builder(1700, gregtechId("zinc_manganese_mix"))
                 .dust()
