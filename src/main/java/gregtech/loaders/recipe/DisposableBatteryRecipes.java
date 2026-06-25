@@ -445,15 +445,25 @@ public class DisposableBatteryRecipes {
     }
 
     private static int getTierForMapping(BatteryAccumulatorFluidMapping mapping) {
-        return switch (mapping) {
-            case ZINC_MANGANESE -> LV;
-            case LITHIUM_MANGANESE -> MV;
-            case NICKEL_CADMIUM -> HV;
-            case LEAD_ACID -> EV;
-            case VANADIUM_FLOW -> IV;
-            case LFP -> LuV;
-            case LCO -> ZPM;
-            case NMC -> UV;
-        };
+        switch (mapping) {
+            case ZINC_MANGANESE:
+                return LV;
+            case LITHIUM_MANGANESE:
+                return MV;
+            case NICKEL_CADMIUM:
+                return HV;
+            case LEAD_ACID:
+                return EV;
+            case VANADIUM_FLOW:
+                return IV;
+            case LFP:
+                return LuV;
+            case LCO:
+                return ZPM;
+            case NMC:
+                return UV;
+            default:
+                throw new IllegalArgumentException("Unknown battery accumulator mapping: " + mapping);
+        }
     }
 }
