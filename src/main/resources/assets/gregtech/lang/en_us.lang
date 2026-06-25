@@ -3032,7 +3032,9 @@ behavior.mining_laser.tooltip.energy=Energy: %s / %s EU (%s%%)
 behavior.mining_laser.tooltip.available_uses=Available Uses: %s times
 behavior.mining_laser.tooltip.all_modes=--- All Modes ---
 
-metaitem.vajra.name=Vajra
+metaitem.vajra_hv.name=Vajra (§6HV§r)
+metaitem.vajra_ev.name=Vajra (§5EV§r)
+metaitem.vajra_iv.name=Vajra (§1IV§r)
 # Vajra Behavior Messages
 behavior.vajra.mode.normal=Normal Mode
 behavior.vajra.mode.silk_touch=Silk Touch Mode

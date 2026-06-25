@@ -847,6 +847,7 @@ public final class GregTechMetaItem extends StandardMetaItem {
             lines.add(I18n.format("gregtech.universal.tooltip.voltage_out", GTValues.V[GTValues.UV],
                     GTValues.VNF[GTValues.UV]));
         }));
+
         COVER_SOLAR_PANEL_UHV = addItem(341, "cover.solar.panel.uhv").setTier(9).addComponents(new TooltipBehavior(lines -> {
             lines.add(I18n.format("metaitem.cover.solar.panel.tooltip.1"));
             lines.add(I18n.format("metaitem.cover.solar.panel.tooltip.2"));
@@ -1122,11 +1123,25 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .setTier(5)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        VAJRA = addItem(511, "vajra")
-                .addComponents(ElectricStats.createElectricItem(100_000_000L, GTValues.ZPM),
-                        new VajraBehavior())
+        VAJRA_HV = addItem(511, "vajra_hv")
+                .addComponents(ElectricStats.createElectricItem(1_000_000L, GTValues.HV),
+                        new VajraBehavior(GTValues.HV))
                 .setMaxStackSize(1)
-                .setTier(7)
+                .setTier(3)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        VAJRA_EV = addItem(512, "vajra_ev")
+                .addComponents(ElectricStats.createElectricItem(5_000_000L, GTValues.EV),
+                        new VajraBehavior(GTValues.EV))
+                .setMaxStackSize(1)
+                .setTier(4)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        VAJRA_IV = addItem(513, "vajra_iv")
+                .addComponents(ElectricStats.createElectricItem(10_000_000L, GTValues.IV),
+                        new VajraBehavior(GTValues.IV))
+                .setMaxStackSize(1)
+                .setTier(5)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
         // Circuit Components: ID 516-565

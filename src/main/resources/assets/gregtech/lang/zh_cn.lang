@@ -3027,7 +3027,10 @@ behavior.mining_laser.tooltip.energy=能量: %s / %s EU (%s%%)
 behavior.mining_laser.tooltip.available_uses=可用次数: %s 次
 behavior.mining_laser.tooltip.all_modes=--- 所有模式 ---
 
-metaitem.vajra.name=金刚杵
+metaitem.vajra_hv.name=金刚杵 (§6HV§r)
+metaitem.vajra_ev.name=金刚杵 (§5EV§r)
+metaitem.vajra_iv.name=金刚杵 (§1IV§r)
+
 # Vajra Behavior Messages
 behavior.vajra.mode.normal=普通模式
 behavior.vajra.mode.silk_touch=精准采集模式

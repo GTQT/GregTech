@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/material_sets/dull/ingot_quintuple"
+    "layer0": "gregtech:items/material_sets/dull/ingot_quintuple",
+    "layer1": "gregtech:items/material_sets/dull/ingot_quintuple_overlay"
   }
 }

@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
-  "textures": {
-    "layer0": "gregtech:items/metaitems/cover.solar.panel.max"
+  "textures" : {
+    "layer0": "gregtech:items/metaitems/voltages/max",
+    "layer1": "gregtech:items/metaitems/cover.solar.panel"
   }
 }

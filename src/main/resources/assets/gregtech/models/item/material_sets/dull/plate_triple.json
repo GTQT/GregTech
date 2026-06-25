@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/material_sets/dull/plate_triple"
+    "layer0": "gregtech:items/material_sets/dull/plate_triple",
+    "layer1": "gregtech:items/material_sets/dull/plate_triple_overlay"
   }
 }

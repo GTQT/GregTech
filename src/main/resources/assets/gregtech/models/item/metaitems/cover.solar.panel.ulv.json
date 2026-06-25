@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
-  "textures": {
-    "layer0": "gregtech:items/metaitems/cover.solar.panel.ulv"
+  "textures" : {
+    "layer0": "gregtech:items/metaitems/voltages/ulv",
+    "layer1": "gregtech:items/metaitems/cover.solar.panel"
   }
 }
