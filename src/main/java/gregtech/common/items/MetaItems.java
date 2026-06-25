@@ -148,18 +148,20 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem BATTERY_HULL_MEDIUM_NAQUADRIA;
     public static MetaItem<?>.MetaValueItem BATTERY_HULL_LARGE_NAQUADRIA;
 
-    // Disposable Battery Block hulls (A-series)
-    public static MetaItem<?>.MetaValueItem ZINC_MANGANESE_CELL_HULL;
-    public static MetaItem<?>.MetaValueItem LITHIUM_MANGANESE_CELL_HULL;
-    public static MetaItem<?>.MetaValueItem NICKEL_CADMIUM_CELL_HULL;
-    public static MetaItem<?>.MetaValueItem LEAD_ACID_BATTERY_HULL;
-    public static MetaItem<?>.MetaValueItem VANADIUM_FLOW_CELL_HULL;
-    public static MetaItem<?>.MetaValueItem LFP_BATTERY_HULL;
-    public static MetaItem<?>.MetaValueItem LCO_BATTERY_HULL;
-    public static MetaItem<?>.MetaValueItem NMC_BATTERY_HULL;
+    // Disposable Battery Block shells (1 per tier, 8 total)
+    public static MetaItem<?>.MetaValueItem DISPOSABLE_BATTERY_SHELL_LV;
+    public static MetaItem<?>.MetaValueItem DISPOSABLE_BATTERY_SHELL_MV;
+    public static MetaItem<?>.MetaValueItem DISPOSABLE_BATTERY_SHELL_HV;
+    public static MetaItem<?>.MetaValueItem DISPOSABLE_BATTERY_SHELL_EV;
+    public static MetaItem<?>.MetaValueItem DISPOSABLE_BATTERY_SHELL_IV;
+    public static MetaItem<?>.MetaValueItem DISPOSABLE_BATTERY_SHELL_LUV;
+    public static MetaItem<?>.MetaValueItem DISPOSABLE_BATTERY_SHELL_ZPM;
+    public static MetaItem<?>.MetaValueItem DISPOSABLE_BATTERY_SHELL_UV;
 
-    // Disposable Battery Block components (A-series shared intermediates)
-    public static MetaItem<?>.MetaValueItem ION_EXCHANGE_MEMBRANE;
+    // Disposable Battery Block components — exchange membranes (3 types covering 8 tiers)
+    public static MetaItem<?>.MetaValueItem PROTON_EXCHANGE_MEMBRANE;
+    public static MetaItem<?>.MetaValueItem CERAMIC_EXCHANGE_MEMBRANE;
+    public static MetaItem<?>.MetaValueItem GRAPHENE_EXCHANGE_MEMBRANE;
     public static MetaItem<?>.MetaValueItem CARBON_NANOTUBE_FILM;
 
     public static MetaItem<?>.MetaValueItem BATTERY_ULV_TANTALUM;
