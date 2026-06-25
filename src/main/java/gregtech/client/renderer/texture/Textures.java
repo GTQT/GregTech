@@ -472,6 +472,10 @@ public class Textures {
     public static final SimpleOverlayRenderer ENDER_ITEM_LINK = new SimpleOverlayRenderer(
             "cover/overlay_ender_item_link");
     public static final SimpleOverlayRenderer STORAGE = new SimpleOverlayRenderer("cover/overlay_storage");
+    public static final SimpleOverlayRenderer PIPE_ITEM_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_pipe_item");
+    public static final SimpleOverlayRenderer PIPE_FLUID_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_pipe_fluid");
     public static final SimpleOverlayRenderer PIPE_OUT_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_pipe_out");
     public static final SimpleOverlayRenderer PIPE_IN_OVERLAY = new SimpleOverlayRenderer(
@@ -507,15 +511,15 @@ public class Textures {
 
     // Hatches
     public static final OrientedOverlayRenderer PARALLEL_HATCH_MK1_OVERLAY =
-            new OrientedOverlayRenderer("hatches/parallel_hatch_mk1");
+            new OrientedOverlayRenderer("overlay/machine/parallel_hatch_mk1");
     public static final OrientedOverlayRenderer PARALLEL_HATCH_MK2_OVERLAY =
-            new OrientedOverlayRenderer("hatches/parallel_hatch_mk2");
+            new OrientedOverlayRenderer("overlay/machine/parallel_hatch_mk2");
     public static final OrientedOverlayRenderer PARALLEL_HATCH_MK3_OVERLAY =
-            new OrientedOverlayRenderer("hatches/parallel_hatch_mk3");
+            new OrientedOverlayRenderer("overlay/machine/parallel_hatch_mk3");
     public static final OrientedOverlayRenderer PARALLEL_HATCH_MK4_OVERLAY =
-            new OrientedOverlayRenderer("hatches/parallel_hatch_mk4");
+            new OrientedOverlayRenderer("overlay/machine/parallel_hatch_mk4");
     public static final OrientedOverlayRenderer TIERED_HATCH_OVERLAY =
-            new OrientedOverlayRenderer("hatches/tiered_hatch");
+            new OrientedOverlayRenderer("overlay/machine/tiered_hatch");
 
     //线程仓
     public static final OrientedOverlayRenderer THREAD_HATCH_MK1_OVERLAY = new OrientedOverlayRenderer(
@@ -753,27 +757,27 @@ public class Textures {
 
     private static final ThreadLocal<BlockFace> blockFaces = ThreadLocal.withInitial(BlockFace::new);
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front");
+            "overlay/machine/wireless_hatch/overlay_front");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_4x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.4x");
+            "overlay/machine/wireless_hatch/overlay_front.4x");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_16x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.16x");
+            "overlay/machine/wireless_hatch/overlay_front.16x");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_64x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.64x");
+            "overlay/machine/wireless_hatch/overlay_front.64x");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_256x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.256x");
+            "overlay/machine/wireless_hatch/overlay_front.256x");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_1024x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.1024x");
+            "overlay/machine/wireless_hatch/overlay_front.1024x");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_4096x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.4096x");
+            "overlay/machine/wireless_hatch/overlay_front.4096x");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_16384x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.16384x");
+            "overlay/machine/wireless_hatch/overlay_front.16384x");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_65536x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.65536x");
+            "overlay/machine/wireless_hatch/overlay_front.65536x");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_262144x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.262144x");
+            "overlay/machine/wireless_hatch/overlay_front.262144x");
     public static SimpleOverlayRenderer MULTIPART_WIRELESS_ENERGY_1048576x = new SimpleOverlayRenderer(
-            "wireless_hatch/overlay_front.1048576x");
+            "overlay/machine/wireless_hatch/overlay_front.1048576x");
     @SideOnly(Side.CLIENT)
     public static TextureAtlasSprite RESTRICTIVE_OVERLAY;
     @SideOnly(Side.CLIENT)

@@ -2,6 +2,7 @@
   "parent": "item/handheld",
   "textures": {
     "layer0": "gregtech:items/tools/handle_buzzsaw_lv",
-    "layer1": "gregtech:items/tools/buzzsaw_tool"
+    "layer1": "gregtech:items/tools/buzzsaw_tool",
+    "layer2": "gregtech:items/tools/buzzsaw_tool_overlay"
   }
 }

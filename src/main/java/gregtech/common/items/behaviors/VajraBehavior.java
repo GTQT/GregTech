@@ -50,9 +50,9 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
     private final double baseAttackDamage;
     private final double additionalAttackDamage;
 
-    public VajraBehavior() {
-        this.baseAttackDamage = ConfigHolder.tools.nanoSaber.nanoSaberBaseDamage;
-        this.additionalAttackDamage = ConfigHolder.tools.nanoSaber.nanoSaberDamageBoost;
+    public VajraBehavior(int tier) {
+        this.baseAttackDamage = ConfigHolder.tools.nanoSaber.nanoSaberBaseDamage * tier;
+        this.additionalAttackDamage = ConfigHolder.tools.nanoSaber.nanoSaberDamageBoost * tier;
     }
 
     private static boolean drainEnergy(@NotNull ItemStack stack, long amount, boolean simulate) {

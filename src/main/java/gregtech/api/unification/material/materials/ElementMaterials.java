@@ -15,6 +15,7 @@ import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.material.info.MaterialFlags.*;
 import static gregtech.api.unification.material.info.MaterialIconSet.*;
 import static gregtech.api.util.GTUtility.gregtechId;
+import static gregtech.api.util.Mods.Names.GTQT_CORE;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 public class ElementMaterials {
@@ -38,8 +39,8 @@ public class ElementMaterials {
                 .cableProperties(V[EV], 1, 1)
                 .fluidPipeProperties(1166, 100, true)
                 .blast(b -> b
-                        .temp(isModLoaded("gtqtcore") ? 2054 : 1700, BlastProperty.GasTier.LOW)
-                        .blastStats(isModLoaded("gtqtcore") ? VA[EV] : VA[MV], 1200))
+                        .temp(isModLoaded(GTQT_CORE) ? 2054 : 1700, BlastProperty.GasTier.LOW)
+                        .blastStats(isModLoaded(GTQT_CORE) ? VA[EV] : VA[MV], 1200))
                 .build();
 
         Americium = Material.builder(3, gregtechId("americium"))

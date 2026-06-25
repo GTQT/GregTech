@@ -24,7 +24,6 @@ import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
@@ -301,9 +300,9 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
                         .alignX(0.5f)
                         .matrix(widgets))
                 .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 5)
-                        .width(18).height(18 * 4 + 5)
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 5))
+                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 4)
+                        .width(18).height(18 * 4 + 4)
+                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 4))
                         .child(new ToggleButton()
                                 .top(18 * 2)
                                 .value(new BoolValue.Dynamic(workingStateValue::getBoolValue,
@@ -340,6 +339,8 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay()) {
+            SimpleOverlayRenderer renderer = isExportHatch ? Textures.PIPE_OUT_OVERLAY : Textures.PIPE_IN_OVERLAY;
+            renderer.renderSided(getFrontFacing(), renderState, translation, pipeline);
             SimpleOverlayRenderer overlay = isExportHatch ? Textures.DUAL_HATCH_OUTPUT_OVERLAY :
                     Textures.DUAL_HATCH_INPUT_OVERLAY;
             overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);

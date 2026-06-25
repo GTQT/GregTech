@@ -23,9 +23,11 @@ public class PropertyKey<T extends IMaterialProperty> {
     public static final PropertyKey<WireProperties> WIRE = new PropertyKey<>("wire", WireProperties.class);
     public static final PropertyKey<HeatConductorProperties> HEAT_CONDUCTOR = new PropertyKey<>("heat", HeatConductorProperties.class);
     public static final PropertyKey<WoodProperty> WOOD = new PropertyKey<>("wood", WoodProperty.class);
-
+    public static final PropertyKey<AlloyBlastProperty> ALLOY_BLAST = new PropertyKey<>("blast_alloy",
+            AlloyBlastProperty.class);
     // Empty property used to allow property-less Materials without removing base type enforcement
     public static final PropertyKey<EmptyProperty> EMPTY = new PropertyKey<>("empty", EmptyProperty.class);
+
 
     private final String key;
     private final Class<T> type;

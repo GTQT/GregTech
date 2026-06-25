@@ -1,21 +1,19 @@
 package gregtech.loaders.recipe.handlers;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import gregtech.api.unification.material.Material;
+import gregtech.api.unification.material.properties.AlloyBlastProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 
-import gregtech.api.unification.properties.AlloyBlastProperty;
-import gregtech.api.unification.properties.GCYMPropertyKey;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public final class GCYMMaterialRecipeHandler {
 
     private GCYMMaterialRecipeHandler() {}
 
     public static void register() {
-        OrePrefix.ingot.addProcessingHandler(GCYMPropertyKey.ALLOY_BLAST, GCYMMaterialRecipeHandler::generateAlloyBlastRecipes);
+        OrePrefix.ingot.addProcessingHandler(PropertyKey.ALLOY_BLAST, GCYMMaterialRecipeHandler::generateAlloyBlastRecipes);
     }
 
     /**

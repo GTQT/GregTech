@@ -11,6 +11,7 @@ import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.util.GTLog;
 import gregtech.client.renderer.handler.FacadeRenderer;
+import gregtech.client.renderer.handler.ProgrammableCircuitRenderer;
 import gregtech.common.items.armor.MetaArmor;
 
 import net.minecraft.client.renderer.block.model.IBakedModel;
@@ -23,7 +24,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import com.google.common.base.CaseFormat;
-import gregtech.client.renderer.handler.ProgrammableCircuitRenderer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,10 +31,6 @@ import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import static gregtech.api.unification.material.Materials.*;
-
-import net.minecraft.init.Items;
 
 public final class MetaItems {
 
@@ -575,8 +571,10 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem PROSPECTOR_UHV;
 
     public static MetaItem<?>.MetaValueItem MINING_LASER;
-    public static MetaItem<?>.MetaValueItem VAJRA;
-    public static MetaItem<?>.MetaValueItem WIND_METER;
+
+    public static MetaItem<?>.MetaValueItem VAJRA_HV;
+    public static MetaItem<?>.MetaValueItem VAJRA_EV;
+    public static MetaItem<?>.MetaValueItem VAJRA_IV;
 
     public static MetaItem<?>.MetaValueItem TRICORDER_SCANNER;
     public static MetaItem<?>.MetaValueItem DEBUG_SCANNER;

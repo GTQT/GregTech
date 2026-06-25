@@ -112,6 +112,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
     private boolean autoOutputFluids;
     private boolean allowInputFromOutputSideItems = false;
     private boolean allowInputFromOutputSideFluids = false;
+    private boolean disallowSameItemInsert = false;
     private IItemHandlerModifiable actualImportItems;
 
     public SimpleMachineMetaTileEntity(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap,
@@ -153,6 +154,11 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         }
 
         this.actualImportItems = null;
+
+        // 初始化是否允许输入相同物品的状态
+        if (super.getImportItems() instanceof GTItemStackHandler handler) {
+            handler.setAllowSameItemInsert(!disallowSameItemInsert);
+        }
     }
 
     @Override
@@ -310,6 +316,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         data.setBoolean("AutoOutputFluids", autoOutputFluids);
         data.setBoolean("AllowInputFromOutputSide", allowInputFromOutputSideItems);
         data.setBoolean("AllowInputFromOutputSideF", allowInputFromOutputSideFluids);
+        data.setBoolean("DisallowSameItemInsert", disallowSameItemInsert);
         return data;
     }
 
@@ -339,6 +346,11 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         this.autoOutputFluids = data.getBoolean("AutoOutputFluids");
         this.allowInputFromOutputSideItems = data.getBoolean("AllowInputFromOutputSide");
         this.allowInputFromOutputSideFluids = data.getBoolean("AllowInputFromOutputSideF");
+        this.disallowSameItemInsert = data.getBoolean("DisallowSameItemInsert");
+        // 同步更新底层 GTItemStackHandler 的状态
+        if (super.getImportItems() instanceof GTItemStackHandler handler) {
+            handler.setAllowSameItemInsert(!disallowSameItemInsert);
+        }
     }
 
     @Override
@@ -348,6 +360,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         buf.writeByte(getOutputFacingFluids().getIndex());
         buf.writeBoolean(autoOutputItems);
         buf.writeBoolean(autoOutputFluids);
+        buf.writeBoolean(disallowSameItemInsert);
     }
 
     @Override
@@ -357,6 +370,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         this.outputFacingFluids = EnumFacing.VALUES[buf.readByte()];
         this.autoOutputItems = buf.readBoolean();
         this.autoOutputFluids = buf.readBoolean();
+        this.disallowSameItemInsert = buf.readBoolean();
     }
 
     @Override
@@ -372,6 +386,8 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         } else if (dataId == UPDATE_AUTO_OUTPUT_FLUIDS) {
             this.autoOutputFluids = buf.readBoolean();
             scheduleRenderUpdate();
+        } else if (dataId == UPDATE_DISALLOW_SAME_ITEM) {
+            this.disallowSameItemInsert = buf.readBoolean();
         }
     }
 
@@ -517,6 +533,29 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         }
     }
 
+    public boolean isDisallowSameItemInsert() {
+        return disallowSameItemInsert;
+    }
+
+    public void setDisallowSameItemInsert(boolean disallowSameItemInsert) {
+        this.disallowSameItemInsert = disallowSameItemInsert;
+        if (!getWorld().isRemote) {
+            // 同步更新底层 GTItemStackHandler 的状态，穿透 ItemHandlerList 代理
+            IItemHandlerModifiable handler = getImportItems();
+            if (handler instanceof ItemHandlerList list) {
+                for (IItemHandler h : list.getBackingHandlers()) {
+                    if (h instanceof GTItemStackHandler gtHandler) {
+                        gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+                    }
+                }
+            } else if (handler instanceof GTItemStackHandler gtHandler) {
+                gtHandler.setAllowSameItemInsert(!disallowSameItemInsert);
+            }
+            writeCustomData(UPDATE_DISALLOW_SAME_ITEM, buf -> buf.writeBoolean(disallowSameItemInsert));
+            markDirty();
+        }
+    }
+
     @Override
     public void clearMachineInventory(@NotNull List<@NotNull ItemStack> itemBuffer) {
         super.clearMachineInventory(itemBuffer);
@@ -550,25 +589,13 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
         RecipeMap<?> workableRecipeMap = Objects.requireNonNull(workable.getRecipeMap(), "recipe map is null");
 
+        var throttle = panelSyncManager.syncedPanel("mte_setting", true, this::makeThrottlePanel);
+
         Flow flowRow = Flow.row()
                 .name("col:extra.buttons")
                 .left(7).bottom(18 * 4 + 14);
 
-        int s = 1;
-        var throttle = panelSyncManager.syncedPanel("mte_setting", true,this::makeThrottlePanel);
-        flowRow.child(new ButtonWidget<>()
-                .size(18)
-                .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))
-                .addTooltipLine("设备设置")
-                .onMousePressed(i -> {
-                    if (throttle.isPanelOpen()) {
-                        throttle.closePanel();
-                    } else {
-                        throttle.openPanel();
-                    }
-                    return true;
-                })
-        );
+        int s = 0;
 
         for (EnumFacing data : EnumFacing.VALUES) {
             Cover cover = this.getCoverAtSide(data);
@@ -585,20 +612,29 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
 
         flowRow.size(s * 18, 18);
 
+        int colHeight = 18; // logo
+        if (hasGhostCircuitInventory() && circuitInventory != null) colHeight += 18;
+        colHeight += 18; // charger
+        colHeight += 18; // device settings
+        if (exportFluids.getTanks() > 0) colHeight += 18;
+        if (exportItems.getSlots() > 0) colHeight += 18;
+
         Flow col = Flow.column()
                 .name("col:special.buttons")
                 .right(7).bottom(7)
-                .height(18 * 4 + 4 + 18)
+                .height(colHeight)
                 .width(18);
 
 
         BooleanSyncValue hasNoEnergy = new BooleanSyncValue(workable::isHasNotEnoughEnergy);
         panelSyncManager.syncValue("has_energy", hasNoEnergy);
 
+        int panelHeight = s > 0 ? 188 : 170;
+
         ModularPanel panel = workableRecipeMap.getRecipeMapUI()
                 .constructPanel(this, builder -> builder
                         .calculateOffset()
-                        .setMaxSize(176 + 20, 188)
+                        .setMaxSize(176 + 20, panelHeight)
                         .setInputs(importItems, importFluids)
                         .setOutputs(exportItems, exportFluids)
                         .inventorySlotGroups()
@@ -612,43 +648,74 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                 .child(flowRow)
                 .child(SlotGroupWidget.playerInventory(true).left(7));
 
+        int bottomOffset = 0;
+
+        // Logo
+        col.child(new Widget<>()
+                .size(17)
+                .marginTop(1)
+                .marginRight(1)
+                .bottom(bottomOffset)
+                .background(GTGuiTextures.getLogo(getUITheme())));
+        bottomOffset += 18 + 4;
+
+        // 电路
+        if (hasGhostCircuitInventory() && circuitInventory != null) {
+            col.child(new GhostCircuitSlotWidget()
+                    .bottom(bottomOffset)
+                    .slot(circuitInventory, 0)
+                    .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY));
+            bottomOffset += 18;
+        }
+
+        // 电池
+        col.child(new ItemSlot()
+                .name("charger.slot")
+                .slot(SyncHandlers.itemSlot(chargerInventory, 0))
+                .background(GTGuiTextures.SLOT, GTGuiTextures.CHARGER_OVERLAY)
+                .bottom(bottomOffset)
+                .addTooltipLine(IKey.lang("gregtech.gui.charger_slot.tooltip",
+                        GTValues.VNF[getTier()], GTValues.VNF[getTier()])));
+        bottomOffset += 18;
+
+        // 设备设置
+        col.child(new ButtonWidget<>()
+                .size(18)
+                .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))
+                .addTooltipLine("设备设置")
+                .bottom(bottomOffset)
+                .onMousePressed(i -> {
+                    if (throttle.isPanelOpen()) {
+                        throttle.closePanel();
+                    } else {
+                        throttle.openPanel();
+                    }
+                    return true;
+                })
+        );
+        bottomOffset += 18;
+
+        // 流体自动输出
+        if (exportFluids.getTanks() > 0) {
+            col.child(new ToggleButton()
+                    .overlay(GTGuiTextures.BUTTON_FLUID_OUTPUT)
+                    .bottom(bottomOffset)
+                    .value(new BooleanSyncValue(() -> autoOutputFluids, val -> autoOutputFluids = val))
+                    .addTooltip(true, IKey.lang("gregtech.gui.fluid_auto_output.tooltip.enabled"))
+                    .addTooltip(false, IKey.lang("gregtech.gui.fluid_auto_output.tooltip.disabled")));
+            bottomOffset += 18;
+        }
+
+        // 物品自动输出
         if (exportItems.getSlots() > 0) {
             col.child(new ToggleButton()
                     .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
+                    .bottom(bottomOffset)
                     .value(new BooleanSyncValue(() -> autoOutputItems, val -> autoOutputItems = val))
                     .addTooltip(true, IKey.lang("gregtech.gui.item_auto_output.tooltip.enabled"))
                     .addTooltip(false, IKey.lang("gregtech.gui.item_auto_output.tooltip.disabled")));
         }
 
-        if (exportFluids.getTanks() > 0) {
-            col.child(new ToggleButton()
-                    .overlay(GTGuiTextures.BUTTON_FLUID_OUTPUT)
-                    .value(new BooleanSyncValue(() -> autoOutputFluids, val -> autoOutputFluids = val))
-                    .addTooltip(true, IKey.lang("gregtech.gui.fluid_auto_output.tooltip.enabled"))
-                    .addTooltip(false, IKey.lang("gregtech.gui.fluid_auto_output.tooltip.disabled")));
-        }
-
-        col.child(new ItemSlot()
-                .name("charger.slot")
-                .slot(SyncHandlers.itemSlot(chargerInventory, 0))
-                .background(GTGuiTextures.SLOT, GTGuiTextures.CHARGER_OVERLAY)
-                .bottom(18 + 4)
-                .addTooltipLine(IKey.lang("gregtech.gui.charger_slot.tooltip",
-                        GTValues.VNF[getTier()], GTValues.VNF[getTier()])));
-
-        col.child(new Widget<>()
-                .size(17)
-                .marginTop(1)
-                .marginRight(1)
-                .top(-17 - 2)
-                .background(GTGuiTextures.getLogo(getUITheme())));
-
-        if (hasGhostCircuitInventory() && circuitInventory != null) {
-            col.child(new GhostCircuitSlotWidget()
-                    .bottom(0)
-                    .slot(circuitInventory, 0)
-                    .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY));
-        }
         return panel;
     }
 
@@ -721,6 +788,16 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                                 .overlay(false, GTGuiTextures.OVERLAY_RECIPE_LOCK[0])
                                 .addTooltip(true, IKey.lang("gregtech.multiblock.universal.lock_enabled"))
                                 .addTooltip(false, IKey.lang("gregtech.multiblock.universal.lock_disabled"))
+                        )
+                        .child(new ToggleButton()
+                                .pos(80, 25)
+                                .overlay(true, GTGuiTextures.BUTTON_LOCK)
+                                .overlay(false, GTGuiTextures.BUTTON_LOCK)
+                                .value(new BooleanSyncValue(
+                                        this::isDisallowSameItemInsert,
+                                        this::setDisallowSameItemInsert))
+                                .addTooltip(true, IKey.lang("gregtech.machine.disallow_same_item.enabled"))
+                                .addTooltip(false, IKey.lang("gregtech.machine.disallow_same_item.disabled"))
                         )
 
                         /// ///////////////////////////////////////////////////////////////////////

@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/material_sets/dull/turbine_blade"
+    "layer0": "gregtech:items/material_sets/dull/turbine_blade",
+    "layer1": "gregtech:items/material_sets/dull/turbine_blade_overlay"
   }
 }

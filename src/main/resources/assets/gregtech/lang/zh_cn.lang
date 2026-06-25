@@ -2494,6 +2494,9 @@ gregtech.material.charged_vanadium_electrolyte=充能钒电解液
 gregtech.material.charged_lithium_bisoxalatoborate=充能双草酸硼酸锂电解液
 gregtech.material.charged_lithium_bistriflimide=充能双三氟甲磺酰亚胺锂电解液
 gregtech.material.charged_lithium_hexafluorophosphate=充能六氟磷酸锂
+gregtech.material.honeycomb_extract=蜂窝萃取液
+gregtech.material.premium_honeycomb_extract=高级蜂窝萃取液
+gregtech.material.premium_grade_honeycomb_extract=先进蜂窝萃取液
 
 # Second Degree Materials
 gregtech.material.glass=玻璃
@@ -3024,7 +3027,10 @@ behavior.mining_laser.tooltip.energy=能量: %s / %s EU (%s%%)
 behavior.mining_laser.tooltip.available_uses=可用次数: %s 次
 behavior.mining_laser.tooltip.all_modes=--- 所有模式 ---
 
-metaitem.vajra.name=金刚杵
+metaitem.vajra_hv.name=金刚杵 (§6HV§r)
+metaitem.vajra_ev.name=金刚杵 (§5EV§r)
+metaitem.vajra_iv.name=金刚杵 (§1IV§r)
+
 # Vajra Behavior Messages
 behavior.vajra.mode.normal=普通模式
 behavior.vajra.mode.silk_touch=精准采集模式
@@ -5731,6 +5737,8 @@ gregtech.machine.basic.input_from_output_side.allow=允许输出端输入
 gregtech.machine.basic.input_from_output_side.disallow=禁止输出端输入
 gregtech.machine.muffle.on=静音：已启用
 gregtech.machine.muffle.off=静音：已禁用
+gregtech.machine.disallow_same_item.enabled=禁止输入相同物品
+gregtech.machine.disallow_same_item.disabled=允许输入相同物品
 gregtech.tooltip.perfect_oc_available=-无损超频支持：
 gregtech.machine.perfect_oc=超频不会损失能效。
 gregtech.machine.parallel_limit=可同时处理至多§b%d§7个配方。

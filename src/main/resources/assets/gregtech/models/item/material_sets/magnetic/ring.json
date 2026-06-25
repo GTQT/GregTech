@@ -1,6 +1,6 @@
 {
   "parent": "gregtech:item/material_sets/dull/ring",
   "textures": {
-    "layer1": "gregtech:items/material_sets/magnetic/magnetic_overlay"
+    "layer3": "gregtech:items/material_sets/magnetic/magnetic_overlay"
   }
 }

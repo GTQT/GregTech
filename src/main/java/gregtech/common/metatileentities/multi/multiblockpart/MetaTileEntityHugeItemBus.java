@@ -20,7 +20,6 @@ import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -164,6 +163,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         if (shouldRenderOverlay()) {
             SimpleOverlayRenderer renderer = isExportHatch ? Textures.PIPE_OUT_OVERLAY : Textures.PIPE_IN_OVERLAY;
             renderer.renderSided(getFrontFacing(), renderState, translation, pipeline);
+            Textures.PIPE_ITEM_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
             SimpleOverlayRenderer overlay = isExportHatch ? Textures.ITEM_HATCH_OUTPUT_OVERLAY :
                     Textures.ITEM_HATCH_INPUT_OVERLAY;
             overlay.renderSided(getFrontFacing(), renderState, translation, pipeline);
@@ -301,9 +301,9 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
                                         })
                                         .accessibility(!isExportHatch, true))))
                 .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 5)
-                        .width(18).height(18 * 4 + 5)
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 5))
+                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 4)
+                        .width(18).height(18 * 4 + 4)
+                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 4))
                         .child(new ToggleButton()
                                 .top(18 * 2)
                                 .value(workingStateValue)

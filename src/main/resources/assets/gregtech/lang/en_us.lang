@@ -2500,6 +2500,9 @@ gregtech.material.charged_vanadium_electrolyte=Charged Vanadium Electrolyte
 gregtech.material.charged_lithium_bisoxalatoborate=Charged Lithium Bis(oxalato)borate
 gregtech.material.charged_lithium_bistriflimide=Charged Lithium Bis(trifluoromethanesulfonyl)imide
 gregtech.material.charged_lithium_hexafluorophosphate=Charged Lithium Hexafluorophosphate
+gregtech.material.honeycomb_extract=Honeycomb Extract
+gregtech.material.premium_honeycomb_extract=Premium Honeycomb Extract
+gregtech.material.premium_grade_honeycomb_extract=Premium-Grade Honeycomb Extract
 
 # Second Degree Materials
 gregtech.material.glass=Glass
@@ -3029,7 +3032,9 @@ behavior.mining_laser.tooltip.energy=Energy: %s / %s EU (%s%%)
 behavior.mining_laser.tooltip.available_uses=Available Uses: %s times
 behavior.mining_laser.tooltip.all_modes=--- All Modes ---
 
-metaitem.vajra.name=Vajra
+metaitem.vajra_hv.name=Vajra (§6HV§r)
+metaitem.vajra_ev.name=Vajra (§5EV§r)
+metaitem.vajra_iv.name=Vajra (§1IV§r)
 # Vajra Behavior Messages
 behavior.vajra.mode.normal=Normal Mode
 behavior.vajra.mode.silk_touch=Silk Touch Mode
@@ -5735,6 +5740,8 @@ gregtech.machine.basic.input_from_output_side.allow=Allow Input from Output Side
 gregtech.machine.basic.input_from_output_side.disallow=Disallow Input from Output Side
 gregtech.machine.muffle.on=Sound Muffling: Enabled
 gregtech.machine.muffle.off=Sound Muffling: Disabled
+gregtech.machine.disallow_same_item.enabled=Disallow Same Item Insert
+gregtech.machine.disallow_same_item.disabled=Allow Same Item Insert
 gregtech.tooltip.perfect_oc_available=-Perfect OC support：
 gregtech.machine.perfect_oc=Does not lose energy efficiency when overclocked.
 gregtech.machine.parallel_limit=Can run up to §b%d§r§7 Recipes at once.
