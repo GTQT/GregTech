@@ -13,10 +13,7 @@ import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.IDataInfoProvider;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.client.renderer.ICubeRenderer;
 
 import net.minecraft.nbt.NBTTagCompound;
@@ -34,7 +31,6 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.google.common.collect.Lists;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -117,18 +113,6 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
     @Override
     abstract protected void updateFormedValid();
 
-    /**
-     * @deprecated Override {@link #createStructureTemplate()} instead for new code.
-     *             This method is retained for backward compatibility with existing subclasses.
-     *             Will be removed in version 2.10.
-     */
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-    @Override
-    protected BlockPattern createStructurePattern() {
-        return super.createStructurePattern();
-    }
-
     @Override
     public abstract ICubeRenderer getBaseTexture(IMultiblockPart iMultiblockPart);
 
@@ -137,17 +121,7 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
 
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
-        if (hasLegacyFormStructureOverrideBelow(MetaTileEntityBaseWithControl.class)) {
-            formLegacyStructureCallback(formed);
-            return;
-        }
         formStructureWithDisplay(formed);
-        this.initializeAbilities();
-    }
-
-    @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
         this.initializeAbilities();
     }
 

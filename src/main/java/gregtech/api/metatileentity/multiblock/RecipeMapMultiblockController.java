@@ -15,7 +15,6 @@ import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
@@ -172,17 +171,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
-        if (hasLegacyFormStructureOverrideBelow(RecipeMapMultiblockController.class)) {
-            formLegacyStructureCallback(formed);
-            return;
-        }
         formRecipeMapStructure(formed);
-    }
-
-    @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        initializeAbilities();
     }
 
     protected final void formRecipeMapStructure(@NotNull FormedStructureView formed) {

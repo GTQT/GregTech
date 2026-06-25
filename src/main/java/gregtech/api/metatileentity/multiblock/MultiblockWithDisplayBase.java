@@ -21,7 +21,6 @@ import gregtech.api.gui.widgets.ProgressWidget;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Materials;
@@ -44,10 +43,9 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.IFluidTank;
-import net.minecraftforge.fluids.capability.IFluidHandler;
-import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.items.IItemHandlerModifiable;
 
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
@@ -171,17 +169,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
 
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
-        if (hasLegacyFormStructureOverrideBelow(MultiblockWithDisplayBase.class)) {
-            formLegacyStructureCallback(formed);
-            return;
-        }
         formStructureWithDisplay(formed);
-    }
-
-    @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        formStructureWithDisplay(new LinkedList<>(context.getOrDefault("VABlock", Collections.emptyList())));
     }
 
     protected final void formStructureWithDisplay(@NotNull FormedStructureView formed) {

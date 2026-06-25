@@ -8,7 +8,8 @@ import gregtech.common.metatileentities.multi.electric.BatteryAccumulatorFluidMa
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
-import static gregtech.api.unification.ore.OrePrefix.*;
+import static gregtech.api.unification.ore.OrePrefix.dust;
+import static gregtech.api.unification.ore.OrePrefix.plate;
 
 /**
  * Crafting recipes for all A-series disposable battery blocks.
@@ -315,7 +316,7 @@ public class DisposableBatteryRecipes {
                 .duration(100).EUt(VA[HV])
                 .buildAndRegister();
 
-        LARGE_CHEMICAL_RECIPES.recipeBuilder()
+        LARGE_MIXER_RECIPES.recipeBuilder()
                 .input(dust, Lithium, 2)
                 .input(dust, Boron, 1)
                 .input(dust, Carbon, 4)
@@ -346,7 +347,7 @@ public class DisposableBatteryRecipes {
                 .duration(500).EUt(VA[LuV])
                 .buildAndRegister();
 
-        LARGE_CHEMICAL_RECIPES.recipeBuilder()
+        LARGE_MIXER_RECIPES.recipeBuilder()
                 .input(dust, Lithium, 2)
                 .input(dust, Sulfur, 2)
                 .input(dust, Carbon, 2)
@@ -371,7 +372,7 @@ public class DisposableBatteryRecipes {
     // -------------------------------------------------------------------------
     private static void nmcBatteryRecipes() {
 
-        LARGE_CHEMICAL_RECIPES.recipeBuilder()
+        LARGE_MIXER_RECIPES.recipeBuilder()
                 .input(dust, Nickel, 4)
                 .input(dust, Manganese, 1)
                 .input(dust, CobaltOxide, 1)
@@ -381,7 +382,7 @@ public class DisposableBatteryRecipes {
                 .duration(600).EUt(VA[LuV])
                 .buildAndRegister();
 
-        CHEMICAL_RECIPES.recipeBuilder()
+        LARGE_CHEMICAL_RECIPES.recipeBuilder()
                 .input(dust, Lithium, 2)
                 .input(dust, NMCCathodePowder, 2)
                 .input(dust, CarbonNanotubeFilm, 1)

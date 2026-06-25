@@ -12,11 +12,11 @@ import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MTETrait;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.mui.GTGuiTheme;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.util.GTQTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.common.ConfigHolder;
@@ -34,7 +34,6 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
-import gregtech.api.util.GTQTUtility;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -138,17 +137,7 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
 
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
-        if (hasLegacyFormStructureOverrideBelow(RecipeMapSteamMultiblockController.class)) {
-            formLegacyStructureCallback(formed);
-            return;
-        }
         formSteamRecipeMapStructure(formed);
-    }
-
-    @Override
-    protected void formStructure(PatternMatchContext context) {
-        super.formStructure(context);
-        initializeAbilities();
     }
 
     protected final void formSteamRecipeMapStructure(@NotNull FormedStructureView formed) {

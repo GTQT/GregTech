@@ -16,19 +16,20 @@ import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.PieceRuntimeState;
-import gregtech.api.pattern.StructureBuildResult;
+import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureElementPreviewEntry;
+import gregtech.api.pattern.StructureExternalDependencies;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureHintResult;
-import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructureLifecycleState;
 import gregtech.api.pattern.StructureOperationRequest;
+import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureTrace;
-import gregtech.api.pattern.StructureLifecycleState;
-import gregtech.api.pattern.StructureExternalDependencies;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelValues;
@@ -366,38 +367,19 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected abstract void updateFormedValid();
 
     /**
-     * Creates the structure pattern for this multiblock.
-     *
-     * @return structure pattern of this multiblock
-     * @deprecated Override {@link #createStructureTemplate()} instead for new code. This method is retained for
-     * backward compatibility with existing subclasses. The default implementation of {@link #createStructureTemplate()}
-     * delegates to this method. Will be removed in version 2.10.
-     */
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-    @NotNull
-    protected BlockPattern createStructurePattern() {
-        throw new UnsupportedOperationException(
-                "Override createStructureTemplate() instead of createStructurePattern()");
-    }
-
-    /**
      * Override this method to provide a shared immutable structure template. The template is shared across all
      * instances of the same machine type, while each instance holds its own mutable {@link PieceRuntimeState}.
-     *
-     * <p>Default implementation delegates to the deprecated {@link #createStructurePattern()}
-     * for backward compatibility.
      *
      * <p>For optimal memory usage, subclasses should override this method and return
      * a statically cached {@link BlockPatternTemplate} instance.
      *
      * @return the immutable structure template
-     * @see FactoryBlockPattern#buildTemplate()
+     * @see gregtech.api.pattern.FactoryBlockPattern#buildTemplate()
      */
     @NotNull
-    @SuppressWarnings("deprecation")
     protected BlockPatternTemplate createStructureTemplate() {
-        return createStructurePattern().getTemplate();
+        throw new UnsupportedOperationException(
+                "Override createStructureDefinition(), createMultiPiecePattern(), or createStructureTemplate()");
     }
 
     /**
@@ -794,55 +776,17 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Typed formation callback for new controllers. The default implementation
-     * invokes the legacy callback only when a subclass still overrides it.
+     * Typed formation callback for new controllers.
      * New code should override this method and consume {@link FormedStructureView}
      * directly.
      */
-    protected void formStructure(@NotNull FormedStructureView formed) {
-        if (hasLegacyFormStructureOverrideBelow(MultiblockControllerBase.class)) {
-            formLegacyStructureCallback(formed);
-        }
-    }
-
-    /**
-     * Legacy formation callback retained for addon compatibility.
-     *
-     * @deprecated Override {@link #formStructure(FormedStructureView)} instead.
-     */
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-    protected void formStructure(PatternMatchContext context) {}
-
-    @SuppressWarnings("deprecation")
-    protected final void formLegacyStructureCallback(@NotNull FormedStructureView formed) {
-        formStructure(formed.copyLegacyCallbackContext());
-    }
-
-    /**
-     * Whether a subclass below the supplied API boundary still overrides the
-     * legacy formation callback. API base classes use this to keep addon
-     * overrides alive while routing GregTech-owned defaults through typed
-     * formation callbacks.
-     */
-    protected final boolean hasLegacyFormStructureOverrideBelow(@NotNull Class<?> boundary) {
-        Class<?> type = getClass();
-        while (type != null && type != boundary) {
-            try {
-                type.getDeclaredMethod("formStructure", PatternMatchContext.class);
-                return true;
-            } catch (NoSuchMethodException ignored) {
-                type = type.getSuperclass();
-            }
-        }
-        return false;
-    }
+    protected void formStructure(@NotNull FormedStructureView formed) {}
 
     /**
      * Re-validates the complete active piece graph after an indexed block change.
      */
     protected void checkActiveStructureGraph() {
-        checkMultiPieceStructure();
+        MultiblockStructureOperations.checkActiveGraph(this);
     }
 
     /**
@@ -850,15 +794,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     protected void checkIncrementalStructureGraph() {
         MultiblockStructureOperations.checkIncrementalGraph(this);
-    }
-
-    /**
-     * @deprecated Override {@link #checkActiveStructureGraph()} for new code.
-     *             The operation checks the complete active graph.
-     */
-    @Deprecated
-    protected void checkMultiPieceStructure() {
-        MultiblockStructureOperations.checkActiveGraph(this);
     }
 
     /**
@@ -1385,8 +1320,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * @param channel the channel to query
      * @return int[2] with [min, max], or [0, 0] if channel not found in pattern
      */
-    @NotNull
-    public int[] getChannelRange(@NotNull StructureChannel channel) {
+    public int [] getChannelRange(@NotNull StructureChannel channel) {
         return MultiblockStructureOperations.getChannelRange(this, channel);
     }
 
