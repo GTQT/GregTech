@@ -60,8 +60,7 @@ import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockController implements ProgressBarMultiblock {
 
-    private static final SoftReferenceHolder<? extends StructureDefinition<?>>[] STRUCTURE_DEFINITIONS =
-            new SoftReferenceHolder[2];
+    private static final SoftReferenceHolder<? extends StructureDefinition<?>>[] STRUCTURE_DEFINITIONS = new SoftReferenceHolder[2];
 
     static {
         STRUCTURE_DEFINITIONS[0] = TemplatePool.getInstance()
@@ -81,7 +80,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
     }
 
-    private static StructureDefinition buildStructureDefinition(boolean isExtreme) {
+    private static StructureDefinition<?> buildStructureDefinition(boolean isExtreme) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XDX", "XXX")
                 .aisle("XCX", "CGC", "XCX")

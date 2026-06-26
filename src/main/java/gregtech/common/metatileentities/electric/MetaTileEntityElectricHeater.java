@@ -65,7 +65,7 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         Textures.HEATER_OVERLAY.renderOrientedState(renderState, translation, pipeline, getFrontFacing(),
-                heatable.getHeatStored()>0, heatable.getHeatStored()>0);
+                true, true);
     }
 
     @Override
