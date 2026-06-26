@@ -46,9 +46,9 @@ public class MetaTileEntityLargeChemicalBath extends GCYMAdvanceRecipeMapMultibl
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
+                    .block('C', getCasingState2())
                     .where('A', fluidElement(FluidRegistry.WATER))
-                    .where('#', any())
+                    .any('#')
                     .buildStructureDefinition()
     );
     private boolean waterFilled;

@@ -2,7 +2,6 @@ package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
@@ -656,13 +655,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             return new PieceBuilder<>(this, mp);
         }
 
-        /** Add a piece from an existing FactoryBlockPattern (backward compatibility). */
-        @NotNull
-        public PieceBuilder<T> pieceFromFactory(@NotNull String name,
-                                                @NotNull FactoryBlockPattern factory) {
-            return pieceFromTemplate(name, factory.buildTemplate());
-        }
-
         /** Add a piece from an existing BlockPatternTemplate (legacy adapter). */
         @NotNull
         public PieceBuilder<T> pieceFromTemplate(@NotNull String name,
@@ -1142,7 +1134,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         // For pieceFromTemplate(PieceTemplate): stores the canonical pre-built template.
         @Nullable PieceTemplate template;
 
-        // For pieceFromFactory / pieceFromTemplate(BlockPatternTemplate): stores the legacy facade.
+        // For pieceFromTemplate(BlockPatternTemplate): stores the legacy facade.
         @Nullable BlockPatternTemplate legacyTemplate;
 
         // Dynamic-anchor fields: see PieceEntry.anchorPieceName for semantics.

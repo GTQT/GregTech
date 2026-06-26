@@ -5,7 +5,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.MultiblockPredicates;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -51,7 +51,7 @@ public class HatchElement implements ITypedStructureElement<Object> {
         this.ability = ability;
         this.minCount = minCount;
         this.maxCount = maxCount;
-        TraceabilityPredicate predicate = MultiblockControllerBase.abilities(ability);
+        TraceabilityPredicate predicate = MultiblockPredicates.abilities(ability);
         if (defaultCandidate != null) {
             predicate.setDefaultCandidate(defaultCandidate);
         }

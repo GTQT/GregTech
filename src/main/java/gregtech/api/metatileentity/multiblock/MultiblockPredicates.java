@@ -35,11 +35,19 @@ import java.util.Set;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
-final class MultiblockPredicates {
+/**
+ * Legacy predicate factory helpers used by {@link TraceabilityPredicate} and
+ * the legacy element bridges ({@link gregtech.api.pattern.element.impl.HatchElement},
+ * {@link gregtech.api.pattern.element.impl.AbilityElement}).
+ *
+ * <p>Scheduled for removal together with {@link TraceabilityPredicate} in
+ * Phase 5 of the structure system cleanup.
+ */
+public final class MultiblockPredicates {
 
     private MultiblockPredicates() {}
 
-    static TraceabilityPredicate tilePredicate(
+    public static TraceabilityPredicate tilePredicate(
             @NotNull BiFunction<BlockWorldState, MetaTileEntity, Boolean> predicate,
             @Nullable Supplier<BlockInfo[]> candidates) {
         return new TraceabilityPredicate(blockWorldState -> {
@@ -59,14 +67,14 @@ final class MultiblockPredicates {
         }, candidates);
     }
 
-    static TraceabilityPredicate metaTileEntities(MetaTileEntity... metaTileEntities) {
+    public static TraceabilityPredicate metaTileEntities(MetaTileEntity... metaTileEntities) {
         ResourceLocation[] ids = Arrays.stream(metaTileEntities).filter(Objects::nonNull)
                 .map(tile -> tile.metaTileEntityId).toArray(ResourceLocation[]::new);
         return tilePredicate((state, tile) -> ArrayUtils.contains(ids, tile.metaTileEntityId),
                 getCandidates(metaTileEntities));
     }
 
-    static TraceabilityPredicate abilities(MultiblockAbility<?>... allowedAbilities) {
+    public static TraceabilityPredicate abilities(MultiblockAbility<?>... allowedAbilities) {
         TraceabilityPredicate predicate = tilePredicate((state, tile) -> {
             if (tile instanceof IMultiblockAbilityPart<?> abilityPart) {
                 for (var ability : abilityPart.getAbilities()) {
@@ -82,7 +90,7 @@ final class MultiblockPredicates {
         return predicate;
     }
 
-    static TraceabilityPredicate states(IBlockState... allowedStates) {
+    public static TraceabilityPredicate states(IBlockState... allowedStates) {
         return new TraceabilityPredicate(blockWorldState -> {
             IBlockState state = blockWorldState.getBlockState();
             if (state.getBlock() instanceof VariantActiveBlock) {
@@ -92,7 +100,7 @@ final class MultiblockPredicates {
         }, getCandidates(allowedStates));
     }
 
-    static TraceabilityPredicate frames(Material... frameMaterials) {
+    public static TraceabilityPredicate frames(Material... frameMaterials) {
         return states(Arrays.stream(frameMaterials).map(m -> MetaBlocks.FRAMES.get(m).getBlock(m))
                 .toArray(IBlockState[]::new))
                 .or(new TraceabilityPredicate(blockWorldState -> {
@@ -104,21 +112,21 @@ final class MultiblockPredicates {
                 }));
     }
 
-    static TraceabilityPredicate blocks(Block... block) {
+    public static TraceabilityPredicate blocks(Block... block) {
         return new TraceabilityPredicate(
                 blockWorldState -> ArrayUtils.contains(block, blockWorldState.getBlockState().getBlock()),
                 getCandidates(Arrays.stream(block).map(Block::getDefaultState).toArray(IBlockState[]::new)));
     }
 
     @NotNull
-    static TraceabilityPredicate selfPredicate(
+    public static TraceabilityPredicate selfPredicate(
             @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
         return tilePredicate((state, tile) -> controllerClass.isInstance(tile),
                 getCandidatesByClass(controllerClass)).setCenter();
     }
 
     @NotNull
-    static TraceabilityPredicate energyOutput(int tier, boolean isMinTier) {
+    public static TraceabilityPredicate energyOutput(int tier, boolean isMinTier) {
         return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream()
                 .filter(mte -> {
                     IEnergyContainer container = mte.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER,
@@ -131,7 +139,7 @@ final class MultiblockPredicates {
     }
 
     @NotNull
-    static TraceabilityPredicate energyInput(int tier, boolean isMinTier) {
+    public static TraceabilityPredicate energyInput(int tier, boolean isMinTier) {
         return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.INPUT_ENERGY).stream()
                 .filter(mte -> {
                     IEnergyContainer container = mte.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER,
@@ -144,7 +152,7 @@ final class MultiblockPredicates {
     }
 
     @NotNull
-    static TraceabilityPredicate laserOutput(int tier, boolean isMinTier) {
+    public static TraceabilityPredicate laserOutput(int tier, boolean isMinTier) {
         return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_LASER).stream()
                 .filter(mte -> {
                     if (mte instanceof MetaTileEntityLaserHatch laserHatch) {
@@ -157,7 +165,7 @@ final class MultiblockPredicates {
     }
 
     @NotNull
-    static TraceabilityPredicate laserInput(int tier, boolean isMinTier) {
+    public static TraceabilityPredicate laserInput(int tier, boolean isMinTier) {
         return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.INPUT_LASER).stream()
                 .filter(mte -> {
                     if (mte instanceof MetaTileEntityLaserHatch laserHatch) {

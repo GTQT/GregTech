@@ -40,10 +40,10 @@ public class MetaTileEntityLargeEngraver extends GCYMAdvanceRecipeMapMultiblockC
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .maintenance()
-                    .where('P', states(getCasingState2()))
-                    .where('G', states(getCasingState3()))
-                    .where('C', states(getCasingState4()))
-                    .where('A', air())
+                    .block('P', getCasingState2())
+                    .block('G', getCasingState3())
+                    .block('C', getCasingState4())
+                    .air('A')
                     .buildStructureDefinition()
     );
 

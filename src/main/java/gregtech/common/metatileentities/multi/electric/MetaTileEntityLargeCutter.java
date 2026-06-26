@@ -41,10 +41,10 @@ public class MetaTileEntityLargeCutter extends GCYMAdvanceRecipeMapMultiblockCon
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('G', states(getCasingState2()))
-                    .where('C', states(getCasingState3()))
-                    .where('A', air())
-                    .where('#', any())
+                    .block('G', getCasingState2())
+                    .block('C', getCasingState3())
+                    .air('A')
+                    .any('#')
                     .buildStructureDefinition()
     );
 

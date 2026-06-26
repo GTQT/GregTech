@@ -818,21 +818,6 @@ final class StructureCheckOperationService {
         return index < 0 ? 0 : index + 1;
     }
 
-    @Nullable
-    public PatternMatchContext checkSingle(
-            @NotNull World world,
-            @NotNull BlockPos centerPos,
-            @NotNull StructureOrientation orientation,
-            boolean doRandomCheck) {
-        StructureCheckResult result = check(StructureOperationRequest.check(
-                world, centerPos, orientation, doRandomCheck, null, null));
-        if (result.isMatched()) {
-            result.publishPieceRuntimes(operationRuntime().runtimes);
-            return result.copyContext();
-        }
-        return null;
-    }
-
     public void clearSingleCache() {
         PieceRuntime runtime = operationRuntime().runtimes.getPrimary();
         if (runtime == null) {

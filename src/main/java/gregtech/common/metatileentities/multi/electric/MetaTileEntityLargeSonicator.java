@@ -43,10 +43,10 @@ public class MetaTileEntityLargeSonicator extends GCYMAdvanceRecipeMapMultiblock
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getBoilerCasingState()))
-                    .where('C', states(getUniqueCasingState()))
-                    .where('G', states(getGlassState()))
-                    .where(' ', any())
+                    .block('P', getBoilerCasingState())
+                    .block('C', getUniqueCasingState())
+                    .block('G', getGlassState())
+                    .any(' ')
                     .buildStructureDefinition()
     );
 

@@ -57,9 +57,9 @@ import java.util.stream.Collectors;
  * - Formed repetition counts
  * - A ReentrantLock for future async checking support (P2)
  *
- * <p>This is the runtime implementation behind the deprecated
- * {@link MultiblockState} facade. It is public only because controller internals
- * live in a sibling package; external callers should use {@link StructureRuntime}
+ * <p>This is the canonical per-instance mutable runtime state. It is public
+ * only because controller internals live in a sibling package; external
+ * callers should use {@link StructureRuntime}
  * and typed operation requests instead.
  *
  * @see PieceTemplate for the canonical IR
@@ -109,18 +109,6 @@ public final class PieceRuntimeState {
     public PieceRuntimeState(@NotNull PieceTemplate template) {
         this.template = template;
         this.formedRepetitionCount = new int[template.getAisles().length];
-    }
-
-    /**
-     * Create a detached deprecated-state projection for compatibility callers.
-     * Mutating the returned facade does not affect this runtime state.
-     */
-    @NotNull
-    @SuppressWarnings("deprecation")
-    public MultiblockState createCompatibilityProjection() {
-        MultiblockState projection = new MultiblockState(template);
-        projection.restoreProjection(checkpoint());
-        return projection;
     }
 
     /**

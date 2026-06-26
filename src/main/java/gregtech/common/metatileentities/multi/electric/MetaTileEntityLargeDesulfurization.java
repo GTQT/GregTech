@@ -60,11 +60,11 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
                     .parallelHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getCasingState2()))
+                    .block('P', getCasingState2())
                     .tieredCasing('U', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .where('F', states(getFrameState()))
-                    .where(' ', any())
+                    .block('F', getFrameState())
+                    .any(' ')
                     .buildStructureDefinition()
     );
     private int coilTier;

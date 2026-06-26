@@ -17,7 +17,6 @@ import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
@@ -81,7 +80,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -130,31 +128,8 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         };
     }
 
-    public static void registerFusionType(String key, Supplier<BlockPatternTemplate> templateSupplier) {
-        STRUCTURE_DEFINITIONS.put(key, TemplatePool.getInstance()
-                .registerStructure(key, () -> StructureDefinition.fromTemplate(templateSupplier.get())));
-    }
-
-    public static BlockPatternTemplate buildTemplate(IFusionReactorType type) {
-        return primaryTemplate(pooledStructureDefinition(type), type.getName());
-    }
-
-    private static StructureDefinition pooledStructureDefinition(IFusionReactorType type) {
-        SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
-        return definition.get();
-    }
-
     private static String structurePoolKey(IFusionReactorType type) {
         return "gregtech:fusion_reactor." + type.getName();
-    }
-
-    private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {
-        BlockPatternTemplate template = definition.getPrimaryTemplate();
-        if (template == null) {
-            throw new IllegalStateException("Fusion reactor type '" + key + "' is not a single-piece structure");
-        }
-        return template;
     }
 
     private static StructureDefinition buildStructureDefinition(IFusionReactorType type) {

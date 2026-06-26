@@ -175,14 +175,6 @@ final class MultiblockStructureOperations {
     }
 
     @NotNull
-    static Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap(
-            @NotNull MultiblockControllerBase controller) {
-        return MultiblockStructurePreviews.buildMultiPiecePredicateMap(
-                controller, controller.multiPiecePattern, controller.pieceRuntimes,
-                controller.getStructureRuntime());
-    }
-
-    @NotNull
     static Map<BlockPos, StructureElementPreviewEntry> buildMultiPiecePreviewEntries(
             @NotNull MultiblockControllerBase controller,
             @Nullable Map<String, Integer> channelValues) {

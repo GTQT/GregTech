@@ -13,7 +13,6 @@ import gregtech.api.metatileentity.MTETrait;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTQTUtility;
@@ -219,44 +218,6 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
     @Override
     public GTGuiTheme getUITheme() {
         return GTGuiTheme.BRONZE;
-    }
-
-    @Override
-    public TraceabilityPredicate autoAbilities() {
-        return autoAbilities(true, true, true, true, true, true, true);
-    }
-
-    public TraceabilityPredicate autoAbilities(boolean checkSteam,
-                                               boolean checkMaintainer,
-                                               boolean checkItemIn,
-                                               boolean checkItemOut,
-                                               boolean checkFluidIn,
-                                               boolean checkFluidOut,
-                                               boolean checkMuffler) {
-        TraceabilityPredicate predicate = super.autoAbilities(checkMaintainer, checkMuffler)
-                .or(checkSteam ? abilities(MultiblockAbility.STEAM).setMinGlobalLimited(1).setPreviewCount(1) :
-                        new TraceabilityPredicate());
-        if (checkItemIn) {
-            if (recipeMap.getMaxInputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.STEAM_IMPORT_ITEMS).setPreviewCount(1));
-            }
-        }
-        if (checkItemOut) {
-            if (recipeMap.getMaxOutputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.STEAM_EXPORT_ITEMS).setPreviewCount(1));
-            }
-        }
-        if (checkFluidIn) {
-            if (recipeMap.getMaxFluidInputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.STEAM_IMPORT_FLUID).setPreviewCount(1));
-            }
-        }
-        if (checkFluidOut) {
-            if (recipeMap.getMaxFluidOutputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.STEAM_EXPORT_FLUID).setPreviewCount(1));
-            }
-        }
-        return predicate;
     }
 
     @Override

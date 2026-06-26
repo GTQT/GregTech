@@ -112,17 +112,6 @@ public final class StructureRuntime {
         return state;
     }
 
-    /**
-     * @deprecated Compatibility accessor for legacy code that received a
-     *             {@link MultiblockState}. Runtime internals should use
-     *             {@link #getRuntimeState()}.
-     */
-    @Deprecated
-    @Nullable
-    public MultiblockState getState() {
-        return state == null ? null : state.createCompatibilityProjection();
-    }
-
     @Nullable
     public MultiPiecePattern getMultiPiecePattern() {
         return multiPiecePattern;
@@ -131,17 +120,6 @@ public final class StructureRuntime {
     @Nullable
     public PieceRuntimes getPieceRuntimes() {
         return pieceRuntimes;
-    }
-
-    /**
-     * @deprecated Runtime-owned operations should call the request methods on
-     *             this runtime. This accessor remains for legacy adapters while
-     *             the evaluator is still a separate delegating implementation.
-     */
-    @Deprecated
-    @NotNull
-    public StructureOperationEvaluator getEvaluator() {
-        return evaluator;
     }
 
     @NotNull

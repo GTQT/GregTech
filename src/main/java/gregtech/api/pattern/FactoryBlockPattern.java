@@ -141,19 +141,6 @@ public class FactoryBlockPattern {
         return compiler.buildTemplate(centerOffset);
     }
 
-    /**
-     * Build a BlockPattern (template + state combined) for backward compatibility.
-     *
-     * @deprecated Use {@link #buildTemplate()} and create per-instance state via
-     *             {@link BlockPatternTemplate#createState()} for better memory efficiency.
-     *             Will be removed in version 2.10.
-     */
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-    public BlockPattern build() {
-        return new BlockPattern(buildTemplate());
-    }
-
     // --- Internal-state accessors ---
     //
     // These accessors expose the underlying PieceTemplateCompiler's state and

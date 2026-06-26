@@ -98,15 +98,6 @@ public final class StructureOperationEvaluator {
         return checkOperations.checkDirtyPieces(request);
     }
 
-    @Nullable
-    public PatternMatchContext checkSingle(
-            @NotNull World world,
-            @NotNull BlockPos centerPos,
-            @NotNull StructureOrientation orientation,
-            boolean doRandomCheck) {
-        return checkOperations.checkSingle(world, centerPos, orientation, doRandomCheck);
-    }
-
     public void clearSingleCache() {
         checkOperations.clearSingleCache();
     }

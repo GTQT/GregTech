@@ -39,7 +39,7 @@ public class MetaTileEntityLargeExtractor extends GCYMAdvanceRecipeMapMultiblock
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
+                    .block('C', getCasingState2())
                     .buildStructureDefinition()
     );
 

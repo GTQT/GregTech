@@ -37,8 +37,8 @@ public class MetaTileEntityLargeWiremill extends GCYMAdvanceRecipeMapMultiblockC
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('#', any())
+                    .block('C', getCasingState2())
+                    .any('#')
                     .buildStructureDefinition()
     );
 

@@ -41,9 +41,9 @@ public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockCon
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('A', air())
-                    .where('#', any())
+                    .block('C', getCasingState2())
+                    .air('A')
+                    .any('#')
                     .buildStructureDefinition()
     );
 

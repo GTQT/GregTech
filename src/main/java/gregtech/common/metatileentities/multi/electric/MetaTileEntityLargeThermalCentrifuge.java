@@ -40,12 +40,12 @@ public class MetaTileEntityLargeThermalCentrifuge extends GCYMAdvanceRecipeMapMu
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
+                    .block('C', getCasingState2())
                     .tieredCasing('W', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .where('F', frames(Materials.RedSteel))
-                    .where('A', air())
-                    .where('#', any())
+                    .frames('F', Materials.RedSteel)
+                    .air('A')
+                    .any('#')
                     .buildStructureDefinition()
     );
 

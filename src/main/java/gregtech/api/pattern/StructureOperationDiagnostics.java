@@ -9,7 +9,7 @@ import org.jetbrains.annotations.Nullable;
  * <p>This is intentionally compact: detailed block mismatch diagnostics live on
  * {@link StructureFailureTrace}, while build/hint/preview/iterate results need
  * a stable way to report which runtime path produced their accounting without
- * asking callers to inspect mutable {@link MultiblockState} error state.
+ * asking callers to inspect mutable runtime error state directly.
  */
 public final class StructureOperationDiagnostics {
 

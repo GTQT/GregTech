@@ -39,7 +39,7 @@ public class MetaTileEntityLargePackager extends GCYMAdvanceRecipeMapMultiblockC
                             .threadHatch()
                             .preset(HatchPresets.STANDARD_IO)
                             .preset(HatchPresets.MUFFLER_IO)
-                            .where('A', air())
+                            .air('A')
                             .buildStructureDefinition()
     );
 

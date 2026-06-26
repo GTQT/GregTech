@@ -26,11 +26,11 @@ import java.util.function.BooleanSupplier;
  * across controllers of the same multiblock type.
  *
  * <h2>Why state moved out</h2>
- * Previously this class held a {@code final MultiblockState} plus
+ * Previously this class held a final mutable state plus
  * {@code volatile positions / validated / dirty} fields, initialized in the
  * constructor. Because {@link MultiPiecePattern} instances are cached in
  * the structure-definition pool, two independent controllers of the same
- * multiblock type ended up sharing the same deprecated state facade and
+ * multiblock type ended up sharing the same mutable state and
  * positions set — a silent cross-controller state leak. Moving the state
  * to {@link PieceRuntime} (owned by the controller) makes the bug
  * structurally impossible.

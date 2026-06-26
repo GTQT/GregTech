@@ -51,12 +51,6 @@ final class MultiblockStructureCommitter {
             return;
         }
 
-        if (!result.hasLegacyContext()) {
-            recordRejection(controller, result.getTracePath(),
-                    "Successful structure check returned no match context");
-            return;
-        }
-
         MultiblockStructureAssembler.PreparedCommit prepared =
                 MultiblockStructureAssembler.prepare(
                         controller, result.copyOperationState(), controller.getMultiblockParts(),
@@ -80,26 +74,6 @@ final class MultiblockStructureCommitter {
             MultiblockStructureRegistration.refreshMultiPieceRegistrationFromRuntime(
                     controller, controller.multiPiecePattern, controller.pieceRuntimes);
         }
-    }
-
-    static boolean reassemble(@NotNull MultiblockControllerBase controller,
-                              @NotNull PatternMatchContext context) {
-        StructureOperationState operationState =
-                StructureOperationState.fromLegacyContext(context);
-        MultiblockStructureAssembler.PreparedCommit prepared =
-                MultiblockStructureAssembler.prepare(
-                        controller, operationState, controller.getMultiblockParts(), true);
-        if (!prepared.successful) {
-            recordRejection(controller, "runtime", prepared.failureMessage);
-            return false;
-        }
-
-        FormedStructureView formed = FormedStructureView.legacy(
-                controller.getFormedMetadata(), StructureChannelValues.fromContext(context),
-                operationState, context, context.neededFlip());
-        return commit(controller, requireRuntime(controller), formed, prepared,
-                controller.getFormedMetadata(), StructureChannelValues.fromContext(context),
-                context.neededFlip(), "runtime", null);
     }
 
     private static boolean commit(
@@ -140,7 +114,7 @@ final class MultiblockStructureCommitter {
                 graphPublication);
         controller.projectStructureLifecycle(runtime.getLifecycleState());
         if (formationPayloadChanged) {
-            runFormStructure(controller, formed, result);
+            runFormStructure(controller, formed);
             StructureTrace.debug(controller, prepared.initial ? "formed" :
                             prepared.changed ? "reassembled" : "formation-payload-refreshed",
                     "path=" + path + ", metadata=" + metadata + ", channels=" + channelValues);
@@ -149,14 +123,8 @@ final class MultiblockStructureCommitter {
     }
 
     private static void runFormStructure(@NotNull MultiblockControllerBase controller,
-                                         @NotNull FormedStructureView formed,
-                                         @Nullable StructureCheckResult result) {
-        if (result == null) {
-            controller.formStructure(formed);
-            return;
-        }
-        FormedStructureView.runWithLegacyCallbackProjection(
-                formed, result, () -> controller.formStructure(formed));
+                                         @NotNull FormedStructureView formed) {
+        controller.formStructure(formed);
     }
 
     private static boolean hasFormationPayloadChanged(

@@ -51,12 +51,12 @@ public class MetaTileEntityMegaVacuumFreezer extends GCYMRecipeMapMultiblockCont
                     .parallelHatch()
                     .preset(HatchPresets.MUFFLER_IO)
                     .preset(HatchPresets.STANDARD_IO)
-                    .where('G', states(getCasingState2()))
-                    .where('K', states(getCasingState3()))
-                    .where('V', states(getCasingState4()))
-                    .where('P', states(getCasingState5()))
-                    .where('A', air())
-                    .where('#', any())
+                    .block('G', getCasingState2())
+                    .block('K', getCasingState3())
+                    .block('V', getCasingState4())
+                    .block('P', getCasingState5())
+                    .air('A')
+                    .any('#')
                     .buildStructureDefinition()
     );
 

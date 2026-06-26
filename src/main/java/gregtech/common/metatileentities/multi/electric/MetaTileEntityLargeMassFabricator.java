@@ -39,11 +39,11 @@ public class MetaTileEntityLargeMassFabricator extends GCYMRecipeMapMultiblockCo
                     .parallelHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('G', states(getCasingState2()))
-                    .where('V', states(getCasingState3()))
-                    .where('K', states(getCasingState4()))
-                    .where('A', air())
-                    .where('#', any())
+                    .block('G', getCasingState2())
+                    .block('V', getCasingState3())
+                    .block('K', getCasingState4())
+                    .air('A')
+                    .any('#')
                     .buildStructureDefinition()
     );
 

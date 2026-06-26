@@ -89,7 +89,7 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
                     .where('S', self(MetaTileEntityMultiAxisDemo.class))
                     .where('W', block(getCasingState()))
                     .where('C', block(getCornerState()))
-                    .where(' ', air())
+                    .air(' ')
                     .buildStructureDefinition()
     );
 

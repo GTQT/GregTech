@@ -60,9 +60,9 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
                     .maintenance()
                     .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .where('P', states(getCasingState3()))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('A', air())
+                    .block('P', getCasingState3())
+                    .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                    .air('A')
                     .buildStructureDefinition()
     );
     private int coilTier;

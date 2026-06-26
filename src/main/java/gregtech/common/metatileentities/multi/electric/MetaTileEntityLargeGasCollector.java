@@ -38,10 +38,10 @@ public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockCont
                     .parallelHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('A', states(getBoilerCasingState()))
-                    .where('G', states(getGlassState()))
-                    .where('F', states(getFrameState()))
-                    .where(' ', any())
+                    .block('A', getBoilerCasingState())
+                    .block('G', getGlassState())
+                    .block('F', getFrameState())
+                    .any(' ')
                     .buildStructureDefinition()
     );
 

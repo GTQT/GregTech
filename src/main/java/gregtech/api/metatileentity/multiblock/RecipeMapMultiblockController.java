@@ -15,7 +15,6 @@ import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
@@ -281,48 +280,6 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     protected void configureWarningText(MultiblockUIBuilder builder) {
         builder.addLowPowerLine(recipeMapWorkable.isHasNotEnoughEnergy());
         super.configureWarningText(builder);
-    }
-
-    @Override
-    public TraceabilityPredicate autoAbilities() {
-        return autoAbilities(true, true, true, true, true, true, true);
-    }
-
-    public TraceabilityPredicate autoAbilities(boolean checkEnergyIn,
-                                               boolean checkMaintenance,
-                                               boolean checkItemIn,
-                                               boolean checkItemOut,
-                                               boolean checkFluidIn,
-                                               boolean checkFluidOut,
-                                               boolean checkMuffler) {
-        TraceabilityPredicate predicate = super.autoAbilities(checkMaintenance, checkMuffler);
-
-        if (checkEnergyIn) {
-            predicate = predicate.or(abilities(MultiblockAbility.INPUT_ENERGY).setMinGlobalLimited(1)
-                    .setMaxGlobalLimited(2)
-                    .setPreviewCount(1));
-        }
-        if (checkItemIn) {
-            if (recipeMap.getMaxInputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1));
-            }
-        }
-        if (checkItemOut) {
-            if (recipeMap.getMaxOutputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1));
-            }
-        }
-        if (checkFluidIn) {
-            if (recipeMap.getMaxFluidInputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1));
-            }
-        }
-        if (checkFluidOut) {
-            if (recipeMap.getMaxFluidOutputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1));
-            }
-        }
-        return predicate;
     }
 
     @Override

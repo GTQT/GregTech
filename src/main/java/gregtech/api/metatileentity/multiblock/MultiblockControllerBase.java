@@ -6,16 +6,12 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.pattern.BlockPattern;
 import gregtech.api.pattern.BlockPatternTemplate;
-import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.MultiblockState;
 import gregtech.api.pattern.PatternError;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.PieceRuntimes;
@@ -30,13 +26,10 @@ import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureTrace;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelValues;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.pipenet.tile.IPipeTile;
-import gregtech.api.unification.material.Material;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
@@ -46,10 +39,8 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
 import gregtech.common.ConfigHolder;
-import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.creativetab.GTCreativeTabs;
 
-import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.entity.EntityLivingBase;
@@ -80,13 +71,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
@@ -103,14 +92,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     private final Map<MultiblockAbility<Object>, AbilityInstances> multiblockAbilities = new HashMap<>();
     private final List<IMultiblockPart> multiblockParts = new ArrayList<>();
     private final MultiblockStructureCheckScheduler structureCheckScheduler = new MultiblockStructureCheckScheduler();
-    /**
-     * @deprecated Use {@link #getStructureRuntime()} for new code. Retained for backward
-     * compatibility during migration. Will be removed in version 2.10.
-     */
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-    @Nullable
-    public BlockPattern structurePattern;
+
     /** Shared immutable structure template (new architecture) */
     @Nullable
     protected BlockPatternTemplate patternTemplate;
@@ -163,106 +145,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         super(metaTileEntityId);
     }
 
-    public static TraceabilityPredicate tilePredicate(
-            @NotNull BiFunction<BlockWorldState, MetaTileEntity, Boolean> predicate,
-            @Nullable Supplier<BlockInfo[]> candidates) {
-        return MultiblockPredicates.tilePredicate(predicate, candidates);
-    }
-
-    public static TraceabilityPredicate metaTileEntities(MetaTileEntity... metaTileEntities) {
-        return MultiblockPredicates.metaTileEntities(metaTileEntities);
-    }
-
-    public static TraceabilityPredicate abilities(MultiblockAbility<?>... allowedAbilities) {
-        return MultiblockPredicates.abilities(allowedAbilities);
-    }
-
-    public static TraceabilityPredicate states(IBlockState... allowedStates) {
-        return MultiblockPredicates.states(allowedStates);
-    }
-
-    @NotNull
-    protected static TraceabilityPredicate energyOutput(int tier, boolean isMinTier) {
-        return MultiblockPredicates.energyOutput(tier, isMinTier);
-    }
-
-    @NotNull
-    protected static TraceabilityPredicate energyInput(int tier, boolean isMinTier) {
-        return MultiblockPredicates.energyInput(tier, isMinTier);
-    }
-
-    @NotNull
-    protected static TraceabilityPredicate laserOutput(int tier, boolean isMinTier) {
-        return MultiblockPredicates.laserOutput(tier, isMinTier);
-    }
-
-    @NotNull
-    protected static TraceabilityPredicate laserInput(int tier, boolean isMinTier) {
-        return MultiblockPredicates.laserInput(tier, isMinTier);
-    }
-
-
-    /**
-     * Use this predicate for Frames in your Multiblock. Allows for Framed Pipes as well as normal Frame blocks.
-     */
-    public static TraceabilityPredicate frames(Material... frameMaterials) {
-        return MultiblockPredicates.frames(frameMaterials);
-    }
-
-    public static TraceabilityPredicate sheets(Material... sheetMaterials) {
-        return states(Arrays.stream(sheetMaterials).map(m -> MetaBlocks.SHEETS.get(m).getBlock(m))
-                .toArray(IBlockState[]::new))
-                .or(new TraceabilityPredicate(blockWorldState -> {
-                    TileEntity tileEntity = blockWorldState.getTileEntity();
-                    if (!(tileEntity instanceof IPipeTile<?, ?> pipeTile)) {
-                        return false;
-                    }
-                    return ArrayUtils.contains(sheetMaterials, pipeTile.getFrameMaterial());
-                }));
-    }
-
-    public static TraceabilityPredicate blocks(Block... block) {
-        return MultiblockPredicates.blocks(block);
-    }
-
-    public static TraceabilityPredicate air() {
-        return TraceabilityPredicate.AIR;
-    }
-
-    public static TraceabilityPredicate any() {
-        return TraceabilityPredicate.ANY;
-    }
-
-    @Deprecated
-    public static TraceabilityPredicate heatingCoils() {
-        return TraceabilityPredicate.HEATING_COILS.get();
-    }
-
-    /**
-     * Static version of {@link #selfPredicate()} for multi-variant controllers. Creates a center predicate that matches
-     * any controller instance whose class equals or extends the given class. Suitable for machines that register
-     * multiple IDs with the same class (e.g., LargeTurbine, LargeBoiler, LargeMiner).
-     *
-     * <p>Usage:
-     * <pre>{@code
-     * private static final SoftTemplate TEMPLATE = TemplatePool.getInstance().register(
-     *     "gregtech:large_turbine/steam", () ->
-     *     DeclarativePatternBuilder.start()
-     *         .where('S', selfPredicateByClass(MetaTileEntityLargeTurbine.class))
-     *         ...
-     *         .buildTemplate()
-     * );
-     * }</pre>
-     *
-     * @param controllerClass the exact controller class to match
-     * @return a center predicate matching all instances of that class
-     */
-    @NotNull
-    public static TraceabilityPredicate selfPredicate(
-            @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
-        return MultiblockPredicates.selfPredicate(controllerClass);
-    }
-
     /**
      * Collect all unique channels referenced by predicates in the given template.
      */
@@ -302,8 +184,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             this.runtimeState = null;
         }
         // Per-controller state for the compiled pattern. Single-template
-        // runtimes use PieceRuntimeState directly; deprecated MultiblockState
-        // accessors return detached projections only.
+        // runtimes use PieceRuntimeState directly.
         this.pieceRuntimes = this.runtimeState == null
                 ? new PieceRuntimes(this.multiPiecePattern)
                 : PieceRuntimes.singleWithState(this.multiPiecePattern, this.runtimeState);
@@ -316,7 +197,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         }
         this.structureRuntimeGeneration++;
         this.structureRuntime.copyFormedStateFrom(previousRuntime);
-        refreshDeprecatedStructurePatternProjection();
         StructureTrace.debug(this, "runtime-reinitialized", this.structureRuntime.describeShape());
     }
 
@@ -324,24 +204,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @SuppressWarnings("deprecation")
     private StructureDefinition<?> resolveStructureDefinition() {
         StructureDefinition<?> definition = createStructureDefinition();
-        if (definition != null) {
-            this.structureAdapterTraceSource = null;
-            return definition;
+        if (definition == null) {
+            throw new UnsupportedOperationException(
+                    "Override createStructureDefinition() to provide a StructureDefinition");
         }
-
-        MultiPiecePattern legacyMultiPiece = createMultiPiecePattern();
-        if (legacyMultiPiece != null) {
-            RelativeDirection[] dirs = legacyMultiPiece.getPrimaryPiece().getTemplate().getStructureDir();
-            this.structureAdapterTraceSource = "createMultiPiecePattern";
-            StructureTrace.debug(this, "legacy-adapter",
-                    "source=createMultiPiecePattern, pieces=" + legacyMultiPiece.getPieceList().size());
-            return StructureDefinition.fromMultiPiecePattern(dirs, legacyMultiPiece);
-        }
-
-        BlockPatternTemplate legacyTemplate = createStructureTemplate();
-        this.structureAdapterTraceSource = "createStructureTemplate";
-        StructureTrace.debug(this, "legacy-adapter", "source=createStructureTemplate, pieces=1");
-        return StructureDefinition.fromTemplate(legacyTemplate);
+        this.structureAdapterTraceSource = null;
+        return definition;
     }
 
     @Override
@@ -367,52 +235,16 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected abstract void updateFormedValid();
 
     /**
-     * Override this method to provide a shared immutable structure template. The template is shared across all
-     * instances of the same machine type, while each instance holds its own mutable {@link PieceRuntimeState}.
-     *
-     * <p>For optimal memory usage, subclasses should override this method and return
-     * a statically cached {@link BlockPatternTemplate} instance.
-     *
-     * @return the immutable structure template
-     * @see gregtech.api.pattern.FactoryBlockPattern#buildTemplate()
-     */
-    @NotNull
-    protected BlockPatternTemplate createStructureTemplate() {
-        throw new UnsupportedOperationException(
-                "Override createStructureDefinition(), createMultiPiecePattern(), or createStructureTemplate()");
-    }
-
-    /**
-     * Override this method to provide a multi-piece pattern for super-large structures. When this returns non-null, the
-     * structure changes are localized to a piece for invalidation, then the active
-     * graph is re-validated to preserve cross-piece context and count semantics.
-     *
-     * <p>Standard multiblocks should NOT override this method. It is only useful for
-     * structures with thousands of blocks that benefit from partial re-checking.
-     *
-     * @return the multi-piece pattern, or null to use the standard single-pattern mode
-     */
-    @Nullable
-    protected MultiPiecePattern createMultiPiecePattern() {
-        return null;
-    }
-
-    /**
      * Create a StructureDefinition for this multiblock.
-     * Override this for new structures; legacy {@link #createStructureTemplate()}
-     * and {@link #createMultiPiecePattern()} implementations are adapted into a
-     * definition by {@link #resolveStructureDefinition()}.
      *
      * <p>Must return an idempotent instance — use
      * {@link StructureDefinition#getOrBuild(String, java.util.function.Supplier)}
      * to ensure this.
      *
-     * @return the structure definition, or null to use legacy adapters
+     * @return the structure definition, must not be null
      */
-    @Nullable
-    protected StructureDefinition<?> createStructureDefinition() {
-        return null;
-    }
+    @NotNull
+    protected abstract StructureDefinition<?> createStructureDefinition();
 
     /**
      * @return the multi-piece pattern if this controller uses one, or null
@@ -463,7 +295,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                     // Unregister before clearing cache so positions can be properly cleaned up
                     MultiblockWorldData.get(getWorld()).unregisterMultiblock(this);
                     runtimeState.clearCache();
-                    refreshDeprecatedStructurePatternProjection();
                     checkStructurePattern();
                 }
             }
@@ -507,10 +338,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @SideOnly(Side.CLIENT)
     public TextureAtlasSprite getFrontDefaultTexture() {
         return getFrontOverlay().getParticleSprite();
-    }
-
-    public TraceabilityPredicate selfPredicate() {
-        return metaTileEntities(this).setCenter();
     }
 
     @Override
@@ -756,17 +583,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Re-collects structure parts and abilities from a successful pattern match without invalidating the whole
-     * multiblock. This is used by normal cached checks and by large multi-piece structures when only one piece
-     * changed.
-     *
-     * @return true if the part/ability set changed and subclass form logic was re-run
-     */
-    protected boolean reassembleStructure(@NotNull PatternMatchContext context) {
-        return MultiblockStructureCommitter.reassemble(this, context);
-    }
-
-    /**
      * Checks if a multiblock ability at a given block pos should be added to the ability instances
      *
      * @return true if the ability should be added to this multiblocks ability instances
@@ -802,20 +618,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     protected void registerMultiPiecePattern() {
         MultiblockStructureRegistration.registerMultiPiecePattern(this, multiPiecePattern, pieceRuntimes);
-    }
-
-    /**
-     * @return the immutable pattern template, or null if not initialized
-     * @deprecated Prefer {@link #getStructureDefinition()} and (for single-template views)
-     *             {@link StructureDefinition#getPrimaryTemplate()}. This accessor only
-     *             returns a non-null value when the definition supports the
-     *             single-template runtime path; repeatable and multi-piece structures
-     *             must use {@link #getStructureDefinition()}.
-     */
-    @Nullable
-    @Deprecated
-    public BlockPatternTemplate getPatternTemplate() {
-        return patternTemplate;
     }
 
     /**
@@ -858,31 +660,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return structureDir[2] == RelativeDirection.BACK
                 ? getFrontFacing().getOpposite()
                 : getFrontFacing();
-    }
-
-    /**
-     * @return the per-instance mutable state, or null if not initialized
-     * @deprecated Prefer {@link #getStructureDefinition()}. Runtime structure checking
-     *             should use the SD's compiled products; this accessor is retained for
-     *             internal main-thread state and a small number of legacy call sites.
-     */
-    @Nullable
-    @Deprecated
-    public MultiblockState getMultiblockState() {
-        return createMultiblockStateProjection();
-    }
-
-    @Nullable
-    @SuppressWarnings("deprecation")
-    private MultiblockState createMultiblockStateProjection() {
-        return runtimeState == null ? null : runtimeState.createCompatibilityProjection();
-    }
-
-    @SuppressWarnings("deprecation")
-    private void refreshDeprecatedStructurePatternProjection() {
-        this.structurePattern = (this.patternTemplate != null && this.runtimeState != null)
-                ? new BlockPattern(this.patternTemplate, createMultiblockStateProjection())
-                : null;
     }
 
     @Nullable
@@ -1123,7 +900,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             this.structureFormed = lifecycleState.isFormed();
             writeCustomData(STRUCTURE_FORMED, buf -> buf.writeBoolean(lifecycleState.isFormed()));
         }
-        refreshDeprecatedStructurePatternProjection();
     }
 
     @Override
@@ -1229,7 +1005,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             // clear cache since the cache has no concept of pre-existing facing
             // for the controller block (or any block) in the structure
             runtimeState.clearCache();
-            refreshDeprecatedStructurePatternProjection();
             // recheck structure pattern immediately to avoid a slight "lag"
             // on deforming when rotating a multiblock controller
             checkStructurePattern();
@@ -1347,28 +1122,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Build a predicate map for multi-piece structures.
-     * Maps block positions (in the merged preview array's 0-based coordinate system)
-     * to their TraceabilityPredicate for right-click block cycling in JEI.
-     *
-     * <p>Iteration matches {@link PieceRuntimeState#createPreviewCells(int[], Map)} so that
-     * every block rendered in the JEI preview (including all repeated slices of a
-     * {@link RepeatGroupPiece}) gets a corresponding predicate entry. The previous
-     * implementation only walked the base template, leaving repeated slices with
-     * no predicate, which made right-click cycling silent for those positions.
-     */
-    @NotNull
-    public Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap() {
-        return MultiblockStructureOperations.buildMultiPiecePredicateMap(this);
-    }
-
-    /**
      * Build direct preview metadata for multi-piece structures.
      *
-     * <p>Unlike {@link #buildMultiPiecePredicateMap()}, this is the typed JEI/tooling
-     * surface: it reads {@link gregtech.api.pattern.element.StructureElementPreview}
-     * and element preview tooltips first, carrying a legacy predicate only for
-     * fallback tooltip behavior during the addon migration window.
+     * <p>This is the typed JEI/tooling surface: it reads
+     * {@link gregtech.api.pattern.element.StructureElementPreview} and element
+     * preview tooltips first, carrying a legacy predicate only for fallback
+     * tooltip behavior during the addon migration window.
      */
     @NotNull
     public Map<BlockPos, StructureElementPreviewEntry> buildMultiPiecePreviewEntries(

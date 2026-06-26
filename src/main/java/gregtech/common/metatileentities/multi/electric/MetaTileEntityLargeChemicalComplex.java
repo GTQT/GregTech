@@ -49,10 +49,10 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
                     .parallelHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getCasingState2()))
+                    .block('P', getCasingState2())
                     .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .where('#', any())
+                    .any('#')
                     .buildStructureDefinition()
     );
 

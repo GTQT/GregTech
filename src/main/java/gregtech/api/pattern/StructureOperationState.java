@@ -80,11 +80,6 @@ public final class StructureOperationState {
         return copy;
     }
 
-    @NotNull
-    public static StructureOperationState fromLegacyContext(@NotNull PatternMatchContext context) {
-        return new StructureOperationState().copyIncludingLegacy(context);
-    }
-
     /**
      * Replace collector-owned legacy keys with a compatibility view of this
      * typed state. Other addon-owned context entries are preserved.

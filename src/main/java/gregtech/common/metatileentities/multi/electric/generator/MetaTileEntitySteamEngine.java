@@ -9,10 +9,12 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -43,33 +45,15 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
                                 .aisle("#XX", "XGX", "#XX")
                                 .aisle("#XX", "#SX", "#XX")
                             .self('S', MetaTileEntitySteamEngine.class)
-                            .where('X', states(getCasingState()).setMinGlobalLimited(18)
-                                    .or(standardAbilities()))
-                            .where('G', states(getCasingState2()))
-                            .where('E', energyOutputPredicate())
-                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                            .where('#', any())
+                            .block('G', getCasingState2())
+                            .where('E', energyOutputElement())
+                            .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                            .any('#')
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .hatch(MultiblockAbility.MAINTENANCE_HATCH,
+                                    ConfigHolder.machines.enableMaintenance ? 1 : 0, 1)
+                            .preset(HatchPresets.STANDARD_FLUID_IO)
                             .buildStructureDefinition());
-
-    private static TraceabilityPredicate standardAbilities() {
-        TraceabilityPredicate predicate = abilities(MultiblockAbility.MAINTENANCE_HATCH)
-                .setMinGlobalLimited(ConfigHolder.machines.enableMaintenance ? 1 : 0)
-                .setMaxGlobalLimited(1);
-        RecipeMap<?> recipeMap = RecipeMaps.STEAM_TURBINE_FUELS;
-        if (recipeMap.getMaxInputs() > 0) {
-            predicate = predicate.or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1));
-        }
-        if (recipeMap.getMaxOutputs() > 0) {
-            predicate = predicate.or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1));
-        }
-        if (recipeMap.getMaxFluidInputs() > 0) {
-            predicate = predicate.or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1));
-        }
-        if (recipeMap.getMaxFluidOutputs() > 0) {
-            predicate = predicate.or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1));
-        }
-        return predicate;
-    }
 
     public MetaTileEntitySteamEngine(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.STEAM_TURBINE_FUELS, GTValues.MV);
@@ -82,13 +66,15 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[GTValues.MV]);
     }
 
-    private static TraceabilityPredicate energyOutputPredicate() {
-        return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream().filter(mte -> {
-            IEnergyContainer container = mte.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
-            return container != null && container.getOutputVoltage() <= GTValues.V[GTValues.MV];
-        }).toArray(MetaTileEntity[]::new))
-                .addTooltip("gregtech.multiblock.pattern.error.limited.1", GTValues.VN[GTValues.LV])
-                .addTooltip("gregtech.multiblock.pattern.error.limited.0", GTValues.VN[GTValues.MV]);
+    // Energy output restricted to MV dynamos, using typed Elements API.
+    private static IStructureElement energyOutputElement() {
+        return Elements.withTooltips(
+                Elements.metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream().filter(mte -> {
+                    IEnergyContainer container = mte.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
+                    return container != null && container.getOutputVoltage() <= GTValues.V[GTValues.MV];
+                }).toArray(MetaTileEntity[]::new)),
+                "gregtech.multiblock.pattern.error.limited.1 " + GTValues.VN[GTValues.LV],
+                "gregtech.multiblock.pattern.error.limited.0 " + GTValues.VN[GTValues.MV]);
     }
 
     private static IBlockState getCasingState() {

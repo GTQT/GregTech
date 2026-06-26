@@ -39,10 +39,10 @@ public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultibloc
                     .tieredHatch()
                     .parallelHatch()
                     .threadHatch()
-                    .where('C', states(getCasingState2()))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('A', air())
-                    .where('#', any())
+                    .block('C', getCasingState2())
+                    .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                    .air('A')
+                    .any('#')
                     .buildStructureDefinition()
     );
 

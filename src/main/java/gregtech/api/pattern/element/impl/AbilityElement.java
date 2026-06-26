@@ -6,7 +6,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.MultiblockPredicates;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.TraceabilityPredicate;
@@ -173,7 +173,7 @@ public class AbilityElement implements ITypedStructureElement<Object> {
     }
 
     private TraceabilityPredicate buildLegacyPredicate(int previewCount) {
-        TraceabilityPredicate predicate = MultiblockControllerBase.abilities(abilities);
+        TraceabilityPredicate predicate = MultiblockPredicates.abilities(abilities);
         if (minCount > 0) {
             predicate.setMinGlobalLimited(minCount);
         }

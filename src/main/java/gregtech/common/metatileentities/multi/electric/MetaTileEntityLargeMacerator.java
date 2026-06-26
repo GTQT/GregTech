@@ -39,8 +39,8 @@ public class MetaTileEntityLargeMacerator extends GCYMAdvanceRecipeMapMultiblock
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('#', air())
+                    .block('C', getCasingState2())
+                    .air('#')
                     .buildStructureDefinition()
     );
 

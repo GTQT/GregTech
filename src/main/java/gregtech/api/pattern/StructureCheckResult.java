@@ -26,14 +26,7 @@ import java.util.Map;
 public final class StructureCheckResult {
 
     public enum Source {
-        DEFINITION("definition"),
-        /**
-         * @deprecated Runtime checks now adapt legacy templates into typed
-         *             compiled patterns. Retained for external compatibility
-         *             with callers that still construct legacy results directly.
-         */
-        @Deprecated
-        LEGACY_TEMPLATE("legacy-template");
+        DEFINITION("definition");
 
         @NotNull
         private final String tracePath;
@@ -242,44 +235,6 @@ public final class StructureCheckResult {
                 null);
     }
 
-    /**
-     * @deprecated Runtime operation paths adapt legacy templates into typed
-     *             compiled patterns and no longer create legacy check results.
-     *             Retained for external compatibility only.
-     */
-    @Deprecated
-    @NotNull
-    public static StructureCheckResult fromLegacy(@Nullable PatternMatchContext context,
-                                                  @NotNull MultiblockState state) {
-        boolean matched = context != null;
-        StructureOperationState operationState = matched
-                ? StructureOperationState.fromLegacyContext(context)
-                : new StructureOperationState();
-        return new StructureCheckResult(
-                Source.LEGACY_TEMPLATE,
-                matched,
-                context,
-                operationState,
-                null,
-                matched ? null : state.getError(),
-                null,
-                matched ? null : "Legacy structure template did not match",
-                null,
-                null,
-                null,
-                matched ? Collections.emptyMap() : state.getMissingAbilities(),
-                Collections.emptyMap(),
-                matched ? StructureChannelValues.fromContext(context) : new StructureChannelValues(),
-                matched && context.neededFlip(),
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null);
-    }
-
     @NotNull
     public Source getSource() {
         return source;
@@ -446,11 +401,6 @@ public final class StructureCheckResult {
 
     public boolean isMatched() {
         return matched;
-    }
-
-    @ApiStatus.Internal
-    public boolean hasLegacyContext() {
-        return context != null;
     }
 
     @Nullable

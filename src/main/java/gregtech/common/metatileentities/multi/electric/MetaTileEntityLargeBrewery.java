@@ -41,11 +41,11 @@ public class MetaTileEntityLargeBrewery extends GCYMAdvanceRecipeMapMultiblockCo
                     .threadHatch()
                     .maintenance()
                     .preset(HatchPresets.STANDARD_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('P', states(getCasingState3()))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('A', air())
-                    .where('#', any())
+                    .block('C', getCasingState2())
+                    .block('P', getCasingState3())
+                    .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                    .air('A')
+                    .any('#')
                     .buildStructureDefinition()
     );
 

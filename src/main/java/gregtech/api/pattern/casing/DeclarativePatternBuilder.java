@@ -5,11 +5,8 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.AbilityGroupLimit;
-import gregtech.api.pattern.BlockPattern;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.OffsetMode;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -78,7 +75,6 @@ public class DeclarativePatternBuilder {
     private final List<PieceDef> pieces = new ArrayList<>();
     private final Map<Character, CasingSlotInfo> casingSlots = new HashMap<>();
     private final Map<Character, TieredSlotInfo> tieredSlots = new HashMap<>();
-    private final Map<Character, TraceabilityPredicate> rawPredicates = new HashMap<>();
     private final Map<Character, IStructureElement> elementMappings = new HashMap<>();
     private final List<AbilityLimitDef> abilityLimits = new ArrayList<>();
     private final List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>();
@@ -202,16 +198,7 @@ public class DeclarativePatternBuilder {
     // --- Standard where (shared across all pieces) ---
 
     /**
-     * Define a character mapping using raw TraceabilityPredicate (shared across all pieces).
-     */
-    public DeclarativePatternBuilder where(char symbol, TraceabilityPredicate predicate) {
-        rawPredicates.put(symbol, predicate);
-        return this;
-    }
-
-    /**
      * Define a character mapping using IStructureElement (for multi-axis pieces).
-     * Takes precedence over {@link #where(char, TraceabilityPredicate)} for the same character.
      */
     public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
         elementMappings.put(symbol, element);
@@ -312,28 +299,6 @@ public class DeclarativePatternBuilder {
     }
 
     // --- Build methods ---
-
-    /**
-     * Build the structure template (1-piece view of the underlying StructureDefinition).
-     *
-     * <p>This is a convenience entry point for machines that use a single structure piece
-     * (the common case). It internally delegates to {@link #buildStructureDefinition()}
-     * and extracts the primary piece's template.
-     *
-     * <p>Use {@link #buildStructureDefinition()} directly if you need access to
-     * named pieces, conditional pieces, or multi-piece composition.
-     */
-    public BlockPatternTemplate buildTemplate() {
-        BlockPatternTemplate template = buildStructureDefinition().getPrimaryTemplate();
-        if (template == null) {
-            // Multi-piece definitions cannot be represented as a single BlockPatternTemplate.
-            // Use buildStructureDefinition() to access the full multi-piece structure.
-            throw new IllegalStateException(
-                    "buildTemplate() requires a single-piece structure; "
-                            + "use buildStructureDefinition() for multi-piece structures");
-        }
-        return template;
-    }
 
     /**
      * Build a StructureDefinition from this declarative pattern.
@@ -509,8 +474,7 @@ public class DeclarativePatternBuilder {
 
     /**
      * Register a multi-axis repeatable piece in the StructureDefinition builder.
-     * For multi-axis pieces, character mappings must be converted from TraceabilityPredicate
-     * to IStructureElement via {@link Elements#legacy(TraceabilityPredicate)}.
+     * For multi-axis pieces, character mappings are provided as IStructureElement instances.
      */
     private void registerMultiAxisPiece(@NotNull StructureDefinition.Builder<?> builder,
                                          @NotNull PieceDef piece,
@@ -557,9 +521,6 @@ public class DeclarativePatternBuilder {
         // Check IStructureElement mappings first (for multi-axis pieces)
         IStructureElement element = elementMappings.get(c);
         if (element != null) return element;
-        // Check raw predicates
-        TraceabilityPredicate pred = rawPredicates.get(c);
-        if (pred != null) return Elements.legacy(pred);
         // Check casing slots
         CasingSlotInfo casingInfo = casingSlots.get(c);
         if (casingInfo != null) {
@@ -691,9 +652,6 @@ public class DeclarativePatternBuilder {
         // Check IStructureElement mappings first
         IStructureElement element = elementMappings.get(c);
         if (element != null) return element;
-        // Check raw predicates
-        TraceabilityPredicate pred = rawPredicates.get(c);
-        if (pred != null) return Elements.legacy(pred);
         // Check casing slots (per-piece count)
         CasingSlotInfo casingInfo = casingSlots.get(c);
         if (casingInfo != null) {
@@ -899,10 +857,6 @@ public class DeclarativePatternBuilder {
 
         // --- Pass-through methods for seamless chaining ---
 
-        public DeclarativePatternBuilder where(char symbol, TraceabilityPredicate predicate) {
-            return parent.where(symbol, predicate);
-        }
-
         public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
             return parent.where(symbol, element);
         }
@@ -991,10 +945,6 @@ public class DeclarativePatternBuilder {
             return parent.repeatablePiece(name, pattern, offset);
         }
 
-        public BlockPatternTemplate buildTemplate() {
-            return parent.buildTemplate();
-        }
-
         public StructureDefinition<?> buildStructureDefinition() {
             return parent.buildStructureDefinition();
         }
@@ -1065,10 +1015,6 @@ public class DeclarativePatternBuilder {
         }
 
         // --- Pass-through methods for seamless chaining ---
-
-        public DeclarativePatternBuilder where(char symbol, TraceabilityPredicate predicate) {
-            return parent.where(symbol, predicate);
-        }
 
         public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
             return parent.where(symbol, element);
@@ -1392,11 +1338,6 @@ public class DeclarativePatternBuilder {
             return slot;
         }
 
-        public CasingSlot custom(@NotNull TraceabilityPredicate predicate, int maxCount) {
-            info.customHatches.add(new CustomHatchInfo(Elements.legacy(predicate), maxCount));
-            return this;
-        }
-
         public CasingSlot custom(@NotNull IStructureElement element, int maxCount) {
             info.customHatches.add(new CustomHatchInfo(element, maxCount));
             return this;
@@ -1417,12 +1358,62 @@ public class DeclarativePatternBuilder {
             return builder.aisle(aisle);
         }
 
-        public DeclarativePatternBuilder where(char symbol, TraceabilityPredicate predicate) {
-            return builder.where(symbol, predicate);
-        }
-
         public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
             return builder.where(symbol, element);
+        }
+
+        // --- Typed element pass-throughs ---
+
+        public DeclarativePatternBuilder self(
+                char symbol,
+                @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+            return builder.self(symbol, controllerClass);
+        }
+
+        public DeclarativePatternBuilder block(char symbol, @NotNull IBlockState state) {
+            return builder.block(symbol, state);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull IBlockState... states) {
+            return builder.blocks(symbol, states);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull Block... blocks) {
+            return builder.blocks(symbol, blocks);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol, @NotNull Predicate<IBlockState> predicate) {
+            return builder.blockPredicate(symbol, predicate);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol,
+                                                        @NotNull Predicate<IBlockState> predicate,
+                                                        @NotNull Supplier<BlockInfo[]> candidates) {
+            return builder.blockPredicate(symbol, predicate, candidates);
+        }
+
+        public DeclarativePatternBuilder air(char symbol) {
+            return builder.air(symbol);
+        }
+
+        public DeclarativePatternBuilder any(char symbol) {
+            return builder.any(symbol);
+        }
+
+        public DeclarativePatternBuilder hatch(char symbol, @NotNull MultiblockAbility<?> ability) {
+            return builder.hatch(symbol, ability);
+        }
+
+        public DeclarativePatternBuilder hatches(char symbol, @NotNull MultiblockAbility<?>... abilities) {
+            return builder.hatches(symbol, abilities);
+        }
+
+        public DeclarativePatternBuilder frames(char symbol, @NotNull Material... frameMaterials) {
+            return builder.frames(symbol, frameMaterials);
+        }
+
+        public DeclarativePatternBuilder metaTileEntities(char symbol, @NotNull MetaTileEntity... metaTileEntities) {
+            return builder.metaTileEntities(symbol, metaTileEntities);
         }
 
         public CasingSlot casing(char symbol, @NotNull ICasing casing) {
@@ -1458,23 +1449,6 @@ public class DeclarativePatternBuilder {
             return builder.repeatablePiece(name, minRepeat, maxRepeat);
         }
 
-        public BlockPatternTemplate buildTemplate() {
-            return builder.buildTemplate();
-        }
-
-        /**
-         * Convenience build returning a {@link BlockPattern} wrapper for the compiled
-         * primary template. Intended for legacy call sites that still expect
-         * {@link BlockPattern} from a {@link FactoryBlockPattern#build()}-style terminal
-         * call. Multiblock controllers that have migrated to {@link StructureDefinition}
-         * should prefer {@link #buildStructureDefinition()} instead.
-         *
-         * @return a BlockPattern wrapping the compiled primary template
-         */
-        public BlockPattern build() {
-            return new BlockPattern(buildTemplate());
-        }
-
         public StructureDefinition<?> buildStructureDefinition() {
             return builder.buildStructureDefinition();
         }
@@ -1507,12 +1481,62 @@ public class DeclarativePatternBuilder {
             return builder.aisle(aisle);
         }
 
-        public DeclarativePatternBuilder where(char symbol, TraceabilityPredicate predicate) {
-            return builder.where(symbol, predicate);
-        }
-
         public DeclarativePatternBuilder where(char symbol, @NotNull IStructureElement element) {
             return builder.where(symbol, element);
+        }
+
+        // --- Typed element pass-throughs ---
+
+        public DeclarativePatternBuilder self(
+                char symbol,
+                @NotNull Class<? extends MultiblockControllerBase> controllerClass) {
+            return builder.self(symbol, controllerClass);
+        }
+
+        public DeclarativePatternBuilder block(char symbol, @NotNull IBlockState state) {
+            return builder.block(symbol, state);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull IBlockState... states) {
+            return builder.blocks(symbol, states);
+        }
+
+        public DeclarativePatternBuilder blocks(char symbol, @NotNull Block... blocks) {
+            return builder.blocks(symbol, blocks);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol, @NotNull Predicate<IBlockState> predicate) {
+            return builder.blockPredicate(symbol, predicate);
+        }
+
+        public DeclarativePatternBuilder blockPredicate(char symbol,
+                                                        @NotNull Predicate<IBlockState> predicate,
+                                                        @NotNull Supplier<BlockInfo[]> candidates) {
+            return builder.blockPredicate(symbol, predicate, candidates);
+        }
+
+        public DeclarativePatternBuilder air(char symbol) {
+            return builder.air(symbol);
+        }
+
+        public DeclarativePatternBuilder any(char symbol) {
+            return builder.any(symbol);
+        }
+
+        public DeclarativePatternBuilder hatch(char symbol, @NotNull MultiblockAbility<?> ability) {
+            return builder.hatch(symbol, ability);
+        }
+
+        public DeclarativePatternBuilder hatches(char symbol, @NotNull MultiblockAbility<?>... abilities) {
+            return builder.hatches(symbol, abilities);
+        }
+
+        public DeclarativePatternBuilder frames(char symbol, @NotNull Material... frameMaterials) {
+            return builder.frames(symbol, frameMaterials);
+        }
+
+        public DeclarativePatternBuilder metaTileEntities(char symbol, @NotNull MetaTileEntity... metaTileEntities) {
+            return builder.metaTileEntities(symbol, metaTileEntities);
         }
 
         public CasingSlot casing(char symbol, @NotNull ICasing casing) {
@@ -1540,10 +1564,6 @@ public class DeclarativePatternBuilder {
 
         public PieceBuilder repeatablePiece(@NotNull String name, int minRepeat, int maxRepeat) {
             return builder.repeatablePiece(name, minRepeat, maxRepeat);
-        }
-
-        public BlockPatternTemplate buildTemplate() {
-            return builder.buildTemplate();
         }
 
         public StructureDefinition<?> buildStructureDefinition() {

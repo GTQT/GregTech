@@ -9,7 +9,6 @@ import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureElementPreviewEntry;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.util.math.BlockPos;
@@ -65,18 +64,6 @@ final class MultiblockStructurePreviews {
         if (multiPiecePattern == null) return null;
         return assembleMultiPiecePreview(
                 controller, multiPiecePattern, pieceRuntimes, structureRuntime, channelValues);
-    }
-
-    @NotNull
-    static Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap(
-            @NotNull MultiblockControllerBase controller,
-            @Nullable MultiPiecePattern multiPiecePattern,
-            @Nullable PieceRuntimes pieceRuntimes,
-            @Nullable StructureRuntime structureRuntime) {
-        if (multiPiecePattern == null) return new HashMap<>();
-        MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,
-                multiPiecePattern, pieceRuntimes, structureRuntime, null);
-        return new HashMap<>(preview.getPredicates());
     }
 
     @NotNull

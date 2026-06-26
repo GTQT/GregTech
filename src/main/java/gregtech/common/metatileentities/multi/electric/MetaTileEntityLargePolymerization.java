@@ -37,8 +37,8 @@ public class MetaTileEntityLargePolymerization extends GCYMAdvanceRecipeMapMulti
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getCasingState2()))
-                    .where('F', states(getFrameState()))
+                    .block('P', getCasingState2())
+                    .block('F', getFrameState())
                     .buildStructureDefinition()
     );
     private static IBlockState getFrameState() {

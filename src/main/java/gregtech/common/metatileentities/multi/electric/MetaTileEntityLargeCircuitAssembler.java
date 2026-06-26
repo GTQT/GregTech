@@ -47,11 +47,11 @@ public class MetaTileEntityLargeCircuitAssembler extends GCYMAdvanceRecipeMapMul
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('P', states(getCasingState3()))
-                    .where('G', states(getCasingState4()))
-                    .where('A', air())
-                    .where('#', any())
+                    .block('C', getCasingState2())
+                    .block('P', getCasingState3())
+                    .block('G', getCasingState4())
+                    .air('A')
+                    .any('#')
                     .buildStructureDefinition()
     );
 

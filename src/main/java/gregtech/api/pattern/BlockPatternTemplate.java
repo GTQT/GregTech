@@ -29,7 +29,6 @@ import java.util.function.BiConsumer;
  *
  * @see PieceTemplate for the canonical IR
  * @see PieceRuntimeState for internal per-instance mutable state
- * @see MultiblockState for the deprecated detached compatibility projection
  * @see FactoryBlockPattern for the legacy builder
  */
 public class BlockPatternTemplate {
@@ -134,17 +133,6 @@ public class BlockPatternTemplate {
     @NotNull
     public PieceTemplate getDelegate() {
         return delegate;
-    }
-
-    /**
-     * Create a deprecated compatibility state instance for this template.
-     * Runtime internals should construct {@link PieceRuntimeState} directly.
-     *
-     * @return a new detached MultiblockState bound to the underlying PieceTemplate
-     */
-    @Deprecated
-    public MultiblockState createState() {
-        return new MultiblockState(delegate);
     }
 
     // --- Accessors — all delegate to the underlying PieceTemplate ---

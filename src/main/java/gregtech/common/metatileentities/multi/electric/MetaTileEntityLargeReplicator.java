@@ -39,10 +39,10 @@ public class MetaTileEntityLargeReplicator extends GCYMRecipeMapMultiblockContro
                     .parallelHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('G', states(getCasingState3()))
-                    .where('V', states(getCasingState4()))
-                    .where('A', air())
+                    .block('C', getCasingState2())
+                    .block('G', getCasingState3())
+                    .block('V', getCasingState4())
+                    .air('A')
                     .buildStructureDefinition()
     );
 

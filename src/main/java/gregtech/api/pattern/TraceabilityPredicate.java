@@ -29,7 +29,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import static gregtech.api.metatileentity.multiblock.MultiblockControllerBase.abilities;
+import static gregtech.api.metatileentity.multiblock.MultiblockPredicates.abilities;
 
 @ApiStatus.Obsolete
 public class TraceabilityPredicate {

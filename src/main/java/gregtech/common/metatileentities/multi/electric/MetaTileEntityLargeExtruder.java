@@ -39,9 +39,9 @@ public class MetaTileEntityLargeExtruder extends GCYMAdvanceRecipeMapMultiblockC
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getCasingState2()))
-                    .where('G', states(getCasingState3()))
-                    .where('#', any())
+                    .block('P', getCasingState2())
+                    .block('G', getCasingState3())
+                    .any('#')
                     .buildStructureDefinition()
     );
 

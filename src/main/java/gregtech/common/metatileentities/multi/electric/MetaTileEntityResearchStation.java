@@ -67,7 +67,7 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
                     .air('-')
                     .block('V', getVentState())
                     .block('A', getAdvancedState())
-                    .where('H', abilities(MultiblockAbility.OBJECT_HOLDER))
+                    .hatch('H', MultiblockAbility.OBJECT_HOLDER)
                     .casing('P', getCasingState())
                     .hatch(MultiblockAbility.INPUT_ENERGY, 1, 4,
                             () -> MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV])

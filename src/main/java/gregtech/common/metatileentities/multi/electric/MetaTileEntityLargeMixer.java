@@ -41,11 +41,11 @@ public class MetaTileEntityLargeMixer extends GCYMAdvanceRecipeMapMultiblockCont
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getCasingState2()))
-                    .where('C', states(getCasingState3()))
-                    .where('F', frames(Materials.HastelloyX))
-                    .where('A', air())
-                    .where('#', any())
+                    .block('P', getCasingState2())
+                    .block('C', getCasingState3())
+                    .frames('F', Materials.HastelloyX)
+                    .air('A')
+                    .any('#')
                     .buildStructureDefinition()
     );
 

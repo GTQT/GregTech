@@ -3,7 +3,6 @@ package gregtech.api.pattern.element;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.ICasingGroup;
 import gregtech.api.pattern.element.impl.AirElement;
 import gregtech.api.pattern.element.impl.AnyElement;
@@ -13,7 +12,6 @@ import gregtech.api.pattern.element.impl.BlockPredicateElement;
 import gregtech.api.pattern.element.impl.ChainElement;
 import gregtech.api.pattern.element.impl.FrameElement;
 import gregtech.api.pattern.element.impl.HatchElement;
-import gregtech.api.pattern.element.impl.LegacyElement;
 import gregtech.api.pattern.element.impl.MetaTileEntityElement;
 import gregtech.api.pattern.element.impl.SelfElement;
 import gregtech.api.pattern.element.impl.TieredCasingElement;
@@ -184,10 +182,5 @@ public final class ElementUtility {
     /** Create a chain of alternative elements (any may match) */
     public static IStructureElement ofChain(IStructureElement... elements) {
         return new ChainElement(elements);
-    }
-
-    /** Wrap an existing TraceabilityPredicate as an element (backward compatibility) */
-    public static IStructureElement ofLegacy(TraceabilityPredicate predicate) {
-        return new LegacyElement(predicate);
     }
 }

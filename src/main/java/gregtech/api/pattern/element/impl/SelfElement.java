@@ -5,6 +5,7 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.BlockWorldState;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
@@ -30,7 +31,15 @@ public class SelfElement implements ITypedStructureElement<Object> {
 
     public SelfElement(Class<? extends MultiblockControllerBase> controllerClass) {
         this.controllerClass = controllerClass;
-        this.cachedPredicate = MultiblockControllerBase.selfPredicate(controllerClass);
+        // Inline legacy predicate construction (will be removed together with TraceabilityPredicate)
+        this.cachedPredicate = new TraceabilityPredicate(blockWorldState -> {
+            TileEntity tileEntity = blockWorldState.getTileEntity();
+            if (!(tileEntity instanceof IGregTechTileEntity)) {
+                return false;
+            }
+            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            return controllerClass.isInstance(metaTileEntity);
+        }, this::getCandidates).setCenter();
         this.preview = StructureElementPreview.of(this::getCandidates);
     }
 

@@ -38,8 +38,8 @@ public class MetaTileEntityLargeRockBreaker extends GCYMAdvanceRecipeMapMultiblo
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .maintenance()
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('#', air())
+                    .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                    .air('#')
                     .buildStructureDefinition()
     );
 
