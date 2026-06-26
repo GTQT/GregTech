@@ -47,7 +47,7 @@ public class MetaTileEntityLargePackager extends GCYMAdvanceRecipeMapMultiblockC
         super(metaTileEntityId, new RecipeMap[] { RecipeMaps.PACKER_RECIPES, RecipeMaps.UNPACKER_RECIPES });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
     }
 

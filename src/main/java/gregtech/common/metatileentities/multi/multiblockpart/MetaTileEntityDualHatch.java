@@ -303,18 +303,18 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         }
 
         column.child(new ToggleButton()
-                .top(18)
-                .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
-                        collapseStateValue::setBoolValue))
-                .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
-                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                        .addLine(collapseStateValue.getBoolValue() ?
-                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
-                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))))
-                .childIf(hasGhostCircuit, ()->new GhostCircuitSlotWidget()
+                        .top(18)
+                        .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
+                                collapseStateValue::setBoolValue))
+                        .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
+                        .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                .addLine(collapseStateValue.getBoolValue() ?
+                                        IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
+                                        IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))))
+                .childIf(hasGhostCircuit, () -> new GhostCircuitSlotWidget()
                         .slot(circuitInventory, 0)
                         .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                .childIf(!hasGhostCircuit,  ()->new Widget<>()
+                .childIf(!hasGhostCircuit, () -> new Widget<>()
                         .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
                         .tooltip(t -> t.addLine(
                                 IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))));
@@ -507,7 +507,8 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
             tooltip.add(I18n.format("gregtech.machine.dual_hatch.export.tooltip"));
 
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(), getTankCapacity()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(),
+                getTankCapacity()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
 

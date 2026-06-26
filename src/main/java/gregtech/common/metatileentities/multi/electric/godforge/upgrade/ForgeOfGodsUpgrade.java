@@ -1,19 +1,19 @@
 package gregtech.common.metatileentities.multi.electric.godforge.upgrade;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Set;
-import java.util.function.UnaryOperator;
+import gregtech.common.metatileentities.multi.electric.godforge.data.Milestones;
+import gregtech.common.metatileentities.multi.electric.godforge.data.UpgradeColor;
 
 import net.minecraft.item.ItemStack;
 
 import com.cleanroommc.modularui.drawable.UITexture;
 import com.google.common.collect.ImmutableSet;
 
-import gregtech.common.metatileentities.multi.electric.godforge.data.Milestones;
-import gregtech.common.metatileentities.multi.electric.godforge.data.UpgradeColor;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Set;
+import java.util.function.UnaryOperator;
 
 public enum ForgeOfGodsUpgrade {
 
@@ -57,223 +57,223 @@ public enum ForgeOfGodsUpgrade {
 
     static {
         START.build(b -> b
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.COMPOSITION)
-            .panelSize(PanelSize.LARGE)
-            .treePos(126, 56));
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.COMPOSITION)
+                .panelSize(PanelSize.LARGE)
+                .treePos(126, 56));
 
         IGCC.build(b -> b
-            .prereqs(START)
-            .cost(1)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CONVERSION)
-            .treePos(126, 116));
+                .prereqs(START)
+                .cost(1)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CONVERSION)
+                .treePos(126, 116));
 
         STEM.build(b -> b
-            .prereqs(IGCC)
-            .cost(1)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CATALYST)
-            .treePos(96, 176));
+                .prereqs(IGCC)
+                .cost(1)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CATALYST)
+                .treePos(96, 176));
 
         CFCE.build(b -> b
-            .prereqs(IGCC)
-            .cost(1)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CATALYST)
-            .treePos(156, 176));
+                .prereqs(IGCC)
+                .cost(1)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CATALYST)
+                .treePos(156, 176));
 
         GISS.build(b -> b
-            .prereqs(STEM)
-            .cost(1)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CHARGE)
-            .treePos(66, 236));
+                .prereqs(STEM)
+                .cost(1)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CHARGE)
+                .treePos(66, 236));
 
         FDIM.build(b -> b
-            .prereqs(STEM, CFCE)
-            .cost(1)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.COMPOSITION)
-            .treePos(126, 236));
+                .prereqs(STEM, CFCE)
+                .cost(1)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.COMPOSITION)
+                .treePos(126, 236));
 
         SA.build(b -> b
-            .prereqs(CFCE)
-            .cost(1)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CONVERSION)
-            .treePos(186, 236));
+                .prereqs(CFCE)
+                .cost(1)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CONVERSION)
+                .treePos(186, 236));
 
         GPCI.build(b -> b
-            .prereqs(FDIM)
-            .cost(2)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.COMPOSITION)
-            .treePos(126, 296));
+                .prereqs(FDIM)
+                .cost(2)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.COMPOSITION)
+                .treePos(126, 296));
 
         REC.build(b -> b
-            .prereqs(GISS, GPCI)
-            .requireAllPrereqs()
-            .cost(2)
-            .color(UpgradeColor.RED)
-            .icon(Milestones.CHARGE)
-            .treePos(56, 356));
+                .prereqs(GISS, GPCI)
+                .requireAllPrereqs()
+                .cost(2)
+                .color(UpgradeColor.RED)
+                .icon(Milestones.CHARGE)
+                .treePos(56, 356));
 
         GEM.build(b -> b
-            .prereqs(GPCI)
-            .cost(2)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CATALYST)
-            .treePos(126, 356));
+                .prereqs(GPCI)
+                .cost(2)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CATALYST)
+                .treePos(126, 356));
 
         CTCDD.build(b -> b
-            .prereqs(GPCI, SA)
-            .requireAllPrereqs()
-            .cost(2)
-            .color(UpgradeColor.RED)
-            .icon(Milestones.CONVERSION)
-            .treePos(196, 356));
+                .prereqs(GPCI, SA)
+                .requireAllPrereqs()
+                .cost(2)
+                .color(UpgradeColor.RED)
+                .icon(Milestones.CONVERSION)
+                .treePos(196, 356));
 
         QGPIU.build(b -> b
-            .prereqs(REC, CTCDD)
-            .cost(2)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CATALYST)
-            .treePos(126, 416));
+                .prereqs(REC, CTCDD)
+                .cost(2)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CATALYST)
+                .treePos(126, 416));
 
         SEFCP.build(b -> b
-            .prereqs(QGPIU)
-            .cost(3)
-            .color(UpgradeColor.PURPLE)
-            .icon(Milestones.CATALYST)
-            .treePos(66, 476));
+                .prereqs(QGPIU)
+                .cost(3)
+                .color(UpgradeColor.PURPLE)
+                .icon(Milestones.CATALYST)
+                .treePos(66, 476));
 
         TCT.build(b -> b
-            .prereqs(QGPIU)
-            .cost(3)
-            .color(UpgradeColor.ORANGE)
-            .icon(Milestones.CONVERSION)
-            .treePos(126, 476));
+                .prereqs(QGPIU)
+                .cost(3)
+                .color(UpgradeColor.ORANGE)
+                .icon(Milestones.CONVERSION)
+                .treePos(126, 476));
 
         GGEBE.build(b -> b
-            .prereqs(QGPIU)
-            .cost(3)
-            .color(UpgradeColor.GREEN)
-            .icon(Milestones.CHARGE)
-            .treePos(186, 476));
+                .prereqs(QGPIU)
+                .cost(3)
+                .color(UpgradeColor.GREEN)
+                .icon(Milestones.CHARGE)
+                .treePos(186, 476));
 
         TPTP.build(b -> b
-            .prereqs(GGEBE)
-            .cost(4)
-            .color(UpgradeColor.GREEN)
-            .icon(Milestones.CONVERSION)
-            .treePos(246, 496));
+                .prereqs(GGEBE)
+                .cost(4)
+                .color(UpgradeColor.GREEN)
+                .icon(Milestones.CONVERSION)
+                .treePos(246, 496));
 
         DOP.build(b -> b
-            .prereqs(CNTI)
-            .cost(4)
-            .color(UpgradeColor.PURPLE)
-            .icon(Milestones.CONVERSION)
-            .treePos(6, 556));
+                .prereqs(CNTI)
+                .cost(4)
+                .color(UpgradeColor.PURPLE)
+                .icon(Milestones.CONVERSION)
+                .treePos(6, 556));
 
         CNTI.build(b -> b
-            .prereqs(SEFCP)
-            .cost(3)
-            .color(UpgradeColor.PURPLE)
-            .icon(Milestones.CHARGE)
-            .treePos(66, 536));
+                .prereqs(SEFCP)
+                .cost(3)
+                .color(UpgradeColor.PURPLE)
+                .icon(Milestones.CHARGE)
+                .treePos(66, 536));
 
         EPEC.build(b -> b
-            .prereqs(TCT)
-            .cost(3)
-            .color(UpgradeColor.ORANGE)
-            .icon(Milestones.CONVERSION)
-            .treePos(126, 536));
+                .prereqs(TCT)
+                .cost(3)
+                .color(UpgradeColor.ORANGE)
+                .icon(Milestones.CONVERSION)
+                .treePos(126, 536));
 
         IMKG.build(b -> b
-            .prereqs(GGEBE)
-            .cost(3)
-            .color(UpgradeColor.GREEN)
-            .icon(Milestones.CHARGE)
-            .treePos(186, 536));
+                .prereqs(GGEBE)
+                .cost(3)
+                .color(UpgradeColor.GREEN)
+                .icon(Milestones.CHARGE)
+                .treePos(186, 536));
 
         NDPE.build(b -> b
-            .prereqs(CNTI)
-            .cost(3)
-            .color(UpgradeColor.PURPLE)
-            .icon(Milestones.CHARGE)
-            .treePos(66, 596));
+                .prereqs(CNTI)
+                .cost(3)
+                .color(UpgradeColor.PURPLE)
+                .icon(Milestones.CHARGE)
+                .treePos(66, 596));
 
         POS.build(b -> b
-            .prereqs(EPEC)
-            .cost(3)
-            .color(UpgradeColor.ORANGE)
-            .icon(Milestones.CONVERSION)
-            .treePos(126, 596));
+                .prereqs(EPEC)
+                .cost(3)
+                .color(UpgradeColor.ORANGE)
+                .icon(Milestones.CONVERSION)
+                .treePos(126, 596));
 
         DOR.build(b -> b
-            .prereqs(IMKG)
-            .cost(3)
-            .color(UpgradeColor.GREEN)
-            .icon(Milestones.CONVERSION)
-            .treePos(186, 596));
+                .prereqs(IMKG)
+                .cost(3)
+                .color(UpgradeColor.GREEN)
+                .icon(Milestones.CONVERSION)
+                .treePos(186, 596));
 
         NGMS.build(b -> b
-            .prereqs(NDPE, POS, DOR)
-            .cost(4)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CHARGE)
-            .treePos(126, 656));
+                .prereqs(NDPE, POS, DOR)
+                .cost(4)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CHARGE)
+                .treePos(126, 656));
 
         SEDS.build(b -> b
-            .prereqs(NGMS)
-            .cost(5)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CONVERSION)
-            .treePos(126, 718));
+                .prereqs(NGMS)
+                .cost(5)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CONVERSION)
+                .treePos(126, 718));
 
         PA.build(b -> b
-            .prereqs(SEDS)
-            .cost(6)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CONVERSION)
-            .treePos(36, 758));
+                .prereqs(SEDS)
+                .cost(6)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CONVERSION)
+                .treePos(36, 758));
 
         CD.build(b -> b
-            .prereqs(PA)
-            .cost(7)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.COMPOSITION)
-            .treePos(36, 848));
+                .prereqs(PA)
+                .cost(7)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.COMPOSITION)
+                .treePos(36, 848));
 
         TSE.build(b -> b
-            .prereqs(CD)
-            .cost(8)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CATALYST)
-            .treePos(126, 888));
+                .prereqs(CD)
+                .cost(8)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CATALYST)
+                .treePos(126, 888));
 
         TBF.build(b -> b
-            .prereqs(TSE)
-            .cost(9)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CHARGE)
-            .treePos(216, 848));
+                .prereqs(TSE)
+                .cost(9)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CHARGE)
+                .treePos(216, 848));
 
         EE.build(b -> b
-            .prereqs(TBF)
-            .cost(10)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.CONVERSION)
-            .treePos(216, 758));
+                .prereqs(TBF)
+                .cost(10)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.CONVERSION)
+                .treePos(216, 758));
 
         END.build(b -> b
-            .prereqs(EE)
-            .cost(12)
-            .color(UpgradeColor.BLUE)
-            .icon(Milestones.COMPOSITION)
-            .panelSize(PanelSize.LARGE)
-            .treePos(126, 798));
+                .prereqs(EE)
+                .cost(12)
+                .color(UpgradeColor.BLUE)
+                .icon(Milestones.COMPOSITION)
+                .panelSize(PanelSize.LARGE)
+                .treePos(126, 798));
 
         SPLIT_UPGRADES = ImmutableSet.of(SEFCP, TCT, GGEBE);
 
@@ -281,7 +281,7 @@ public enum ForgeOfGodsUpgrade {
         for (ForgeOfGodsUpgrade upgrade : VALUES) {
             for (ForgeOfGodsUpgrade prerequisite : upgrade.prerequisites) {
                 dependencies.computeIfAbsent(prerequisite, $ -> new ArrayList<>())
-                    .add(upgrade);
+                        .add(upgrade);
             }
         }
         for (var entry : dependencies.entrySet()) {
@@ -293,23 +293,20 @@ public enum ForgeOfGodsUpgrade {
         }
     }
 
-    private ForgeOfGodsUpgrade[] prerequisites;
-    private boolean requireAllPrerequisites;
-
-    private int shardCost;
     private final List<ItemStack> extraCost = new ArrayList<>();
-
-    private UpgradeColor color;
-    Milestones icon;
-    private PanelSize panelSize;
-    private int treeX;
-    private int treeY;
-
-    private ForgeOfGodsUpgrade[] dependents = new ForgeOfGodsUpgrade[0];
     private final String nameKey;
     private final String nameShortKey;
     private final String bodyKey;
     private final String loreKey;
+    Milestones icon;
+    private ForgeOfGodsUpgrade[] prerequisites;
+    private boolean requireAllPrerequisites;
+    private int shardCost;
+    private UpgradeColor color;
+    private PanelSize panelSize;
+    private int treeX;
+    private int treeY;
+    private ForgeOfGodsUpgrade[] dependents = new ForgeOfGodsUpgrade[0];
 
     ForgeOfGodsUpgrade() {
         this.nameKey = "fog.upgrade.tt." + ordinal();
@@ -322,7 +319,7 @@ public enum ForgeOfGodsUpgrade {
         Builder b = u.apply(new Builder());
 
         this.prerequisites = b.prerequisites != null ? b.prerequisites.toArray(new ForgeOfGodsUpgrade[0])
-            : new ForgeOfGodsUpgrade[0];
+                : new ForgeOfGodsUpgrade[0];
         this.requireAllPrerequisites = b.requireAllPrerequisites;
         this.shardCost = b.shardCost;
         this.color = b.color;

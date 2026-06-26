@@ -1,11 +1,7 @@
 package gregtech.common.metatileentities.multi.multiblockpart.hpca;
 
-import com.cleanroommc.modularui.drawable.UITexture;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.IHPCAComputationProvider;
-import gregtech.api.gui.GuiTextures;
-import gregtech.api.gui.resources.TextureArea;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
@@ -14,9 +10,12 @@ import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 
 import net.minecraft.util.ResourceLocation;
 
+import com.cleanroommc.modularui.drawable.UITexture;
+
 import static gregtech.api.GTValues.CWT;
 
-public class MetaTileEntityHPCAAdvancedComputation extends MetaTileEntityHPCAComponent implements IHPCAComputationProvider {
+public class MetaTileEntityHPCAAdvancedComputation extends MetaTileEntityHPCAComponent
+        implements IHPCAComputationProvider {
 
     private final boolean ultimate;
 
@@ -58,12 +57,12 @@ public class MetaTileEntityHPCAAdvancedComputation extends MetaTileEntityHPCACom
 
     @Override//维持(EU/t) T/F
     public int getUpkeepEUt() {
-        return GTValues.VA[ultimate ? 8: 6 ];
+        return GTValues.VA[ultimate ? 8 : 6];
     }
 
     @Override//最大(EU/t) T/F
     public int getMaxEUt() {
-        return GTValues.VA[ultimate ? 9 : 6 ];
+        return GTValues.VA[ultimate ? 9 : 6];
     }
 
     @Override//算力 T/F

@@ -53,6 +53,10 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
         super(metaTileEntityId);
     }
 
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN);
+    }
+
     protected IMultipleTankHandler getInputTank(IItemHandler items) {
         List<IMultipleTankHandler.ITankEntry> tanks = new ArrayList<>();
         if (items instanceof IMultipleTankHandler tankHandler) {
@@ -179,10 +183,6 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         return Textures.CLEAN_STAINLESS_STEEL_CASING;
-    }
-
-    protected IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN);
     }
 
     @Override

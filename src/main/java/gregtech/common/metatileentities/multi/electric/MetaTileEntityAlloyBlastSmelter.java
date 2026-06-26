@@ -46,6 +46,28 @@ import java.util.List;
 
 public class MetaTileEntityAlloyBlastSmelter extends RecipeMapMultiblockController implements IHeatingCoil {
 
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:alloy_blast_smelter", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("#XXX#", "#CCC#", "#GGG#", "#CCC#", "#XXX#")
+                            .aisle("XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXXXX")
+                            .aisle("XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXMXX")
+                            .aisle("XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXXXX")
+                            .aisle("#XSX#", "#CCC#", "#GGG#", "#CCC#", "#XXX#")
+                            .self('S', MetaTileEntityAlloyBlastSmelter.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .optionalEnergyInput(8)
+                            .optionalLaserInput(1)
+                            .maintenance()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .tieredCasing('C', GTCasingGroups.heatingCoils().group())
+                            .withChannel(GTCasingGroups.heatingCoils().channel())
+                            .where('G', states(getCasingState2()))
+                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
+    );
     private int blastFurnaceTemperature;
 
     public MetaTileEntityAlloyBlastSmelter(ResourceLocation metaTileEntityId) {
@@ -53,11 +75,12 @@ public class MetaTileEntityAlloyBlastSmelter extends RecipeMapMultiblockControll
         this.recipeMapWorkable = new HeatingCoilRecipeLogic(this);
     }
 
-    private static IBlockState getCasingState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.HIGH_TEMPERATURE_CASING);
+    public static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
+                BlockLargeMultiblockCasing.CasingType.HIGH_TEMPERATURE_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.HEAT_VENT);
     }
 
@@ -115,40 +138,17 @@ public class MetaTileEntityAlloyBlastSmelter extends RecipeMapMultiblockControll
     @Override
     public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
         int recipeTemp = recipe.getProperty(TemperatureProperty.getInstance(), 0);
-        if(this.blastFurnaceTemperature >= recipeTemp)
+        if (this.blastFurnaceTemperature >= recipeTemp)
             return true;
-        recipeMapWorkable.setWhyFailed("线圈温度过低，配方需求至少 "+ recipeTemp + " K温度");
+        recipeMapWorkable.setWhyFailed("线圈温度过低，配方需求至少 " + recipeTemp + " K温度");
         return false;
     }
-
-
-
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:alloy_blast_smelter", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("#XXX#", "#CCC#", "#GGG#", "#CCC#", "#XXX#")
-                    .aisle("XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXXXX")
-                    .aisle("XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXMXX")
-                    .aisle("XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXXXX")
-                    .aisle("#XSX#", "#CCC#", "#GGG#", "#CCC#", "#XXX#")
-                    .self('S', MetaTileEntityAlloyBlastSmelter.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .optionalEnergyInput(8)
-                    .optionalLaserInput(1)
-                    .maintenance()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .tieredCasing('C', GTCasingGroups.heatingCoils().group())
-                    .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .where('G', states(getCasingState2()))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
-    );
 
     @Override
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
+
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {

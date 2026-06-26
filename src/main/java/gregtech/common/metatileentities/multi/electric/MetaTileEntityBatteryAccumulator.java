@@ -82,64 +82,62 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     // Working mode
     // -----------------------------------------------------------------
 
-    /** Working modes for the Battery Accumulator. */
-    public enum WorkingMode {
-        CHARGE,
-        DISCHARGE;
-
-        /** Next mode in the cycle. */
-        public WorkingMode next() {
-            return values()[(ordinal() + 1) % values().length];
-        }
-    }
+    /** Default energy loss ratio (0.10 = 10%). */
+    public static final double DEFAULT_LOSS_RATIO = 0.10;
 
     // -----------------------------------------------------------------
     // Constants
     // -----------------------------------------------------------------
-
-    /** Default energy loss ratio (0.10 = 10%). */
-    public static final double DEFAULT_LOSS_RATIO = 0.10;
-
     /** NBT keys. */
     private static final String NBT_WORKING_MODE = "WorkingMode";
     private static final String NBT_IS_WORKING_ENABLED = "IsWorkingEnabled";
     private static final String NBT_CHARGE_PROGRESS = "ChargeProgress";
-
-    
+    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:battery_accumulator", () ->
+                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                            // Base layer — electrical panel and controller
+                            .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
+                            // Battery module layer 1
+                            .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
+                            // Battery module layer 2
+                            .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
+                            // Top layer — thermal management / heat sinks
+                            .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
+                            .self('S', MetaTileEntityBatteryAccumulator.class)
+                            .block('G', getGlassState())
+                            .frames('B', Materials.Lead)
+                            .frames('F', Materials.Lead)
+                            .block('E', getHeatSinkState())
+                            .casing('X', getCasingState())
+                            .maintenance()
+                            .energyIO(1, 4)
+                            .fluidInput(1, 4)
+                            .fluidOutput(1, 4)
+                            .buildStructureDefinition());
 
     // -----------------------------------------------------------------
     // Instance fields
     // -----------------------------------------------------------------
-
-    /** Current working mode (charge or discharge). */
-    private WorkingMode workingMode = WorkingMode.CHARGE;
-
-    /** Whether the machine is allowed to work. */
-    private boolean isWorkingEnabled = true;
-
-    /** Whether the machine is currently active (processing fluids). */
-    private boolean isActive = false;
-
-    /** Accumulated EU progress toward converting 1 mB of fluid. */
-    private long chargeProgress = 0;
-
-    /** Total EU needed per mB for the current electrolyte (including loss). */
-    private long currentEuNeededPerMb = 0;
-
-    /** Energy input hatch list (used in CHARGE mode). */
-    private EnergyContainerList inputEnergyHatches;
-
-    /** Energy output hatch list (used in DISCHARGE mode). */
-    private EnergyContainerList outputEnergyHatches;
-
-    /** Fluid input tanks. */
-    private FluidTankList inputFluidTanks;
-
-    /** Fluid output tanks. */
-    private FluidTankList outputFluidTanks;
-
     /** Energy loss ratio (0.0 to 1.0). */
     private final double lossRatio;
+    /** Current working mode (charge or discharge). */
+    private WorkingMode workingMode = WorkingMode.CHARGE;
+    /** Whether the machine is allowed to work. */
+    private boolean isWorkingEnabled = true;
+    /** Whether the machine is currently active (processing fluids). */
+    private boolean isActive = false;
+    /** Accumulated EU progress toward converting 1 mB of fluid. */
+    private long chargeProgress = 0;
+    /** Total EU needed per mB for the current electrolyte (including loss). */
+    private long currentEuNeededPerMb = 0;
+    /** Energy input hatch list (used in CHARGE mode). */
+    private EnergyContainerList inputEnergyHatches;
+    /** Energy output hatch list (used in DISCHARGE mode). */
+    private EnergyContainerList outputEnergyHatches;
+    /** Fluid input tanks. */
+    private FluidTankList inputFluidTanks;
+    /** Fluid output tanks. */
+    private FluidTankList outputFluidTanks;
 
     // -----------------------------------------------------------------
     // Structure template
@@ -178,58 +176,20 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     //
     // -----------------------------------------------------------------
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gregtech:battery_accumulator", () ->
-                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
-                            // Base layer — electrical panel and controller
-                            .aisle("XXSXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
-                            // Battery module layer 1
-                            .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
-                            // Battery module layer 2
-                            .aisle("GGGGG", "GBFFG", "GBFFG", "GBFFG", "GGGGG")
-                            // Top layer — thermal management / heat sinks
-                            .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
-                            .self('S', MetaTileEntityBatteryAccumulator.class)
-                            .block('G', getGlassState())
-                            .frames('B', Materials.Lead)
-                            .frames('F', Materials.Lead)
-                            .block('E', getHeatSinkState())
-                            .casing('X', getCasingState())
-                                    .maintenance()
-                                    .energyIO(1, 4)
-                                    .fluidInput(1, 4)
-                                    .fluidOutput(1, 4)
-                            .buildStructureDefinition());
+    public MetaTileEntityBatteryAccumulator(ResourceLocation metaTileEntityId) {
+        this(metaTileEntityId, DEFAULT_LOSS_RATIO);
+    }
 
     // -----------------------------------------------------------------
     // Constructor
     // -----------------------------------------------------------------
-
-    public MetaTileEntityBatteryAccumulator(ResourceLocation metaTileEntityId) {
-        this(metaTileEntityId, DEFAULT_LOSS_RATIO);
-    }
 
     public MetaTileEntityBatteryAccumulator(ResourceLocation metaTileEntityId, double lossRatio) {
         super(metaTileEntityId);
         this.lossRatio = lossRatio;
     }
 
-    @Override
-    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityBatteryAccumulator(metaTileEntityId, lossRatio);
-    }
-
-    // -----------------------------------------------------------------
-    // Structure
-    // -----------------------------------------------------------------
-
-    @NotNull
-    @Override
-    protected StructureDefinition<?> createStructureDefinition() {
-        return STRUCTURE_DEFINITION;
-    }
-
-    protected static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
     }
 
@@ -238,9 +198,24 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         return Blocks.GLASS.getDefaultState();
     }
 
+    // -----------------------------------------------------------------
+    // Structure
+    // -----------------------------------------------------------------
+
     /** Steel solid casing — heat sink / ventilation blocks on top. */
     protected static IBlockState getHeatSinkState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
+    }
+
+    @Override
+    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        return new MetaTileEntityBatteryAccumulator(metaTileEntityId, lossRatio);
+    }
+
+    @NotNull
+    @Override
+    protected StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     @SideOnly(Side.CLIENT)
@@ -255,10 +230,6 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     protected ICubeRenderer getFrontOverlay() {
         return Textures.POWER_SUBSTATION_OVERLAY;
     }
-
-    // -----------------------------------------------------------------
-    // Structure formation / invalidation
-    // -----------------------------------------------------------------
 
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
@@ -283,6 +254,10 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                 getAbilities(MultiblockAbility.EXPORT_FLUIDS));
     }
 
+    // -----------------------------------------------------------------
+    // Structure formation / invalidation
+    // -----------------------------------------------------------------
+
     @Override
     public void invalidateStructure() {
         super.invalidateStructure();
@@ -293,10 +268,6 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         this.isActive = false;
         this.currentEuNeededPerMb = 0;
     }
-
-    // -----------------------------------------------------------------
-    // Per-tick logic
-    // -----------------------------------------------------------------
 
     @Override
     protected void updateFormedValid() {
@@ -316,9 +287,12 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         }
     }
 
+    // -----------------------------------------------------------------
+    // Per-tick logic
+    // -----------------------------------------------------------------
+
     /**
-     * Charge mode: consume EU from energy input hatches to convert
-     * uncharged electrolyte → charged electrolyte.
+     * Charge mode: consume EU from energy input hatches to convert uncharged electrolyte → charged electrolyte.
      */
     private void tickChargeMode() {
         if (inputEnergyHatches == null || inputFluidTanks == null || outputFluidTanks == null) return;
@@ -385,8 +359,8 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     }
 
     /**
-     * Discharge mode: consume charged electrolyte to output EU
-     * through dynamo hatches, producing uncharged electrolyte.
+     * Discharge mode: consume charged electrolyte to output EU through dynamo hatches, producing uncharged
+     * electrolyte.
      */
     private void tickDischargeMode() {
         if (outputEnergyHatches == null || inputFluidTanks == null || outputFluidTanks == null) return;
@@ -421,7 +395,7 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         if (maxOutputEnergyThisTick <= 0) return;
 
         // Determine how many mB we can process this tick
-        int mbToProcess = (int) Math.min((long) Integer.MAX_VALUE, maxOutputEnergyThisTick / euReleased);
+        int mbToProcess = (int) Math.min(Integer.MAX_VALUE, maxOutputEnergyThisTick / euReleased);
         if (mbToProcess <= 0) return;
 
         // Try to drain that many mB from input
@@ -466,6 +440,11 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         return true;
     }
 
+    @Override
+    public boolean isActive() {
+        return super.isActive() && this.isActive;
+    }
+
     // -----------------------------------------------------------------
     // Active state
     // -----------------------------------------------------------------
@@ -480,18 +459,13 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     }
 
     @Override
-    public boolean isActive() {
-        return super.isActive() && this.isActive;
+    public boolean isWorkingEnabled() {
+        return isWorkingEnabled;
     }
 
     // -----------------------------------------------------------------
     // IControllable
     // -----------------------------------------------------------------
-
-    @Override
-    public boolean isWorkingEnabled() {
-        return isWorkingEnabled;
-    }
 
     @Override
     public void setWorkingEnabled(boolean isWorkingAllowed) {
@@ -503,13 +477,13 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         }
     }
 
-    // -----------------------------------------------------------------
-    // Working mode switching
-    // -----------------------------------------------------------------
-
     public WorkingMode getWorkingMode() {
         return workingMode;
     }
+
+    // -----------------------------------------------------------------
+    // Working mode switching
+    // -----------------------------------------------------------------
 
     public void setWorkingMode(WorkingMode mode) {
         this.workingMode = mode;
@@ -525,10 +499,6 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         setWorkingMode(workingMode.next());
     }
 
-    // -----------------------------------------------------------------
-    // NBT
-    // -----------------------------------------------------------------
-
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
@@ -537,6 +507,10 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         data.setLong(NBT_CHARGE_PROGRESS, chargeProgress);
         return data;
     }
+
+    // -----------------------------------------------------------------
+    // NBT
+    // -----------------------------------------------------------------
 
     @Override
     public void readFromNBT(NBTTagCompound data) {
@@ -585,10 +559,6 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
         }
     }
 
-    // -----------------------------------------------------------------
-    // Rendering
-    // -----------------------------------------------------------------
-
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation,
                                      IVertexOperation[] pipeline) {
@@ -598,12 +568,16 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     }
 
     // -----------------------------------------------------------------
-    // ProgressBarMultiblock
+    // Rendering
     // -----------------------------------------------------------------
 
     private long getChargeProgress() {
         return chargeProgress;
     }
+
+    // -----------------------------------------------------------------
+    // ProgressBarMultiblock
+    // -----------------------------------------------------------------
 
     private long getEuNeededPerMb() {
         return currentEuNeededPerMb;
@@ -650,14 +624,14 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                 }));
     }
 
-    // -----------------------------------------------------------------
-    // UI
-    // -----------------------------------------------------------------
-
     @Override
     public boolean shouldShowVoidingModeButton() {
         return false;
     }
+
+    // -----------------------------------------------------------------
+    // UI
+    // -----------------------------------------------------------------
 
     @Override
     protected void configureDisplayText(MultiblockUIBuilder builder) {
@@ -723,10 +697,6 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
                 });
     }
 
-    // -----------------------------------------------------------------
-    // Tooltip
-    // -----------------------------------------------------------------
-
     @Override
     @SideOnly(Side.CLIENT)
     public void addInformation(ItemStack stack, @Nullable World world,
@@ -739,13 +709,17 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     }
 
     // -----------------------------------------------------------------
-    // ICategoryOverride — JEI recipe map association
+    // Tooltip
     // -----------------------------------------------------------------
 
     @Override
     public boolean shouldOverride() {
         return true;
     }
+
+    // -----------------------------------------------------------------
+    // ICategoryOverride — JEI recipe map association
+    // -----------------------------------------------------------------
 
     @Override
     public boolean shouldReplace() {
@@ -757,5 +731,16 @@ public class MetaTileEntityBatteryAccumulator extends MultiblockWithDisplayBase
     @Override
     public RecipeMap<?> @NotNull [] getJEIRecipeMapCategoryOverrides() {
         return new RecipeMap<?>[] { RecipeMaps.BATTERY_ACCUMULATOR_RECIPES };
+    }
+
+    /** Working modes for the Battery Accumulator. */
+    public enum WorkingMode {
+        CHARGE,
+        DISCHARGE;
+
+        /** Next mode in the cycle. */
+        public WorkingMode next() {
+            return values()[(ordinal() + 1) % values().length];
+        }
     }
 }

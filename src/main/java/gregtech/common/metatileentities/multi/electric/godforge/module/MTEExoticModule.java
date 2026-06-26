@@ -1,19 +1,5 @@
 package gregtech.common.metatileentities.multi.electric.godforge.module;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Random;
-
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.ResourceLocation;
-import net.minecraftforge.fluids.FluidStack;
-import net.minecraftforge.items.ItemStackHandler;
-
-import com.cleanroommc.modularui.utils.serialization.ByteBufAdapters;
-import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
-import com.cleanroommc.modularui.widgets.slot.ModularSlot;
-
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.element.Elements;
@@ -28,12 +14,24 @@ import gregtech.common.mui.multiblock.godforge.MTEBaseModuleGui;
 import gregtech.common.mui.multiblock.godforge.MTEExoticModuleGui;
 import gregtech.loaders.recipe.GodforgeRecipeLoader;
 
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.items.ItemStackHandler;
+
+import com.cleanroommc.modularui.utils.serialization.ByteBufAdapters;
+import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
+
 /**
- * Godforge Exotic Module.
- * Generates random recipes at runtime:
- * - Normal mode: random plasma inputs → Quark-Gluon Plasma
- * - Magmatter mode: random plasma inputs + MHDCSM → MagMatter
- * Recipe inputs change periodically (every 1000 ticks / 50 seconds).
+ * Godforge Exotic Module. Generates random recipes at runtime: - Normal mode: random plasma inputs → Quark-Gluon Plasma
+ * - Magmatter mode: random plasma inputs + MHDCSM → MagMatter Recipe inputs change periodically (every 1000 ticks / 50
+ * seconds).
  */
 public class MTEExoticModule extends MTEBaseModule {
 
@@ -46,15 +44,22 @@ public class MTEExoticModule extends MTEBaseModule {
     // Output amount in mB
     private static final int QUARK_GLUON_OUTPUT_MB = 1000;
     private static final int MAGMATTER_OUTPUT_MB = 144;
-
-    private boolean magmatterMode;
-    private long ticker;
     private final List<ItemStack> exoticInputs = new ArrayList<>();
     private final List<ItemStack> possibleInputs = new ArrayList<>();
     private final Random random = new Random();
+    private boolean magmatterMode;
+    private long ticker;
 
     public MTEExoticModule(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, GodforgeRecipeMaps.GODFORGE_EXOTIC_MATTER_RECIPES);
+    }
+
+    private static GenericListSyncHandler<ItemStack> createItemStackListSyncer(List<ItemStack> source) {
+        return GenericListSyncHandler.<ItemStack>builder()
+                .getter(() -> source)
+                .adapter(ByteBufAdapters.ITEM_STACK)
+                .copy(stack -> stack == null ? ItemStack.EMPTY : stack.copy())
+                .build();
     }
 
     @Override
@@ -67,18 +72,18 @@ public class MTEExoticModule extends MTEBaseModule {
         return new MTEExoticModuleGui(this);
     }
 
+    // ==================== Dynamic Recipe Generation (C4) ====================
+
     @Override
     protected IStructureElement getCoilBlockElement() {
         return Elements.block(getCasingState(
                 BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING));
     }
 
-    // ==================== Dynamic Recipe Generation (C4) ====================
-
     /**
-     * Refreshes the current recipe by randomly selecting plasma inputs from all available plasma materials.
-     * In normal mode: produces Quark-Gluon Plasma.
-     * In magmatter mode: produces MagMatter (requires additional MHDCSM fluid input).
+     * Refreshes the current recipe by randomly selecting plasma inputs from all available plasma materials. In normal
+     * mode: produces Quark-Gluon Plasma. In magmatter mode: produces MagMatter (requires additional MHDCSM fluid
+     * input).
      */
     public void refreshRecipe() {
         exoticInputs.clear();
@@ -138,6 +143,8 @@ public class MTEExoticModule extends MTEBaseModule {
         }
     }
 
+    // ==================== Mode ====================
+
     @Override
     protected void updateFormedValid() {
         super.updateFormedValid();
@@ -148,8 +155,6 @@ public class MTEExoticModule extends MTEBaseModule {
             }
         }
     }
-
-    // ==================== Mode ====================
 
     public boolean isMagmatterModeOn() {
         return magmatterMode;
@@ -164,11 +169,11 @@ public class MTEExoticModule extends MTEBaseModule {
         return ticker;
     }
 
+    // ==================== GUI Sync ====================
+
     public void setTicker(long ticker) {
         this.ticker = ticker;
     }
-
-    // ==================== GUI Sync ====================
 
     public GenericListSyncHandler<ItemStack> getInputsSyncer() {
         return createItemStackListSyncer(exoticInputs);
@@ -176,14 +181,6 @@ public class MTEExoticModule extends MTEBaseModule {
 
     public GenericListSyncHandler<ItemStack> getPossibleInputsSyncer() {
         return createItemStackListSyncer(possibleInputs);
-    }
-
-    private static GenericListSyncHandler<ItemStack> createItemStackListSyncer(List<ItemStack> source) {
-        return GenericListSyncHandler.<ItemStack>builder()
-            .getter(() -> source)
-            .adapter(ByteBufAdapters.ITEM_STACK)
-            .copy(stack -> stack == null ? ItemStack.EMPTY : stack.copy())
-            .build();
     }
 
     public static class ExoticInputSlot extends ModularSlot {

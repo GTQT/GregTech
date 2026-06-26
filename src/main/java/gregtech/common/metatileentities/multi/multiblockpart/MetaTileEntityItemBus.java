@@ -304,13 +304,13 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         }
 
         column.child(new ToggleButton()
-                .top(18)
-                .value(collapseStateValue)
-                .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
-                .tooltipAutoUpdate(true)
-                .tooltipBuilder(t -> t.addLine(collapseStateValue.getBoolValue() ?
-                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
-                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))))
+                        .top(18)
+                        .value(collapseStateValue)
+                        .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
+                        .tooltipAutoUpdate(true)
+                        .tooltipBuilder(t -> t.addLine(collapseStateValue.getBoolValue() ?
+                                IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
+                                IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))))
                 .childIf(hasGhostCircuit, () -> new GhostCircuitSlotWidget()
                         .slot(circuitInventory, 0)
                         .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
@@ -406,17 +406,6 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
     }
 
     @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
-            return;
-        }
-        this.circuitInventory.setCircuitValue(config);
-        if (!getWorld().isRemote) {
-            markDirty();
-        }
-    }
-
-    @Override
     public void setGhostCustomStack(@NotNull ItemStack stack) {
         if (this.circuitInventory == null) {
             return;
@@ -434,6 +423,18 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         }
         return this.circuitInventory.getCircuitValue();
     }
+
+    @Override
+    public void setGhostCircuitConfig(int config) {
+        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+            return;
+        }
+        this.circuitInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {

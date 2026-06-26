@@ -25,44 +25,45 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeReplicator extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_replicator", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXXXX", "XVVVX", "XGGGX", "XGGGX", "XVVVX", "XXXXX")
-                    .aisle("XXXXX", "VCCCV", "GAAAG", "GAAAG", "VCCCV", "XXXXX")
-                    .aisle("XXXXX", "VCCCV", "GACAG", "GACAG", "VCCCV", "XXXXX")
-                    .aisle("XXXXX", "VCCCV", "GAAAG", "GAAAG", "VCCCV", "XXXXX")
-                    .aisle("XXSXX", "XVVVX", "XGGGX", "XGGGX", "XVVVX", "XXXXX")
-                    .self('S', MetaTileEntityLargeReplicator.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('G', states(getCasingState3()))
-                    .where('V', states(getCasingState4()))
-                    .where('A', air())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_replicator", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXX", "XVVVX", "XGGGX", "XGGGX", "XVVVX", "XXXXX")
+                            .aisle("XXXXX", "VCCCV", "GAAAG", "GAAAG", "VCCCV", "XXXXX")
+                            .aisle("XXXXX", "VCCCV", "GACAG", "GACAG", "VCCCV", "XXXXX")
+                            .aisle("XXXXX", "VCCCV", "GAAAG", "GAAAG", "VCCCV", "XXXXX")
+                            .aisle("XXSXX", "XVVVX", "XGGGX", "XGGGX", "XVVVX", "XXXXX")
+                            .self('S', MetaTileEntityLargeReplicator.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .where('G', states(getCasingState3()))
+                            .where('V', states(getCasingState4()))
+                            .where('A', air())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeReplicator(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.REPLICATOR_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.ATOMIC_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.FUSION_COIL);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.FUSION_GLASS);
     }
 
-    private static IBlockState getCasingState4() {
+    public static IBlockState getCasingState4() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.HEAT_VENT);
     }
 

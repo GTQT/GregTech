@@ -10,7 +10,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
@@ -55,7 +54,6 @@ public class MetaTileEntityHugeSteamHatch extends MetaTileEntityMultiblockPart
         implements IMultiblockAbilityPart<IFluidTank> {
 
     private static final int INVENTORY_SIZE = 256000;
-    private static final boolean IS_STEEL = true;
 
     public MetaTileEntityHugeSteamHatch(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, 0);
@@ -96,10 +94,9 @@ public class MetaTileEntityHugeSteamHatch extends MetaTileEntityMultiblockPart
 
     @Override
     public ICubeRenderer getBaseTexture() {
-        MultiblockControllerBase controller = getController();
-        if (controller == null)
-            return IS_STEEL ? Textures.STEAM_CASING_STEEL : Textures.STEAM_CASING_BRONZE;
-        return controller.getBaseTexture(this);
+        if(getController()==null)
+            return Textures.STEAM_CASING_STEEL;
+        return super.getBaseTexture();
     }
 
     @Override
@@ -149,7 +146,7 @@ public class MetaTileEntityHugeSteamHatch extends MetaTileEntityMultiblockPart
         return GTGuis.createPanel(this, 176, 166)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
-                .child((IS_STEEL ? GTGuiTextures.DISPLAY_STEEL : GTGuiTextures.DISPLAY_BRONZE).asWidget()
+                .child((GTGuiTextures.DISPLAY_STEEL).asWidget()
                         .left(7).top(16)
                         .size(81, 55))
                 .child(GTGuiTextures.TANK_ICON.asWidget()
@@ -184,7 +181,7 @@ public class MetaTileEntityHugeSteamHatch extends MetaTileEntityMultiblockPart
 
     @Override
     public GTGuiTheme getUITheme() {
-        return IS_STEEL ? GTGuiTheme.STEEL : GTGuiTheme.BRONZE;
+        return GTGuiTheme.STEEL;
     }
 
     @Override

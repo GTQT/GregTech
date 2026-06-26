@@ -57,7 +57,6 @@ public enum BoilerType implements IBoilerType {
             0.02,
             GTGuiTheme.STANDARD);
 
-    private final String name;
     public final IBlockState casingState;
     public final IBlockState fireboxState;
     public final IBlockState pipeState;
@@ -65,6 +64,7 @@ public enum BoilerType implements IBoilerType {
     public final ICubeRenderer fireboxIdleRenderer;
     public final ICubeRenderer fireboxActiveRenderer;
     public final ICubeRenderer frontOverlay;
+    private final String name;
     private final int steamPerTick;
     private final int ticksToBoiling;
     private final double pollutionAmount;

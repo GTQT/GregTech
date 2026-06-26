@@ -38,10 +38,10 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
             "gcym:steam_engine", () ->
                     DeclarativePatternBuilder.start()
                             .piece("main")
-                                .aisle("#XX", "XEX", "#XX")
-                                .aisle("XXX", "XGX", "XMX")
-                                .aisle("#XX", "XGX", "#XX")
-                                .aisle("#XX", "#SX", "#XX")
+                            .aisle("#XX", "XEX", "#XX")
+                            .aisle("XXX", "XGX", "XMX")
+                            .aisle("#XX", "XGX", "#XX")
+                            .aisle("#XX", "#SX", "#XX")
                             .self('S', MetaTileEntitySteamEngine.class)
                             .where('X', states(getCasingState()).setMinGlobalLimited(18)
                                     .or(standardAbilities()))
@@ -50,6 +50,18 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
                             .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
                             .where('#', any())
                             .buildStructureDefinition());
+
+    public MetaTileEntitySteamEngine(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId, RecipeMaps.STEAM_TURBINE_FUELS, GTValues.MV);
+        this.recipeMapWorkable = new MultiblockFuelRecipeLogic(this) {
+
+            @Override
+            public long getMaxVoltage() {
+                return GTValues.V[GTValues.MV];
+            }
+        };
+        this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[GTValues.MV]);
+    }
 
     private static TraceabilityPredicate standardAbilities() {
         TraceabilityPredicate predicate = abilities(MultiblockAbility.MAINTENANCE_HATCH)
@@ -71,17 +83,6 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
         return predicate;
     }
 
-    public MetaTileEntitySteamEngine(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, RecipeMaps.STEAM_TURBINE_FUELS, GTValues.MV);
-        this.recipeMapWorkable = new MultiblockFuelRecipeLogic(this) {
-            @Override
-            public long getMaxVoltage() {
-                return GTValues.V[GTValues.MV];
-            }
-        };
-        this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[GTValues.MV]);
-    }
-
     private static TraceabilityPredicate energyOutputPredicate() {
         return metaTileEntities(MultiblockAbility.REGISTRY.get(MultiblockAbility.OUTPUT_ENERGY).stream().filter(mte -> {
             IEnergyContainer container = mte.getCapability(GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
@@ -91,11 +92,11 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
                 .addTooltip("gregtech.multiblock.pattern.error.limited.0", GTValues.VN[GTValues.MV]);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.STEAM_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.BRONZE_GEARBOX);
     }
 

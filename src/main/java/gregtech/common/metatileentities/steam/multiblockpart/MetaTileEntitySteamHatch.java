@@ -10,7 +10,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
@@ -55,6 +54,7 @@ public class MetaTileEntitySteamHatch extends MetaTileEntityMultiblockPart
         implements IMultiblockAbilityPart<IFluidTank> {
 
     private static final int INVENTORY_SIZE = 64000;
+
     public MetaTileEntitySteamHatch(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, 0);
     }
@@ -94,10 +94,9 @@ public class MetaTileEntitySteamHatch extends MetaTileEntityMultiblockPart
 
     @Override
     public ICubeRenderer getBaseTexture() {
-        MultiblockControllerBase controller = getController();
-        if (controller == null)
+        if(getController()==null)
             return Textures.STEAM_CASING_BRONZE;
-        return controller.getBaseTexture(this);
+        return super.getBaseTexture();
     }
 
     @Override

@@ -40,11 +40,31 @@ import java.util.Set;
 public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implements IOpticalComputationProvider {
 
     private static final int EUT_PER_HATCH = GTValues.VA[GTValues.IV];
-
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:network_switch", () -> DeclarativePatternBuilder.start()
+                    .aisle("XXX", "XXX", "XXX")
+                    .aisle("XXX", "XAX", "XXX")
+                    .aisle("XXX", "XSX", "XXX")
+                    .self('S', MetaTileEntityNetworkSwitch.class)
+                    .block('A', getAdvancedState())
+                    .casing('X', getCasingState())
+                    .energyInput(1, 4)
+                    .maintenance()
+                    .hatch(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)
+                    .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 4)
+                    .buildStructureDefinition());
     private final MultipleComputationHandler computationHandler = new MultipleComputationHandler();
 
     public MetaTileEntityNetworkSwitch(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
+    }
+
+    private static @NotNull IBlockState getAdvancedState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.ADVANCED_COMPUTER_CASING);
     }
 
     @Override
@@ -97,31 +117,9 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
         return true;
     }
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gregtech:network_switch", () -> DeclarativePatternBuilder.start()
-                    .aisle("XXX", "XXX", "XXX")
-                    .aisle("XXX", "XAX", "XXX")
-                    .aisle("XXX", "XSX", "XXX")
-                    .self('S', MetaTileEntityNetworkSwitch.class)
-                    .block('A', getAdvancedState())
-                    .casing('X', getCasingState())
-                        .energyInput(1,4)
-                        .maintenance()
-                        .hatch(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)
-                        .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 4)
-                    .buildStructureDefinition());
-
     @Override
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
-    }
-
-    private static @NotNull IBlockState getCasingState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
-    }
-
-    private static @NotNull IBlockState getAdvancedState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.ADVANCED_COMPUTER_CASING);
     }
 
     @SideOnly(Side.CLIENT)

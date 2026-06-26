@@ -26,28 +26,29 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeSolidifier extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_solidifier", () ->
-            DeclarativePatternBuilder.start(RIGHT, BACK, UP)
-                    .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
-                    .aisle("#XSX#", "XCCCX", "XAAAX", "XCACX", "#XXX#")
-                    .aisle("#XXX#", "XCACX", "XAAAX", "XCACX", "#XXX#")
-                    .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
-                    .self('S', MetaTileEntityLargeSolidifier.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_solidifier", () ->
+                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                            .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
+                            .aisle("#XSX#", "XCCCX", "XAAAX", "XCACX", "#XXX#")
+                            .aisle("#XXX#", "XCACX", "XAAAX", "XCACX", "#XXX#")
+                            .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
+                            .self('S', MetaTileEntityLargeSolidifier.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeSolidifier(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.FLUID_SOLIDFICATION_RECIPES,
                 RecipeMaps.TOOL_CASTER_RECIPES,
                 RecipeMaps.LAMINATOR_RECIPES,
@@ -55,11 +56,11 @@ public class MetaTileEntityLargeSolidifier extends GCYMAdvanceRecipeMapMultibloc
         });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.WATERTIGHT_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 

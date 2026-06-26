@@ -150,7 +150,7 @@ public class MetaTileEntityDustCollector extends MetaTileEntity implements ICont
     @Override
     public void onRemoval() {
         super.onRemoval();
-        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), inventory);
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), inventory);
     }
 
     @SideOnly(Side.CLIENT)

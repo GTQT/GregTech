@@ -26,42 +26,43 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeMixer extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_mixer", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#", "#XXX#", "##F##")
-                    .aisle("XXXXX", "XACAX", "XAAAX", "XACAX", "XAAAX", "##F##")
-                    .aisle("XXXXX", "XCPCX", "XAPAX", "XCPCX", "XAPAX", "FFFFF")
-                    .aisle("XXXXX", "XACAX", "XAAAX", "XACAX", "XAAAX", "##F##")
-                    .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#XXX#", "##F##")
-                    .self('S', MetaTileEntityLargeMixer.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getCasingState2()))
-                    .where('C', states(getCasingState3()))
-                    .where('F', frames(Materials.HastelloyX))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_mixer", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#", "#XXX#", "##F##")
+                            .aisle("XXXXX", "XACAX", "XAAAX", "XACAX", "XAAAX", "##F##")
+                            .aisle("XXXXX", "XCPCX", "XAPAX", "XCPCX", "XAPAX", "FFFFF")
+                            .aisle("XXXXX", "XACAX", "XAAAX", "XACAX", "XAAAX", "##F##")
+                            .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#XXX#", "##F##")
+                            .self('S', MetaTileEntityLargeMixer.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('P', states(getCasingState2()))
+                            .where('C', states(getCasingState3()))
+                            .where('F', frames(Materials.HastelloyX))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeMixer(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{RecipeMaps.MIXER_RECIPES, RecipeMaps.LARGE_MIXER_RECIPES});
+        super(metaTileEntityId, new RecipeMap[] { RecipeMaps.MIXER_RECIPES, RecipeMaps.LARGE_MIXER_RECIPES });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.MIXER_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.POLYTETRAFLUOROETHYLENE_PIPE);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PTFE_INERT_CASING);
     }
 

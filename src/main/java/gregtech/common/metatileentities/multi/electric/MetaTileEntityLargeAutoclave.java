@@ -23,36 +23,37 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeAutoclave extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_autoclave", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXX", "XXX", "XXX")
-                    .aisle("XXX", "XCX", "XXX")
-                    .aisle("XXX", "XCX", "XXX")
-                    .aisle("XXX", "XCX", "XXX")
-                    .aisle("XXX", "XSX", "XXX")
-                    .self('S', MetaTileEntityLargeAutoclave.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1,2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_autoclave", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXX", "XXX", "XXX")
+                            .aisle("XXX", "XCX", "XXX")
+                            .aisle("XXX", "XCX", "XXX")
+                            .aisle("XXX", "XCX", "XXX")
+                            .aisle("XXX", "XSX", "XXX")
+                            .self('S', MetaTileEntityLargeAutoclave.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeAutoclave(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.AUTOCLAVE_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.WATERTIGHT_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 

@@ -44,11 +44,15 @@ import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
 
 public class MetaTileEntityDataAccessHatch extends MetaTileEntityMultiblockNotifiablePart
-                                           implements IMultiblockAbilityPart<IDataAccessHatch>, IDataAccessHatch,
-                                           IDataInfoProvider {
+        implements IMultiblockAbilityPart<IDataAccessHatch>, IDataAccessHatch,
+                   IDataInfoProvider {
 
     private final Set<Recipe> recipes;
     private final boolean isCreative;
@@ -114,7 +118,7 @@ public class MetaTileEntityDataAccessHatch extends MetaTileEntityMultiblockNotif
                 int index = y * rowSize + x;
                 builder.widget(new SlotWidget(isExportHatch ? exportItems : importItems, index,
                         88 - rowSize * 9 + x * 18, 18 + y * 18, true, !isExportHatch)
-                                .setBackgroundTexture(GuiTextures.SLOT));
+                        .setBackgroundTexture(GuiTextures.SLOT));
             }
         }
         return builder.bindPlayerInventory(entityPlayer.inventory, GuiTextures.SLOT, 7, 18 + 18 * rowSize + 12)
@@ -127,8 +131,7 @@ public class MetaTileEntityDataAccessHatch extends MetaTileEntityMultiblockNotif
     }
 
     protected int getInventorySize() {
-        switch (getTier())
-        {
+        switch (getTier()) {
             case GTValues.MV -> {return 4;}
             case GTValues.EV -> {return 9;}
             case GTValues.LuV -> {return 16;}

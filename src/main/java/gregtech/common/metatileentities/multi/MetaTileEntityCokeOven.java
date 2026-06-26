@@ -54,20 +54,24 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockController {
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:coke_oven", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XYX", "XXX")
                     .self('Y', MetaTileEntityCokeOven.class)
                     .air('#')
-                    .casing('X', MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.COKE_BRICKS))
-                        .custom(
-                                Elements.metaTileEntities(0, 5, 5, MetaTileEntities.COKE_OVEN_HATCH), 5)
+                    .casing('X', getCasingState())
+                    .custom(
+                            Elements.metaTileEntities(0, 5, 5, MetaTileEntities.COKE_OVEN_HATCH), 5)
                     .buildStructureDefinition());
 
     public MetaTileEntityCokeOven(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.COKE_OVEN_RECIPES);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.COKE_BRICKS);
     }
 
     @Override
@@ -79,10 +83,6 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
-    }
-
-    protected IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.COKE_BRICKS);
     }
 
     @SideOnly(Side.CLIENT)
@@ -189,7 +189,6 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
     public SoundType getSoundType() {
         return SoundType.STONE;
     }
-
 
     @Override
     public void update() {

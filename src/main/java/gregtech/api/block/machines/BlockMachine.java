@@ -16,7 +16,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.pipenet.IBlockAppearance;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.Mods;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.common.creativetab.GTCreativeTabs;
 import gregtech.common.items.behaviors.spray.AbstractSprayBehavior;
@@ -541,6 +540,11 @@ public class BlockMachine extends BlockCustomParticle implements ITileEntityProv
             if (cover instanceof IFacadeCover facadeCover) {
                 return facadeCover.getVisualState();
             }
+        }
+        // CTM: check if machine declares a casing state for connected textures
+        if (metaTileEntity != null) {
+            IBlockState casing = metaTileEntity.getCasingBlock();
+            if (casing != null) return casing;
         }
         return world.getBlockState(pos);
     }

@@ -95,6 +95,11 @@ public class MetaTileEntityRockBreaker extends SimpleMachineMetaTileEntity {
         }
     }
 
+    @Override
+    public boolean getIsWeatherOrTerrainResistant() {
+        return true;
+    }
+
     protected class RockBreakerRecipeLogic extends RecipeLogicEnergy {
 
         public RockBreakerRecipeLogic(MetaTileEntity metaTileEntity, RecipeMap<?> recipeMap,
@@ -106,10 +111,5 @@ public class MetaTileEntityRockBreaker extends SimpleMachineMetaTileEntity {
         protected boolean shouldSearchForRecipes() {
             return hasValidFluids && super.shouldSearchForRecipes();
         }
-    }
-
-    @Override
-    public boolean getIsWeatherOrTerrainResistant() {
-        return true;
     }
 }

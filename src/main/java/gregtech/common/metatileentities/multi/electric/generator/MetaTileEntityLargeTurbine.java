@@ -26,6 +26,7 @@ import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.common.metatileentities.MetaTileEntities;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -213,7 +214,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         MultiblockFuelRecipeLogic recipeLogic = (MultiblockFuelRecipeLogic) recipeMapWorkable;
         boolean dynamoFull = isDynamoFull();
         builder.setWorkingStatus(recipeLogic.isWorkingEnabled() && !dynamoFull,
-                recipeLogic.isActive() && !dynamoFull)
+                        recipeLogic.isActive() && !dynamoFull)
                 .addEnergyProductionLine(getMaxVoltage(), recipeLogic.getRecipeEUt())
                 .addCustom((keyList, syncer) -> {
                     IRotorHolder rotorHolder = getRotorHolder();
@@ -312,6 +313,11 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     @Override
     protected ICubeRenderer getFrontOverlay() {
         return type.getFrontOverlay();
+    }
+
+    @Override
+    public IBlockState getCasingBlock() {
+        return type.getCasingState();
     }
 
     @Override

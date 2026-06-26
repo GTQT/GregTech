@@ -43,15 +43,14 @@ import static gregtech.api.capability.GregtechDataCodes.AMP_INDEX;
 import static gregtech.api.capability.GregtechDataCodes.WORKING_ENABLED;
 
 public class MetaTileEntityDiode extends MetaTileEntityMultiblockPart
-                                 implements IPassthroughHatch, IMultiblockAbilityPart<IPassthroughHatch>,
-                                 IControllable {
-
-    protected IEnergyContainer energyContainer;
+        implements IPassthroughHatch, IMultiblockAbilityPart<IPassthroughHatch>,
+                   IControllable {
 
     private static final String AMP_NBT_KEY = "amp_mode";
+    private final int maxAmps;
+    protected IEnergyContainer energyContainer;
     private int amps;
     private boolean isWorkingEnabled;
-    private final int maxAmps;
 
     /**
      * @param maxAmps Must be power of 2

@@ -2,6 +2,7 @@ package gregtech.client.renderer;
 
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -16,16 +17,18 @@ public class CubeRendererState {
     public final BlockRenderLayer layer;
     public final boolean[] sideMask;
     public final IBlockAccess world;
+    public final BlockPos pos;
     public static boolean[] PASS_MASK = new boolean[EnumFacing.VALUES.length];
 
     static {
         Arrays.fill(PASS_MASK, true);
     }
 
-    public CubeRendererState(BlockRenderLayer layer, boolean[] sideMask, IBlockAccess world) {
+    public CubeRendererState(BlockRenderLayer layer, boolean[] sideMask, IBlockAccess world, BlockPos pos) {
         this.layer = layer;
         this.sideMask = sideMask;
         this.world = world;
+        this.pos = pos;
     }
 
     public boolean shouldSideBeRendered(EnumFacing face, Cuboid6 bounds) {

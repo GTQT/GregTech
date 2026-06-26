@@ -39,39 +39,40 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:mega_chemical_reactor", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
-                    .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
-                    .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
-                    .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
-                    .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
-                    .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
-                    .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
-                    .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
-                    .aisle("XXXXX", "XGGGX", "XGSGX", "XGGGX", "XXXXX")
-                    .self('S', MetaTileEntityMegaChemicalReactor.class)
-                    .where('E', states(getCasingState())
-                            .or(abilities(MultiblockAbility.INPUT_ENERGY)
-                                    .setMaxGlobalLimited(8))
-                            .or(abilities(MultiblockAbility.INPUT_LASER)
-                                    .setMaxGlobalLimited(1))
-                    )
-                    .where('P', states(getPipeCasingState()))
-                    .where('#', air())
-                    .where('G', states(getGlassState()))
-                    .where('F', states(getCoilState()))
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .where('H', states(getCasingState()))
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:mega_chemical_reactor", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXX", "XEEEX", "XEEEX", "XEEEX", "XXXXX")
+                            .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
+                            .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
+                            .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
+                            .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
+                            .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
+                            .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
+                            .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
+                            .aisle("XXXXX", "XGGGX", "XGSGX", "XGGGX", "XXXXX")
+                            .self('S', MetaTileEntityMegaChemicalReactor.class)
+                            .where('E', states(getCasingState())
+                                    .or(abilities(MultiblockAbility.INPUT_ENERGY)
+                                            .setMaxGlobalLimited(8))
+                                    .or(abilities(MultiblockAbility.INPUT_LASER)
+                                            .setMaxGlobalLimited(1))
+                            )
+                            .where('P', states(getPipeCasingState()))
+                            .where('#', air())
+                            .where('G', states(getGlassState()))
+                            .where('F', states(getCoilState()))
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .where('H', states(getCasingState()))
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityMegaChemicalReactor(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.LARGE_CHEMICAL_RECIPES,
                 RecipeMaps.POLYMERIZATION_RECIPES,
                 RecipeMaps.DESULFURIZATION_RECIPES
@@ -79,7 +80,7 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
         this.recipeMapWorkable = new GCYMMultiblockRecipeLogic(this, true);
     }
 
-    protected static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PTFE_INERT_CASING);
     }
 
@@ -108,7 +109,8 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
 
     @SideOnly(Side.CLIENT)
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         InformationHandler.topTooltips("最强反应釜", tooltip);
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addPerfectOC().addLaser().build(this, tooltip);

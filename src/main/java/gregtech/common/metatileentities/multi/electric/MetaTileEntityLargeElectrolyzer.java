@@ -24,37 +24,38 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeElectrolyzer extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_electrolyzer", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXXXX", "XXXXX", "XXXXX")
-                    .aisle("XXXXX", "XCCCX", "XCCCX")
-                    .aisle("XXXXX", "XCCCX", "XCCCX")
-                    .aisle("XXXXX", "XXSXX", "XXXXX")
-                    .self('S', MetaTileEntityLargeElectrolyzer.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_electrolyzer", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXX", "XXXXX", "XXXXX")
+                            .aisle("XXXXX", "XCCCX", "XCCCX")
+                            .aisle("XXXXX", "XCCCX", "XCCCX")
+                            .aisle("XXXXX", "XXSXX", "XXXXX")
+                            .self('S', MetaTileEntityLargeElectrolyzer.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeElectrolyzer(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.ELECTROLYZER_RECIPES,
                 RecipeMaps.LIGHTNING_PROCESSOR_RECIPES
         });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.NONCONDUCTING_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.ELECTROLYTIC_CELL);
     }
 

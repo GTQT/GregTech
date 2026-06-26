@@ -1,8 +1,5 @@
 package gregtech.common.metatileentities.multi.electric.godforge.module;
 
-import java.math.BigInteger;
-import java.util.UUID;
-
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
@@ -25,6 +22,9 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.math.BigInteger;
+import java.util.UUID;
 
 public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
 
@@ -56,7 +56,8 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
                                                   @NotNull IItemHandlerModifiable importInventory,
                                                   @NotNull IMultipleTankHandler importFluids,
                                                   long remainingBasePower, int maxParallelBudget) {
-        return super.allocateSlotParallel(slot, applyGodforgeModifiers(recipe), recipeMap, importInventory, importFluids,
+        return super.allocateSlotParallel(slot, applyGodforgeModifiers(recipe), recipeMap, importInventory,
+                importFluids,
                 remainingBasePower, maxParallelBudget);
     }
 
@@ -164,8 +165,8 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
     }
 
     /**
-     * Godforge modules use wireless energy with effectively unlimited power budget.
-     * Return the processing voltage as total budget since there is no real energy hatch.
+     * Godforge modules use wireless energy with effectively unlimited power budget. Return the processing voltage as
+     * total budget since there is no real energy hatch.
      */
     @Override
     protected long getTotalPowerBudget() {
@@ -264,10 +265,9 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
     // ==================== Recipe Map Switch Support ====================
 
     /**
-     * Called when the module's recipe map changes (e.g. furnace mode toggle).
-     * Clears cached recipe references so that new recipe searches use the updated RecipeMap.
-     * Does NOT stop currently running recipes in the scheduler — they are allowed to complete
-     * naturally. The refillScheduler() path will automatically use the new RecipeMap for any
+     * Called when the module's recipe map changes (e.g. furnace mode toggle). Clears cached recipe references so that
+     * new recipe searches use the updated RecipeMap. Does NOT stop currently running recipes in the scheduler — they
+     * are allowed to complete naturally. The refillScheduler() path will automatically use the new RecipeMap for any
      * subsequent recipe searches.
      */
     public void invalidateForRecipeMapChange() {

@@ -37,6 +37,7 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.core.sound.GTSoundEvents;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -122,7 +123,7 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
         return primaryTemplate(pooledStructureDefinition(type), type.getName());
     }
 
-    private static StructureDefinition pooledStructureDefinition(ILargeMinerType type) {
+    private static StructureDefinition<?> pooledStructureDefinition(ILargeMinerType type) {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
                 .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
         return definition.get();
@@ -132,7 +133,7 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
         return "gregtech:large_miner." + type.getName();
     }
 
-    private static StructureDefinition buildStructureDefinition(ILargeMinerType type) {
+    private static StructureDefinition<?> buildStructureDefinition(ILargeMinerType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
@@ -144,11 +145,11 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
                 .casing('X', type.getCasingState())
                 .optionalItemOutput(1)
                 .optionalFluidInput(1)
-                .energyInput(1,3)
+                .energyInput(1, 3)
                 .buildStructureDefinition();
     }
 
-    private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {
+    private static BlockPatternTemplate primaryTemplate(StructureDefinition<?> definition, String key) {
         BlockPatternTemplate template = definition.getPrimaryTemplate();
         if (template == null) {
             throw new IllegalStateException("Large miner type '" + key + "' is not a single-piece structure");
@@ -423,6 +424,11 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
         if (this.type.getTier() == 6)
             return Textures.LARGE_MINER_OVERLAY_ADVANCED_2;
         return Textures.LARGE_MINER_OVERLAY_BASIC;
+    }
+
+    @Override
+    public IBlockState getCasingBlock() {
+        return type.getCasingState();
     }
 
     public long getMaxVoltage() {

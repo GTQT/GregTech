@@ -26,32 +26,33 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeExtractor extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_extractor", () ->
-            DeclarativePatternBuilder.start(RIGHT, BACK, UP)
-                    .aisle("XXXXX", "XXXXX", "XXXXX")
-                    .aisle("XXSXX", "XCCCX", "XXXXX")
-                    .aisle("XXXXX", "XXXXX", "XXXXX")
-                    .self('S', MetaTileEntityLargeExtractor.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_extractor", () ->
+                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                            .aisle("XXXXX", "XXXXX", "XXXXX")
+                            .aisle("XXSXX", "XCCCX", "XXXXX")
+                            .aisle("XXXXX", "XXXXX", "XXXXX")
+                            .self('S', MetaTileEntityLargeExtractor.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeExtractor(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{RecipeMaps.EXTRACTOR_RECIPES, RecipeMaps.CANNER_RECIPES});
+        super(metaTileEntityId, new RecipeMap[] { RecipeMaps.EXTRACTOR_RECIPES, RecipeMaps.CANNER_RECIPES });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.WATERTIGHT_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 
@@ -64,7 +65,6 @@ public class MetaTileEntityLargeExtractor extends GCYMAdvanceRecipeMapMultiblock
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
-
 
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart iMultiblockPart) {

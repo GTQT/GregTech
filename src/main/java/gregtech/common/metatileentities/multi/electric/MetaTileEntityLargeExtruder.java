@@ -24,41 +24,42 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeExtruder extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_extruder", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("##XXX", "##XXX", "##XXX")
-                    .aisleRepeatable(2, 2, "##XXX", "##XPX", "##XGX")
-                    .aisle("XXXXX", "XXXPX", "XXXGX")
-                    .aisle("XXXXX", "XXXPX", "XXXGX")
-                    .aisle("XXXXX", "XSXXX", "XXXXX")
-                    .self('S', MetaTileEntityLargeExtruder.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getCasingState2()))
-                    .where('G', states(getCasingState3()))
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_extruder", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("##XXX", "##XXX", "##XXX")
+                            .aisleRepeatable(2, 2, "##XXX", "##XPX", "##XGX")
+                            .aisle("XXXXX", "XXXPX", "XXXGX")
+                            .aisle("XXXXX", "XXXPX", "XXXGX")
+                            .aisle("XXXXX", "XSXXX", "XXXXX")
+                            .self('S', MetaTileEntityLargeExtruder.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('P', states(getCasingState2()))
+                            .where('G', states(getCasingState3()))
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeExtruder(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.EXTRUDER_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.STRESS_PROOF_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.TITANIUM_PIPE);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.TEMPERED_GLASS);
     }
 
@@ -71,7 +72,6 @@ public class MetaTileEntityLargeExtruder extends GCYMAdvanceRecipeMapMultiblockC
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
-
 
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart iMultiblockPart) {

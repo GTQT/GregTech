@@ -1,16 +1,16 @@
 package gregtech.common.metatileentities.multi.electric.godforge.upgrade;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumMap;
-import java.util.stream.Stream;
-
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 
 import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumMap;
+import java.util.stream.Stream;
 
 public class UpgradeStorage {
 
@@ -20,6 +20,11 @@ public class UpgradeStorage {
         for (ForgeOfGodsUpgrade upgrade : ForgeOfGodsUpgrade.VALUES) {
             unlockedUpgrades.put(upgrade, new UpgradeData());
         }
+    }
+
+    private static boolean matchesCostItem(ItemStack inputStack, ItemStack costStack) {
+        return ItemStack.areItemsEqual(inputStack, costStack)
+                && ItemStack.areItemStackTagsEqual(inputStack, costStack);
     }
 
     public boolean isUpgradeActive(ForgeOfGodsUpgrade upgrade) {
@@ -77,11 +82,6 @@ public class UpgradeStorage {
         data.costPaid = true;
     }
 
-    private static boolean matchesCostItem(ItemStack inputStack, ItemStack costStack) {
-        return ItemStack.areItemsEqual(inputStack, costStack)
-            && ItemStack.areItemStackTagsEqual(inputStack, costStack);
-    }
-
     public void unlockUpgrade(ForgeOfGodsUpgrade upgrade) {
         getData(upgrade).active = true;
     }
@@ -95,7 +95,7 @@ public class UpgradeStorage {
         if (prereqs.length == 0) return true;
 
         Stream<UpgradeData> prereqStream = Arrays.stream(prereqs)
-            .map(unlockedUpgrades::get);
+                .map(unlockedUpgrades::get);
 
         if (upgrade.requiresAllPrerequisites()) {
             return prereqStream.allMatch(UpgradeData::isActive);
@@ -106,9 +106,9 @@ public class UpgradeStorage {
     public boolean checkSplit(ForgeOfGodsUpgrade upgrade, int maxSplitUpgrades) {
         if (ForgeOfGodsUpgrade.SPLIT_UPGRADES.contains(upgrade)) {
             return ForgeOfGodsUpgrade.SPLIT_UPGRADES.stream()
-                .map(unlockedUpgrades::get)
-                .filter(UpgradeData::isActive)
-                .count() < maxSplitUpgrades;
+                    .map(unlockedUpgrades::get)
+                    .filter(UpgradeData::isActive)
+                    .count() < maxSplitUpgrades;
         }
         return true;
     }
@@ -125,9 +125,9 @@ public class UpgradeStorage {
             if (dependent.requiresAllPrerequisites()) return false;
 
             if (Arrays.stream(dependent.getPrerequisites())
-                .map(unlockedUpgrades::get)
-                .filter(UpgradeData::isActive)
-                .count() <= 1) {
+                    .map(unlockedUpgrades::get)
+                    .filter(UpgradeData::isActive)
+                    .count() <= 1) {
                 return false;
             }
         }
@@ -140,9 +140,9 @@ public class UpgradeStorage {
 
     public int getTotalActiveUpgrades() {
         return (int) unlockedUpgrades.values()
-            .stream()
-            .filter(UpgradeData::isActive)
-            .count();
+                .stream()
+                .filter(UpgradeData::isActive)
+                .count();
     }
 
     public Collection<ForgeOfGodsUpgrade> getAllUpgrades() {
@@ -151,15 +151,15 @@ public class UpgradeStorage {
 
     public GenericListSyncHandler<?> getFullSyncer() {
         return GenericListSyncHandler.<UpgradeData>builder()
-            .getter(() -> new ArrayList<>(unlockedUpgrades.values()))
-            .setter(values -> {
-                for (int i = 0; i < values.size() && i < ForgeOfGodsUpgrade.VALUES.length; i++) {
-                    unlockedUpgrades.put(ForgeOfGodsUpgrade.VALUES[i], values.get(i));
-                }
-            })
-            .serializer(UpgradeData::writeToBuffer)
-            .deserializer(UpgradeData::readFromBuffer)
-            .build();
+                .getter(() -> new ArrayList<>(unlockedUpgrades.values()))
+                .setter(values -> {
+                    for (int i = 0; i < values.size() && i < ForgeOfGodsUpgrade.VALUES.length; i++) {
+                        unlockedUpgrades.put(ForgeOfGodsUpgrade.VALUES[i], values.get(i));
+                    }
+                })
+                .serializer(UpgradeData::writeToBuffer)
+                .deserializer(UpgradeData::readFromBuffer)
+                .build();
     }
 
     public void resetAll() {
@@ -212,17 +212,9 @@ public class UpgradeStorage {
 
     private static class UpgradeData {
 
+        private final short[] amountsPaid = new short[12];
         private boolean active;
         private boolean costPaid;
-        private final short[] amountsPaid = new short[12];
-
-        public boolean isActive() {
-            return active;
-        }
-
-        public boolean isCostPaid() {
-            return costPaid;
-        }
 
         private static void writeToBuffer(PacketBuffer buf, UpgradeData data) {
             buf.writeBoolean(data.isActive());
@@ -240,6 +232,14 @@ public class UpgradeStorage {
                 data.amountsPaid[i] = buf.readShort();
             }
             return data;
+        }
+
+        public boolean isActive() {
+            return active;
+        }
+
+        public boolean isCostPaid() {
+            return costPaid;
         }
 
         @Override

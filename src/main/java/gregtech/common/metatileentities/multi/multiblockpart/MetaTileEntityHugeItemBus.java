@@ -86,11 +86,13 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     protected void initializeInventory() {
-        this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getInventorySize(), null, false, () -> Integer.MAX_VALUE);
+        this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getInventorySize(), null, false,
+                () -> Integer.MAX_VALUE);
 
         if (this.hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
-            this.actualImportItems = new ItemHandlerList(Arrays.asList(largeSlotItemStackHandler, this.circuitInventory));
+            this.actualImportItems = new ItemHandlerList(
+                    Arrays.asList(largeSlotItemStackHandler, this.circuitInventory));
         } else {
             this.actualImportItems = null;
         }
@@ -375,17 +377,6 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     }
 
     @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
-            return;
-        }
-        this.circuitInventory.setCircuitValue(config);
-        if (!getWorld().isRemote) {
-            markDirty();
-        }
-    }
-
-    @Override
     public void setGhostCustomStack(@NotNull ItemStack stack) {
         if (this.circuitInventory == null) {
             return;
@@ -403,6 +394,18 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         }
         return this.circuitInventory.getCircuitValue();
     }
+
+    @Override
+    public void setGhostCircuitConfig(int config) {
+        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+            return;
+        }
+        this.circuitInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
@@ -426,7 +429,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     @Override
     public void onRemoval() {
         super.onRemoval();
-        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), largeSlotItemStackHandler);
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), largeSlotItemStackHandler);
     }
 
 }

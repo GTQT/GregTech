@@ -68,6 +68,7 @@ import static gregtech.common.items.MetaItems.CLIPBOARD;
 
 public class MetaTileEntityClipboard extends MetaTileEntity implements IFastRenderMetaTileEntity {
 
+    public static final float scale = 1;
     private static final AxisAlignedBB CLIPBOARD_AABB_NORTH = new AxisAlignedBB(2.75 / 16.0, 0, 0, 13.25 / 16.0,
             16 / 16.0, 0.4 / 16.0);
     private static final AxisAlignedBB CLIPBOARD_AABB_SOUTH = new AxisAlignedBB(13.25 / 16.0, 0, 16 / 16.0, 2.75 / 16.0,
@@ -76,7 +77,6 @@ public class MetaTileEntityClipboard extends MetaTileEntity implements IFastRend
             16 / 16.0, 2.75 / 16.0);
     private static final AxisAlignedBB CLIPBOARD_AABB_EAST = new AxisAlignedBB(16 / 16.0, 0, 2.75 / 16.0, 15.6 / 16.0,
             16 / 16.0, 13.25 / 16.0);
-
     private static final AxisAlignedBB PAGE_AABB_NORTH = new AxisAlignedBB(3 / 16.0, 0.25 / 16.0, 0.25 / 16.0,
             13 / 16.0, 14.25 / 16.0, 0.3 / 16.0);
     private static final AxisAlignedBB PAGE_AABB_SOUTH = new AxisAlignedBB(13 / 16.0, 0.25 / 16.0, 15.75 / 16.0,
@@ -85,15 +85,48 @@ public class MetaTileEntityClipboard extends MetaTileEntity implements IFastRend
             0.3 / 16.0, 14.25 / 16.0, 3 / 16.0);
     private static final AxisAlignedBB PAGE_AABB_EAST = new AxisAlignedBB(15.75 / 16.0, 0.25 / 16.0, 3 / 16.0,
             15.7 / 16.0, 14.25 / 16.0, 13 / 16.0);
-
-    public static final float scale = 1;
+    private static final NBTBase NO_CLIPBOARD_SIG = new NBTTagInt(0);
     public FakeModularGui guiCache;
     public FakeModularUIContainerClipboard guiContainerCache;
-    private static final NBTBase NO_CLIPBOARD_SIG = new NBTTagInt(0);
     private boolean didSetFacing = false;
 
     public MetaTileEntityClipboard(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
+    }
+
+    private static double[] handleRayTraceResult(CuboidRayTraceResult rayTraceResult, EnumFacing spin) {
+        double x, y;
+        double dX = rayTraceResult.sideHit.getAxis() == EnumFacing.Axis.X ?
+                rayTraceResult.hitVec.z - rayTraceResult.getBlockPos().getZ() :
+                rayTraceResult.hitVec.x - rayTraceResult.getBlockPos().getX();
+        double dY = rayTraceResult.sideHit.getAxis() == EnumFacing.Axis.Y ?
+                rayTraceResult.hitVec.z - rayTraceResult.getBlockPos().getZ() :
+                rayTraceResult.hitVec.y - rayTraceResult.getBlockPos().getY();
+        if (spin == EnumFacing.NORTH) {
+            x = 1 - dX;
+        } else if (spin == EnumFacing.SOUTH) {
+            x = dX;
+        } else if (spin == EnumFacing.EAST) {
+            x = 1 - dX;
+            if (rayTraceResult.sideHit.getXOffset() < 0 || rayTraceResult.sideHit.getZOffset() > 0) {
+                x = 1 - x;
+            }
+        } else {
+            x = 1 - dX;
+            if (rayTraceResult.sideHit.getXOffset() < 0 || rayTraceResult.sideHit.getZOffset() > 0) {
+                x = 1 - x;
+            }
+        }
+
+        y = 1 - dY; // Since y values are quite weird here
+
+        // Scale these to be 0 - 1
+        x -= 3.0 / 16;
+        y -= 1.75 / 16;
+        x /= 14.0 / 16;
+        y /= 14.0 / 16;
+
+        return new double[] { x, y };
     }
 
     @Override
@@ -160,7 +193,7 @@ public class MetaTileEntityClipboard extends MetaTileEntity implements IFastRend
                         EnumHand.MAIN_HAND); // We can't have this actually set the player's hand
                 holder.setCustomValidityCheck(this::isValid).setCurrentItem(this.getClipboard());
                 if (entityPlayer instanceof GregFakePlayer) { // This is how to tell if this is being called in-world or
-                                                              // not
+                    // not
                     return ClipboardBehavior.createMTEUI(holder, entityPlayer);
                 } else {
                     return ((ClipboardBehavior) clipboardBehaviour.get()).createUI(holder, entityPlayer);
@@ -210,15 +243,15 @@ public class MetaTileEntityClipboard extends MetaTileEntity implements IFastRend
         return this.itemInventory.getStackInSlot(0);
     }
 
+    public void setClipboard(ItemStack stack) {
+        ((InaccessibleItemStackHandler) this.itemInventory).setStackInSlot(0, stack.copy());
+    }
+
     public void initializeClipboard(ItemStack stack) {
         ((InaccessibleItemStackHandler) this.itemInventory).setStackInSlot(0, stack.copy());
         writeCustomData(INIT_CLIPBOARD_NBT, buf -> {
             buf.writeCompoundTag(stack.getTagCompound());
         });
-    }
-
-    public void setClipboard(ItemStack stack) {
-        ((InaccessibleItemStackHandler) this.itemInventory).setStackInSlot(0, stack.copy());
     }
 
     @Override
@@ -355,41 +388,6 @@ public class MetaTileEntityClipboard extends MetaTileEntity implements IFastRend
             }
         }
         return null;
-    }
-
-    private static double[] handleRayTraceResult(CuboidRayTraceResult rayTraceResult, EnumFacing spin) {
-        double x, y;
-        double dX = rayTraceResult.sideHit.getAxis() == EnumFacing.Axis.X ?
-                rayTraceResult.hitVec.z - rayTraceResult.getBlockPos().getZ() :
-                rayTraceResult.hitVec.x - rayTraceResult.getBlockPos().getX();
-        double dY = rayTraceResult.sideHit.getAxis() == EnumFacing.Axis.Y ?
-                rayTraceResult.hitVec.z - rayTraceResult.getBlockPos().getZ() :
-                rayTraceResult.hitVec.y - rayTraceResult.getBlockPos().getY();
-        if (spin == EnumFacing.NORTH) {
-            x = 1 - dX;
-        } else if (spin == EnumFacing.SOUTH) {
-            x = dX;
-        } else if (spin == EnumFacing.EAST) {
-            x = 1 - dX;
-            if (rayTraceResult.sideHit.getXOffset() < 0 || rayTraceResult.sideHit.getZOffset() > 0) {
-                x = 1 - x;
-            }
-        } else {
-            x = 1 - dX;
-            if (rayTraceResult.sideHit.getXOffset() < 0 || rayTraceResult.sideHit.getZOffset() > 0) {
-                x = 1 - x;
-            }
-        }
-
-        y = 1 - dY; // Since y values are quite weird here
-
-        // Scale these to be 0 - 1
-        x -= 3.0 / 16;
-        y -= 1.75 / 16;
-        x /= 14.0 / 16;
-        y /= 14.0 / 16;
-
-        return new double[] { x, y };
     }
 
     @Override

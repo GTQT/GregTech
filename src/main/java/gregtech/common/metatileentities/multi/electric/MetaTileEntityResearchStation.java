@@ -95,7 +95,7 @@ public class MetaTileEntityResearchStation extends RecipeMapMultiblockController
     }
 
     @NotNull
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
     }
 

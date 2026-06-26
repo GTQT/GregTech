@@ -5,8 +5,8 @@ import gregtech.api.capability.impl.EnergyContainerHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.TieredMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleSidedCubeRenderer;
 import gregtech.client.utils.PipelineUtil;
@@ -24,6 +24,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -31,7 +32,6 @@ import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
-import com.cleanroommc.modularui.api.drawable.IKey;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,16 +41,15 @@ import java.util.List;
  * Concrete MTE class for all A-series disposable (single-use) battery blocks.
  *
  * <p>Each instance is parameterised by a {@link DisposableBatteryType} enum constant
- * that defines the voltage tier, EU capacity, and depletion byproducts.  No per-variant
- * subclasses are needed — new battery chemistries are added by extending the enum.
+ * that defines the voltage tier, EU capacity, and depletion byproducts.  No per-variant subclasses are needed — new
+ * battery chemistries are added by extending the enum.
  *
  * <p>The block emits energy every server tick via the {@link EnergyContainerHandler}
- * emitter path (no RecipeMap involved), and drops chemical byproducts once when the
- * internal charge reaches zero.
+ * emitter path (no RecipeMap involved), and drops chemical byproducts once when the internal charge reaches zero.
  *
  * <p>Energy state is persisted automatically by {@link EnergyContainerHandler}'s own
- * NBT serialisation.  A separate {@code depleted} flag is written to the MTE's own NBT
- * so the depletion action is not re-triggered after a chunk reload.
+ * NBT serialisation.  A separate {@code depleted} flag is written to the MTE's own NBT so the depletion action is not
+ * re-triggered after a chunk reload.
  */
 public class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
 
@@ -58,16 +57,13 @@ public class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
     protected static final long OUTPUT_AMPERAGE = 4L;
 
     private static final String NBT_KEY_DEPLETED = "Depleted";
-
-    /** The battery variant this instance represents. */
-    private final DisposableBatteryType batteryType;
-
     /**
-     * Total EU capacity baked into this block at craft time.
-     * Cached from {@link DisposableBatteryType#getMaxStoredEU()} for fast access.
+     * Total EU capacity baked into this block at craft time. Cached from {@link DisposableBatteryType#getMaxStoredEU()}
+     * for fast access.
      */
     protected final long maxStoredEU;
-
+    /** The battery variant this instance represents. */
+    private final DisposableBatteryType batteryType;
     /** True once {@link #onDepleted()} has been called to prevent re-entry. */
     private boolean depleted;
 
@@ -108,8 +104,8 @@ public class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
     }
 
     /**
-     * Override to use {@code maxStoredEU} as the handler capacity instead of the
-     * default {@code tierVoltage * 64} buffer, and to emit through the marked front face.
+     * Override to use {@code maxStoredEU} as the handler capacity instead of the default {@code tierVoltage * 64}
+     * buffer, and to emit through the marked front face.
      */
     @Override
     protected void reinitializeEnergyContainer() {
@@ -146,8 +142,8 @@ public class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
     }
 
     /**
-     * Called exactly once on the server side when the internal charge reaches zero.
-     * Retrieves byproduct stacks from the {@link DisposableBatteryType} and drops them.
+     * Called exactly once on the server side when the internal charge reaches zero. Retrieves byproduct stacks from the
+     * {@link DisposableBatteryType} and drops them.
      */
     private void onDepleted() {
         depleteAndDrop(batteryType.createByproducts());
@@ -158,15 +154,15 @@ public class MetaTileEntityDisposableBatteryBase extends TieredMetaTileEntity {
     // -------------------------------------------------------------------------
 
     /**
-     * Marks this block as depleted, spawns each non-null/non-empty byproduct stack
-     * at the block's position, and removes the block from the world.
+     * Marks this block as depleted, spawns each non-null/non-empty byproduct stack at the block's position, and removes
+     * the block from the world.
      *
      * @param byproducts chemical byproduct stacks to drop; nulls and empties are skipped
      */
     protected final void depleteAndDrop(ItemStack... byproducts) {
         depleted = true;
         World world = getWorld();
-        BlockPos pos  = getPos();
+        BlockPos pos = getPos();
         if (world == null || world.isRemote) {
             return;
         }

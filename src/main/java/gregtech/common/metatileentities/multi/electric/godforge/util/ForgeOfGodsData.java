@@ -1,23 +1,23 @@
 package gregtech.common.metatileentities.multi.electric.godforge.util;
 
-import static gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade.CD;
-import static gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade.END;
-
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import gregtech.common.metatileentities.multi.electric.godforge.color.ForgeOfGodsStarColor;
+import gregtech.common.metatileentities.multi.electric.godforge.color.StarColorStorage;
+import gregtech.common.metatileentities.multi.electric.godforge.data.Formatters;
+import gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade;
+import gregtech.common.metatileentities.multi.electric.godforge.upgrade.UpgradeStorage;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.items.ItemStackHandler;
 
-import gregtech.common.metatileentities.multi.electric.godforge.color.ForgeOfGodsStarColor;
-import gregtech.common.metatileentities.multi.electric.godforge.color.StarColorStorage;
-import gregtech.common.metatileentities.multi.electric.godforge.data.Formatters;
-import gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade;
-import gregtech.common.metatileentities.multi.electric.godforge.upgrade.UpgradeStorage;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import static gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade.CD;
+import static gregtech.common.metatileentities.multi.electric.godforge.upgrade.ForgeOfGodsUpgrade.END;
 
 public class ForgeOfGodsData {
 
@@ -37,7 +37,7 @@ public class ForgeOfGodsData {
     public static final long RECIPE_MILESTONE_T7_CONSTANT = RECIPE_MILESTONE_CONSTANT * (long) Math.pow(4, 6);
     public static final long FUEL_MILESTONE_T7_CONSTANT = FUEL_MILESTONE_CONSTANT * (long) Math.pow(3, 6);
     public static final BigInteger POWER_MILESTONE_T7_CONSTANT = BigInteger.valueOf(POWER_MILESTONE_CONSTANT)
-        .multiply(BigInteger.valueOf((long) Math.pow(9, 6)));
+            .multiply(BigInteger.valueOf((long) Math.pow(9, 6)));
     public static final double POWER_LOG_CONSTANT = Math.log(9);
     public static final double RECIPE_LOG_CONSTANT = Math.log(4);
     public static final double FUEL_LOG_CONSTANT = Math.log(3);
@@ -46,7 +46,10 @@ public class ForgeOfGodsData {
     public static final int MAX_RESIDUE_FACTOR_DISCOUNTED = 72;
     public static final int MAX_STELLAR_PLASMA_FACTOR = 181;
     public static final int MAX_STELLAR_PLASMA_FACTOR_DISCOUNTED = 184;
-
+    private final int[] milestoneProgress = new int[4];
+    private final UpgradeStorage upgrades = new UpgradeStorage();
+    private final ItemStackHandler upgradeWindowHandler = new ItemStackHandler(16);
+    private final StarColorStorage starColors = new StarColorStorage();
     private int fuelConsumptionFactor = DEFAULT_FUEL_CONSUMPTION_FACTOR;
     private int selectedFuelType;
     private int internalBattery;
@@ -62,7 +65,6 @@ public class ForgeOfGodsData {
     private long totalRecipesProcessed;
     private long totalFuelConsumed;
     private float totalExtensionsBuilt;
-
     private float powerMilestonePercentage;
     private float recipeMilestonePercentage;
     private float fuelMilestonePercentage;
@@ -71,9 +73,6 @@ public class ForgeOfGodsData {
     private float invertedRecipeMilestonePercentage;
     private float invertedFuelMilestonePercentage;
     private float invertedStructureMilestonePercentage;
-
-    private final int[] milestoneProgress = new int[4];
-
     private BigInteger totalPowerConsumed = DEFAULT_TOTAL_POWER;
     private boolean batteryCharging;
     private boolean inversion;
@@ -82,11 +81,6 @@ public class ForgeOfGodsData {
     private boolean isRenderActive;
     private boolean secretUpgrade;
     private boolean isRendererDisabled;
-
-    private final UpgradeStorage upgrades = new UpgradeStorage();
-    private final ItemStackHandler upgradeWindowHandler = new ItemStackHandler(16);
-
-    private final StarColorStorage starColors = new StarColorStorage();
     private String selectedStarColor = DEFAULT_STAR_COLOR;
     private int rotationSpeed = DEFAULT_ROTATION_SPEED;
     private int starSize = DEFAULT_STAR_SIZE;
@@ -171,9 +165,8 @@ public class ForgeOfGodsData {
     }
 
     /**
-     * Ring tier the next explicit structure operation should try to validate.
-     * This is intentionally separate from {@link #getFormedRingAmount()} so
-     * upgrades can request a larger structure without granting formed benefits.
+     * Ring tier the next explicit structure operation should try to validate. This is intentionally separate from
+     * {@link #getFormedRingAmount()} so upgrades can request a larger structure without granting formed benefits.
      */
     public int getDesiredRingAmount() {
         int desired = getFormedRingAmount();
@@ -505,9 +498,8 @@ public class ForgeOfGodsData {
     }
 
     /**
-     * Serializes all persistent state to NBT for world save/load.
-     * Render-related fields (isRenderActive, isRendererDisabled, visual settings) are
-     * co-located here instead of the old dead-code writeRenderNBT().
+     * Serializes all persistent state to NBT for world save/load. Render-related fields (isRenderActive,
+     * isRendererDisabled, visual settings) are co-located here instead of the old dead-code writeRenderNBT().
      */
     public void writeToNBT(NBTTagCompound nbt) {
         // --- Core operational state ---
@@ -554,8 +546,8 @@ public class ForgeOfGodsData {
     }
 
     /**
-     * @deprecated No longer needed: render fields are now written by {@link #writeToNBT}.
-     *             Kept as a no-op to avoid breaking any call sites that may exist.
+     * @deprecated No longer needed: render fields are now written by {@link #writeToNBT}. Kept as a no-op to avoid
+     * breaking any call sites that may exist.
      */
     @Deprecated
     public void writeRenderNBT(NBTTagCompound nbt) {}

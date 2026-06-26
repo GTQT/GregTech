@@ -20,6 +20,7 @@ import gregtech.common.blocks.BlockBoilerCasing;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.core.sound.GTSoundEvents;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -27,6 +28,7 @@ import net.minecraft.util.SoundEvent;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -35,29 +37,30 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_chemical_complex", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("X###X", "XXXXX", "X###X", "XXXXX", "X###X")
-                    .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
-                    .aisle("XXXXX", "XPPPX", "XCPCX", "XPPPX", "XXXXX")
-                    .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
-                    .aisle("X###X", "SXXXX", "X###X", "XXXXX", "X###X")
-                    .self('S', MetaTileEntityLargeChemicalComplex.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getCasingState2()))
-                    .tieredCasing('C', GTCasingGroups.heatingCoils().group())
-                    .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_chemical_complex", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("X###X", "XXXXX", "X###X", "XXXXX", "X###X")
+                            .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
+                            .aisle("XXXXX", "XPPPX", "XCPCX", "XPPPX", "XXXXX")
+                            .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
+                            .aisle("X###X", "SXXXX", "X###X", "XXXXX", "X###X")
+                            .self('S', MetaTileEntityLargeChemicalComplex.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('P', states(getCasingState2()))
+                            .tieredCasing('C', GTCasingGroups.heatingCoils().group())
+                            .withChannel(GTCasingGroups.heatingCoils().channel())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeChemicalComplex(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.CHEMICAL_RECIPES,
                 RecipeMaps.POLYMERIZATION_RECIPES,
                 RecipeMaps.DESULFURIZATION_RECIPES
@@ -65,11 +68,11 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
         this.recipeMapWorkable = new GCYMMultiblockRecipeLogic(this, true);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PTFE_INERT_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.POLYTETRAFLUOROETHYLENE_PIPE);
     }
 

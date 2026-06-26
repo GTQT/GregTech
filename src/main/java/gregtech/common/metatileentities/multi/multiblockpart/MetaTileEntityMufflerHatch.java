@@ -117,8 +117,9 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
     public double getPollutionAmount() {
         //没有控制器 排放0
         //如果有控制器 控制器自己定义了污染那就按控制器的来，否则按照消声仓自己的来
-        if(getController() ==  null) return 0;
-        else return  (1 - getTier() * 0.1) * (getController().getPollutionAmount()== 0 ? getController().getPollutionAmount() : 0.001);
+        if (getController() == null) return 0;
+        else return (1 - getTier() * 0.1) *
+                (getController().getPollutionAmount() == 0 ? getController().getPollutionAmount() : 0.001);
     }
 
     @Override
@@ -204,7 +205,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.5"));
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.6"));
 
-        if(ConfigHolder.machines.enablePollution) {
+        if (ConfigHolder.machines.enablePollution) {
             tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.tooltip.pollution_mte_available"));
             tooltip.add(I18n.format("gregtech.multiblock.pollution_hatch.tooltip.1"));
             tooltip.add(I18n.format("gregtech.multiblock.pollution_hatch.tooltip.2"));

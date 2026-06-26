@@ -58,57 +58,97 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
     /**
      * 目前写法
      */
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:mega_blast_furnace", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("##XXXXXXXXX##", "##XXXXXXXXX##", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############")
-                    .aisle("#XXXXXXXXXXX#", "#XXXXXXXXXXX#", "###F#####F###", "###F#####F###", "###FFFFFFF###", "#############", "#############", "#############", "#############", "#############", "####FFFFF####", "#############", "#############", "#############", "#############", "#############", "#############")
-                    .aisle("XXXXXXXXXXXXX", "XXXXVVVVVXXXX", "##F#######F##", "##F#######F##", "##FFFHHHFFF##", "##F#######F##", "##F#######F##", "##F#######F##", "##F#######F##", "##F#######F##", "##FFFHHHFFF##", "#############", "#############", "#############", "#############", "#############", "###TTTTTTT###")
-                    .aisle("XXXXXXXXXXXXX", "XXXXXXXXXXXXX", "#F####P####F#", "#F####P####F#", "#FFHHHPHHHFF#", "######P######", "######P######", "######P######", "######P######", "######P######", "##FHHHPHHHF##", "######P######", "######P######", "######P######", "######P######", "######P######", "##TTTTPTTTT##")
-                    .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "####BBPBB####", "####TITIT####", "#FFHHHHHHHFF#", "####BITIB####", "####CCCCC####", "####CCCCC####", "####CCCCC####", "####BITIB####", "#FFHHHHHHHFF#", "####BITIB####", "####CCCCC####", "####CCCCC####", "####CCCCC####", "####BITIB####", "##TTTTPTTTT##")
-                    .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "####BAAAB####", "####IAAAI####", "#FHHHAAAHHHF#", "####IAAAI####", "####CAAAC####", "####CAAAC####", "####CAAAC####", "####IAAAI####", "#FHHHAAAHHHF#", "####IAAAI####", "####CAAAC####", "####CAAAC####", "####CAAAC####", "####IAAAI####", "##TTTTPTTTT##")
-                    .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "###PPAAAPP###", "###PTAAATP###", "#FHPHAAAHPHF#", "###PTAAATP###", "###PCAAACP###", "###PCAAACP###", "###PCAAACP###", "###PTAAATP###", "#FHPHAAAHPHF#", "###PTAAATP###", "###PCAAACP###", "###PCAAACP###", "###PCAAACP###", "###PTAAATP###", "##TPPPMPPPT##")
-                    .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "####BAAAB####", "####IAAAI####", "#FHHHAAAHHHF#", "####IAAAI####", "####CAAAC####", "####CAAAC####", "####CAAAC####", "####IAAAI####", "#FHHHAAAHHHF#", "####IAAAI####", "####CAAAC####", "####CAAAC####", "####CAAAC####", "####IAAAI####", "##TTTTPTTTT##")
-                    .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "####BBPBB####", "####TITIT####", "#FFHHHHHHHFF#", "####BITIB####", "####CCCCC####", "####CCCCC####", "####CCCCC####", "####BITIB####", "#FFHHHHHHHFF#", "####BITIB####", "####CCCCC####", "####CCCCC####", "####CCCCC####", "####BITIB####", "##TTTTPTTTT##")
-                    .aisle("XXXXXXXXXXXXX", "XXXXXXXXXXXXX", "#F####P####F#", "#F####P####F#", "#FFHHHPHHHFF#", "######P######", "######P######", "######P######", "######P######", "######P######", "##FHHHPHHHF##", "######P######", "######P######", "######P######", "######P######", "######P######", "##TTTTPTTTT##")
-                    .aisle("XXXXXXXXXXXXX", "XXXXVVVVVXXXX", "##F#######F##", "##F#######F##", "##FFFHHHFFF##", "##F#######F##", "##F#######F##", "##F#######F##", "##F#######F##", "##F#######F##", "##FFFHHHFFF##", "#############", "#############", "#############", "#############", "#############", "###TTTTTTT###")
-                    .aisle("#XXXXXXXXXXX#", "#XXXXXXXXXXX#", "###F#####F###", "###F#####F###", "###FFFFFFF###", "#############", "#############", "#############", "#############", "#############", "####FFFFF####", "#############", "#############", "#############", "#############", "#############", "#############")
-                    .aisle("##XXXXXXXXX##", "##XXXXSXXXX##", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############")
-                    .self('S', MetaTileEntityMegaBlastFurnace.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .optionalEnergyInput(8)
-                    .optionalLaserInput(1)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .maintenance()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .where('F', frames(Materials.NaquadahAlloy))
-                    .where('H', states(getCasingState()))
-                    .where('P', states(getPipeState()))
-                    .where('B', states(getFireboxState()))
-                    .where('I', states(getIntakeState()))
-                    .where('T', states(getCasingState2()))
-                    .where('V', states(getVentState()))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .tieredCasing('C',GTCasingGroups.heatingCoils().group())
-                    .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:mega_blast_furnace", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("##XXXXXXXXX##", "##XXXXXXXXX##", "#############", "#############", "#############",
+                                    "#############", "#############", "#############", "#############", "#############",
+                                    "#############", "#############", "#############", "#############", "#############",
+                                    "#############", "#############")
+                            .aisle("#XXXXXXXXXXX#", "#XXXXXXXXXXX#", "###F#####F###", "###F#####F###", "###FFFFFFF###",
+                                    "#############", "#############", "#############", "#############", "#############",
+                                    "####FFFFF####", "#############", "#############", "#############", "#############",
+                                    "#############", "#############")
+                            .aisle("XXXXXXXXXXXXX", "XXXXVVVVVXXXX", "##F#######F##", "##F#######F##", "##FFFHHHFFF##",
+                                    "##F#######F##", "##F#######F##", "##F#######F##", "##F#######F##", "##F#######F##",
+                                    "##FFFHHHFFF##", "#############", "#############", "#############", "#############",
+                                    "#############", "###TTTTTTT###")
+                            .aisle("XXXXXXXXXXXXX", "XXXXXXXXXXXXX", "#F####P####F#", "#F####P####F#", "#FFHHHPHHHFF#",
+                                    "######P######", "######P######", "######P######", "######P######", "######P######",
+                                    "##FHHHPHHHF##", "######P######", "######P######", "######P######", "######P######",
+                                    "######P######", "##TTTTPTTTT##")
+                            .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "####BBPBB####", "####TITIT####", "#FFHHHHHHHFF#",
+                                    "####BITIB####", "####CCCCC####", "####CCCCC####", "####CCCCC####", "####BITIB####",
+                                    "#FFHHHHHHHFF#", "####BITIB####", "####CCCCC####", "####CCCCC####", "####CCCCC####",
+                                    "####BITIB####", "##TTTTPTTTT##")
+                            .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "####BAAAB####", "####IAAAI####", "#FHHHAAAHHHF#",
+                                    "####IAAAI####", "####CAAAC####", "####CAAAC####", "####CAAAC####", "####IAAAI####",
+                                    "#FHHHAAAHHHF#", "####IAAAI####", "####CAAAC####", "####CAAAC####", "####CAAAC####",
+                                    "####IAAAI####", "##TTTTPTTTT##")
+                            .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "###PPAAAPP###", "###PTAAATP###", "#FHPHAAAHPHF#",
+                                    "###PTAAATP###", "###PCAAACP###", "###PCAAACP###", "###PCAAACP###", "###PTAAATP###",
+                                    "#FHPHAAAHPHF#", "###PTAAATP###", "###PCAAACP###", "###PCAAACP###", "###PCAAACP###",
+                                    "###PTAAATP###", "##TPPPMPPPT##")
+                            .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "####BAAAB####", "####IAAAI####", "#FHHHAAAHHHF#",
+                                    "####IAAAI####", "####CAAAC####", "####CAAAC####", "####CAAAC####", "####IAAAI####",
+                                    "#FHHHAAAHHHF#", "####IAAAI####", "####CAAAC####", "####CAAAC####", "####CAAAC####",
+                                    "####IAAAI####", "##TTTTPTTTT##")
+                            .aisle("XXXXXXXXXXXXX", "XXVXXXXXXXVXX", "####BBPBB####", "####TITIT####", "#FFHHHHHHHFF#",
+                                    "####BITIB####", "####CCCCC####", "####CCCCC####", "####CCCCC####", "####BITIB####",
+                                    "#FFHHHHHHHFF#", "####BITIB####", "####CCCCC####", "####CCCCC####", "####CCCCC####",
+                                    "####BITIB####", "##TTTTPTTTT##")
+                            .aisle("XXXXXXXXXXXXX", "XXXXXXXXXXXXX", "#F####P####F#", "#F####P####F#", "#FFHHHPHHHFF#",
+                                    "######P######", "######P######", "######P######", "######P######", "######P######",
+                                    "##FHHHPHHHF##", "######P######", "######P######", "######P######", "######P######",
+                                    "######P######", "##TTTTPTTTT##")
+                            .aisle("XXXXXXXXXXXXX", "XXXXVVVVVXXXX", "##F#######F##", "##F#######F##", "##FFFHHHFFF##",
+                                    "##F#######F##", "##F#######F##", "##F#######F##", "##F#######F##", "##F#######F##",
+                                    "##FFFHHHFFF##", "#############", "#############", "#############", "#############",
+                                    "#############", "###TTTTTTT###")
+                            .aisle("#XXXXXXXXXXX#", "#XXXXXXXXXXX#", "###F#####F###", "###F#####F###", "###FFFFFFF###",
+                                    "#############", "#############", "#############", "#############", "#############",
+                                    "####FFFFF####", "#############", "#############", "#############", "#############",
+                                    "#############", "#############")
+                            .aisle("##XXXXXXXXX##", "##XXXXSXXXX##", "#############", "#############", "#############",
+                                    "#############", "#############", "#############", "#############", "#############",
+                                    "#############", "#############", "#############", "#############", "#############",
+                                    "#############", "#############")
+                            .self('S', MetaTileEntityMegaBlastFurnace.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .optionalEnergyInput(8)
+                            .optionalLaserInput(1)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .maintenance()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .where('F', frames(Materials.NaquadahAlloy))
+                            .where('H', states(getCasingState()))
+                            .where('P', states(getPipeState()))
+                            .where('B', states(getFireboxState()))
+                            .where('I', states(getIntakeState()))
+                            .where('T', states(getCasingState2()))
+                            .where('V', states(getVentState()))
+                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
+                            .tieredCasing('C', GTCasingGroups.heatingCoils().group())
+                            .withChannel(GTCasingGroups.heatingCoils().channel())
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     private int blastFurnaceTemperature;
 
     public MetaTileEntityMegaBlastFurnace(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{RecipeMaps.FURNACE_RECIPES});
+        super(metaTileEntityId, new RecipeMap[] { RecipeMaps.FURNACE_RECIPES });
         this.recipeMapWorkable = new GCYMHeatCoilRecipeLogic(this);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.HIGH_TEMPERATURE_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST);
     }
 
@@ -182,7 +222,8 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         InformationHandler.topTooltips("最强熔炉王", tooltip);
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addBlast().addLaser().build(this, tooltip);

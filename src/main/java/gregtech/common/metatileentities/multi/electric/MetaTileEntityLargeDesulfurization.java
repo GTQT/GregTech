@@ -44,28 +44,29 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_desulfurizer", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("CCCCC", "CCCCC", "CCCCC", " CCC ", " CCC ")
-                    .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
-                    .aisle("CCCCC", "CPFPC", "CPFPC", " CFC ", " CCC ")
-                    .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
-                    .aisle("CCCCC", "CPFPC", "CPFPC", " CFC ", " CCC ")
-                    .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
-                    .aisle("CCCCC", "CCSCC", "CCCCC", " CCC ", " CCC ")
-                    .self('S', MetaTileEntityLargeDesulfurization.class)
-                    .casing('C', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getCasingState2()))
-                    .tieredCasing('U', GTCasingGroups.heatingCoils().group())
-                    .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .where('F', states(getFrameState()))
-                    .where(' ', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_desulfurizer", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("CCCCC", "CCCCC", "CCCCC", " CCC ", " CCC ")
+                            .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
+                            .aisle("CCCCC", "CPFPC", "CPFPC", " CFC ", " CCC ")
+                            .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
+                            .aisle("CCCCC", "CPFPC", "CPFPC", " CFC ", " CCC ")
+                            .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
+                            .aisle("CCCCC", "CCSCC", "CCCCC", " CCC ", " CCC ")
+                            .self('S', MetaTileEntityLargeDesulfurization.class)
+                            .casing('C', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('P', states(getCasingState2()))
+                            .tieredCasing('U', GTCasingGroups.heatingCoils().group())
+                            .withChannel(GTCasingGroups.heatingCoils().channel())
+                            .where('F', states(getFrameState()))
+                            .where(' ', any())
+                            .buildStructureDefinition()
     );
     private int coilTier;
 
@@ -78,11 +79,12 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
         return MetaBlocks.FRAMES.get(Materials.StainlessSteel).getBlock(Materials.StainlessSteel);
     }
 
-    private static IBlockState getCasingState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
+    public static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
+                BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 
@@ -136,7 +138,8 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addCoilLogic().build(this, tooltip);
         tooltip.add(I18n.format("gregtech.machine.pyrolyse_oven.tooltip.1"));

@@ -58,17 +58,15 @@ import static gregtech.api.capability.GregtechDataCodes.UPDATE_LOCKED_STATE;
 public class MetaTileEntityLockedSafe extends MetaTileEntity implements IFastRenderMetaTileEntity {
 
     private static final int MAX_UNLOCK_PROGRESS = 100;
-    private static Component[] ALLOWED_COMPONENTS;
     private static final IndexedCuboid6 COLLISION_BOX = new IndexedCuboid6(null,
             new Cuboid6(3 / 16.0, 0 / 16.0, 3 / 16.0, 13 / 16.0, 14 / 16.0, 13 / 16.0));
-
+    private static Component[] ALLOWED_COMPONENTS;
+    private final ItemStackHandler unlockComponents = new GTItemStackHandler(this, 2);
+    private final ItemStackHandler safeLootInventory = new GTItemStackHandler(this, 27);
     private int unlockProgress = -1;
     private int unlockComponentTier = 1;
     private boolean isSafeUnlocked = false;
-
-    private long unlockComponentsSeed = 0L;
-    private final ItemStackHandler unlockComponents = new GTItemStackHandler(this, 2);
-    private final ItemStackHandler unlockInventory = new GTItemStackHandler(this, 2) {
+    private long unlockComponentsSeed = 0L;    private final ItemStackHandler unlockInventory = new GTItemStackHandler(this, 2) {
 
         @NotNull
         @Override
@@ -90,10 +88,8 @@ public class MetaTileEntityLockedSafe extends MetaTileEntity implements IFastRen
             recheckUnlockItemsAndUnlock();
         }
     };
-    private final ItemStackHandler safeLootInventory = new GTItemStackHandler(this, 27);
     private float doorAngle = 0.0f;
     private float prevDoorAngle = 0.0f;
-
     public MetaTileEntityLockedSafe(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
     }
@@ -104,6 +100,7 @@ public class MetaTileEntityLockedSafe extends MetaTileEntity implements IFastRen
             clearInventory(itemBuffer, safeLootInventory);
         }
     }
+
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityLockedSafe(metaTileEntityId);
@@ -428,4 +425,6 @@ public class MetaTileEntityLockedSafe extends MetaTileEntity implements IFastRen
     public boolean showToolUsages() {
         return false;
     }
+
+
 }

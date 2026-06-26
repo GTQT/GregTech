@@ -185,8 +185,7 @@ public class MetaTileEntityTeleporter extends TieredMetaTileEntity implements IC
         entity.setPositionAndUpdate(targetX, targetY, targetZ);
 
         // 只对玩家发送提示消息
-        if (!world.isRemote && entity instanceof EntityPlayer) {
-            EntityPlayer player = (EntityPlayer) entity;
+        if (!world.isRemote && entity instanceof EntityPlayer player) {
             player.sendStatusMessage(new TextComponentTranslation(
                     "gregtech.machine.teleporter.teleport_success",
                     TextFormattingUtil.formatNumbers(targetX),

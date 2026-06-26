@@ -25,26 +25,27 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeBender extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_bender", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX")
-                    .aisle("XXXXXXX", "XXXGGGX", "XXXXXXX")
-                    .aisle("XXXXXXX", "XSXCCCX", "XXXXXXX")
-                    .self('S', MetaTileEntityLargeBender.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('G', states(getCasingState2()))
-                    .where('C', states(getCasingState3()))
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_bender", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX")
+                            .aisle("XXXXXXX", "XXXGGGX", "XXXXXXX")
+                            .aisle("XXXXXXX", "XSXCCCX", "XXXXXXX")
+                            .self('S', MetaTileEntityLargeBender.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('G', states(getCasingState2()))
+                            .where('C', states(getCasingState3()))
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeBender(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.BENDER_RECIPES,
                 RecipeMaps.COMPRESSOR_RECIPES,
                 RecipeMaps.FORMING_PRESS_RECIPES,
@@ -52,16 +53,16 @@ public class MetaTileEntityLargeBender extends GCYMAdvanceRecipeMapMultiblockCon
         });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.STRESS_PROOF_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.STEEL_GEARBOX);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.TEMPERED_GLASS);
     }
 

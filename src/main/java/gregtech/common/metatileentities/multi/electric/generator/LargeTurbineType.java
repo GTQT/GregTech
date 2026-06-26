@@ -16,17 +16,17 @@ public enum LargeTurbineType implements ILargeTurbineType {
 
     STEAM("steam", RecipeMaps.STEAM_TURBINE_FUELS, GTValues.HV,
             MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.STEEL_TURBINE_CASING),
-                    MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.STEEL_GEARBOX),
+            MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.STEEL_GEARBOX),
             Textures.TURBINE_STEEL_CASING, false, Textures.LARGE_STEAM_TURBINE_OVERLAY),
 
     GAS("gas", RecipeMaps.GAS_TURBINE_FUELS, GTValues.EV,
             MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.STAINLESS_TURBINE_CASING),
-                    MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.STAINLESS_STEEL_GEARBOX),
+            MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.STAINLESS_STEEL_GEARBOX),
             Textures.TURBINE_STAINLESS_STEEL_CASING, true, Textures.LARGE_GAS_TURBINE_OVERLAY),
 
     PLASMA("plasma", RecipeMaps.PLASMA_GENERATOR_FUELS, GTValues.IV,
             MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.TUNGSTENSTEEL_TURBINE_CASING),
-                    MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.TUNGSTENSTEEL_GEARBOX),
+            MetaBlocks.TURBINE_CASING.getState(TurbineCasingType.TUNGSTENSTEEL_GEARBOX),
             Textures.TURBINE_TUNGSTENSTEEL_CASING, false, Textures.LARGE_PLASMA_TURBINE_OVERLAY);
 
     private final RecipeMap<?> recipeMap;
@@ -61,6 +61,7 @@ public enum LargeTurbineType implements ILargeTurbineType {
 
     @Override
     public int getTier() {return tier;}
+
     @Override
     public @NotNull IBlockState getCasingState() {
         return casingType;

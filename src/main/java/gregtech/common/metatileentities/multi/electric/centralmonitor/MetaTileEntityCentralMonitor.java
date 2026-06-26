@@ -96,50 +96,198 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase implements IFastRenderMetaTileEntity {
 
-    private final static long ENERGY_COST = ConfigHolder.machines.centralMonitorEuCost;
     public final static int MAX_HEIGHT = 9;
     public final static int MAX_WIDTH = 14;
+    private final static long ENERGY_COST = ConfigHolder.machines.centralMonitorEuCost;
     private static final int MIN_HEIGHT = 2;
     private static final int MIN_WIDTH = 3;
     private static final StructureContributionKey<MonitorDimensions, MonitorDimensions>
             MONITOR_DIMENSIONS_KEY = StructureContributionKey.uniform(
-                    "gregtech:central_monitor/dimensions");
+            "gregtech:central_monitor/dimensions");
     private static final MonitorScreenElement MONITOR_SCREEN_ELEMENT =
             new MonitorScreenElement();
     private static final StructureDefinition<MetaTileEntityCentralMonitor>
             STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-                    "gregtech:central_monitor",
-                    () -> StructureDefinition
-                            .<MetaTileEntityCentralMonitor>builder(
-                                    RelativeDirection.UP,
-                                    RelativeDirection.BACK,
-                                    RelativeDirection.RIGHT)
-                            .piece("runtime", "S")
-                            .where('S', gregtech.api.pattern.element.Elements.self(
-                                    MetaTileEntityCentralMonitor.class))
-                            .end()
-                            .globalAbilityLimit(
-                                    MultiblockAbility.INPUT_ENERGY, 1, 3)
-                            .runtimeDetector(
-                                    MetaTileEntityCentralMonitor::detectRuntimeStructure)
-                            .build());
+            "gregtech:central_monitor",
+            () -> StructureDefinition
+                    .<MetaTileEntityCentralMonitor>builder(
+                            RelativeDirection.UP,
+                            RelativeDirection.BACK,
+                            RelativeDirection.RIGHT)
+                    .piece("runtime", "S")
+                    .where('S', gregtech.api.pattern.element.Elements.self(
+                            MetaTileEntityCentralMonitor.class))
+                    .end()
+                    .globalAbilityLimit(
+                            MultiblockAbility.INPUT_ENERGY, 1, 3)
+                    .runtimeDetector(
+                            MetaTileEntityCentralMonitor::detectRuntimeStructure)
+                    .build());
     // run-time data
     public int width;
+    @SideOnly(Side.CLIENT)
+    public List<BlockPos> parts;
+    public MetaTileEntityMonitorScreen[][] screens;
+    // detected structure dimensions
+    public int height = 3;
     private long lastUpdate;
     private WeakReference<EnergyNet> currentEnergyNet;
     private List<BlockPos> activeNodes;
     private Set<FacingPos> netCovers;
     private Set<FacingPos> remoteCovers;
-    @SideOnly(Side.CLIENT)
-    public List<BlockPos> parts;
-    public MetaTileEntityMonitorScreen[][] screens;
     private boolean isActive;
     private EnergyContainerList inputEnergy;
-    // detected structure dimensions
-    public int height = 3;
 
     public MetaTileEntityCentralMonitor(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
+    }
+
+    private static boolean detectRuntimeStructure(
+            @NotNull StructureRuntimeDetectionContext<
+                    MetaTileEntityCentralMonitor> context) {
+        int detectedHeight = 1;
+        for (int vertical = 0; vertical <= MAX_HEIGHT - 2; vertical++) {
+            BlockPos probe = context.localPos(
+                    vertical, 0, 1,
+                    RelativeDirection.UP,
+                    RelativeDirection.BACK,
+                    RelativeDirection.RIGHT);
+            if (!isMonitorScreen(context.getWorld(), probe)) {
+                break;
+            }
+            detectedHeight++;
+        }
+        BlockPos bottomScreenPos = context.localPos(
+                -1, 0, 1,
+                RelativeDirection.UP,
+                RelativeDirection.BACK,
+                RelativeDirection.RIGHT);
+        if (!isMonitorScreen(context.getWorld(), bottomScreenPos) || detectedHeight < MIN_HEIGHT) {
+            return context.fail(
+                    bottomScreenPos,
+                    "at least " + MIN_HEIGHT + " contiguous monitor rows",
+                    "detected height " + (detectedHeight - 1));
+        }
+
+        int detectedWidth = 0;
+        for (int column = 1; column <= MAX_WIDTH; column++) {
+            BlockPos probe = context.localPos(
+                    0, 0, column,
+                    RelativeDirection.UP,
+                    RelativeDirection.BACK,
+                    RelativeDirection.RIGHT);
+            if (!isMonitorScreen(context.getWorld(), probe)) {
+                break;
+            }
+            detectedWidth++;
+        }
+        if (detectedWidth < MIN_WIDTH) {
+            return context.fail(
+                    context.localPos(
+                            0, 0, detectedWidth + 1,
+                            RelativeDirection.UP,
+                            RelativeDirection.BACK,
+                            RelativeDirection.RIGHT),
+                    "at least " + MIN_WIDTH + " contiguous monitor columns",
+                    "detected width " + detectedWidth);
+        }
+
+        for (int column = 1; column <= detectedWidth; column++) {
+            BlockPos belowPos = context.localPos(
+                    -2, 0, column,
+                    RelativeDirection.UP,
+                    RelativeDirection.BACK,
+                    RelativeDirection.RIGHT);
+            BlockPos abovePos = context.localPos(
+                    detectedHeight - 1, 0, column,
+                    RelativeDirection.UP,
+                    RelativeDirection.BACK,
+                    RelativeDirection.RIGHT);
+            boolean extendsBelow = isMonitorScreen(context.getWorld(), belowPos);
+            boolean extendsAbove = isMonitorScreen(context.getWorld(), abovePos);
+            if (extendsBelow || extendsAbove) {
+                return context.fail(
+                        extendsBelow ? belowPos : abovePos,
+                        "monitor height in [" + MIN_HEIGHT + ", " + MAX_HEIGHT + "]",
+                        "screen wall extends beyond detected height " + detectedHeight);
+            }
+        }
+
+        MonitorDimensions dimensions =
+                new MonitorDimensions(detectedWidth, detectedHeight);
+        context.emit(MONITOR_DIMENSIONS_KEY, dimensions);
+
+        IStructureElement<?> controllerElement =
+                gregtech.api.pattern.element.Elements.self(
+                        MetaTileEntityCentralMonitor.class);
+        IStructureElement<?> frameElement = new ChainElement(
+                gregtech.api.pattern.element.Elements.block(
+                        MetaBlocks.METAL_CASING.getState(
+                                BlockMetalCasing.MetalCasingType.STEEL_SOLID)),
+                new HatchElement(
+                        MultiblockAbility.INPUT_ENERGY, 0, 3));
+
+        for (int vertical = -1;
+                vertical <= detectedHeight - 2;
+                vertical++) {
+            BlockPos topPos = context.localPos(
+                    vertical, 0, 0,
+                    RelativeDirection.UP,
+                    RelativeDirection.BACK,
+                    RelativeDirection.RIGHT);
+            IStructureElement<?> topElement =
+                    vertical == 0 ? controllerElement : frameElement;
+            if (!context.match(topPos, topElement)) {
+                return context.fail(
+                        topPos,
+                        vertical == 0
+                                ? "central monitor controller"
+                                : "steel frame or input energy hatch",
+                        String.valueOf(
+                                context.getWorld().getBlockState(topPos)));
+            }
+
+            for (int column = 1;
+                    column <= detectedWidth;
+                    column++) {
+                BlockPos screenPos = context.localPos(
+                        vertical, 0, column,
+                        RelativeDirection.UP,
+                        RelativeDirection.BACK,
+                        RelativeDirection.RIGHT);
+                if (!context.match(screenPos, MONITOR_SCREEN_ELEMENT)) {
+                    return context.fail(
+                            screenPos,
+                            "central monitor screen",
+                            String.valueOf(
+                                    context.getWorld().getBlockState(screenPos)));
+                }
+            }
+
+            BlockPos endPos = context.localPos(
+                    vertical, 0, detectedWidth + 1,
+                    RelativeDirection.UP,
+                    RelativeDirection.BACK,
+                    RelativeDirection.RIGHT);
+            if (!context.match(endPos, frameElement)) {
+                return context.fail(
+                        endPos,
+                        "steel frame or input energy hatch",
+                        String.valueOf(
+                                context.getWorld().getBlockState(endPos)));
+            }
+        }
+        return true;
+    }
+
+    private static boolean isMonitorScreen(
+            @NotNull World world,
+            @NotNull BlockPos pos) {
+        MetaTileEntity metaTileEntity =
+                GTUtility.getMetaTileEntity(world, pos);
+        return metaTileEntity != null
+                && metaTileEntity.metaTileEntityId.equals(
+                MetaTileEntities.MONITOR_SCREEN.metaTileEntityId);
     }
 
     private EnergyNet getEnergyNet() {
@@ -291,14 +439,14 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         }
     }
 
+    public boolean isActive() {
+        return isStructureFormed() && isActive;
+    }
+
     private void setActive(boolean isActive) {
         if (isActive == this.isActive) return;
         this.isActive = isActive;
         writeCustomData(GregtechDataCodes.UPDATE_ACTIVE, buf -> buf.writeBoolean(this.isActive));
-    }
-
-    public boolean isActive() {
-        return isStructureFormed() && isActive;
     }
 
     private void clearScreens() {
@@ -447,166 +595,18 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         }
         return DeclarativePatternBuilder.start(UP, BACK, RIGHT)
                 .piece("top")
-                    .aisle(start.toString())
+                .aisle(start.toString())
                 .repeatablePiece("body", MIN_WIDTH, MAX_WIDTH)
-                    .aisle(slice.toString())
-                    .withAisleChannel(GTStructureChannels.STRUCTURE_WIDTH.getName())
+                .aisle(slice.toString())
+                .withAisleChannel(GTStructureChannels.STRUCTURE_WIDTH.getName())
                 .piece("bottom")
-                    .aisle(end.toString())
+                .aisle(end.toString())
                 .self('S', MetaTileEntityCentralMonitor.class)
                 .metaTileEntities('B', MetaTileEntities.MONITOR_SCREEN)
                 .casing('A',
                         MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID))
-                    .energyInput(1, 3)
+                .energyInput(1, 3)
                 .buildStructureDefinition();
-    }
-
-    private static boolean detectRuntimeStructure(
-            @NotNull StructureRuntimeDetectionContext<
-                    MetaTileEntityCentralMonitor> context) {
-        int detectedHeight = 1;
-        for (int vertical = 0; vertical <= MAX_HEIGHT - 2; vertical++) {
-            BlockPos probe = context.localPos(
-                    vertical, 0, 1,
-                    RelativeDirection.UP,
-                    RelativeDirection.BACK,
-                    RelativeDirection.RIGHT);
-            if (!isMonitorScreen(context.getWorld(), probe)) {
-                break;
-            }
-            detectedHeight++;
-        }
-        BlockPos bottomScreenPos = context.localPos(
-                -1, 0, 1,
-                RelativeDirection.UP,
-                RelativeDirection.BACK,
-                RelativeDirection.RIGHT);
-        if (!isMonitorScreen(context.getWorld(), bottomScreenPos) || detectedHeight < MIN_HEIGHT) {
-            return context.fail(
-                    bottomScreenPos,
-                    "at least " + MIN_HEIGHT + " contiguous monitor rows",
-                    "detected height " + (detectedHeight - 1));
-        }
-
-        int detectedWidth = 0;
-        for (int column = 1; column <= MAX_WIDTH; column++) {
-            BlockPos probe = context.localPos(
-                    0, 0, column,
-                    RelativeDirection.UP,
-                    RelativeDirection.BACK,
-                    RelativeDirection.RIGHT);
-            if (!isMonitorScreen(context.getWorld(), probe)) {
-                break;
-            }
-            detectedWidth++;
-        }
-        if (detectedWidth < MIN_WIDTH) {
-            return context.fail(
-                    context.localPos(
-                            0, 0, detectedWidth + 1,
-                            RelativeDirection.UP,
-                            RelativeDirection.BACK,
-                            RelativeDirection.RIGHT),
-                    "at least " + MIN_WIDTH + " contiguous monitor columns",
-                    "detected width " + detectedWidth);
-        }
-
-        for (int column = 1; column <= detectedWidth; column++) {
-            BlockPos belowPos = context.localPos(
-                    -2, 0, column,
-                    RelativeDirection.UP,
-                    RelativeDirection.BACK,
-                    RelativeDirection.RIGHT);
-            BlockPos abovePos = context.localPos(
-                    detectedHeight - 1, 0, column,
-                    RelativeDirection.UP,
-                    RelativeDirection.BACK,
-                    RelativeDirection.RIGHT);
-            boolean extendsBelow = isMonitorScreen(context.getWorld(), belowPos);
-            boolean extendsAbove = isMonitorScreen(context.getWorld(), abovePos);
-            if (extendsBelow || extendsAbove) {
-                return context.fail(
-                        extendsBelow ? belowPos : abovePos,
-                        "monitor height in [" + MIN_HEIGHT + ", " + MAX_HEIGHT + "]",
-                        "screen wall extends beyond detected height " + detectedHeight);
-            }
-        }
-
-        MonitorDimensions dimensions =
-                new MonitorDimensions(detectedWidth, detectedHeight);
-        context.emit(MONITOR_DIMENSIONS_KEY, dimensions);
-
-        IStructureElement<?> controllerElement =
-                gregtech.api.pattern.element.Elements.self(
-                        MetaTileEntityCentralMonitor.class);
-        IStructureElement<?> frameElement = new ChainElement(
-                gregtech.api.pattern.element.Elements.block(
-                        MetaBlocks.METAL_CASING.getState(
-                                BlockMetalCasing.MetalCasingType.STEEL_SOLID)),
-                new HatchElement(
-                        MultiblockAbility.INPUT_ENERGY, 0, 3));
-
-        for (int vertical = -1;
-             vertical <= detectedHeight - 2;
-             vertical++) {
-            BlockPos topPos = context.localPos(
-                    vertical, 0, 0,
-                    RelativeDirection.UP,
-                    RelativeDirection.BACK,
-                    RelativeDirection.RIGHT);
-            IStructureElement<?> topElement =
-                    vertical == 0 ? controllerElement : frameElement;
-            if (!context.match(topPos, topElement)) {
-                return context.fail(
-                        topPos,
-                        vertical == 0
-                                ? "central monitor controller"
-                                : "steel frame or input energy hatch",
-                        String.valueOf(
-                                context.getWorld().getBlockState(topPos)));
-            }
-
-            for (int column = 1;
-                 column <= detectedWidth;
-                 column++) {
-                BlockPos screenPos = context.localPos(
-                        vertical, 0, column,
-                        RelativeDirection.UP,
-                        RelativeDirection.BACK,
-                        RelativeDirection.RIGHT);
-                if (!context.match(screenPos, MONITOR_SCREEN_ELEMENT)) {
-                    return context.fail(
-                            screenPos,
-                            "central monitor screen",
-                            String.valueOf(
-                                    context.getWorld().getBlockState(screenPos)));
-                }
-            }
-
-            BlockPos endPos = context.localPos(
-                    vertical, 0, detectedWidth + 1,
-                    RelativeDirection.UP,
-                    RelativeDirection.BACK,
-                    RelativeDirection.RIGHT);
-            if (!context.match(endPos, frameElement)) {
-                return context.fail(
-                        endPos,
-                        "steel frame or input energy hatch",
-                        String.valueOf(
-                                context.getWorld().getBlockState(endPos)));
-            }
-        }
-        return true;
-    }
-
-    private static boolean isMonitorScreen(
-            @NotNull World world,
-            @NotNull BlockPos pos) {
-        MetaTileEntity metaTileEntity =
-                GTUtility.getMetaTileEntity(world, pos);
-        return metaTileEntity != null
-                && metaTileEntity.metaTileEntityId.equals(
-                        MetaTileEntities.MONITOR_SCREEN.metaTileEntityId);
     }
 
     @Override
@@ -660,9 +660,8 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     }
 
     /**
-     * Resolve the preview height from channel values, falling back to the
-     * last detected height when no {@code structure_height} channel is present
-     * or the value is out of range.
+     * Resolve the preview height from channel values, falling back to the last detected height when no
+     * {@code structure_height} channel is present or the value is out of range.
      */
     private int resolvePreviewHeight(@Nullable Map<String, Integer> channelValues) {
         if (channelValues != null) {
@@ -674,11 +673,9 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
     }
 
     /**
-     * Expose width and height channels so the structure projector can
-     * configure preview size and auto-build dimensions for the central monitor.
-     * The runtime structure definition is a minimal runtime-detected piece and
-     * does not carry channel metadata, so the channels are reported here
-     * explicitly based on the tooling definition's capabilities.
+     * Expose width and height channels so the structure projector can configure preview size and auto-build dimensions
+     * for the central monitor. The runtime structure definition is a minimal runtime-detected piece and does not carry
+     * channel metadata, so the channels are reported here explicitly based on the tooling definition's capabilities.
      */
     @NotNull
     @Override
@@ -725,8 +722,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         checkCovers();
         screens = new MetaTileEntityMonitorScreen[width][height];
         for (IMultiblockPart part : this.getMultiblockParts()) {
-            if (part instanceof MetaTileEntityMonitorScreen) {
-                MetaTileEntityMonitorScreen screen = (MetaTileEntityMonitorScreen) part;
+            if (part instanceof MetaTileEntityMonitorScreen screen) {
                 screens[screen.getX()][screen.getY()] = screen;
             }
         }
@@ -816,9 +812,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
                     for (BlockPos pos : parts) {
                         TileEntity tileEntity = getWorld().getTileEntity(pos);
                         if (tileEntity instanceof IGregTechTileEntity && ((IGregTechTileEntity) tileEntity)
-                                .getMetaTileEntity() instanceof MetaTileEntityMonitorScreen) {
-                            MetaTileEntityMonitorScreen screen = (MetaTileEntityMonitorScreen) ((IGregTechTileEntity) tileEntity)
-                                    .getMetaTileEntity();
+                                .getMetaTileEntity() instanceof MetaTileEntityMonitorScreen screen) {
                             screen.addToMultiBlock(this);
                             int sx = screen.getX(), sy = screen.getY();
                             if (sx < 0 || sx >= width || sy < 0 || sy >= height) {
@@ -896,9 +890,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
                 parts.forEach(partPos -> {
                     TileEntity tileEntity = this.getWorld().getTileEntity(partPos);
                     if (tileEntity instanceof IGregTechTileEntity && ((IGregTechTileEntity) tileEntity)
-                            .getMetaTileEntity() instanceof MetaTileEntityMonitorScreen) {
-                        MetaTileEntityMonitorScreen part = (MetaTileEntityMonitorScreen) ((IGregTechTileEntity) tileEntity)
-                                .getMetaTileEntity();
+                            .getMetaTileEntity() instanceof MetaTileEntityMonitorScreen part) {
                         int x = part.getX();
                         int y = part.getY();
                         screenGrids[x][y].setScreen(part);
@@ -973,7 +965,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
                             context.getWorld(), context.getPos());
             if (metaTileEntity == null
                     || !metaTileEntity.metaTileEntityId.equals(
-                            MetaTileEntities.MONITOR_SCREEN.metaTileEntityId)) {
+                    MetaTileEntities.MONITOR_SCREEN.metaTileEntityId)) {
                 return false;
             }
             if (metaTileEntity instanceof IMultiblockPart) {

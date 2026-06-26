@@ -56,7 +56,7 @@ public class MetaTileEntityParallelHatch extends MetaTileEntityMultiblockPart
         this.currentParallel = this.maxParallel;
     }
 
-    public MetaTileEntityParallelHatch(ResourceLocation metaTileEntityId, int tier , int maxParallel) {
+    public MetaTileEntityParallelHatch(ResourceLocation metaTileEntityId, int tier, int maxParallel) {
         super(metaTileEntityId, tier);
         this.maxParallel = maxParallel;
         this.currentParallel = this.maxParallel;
@@ -169,7 +169,6 @@ public class MetaTileEntityParallelHatch extends MetaTileEntityMultiblockPart
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         abilityInstances.add(this);
     }
-
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {

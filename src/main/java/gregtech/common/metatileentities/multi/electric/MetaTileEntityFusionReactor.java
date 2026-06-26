@@ -47,6 +47,7 @@ import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -139,7 +140,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         return primaryTemplate(pooledStructureDefinition(type), type.getName());
     }
 
-    private static StructureDefinition pooledStructureDefinition(IFusionReactorType type) {
+    private static StructureDefinition<?> pooledStructureDefinition(IFusionReactorType type) {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
                 .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
         return definition.get();
@@ -149,7 +150,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         return "gregtech:fusion_reactor." + type.getName();
     }
 
-    private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {
+    private static BlockPatternTemplate primaryTemplate(StructureDefinition<?> definition, String key) {
         BlockPatternTemplate template = definition.getPrimaryTemplate();
         if (template == null) {
             throw new IllegalStateException("Fusion reactor type '" + key + "' is not a single-piece structure");
@@ -157,7 +158,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         return template;
     }
 
-    private static StructureDefinition buildStructureDefinition(IFusionReactorType type) {
+    private static StructureDefinition<?> buildStructureDefinition(IFusionReactorType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("###############", "######OGO######", "###############")
                 .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
@@ -347,6 +348,11 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
     @Override
     protected ICubeRenderer getFrontOverlay() {
         return Textures.FUSION_REACTOR_OVERLAY;
+    }
+
+    @Override
+    public IBlockState getCasingBlock() {
+        return type.getCasingState();
     }
 
     @Override

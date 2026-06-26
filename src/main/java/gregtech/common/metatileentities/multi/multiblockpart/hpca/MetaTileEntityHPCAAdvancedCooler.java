@@ -1,11 +1,7 @@
 package gregtech.common.metatileentities.multi.multiblockpart.hpca;
 
-import com.cleanroommc.modularui.drawable.UITexture;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.IHPCACoolantProvider;
-import gregtech.api.gui.GuiTextures;
-import gregtech.api.gui.resources.TextureArea;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
@@ -14,10 +10,11 @@ import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 
 import net.minecraft.util.ResourceLocation;
 
+import com.cleanroommc.modularui.drawable.UITexture;
+
 import static gregtech.api.GTValues.*;
 
 public class MetaTileEntityHPCAAdvancedCooler extends MetaTileEntityHPCAComponent implements IHPCACoolantProvider {
-
 
     private final boolean supers;
     private final boolean ultimate;
@@ -50,7 +47,8 @@ public class MetaTileEntityHPCAAdvancedCooler extends MetaTileEntityHPCAComponen
     @Override//组件图标(UI) T/F TODO
     public UITexture getComponentIcon() {
         if (isDamaged())
-            return supers ? GTGuiTextures.HPCA_ICON_ACTIVE_COOLER_COMPONENT : GTGuiTextures.HPCA_ICON_HEAT_SINK_COMPONENT;
+            return supers ? GTGuiTextures.HPCA_ICON_ACTIVE_COOLER_COMPONENT :
+                    GTGuiTextures.HPCA_ICON_HEAT_SINK_COMPONENT;
         return ultimate ? GTGuiTextures.HPCA_ICON_ACTIVE_COOLER_COMPONENT : GTGuiTextures.HPCA_ICON_HEAT_SINK_COMPONENT;
     }
 
@@ -86,6 +84,7 @@ public class MetaTileEntityHPCAAdvancedCooler extends MetaTileEntityHPCAComponen
             return supers ? 1024 : 256;
         return ultimate ? 4096 : 256;
     }
+
     @Override
     public boolean canBeDamaged() {
         return false;

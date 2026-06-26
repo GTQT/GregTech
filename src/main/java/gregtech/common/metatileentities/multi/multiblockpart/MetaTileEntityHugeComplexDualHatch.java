@@ -75,16 +75,16 @@ import static net.minecraft.util.text.TextFormatting.GREEN;
 
 public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblockPart
         implements IMultiblockAbilityPart<DualHandler>, IControllable, IGhostSlotConfigurable {
+
     //item
     @Nullable
     protected GhostCircuitItemStackHandler circuitInventory;
     @Nullable
-    private IItemHandlerModifiable actualImportItems;
-    @Nullable
     protected LargeSlotItemStackHandler commonItems;
     @Nullable
     protected FluidTankList commonFluids;
-
+    @Nullable
+    private IItemHandlerModifiable actualImportItems;
     private boolean workingEnabled;
     private boolean autoCollapse;
 
@@ -148,14 +148,17 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
     public IItemHandlerModifiable getImportItems() {
         return this.actualImportItems == null ? super.getImportItems() : this.actualImportItems;
     }
+
     @Override
     public IItemHandlerModifiable getExportItems() {
         return commonItems;
     }
+
     @Override
     public FluidTankList getImportFluids() {
         return commonFluids;
     }
+
     @Override
     public FluidTankList getExportFluids() {
         return commonFluids;
@@ -189,21 +192,9 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
         }
     }
 
-
     @Override
     public boolean hasGhostCircuitInventory() {
         return true;
-    }
-
-    @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
-            return;
-        }
-        this.circuitInventory.setCircuitValue(config);
-        if (!getWorld().isRemote) {
-            markDirty();
-        }
     }
 
     @Override
@@ -225,6 +216,16 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
         return this.circuitInventory.getCircuitValue();
     }
 
+    @Override
+    public void setGhostCircuitConfig(int config) {
+        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+            return;
+        }
+        this.circuitInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
 
     @Override
     public @NotNull List<MultiblockAbility<?>> getAbilities() {
@@ -238,14 +239,14 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        if (abilityInstances.isKey(MultiblockAbility.EXPORT_ITEMS))
-        {
+        if (abilityInstances.isKey(MultiblockAbility.EXPORT_ITEMS)) {
             abilityInstances.add(this.commonItems);
         }
         if (abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS)) {
             abilityInstances.add(this.actualImportItems);
         }
-        if (abilityInstances.isKey(MultiblockAbility.EXPORT_FLUIDS) || abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
+        if (abilityInstances.isKey(MultiblockAbility.EXPORT_FLUIDS) ||
+                abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
             abilityInstances.add(this.commonFluids);
         }
     }
@@ -356,7 +357,6 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
         }
     }
 
-
     @Override
     public void writeInitialSyncData(PacketBuffer buf) {
         super.writeInitialSyncData(buf);
@@ -370,7 +370,6 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
         this.workingEnabled = buf.readBoolean();
         this.autoCollapse = buf.readBoolean();
     }
-
 
     @Override
     public boolean isWorkingEnabled() {
@@ -454,6 +453,10 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
         return true;
     }
 
+    public boolean isAutoCollapse() {
+        return autoCollapse;
+    }
+
     public void setAutoCollapse(boolean inverted) {
         autoCollapse = inverted;
         if (!getWorld().isRemote) {
@@ -468,17 +471,14 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
         }
     }
 
-    public boolean isAutoCollapse() {
-        return autoCollapse;
-    }
-
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip.1"));
         tooltip.add(I18n.format("gregtech.machine.complex_dual_hatch.tooltip.2"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(), getTankCapacity()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(),
+                getTankCapacity()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
         tooltip.add(GREEN + I18n.format("gregtech.machine.super_item_bus.tooltip"));
     }
@@ -508,6 +508,6 @@ public class MetaTileEntityHugeComplexDualHatch extends MetaTileEntityMultiblock
     @Override
     public void onRemoval() {
         super.onRemoval();
-        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), commonItems);
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), commonItems);
     }
 }

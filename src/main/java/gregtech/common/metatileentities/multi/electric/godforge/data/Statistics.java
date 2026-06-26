@@ -1,14 +1,14 @@
 package gregtech.common.metatileentities.multi.electric.godforge.data;
 
-import static net.minecraft.util.text.translation.I18n.translateToLocal;
-
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.translation.I18n;
-
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTEBaseModule;
 import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGodsData;
 import gregtech.common.metatileentities.multi.electric.godforge.util.GodforgeMath;
+
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.translation.I18n;
+
+import static net.minecraft.util.text.translation.I18n.translateToLocal;
 
 public enum Statistics {
 

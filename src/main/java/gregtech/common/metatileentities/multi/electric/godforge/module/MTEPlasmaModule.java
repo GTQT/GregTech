@@ -1,9 +1,5 @@
 package gregtech.common.metatileentities.multi.electric.godforge.module;
 
-import net.minecraft.util.ResourceLocation;
-
-import org.jetbrains.annotations.NotNull;
-
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.pattern.element.Elements;
@@ -15,6 +11,10 @@ import gregtech.api.recipes.properties.impl.FogPlasmaTierProperty;
 import gregtech.common.blocks.BlockGodforgeCasing;
 import gregtech.common.mui.multiblock.godforge.MTEBaseModuleGui;
 import gregtech.common.mui.multiblock.godforge.MTEPlasmaModuleGui;
+
+import net.minecraft.util.ResourceLocation;
+
+import org.jetbrains.annotations.NotNull;
 
 public class MTEPlasmaModule extends MTEBaseModule {
 
@@ -52,11 +52,7 @@ public class MTEPlasmaModule extends MTEBaseModule {
 
         // Check multi-step capability: requires TPTP upgrade
         boolean recipeMultiStep = recipe.getProperty(FogMultiStepProperty.getInstance(), false);
-        if (recipeMultiStep && !isMultiStepPlasma()) {
-            return false;
-        }
-
-        return true;
+        return !recipeMultiStep || isMultiStepPlasma();
     }
 
     public int getInputMaxParallel() {

@@ -33,43 +33,44 @@ import java.util.List;
 
 public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_assembler", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXXXXXXXX", "XXXXXXXXX", "XXXXXXXXX")
-                    .aisle("XXXXXXXXX", "XAAAXAXAX", "XCCCXXXXX")
-                    .aisle("XXXXXXXXX", "XCCCXXSXX", "XCCCX###X")
-                    .self('S',MetaTileEntityLargeAssembler.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_assembler", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXXXXXX", "XXXXXXXXX", "XXXXXXXXX")
+                            .aisle("XXXXXXXXX", "XAAAXAXAX", "XCCCXXXXX")
+                            .aisle("XXXXXXXXX", "XCCCXXSXX", "XCCCX###X")
+                            .self('S', MetaTileEntityLargeAssembler.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeAssembler(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, determineRecipeMaps());
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.ASSEMBLING_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.TEMPERED_GLASS);
     }
 
     private static @NotNull RecipeMap<?> @NotNull [] determineRecipeMaps() {
         RecipeMap<?> cuisineAssemblerMap = RecipeMap.getByName("cuisine_assembler");
         if (Loader.isModLoaded(GCYMValues.GTFO_MODID) && cuisineAssemblerMap != null) {
-            return new RecipeMap<?>[]{RecipeMaps.ASSEMBLER_RECIPES, cuisineAssemblerMap};
+            return new RecipeMap<?>[] { RecipeMaps.ASSEMBLER_RECIPES, cuisineAssemblerMap };
         }
-        return new RecipeMap<?>[]{RecipeMaps.ASSEMBLER_RECIPES};
+        return new RecipeMap<?>[] { RecipeMaps.ASSEMBLER_RECIPES };
     }
 
     @Override

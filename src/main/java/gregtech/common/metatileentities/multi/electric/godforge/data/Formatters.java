@@ -1,8 +1,8 @@
 package gregtech.common.metatileentities.multi.electric.godforge.data;
 
-import java.math.BigInteger;
-
 import gregtech.api.util.TextFormattingUtil;
+
+import java.math.BigInteger;
 
 public enum Formatters {
 
@@ -12,32 +12,10 @@ public enum Formatters {
 
     public static final Formatters[] VALUES = values();
 
-    public Formatters cycle() {
-        switch (this) {
-            case NONE: return COMMA;
-            case COMMA: return EXPONENT;
-            case EXPONENT: return NONE;
-            default: return NONE;
-        }
-    }
-
-    public String format(Number number) {
-        switch (this) {
-            case NONE:
-                return number.toString();
-            case COMMA:
-                return TextFormattingUtil.formatNumbers(number);
-            case EXPONENT:
-                return toExponentForm(number);
-            default:
-                return number.toString();
-        }
-    }
-
     private static String toExponentForm(Number number) {
         double value;
         if (number instanceof BigInteger) {
-            value = ((BigInteger) number).doubleValue();
+            value = number.doubleValue();
         } else {
             value = number.doubleValue();
         }
@@ -58,5 +36,31 @@ public enum Formatters {
         }
 
         return String.format("%.3fE%d", mantissa, exponent);
+    }
+
+    public Formatters cycle() {
+        switch (this) {
+            case NONE:
+                return COMMA;
+            case COMMA:
+                return EXPONENT;
+            case EXPONENT:
+                return NONE;
+            default:
+                return NONE;
+        }
+    }
+
+    public String format(Number number) {
+        switch (this) {
+            case NONE:
+                return number.toString();
+            case COMMA:
+                return TextFormattingUtil.formatNumbers(number);
+            case EXPONENT:
+                return toExponentForm(number);
+            default:
+                return number.toString();
+        }
     }
 }

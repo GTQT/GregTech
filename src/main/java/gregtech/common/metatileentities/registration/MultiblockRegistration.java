@@ -115,9 +115,11 @@ public final class MultiblockRegistration {
     private static MetaTileEntityMultiblockTank registerTank(int id, String name, boolean isWood, int capacity,
                                                              IBlockState casingState, MetaTileEntityTankValve valve,
                                                              ICubeRenderer texture, SoundType soundType) {
-        return registerMetaTileEntity(id, new MetaTileEntityMultiblockTank(gregtechId("tank." + name), isWood,
+        MetaTileEntityMultiblockTank.registerTankStructure(name, casingState, valve);
+        return registerMetaTileEntity(id, new MetaTileEntityMultiblockTank(gregtechId("tank." + name), name, isWood,
                 capacity, casingState, valve, texture, soundType));
     }
+
     public static void init() {
         registerPrimitiveMultiblocks();
         registerSteamMultiblocks();
@@ -142,17 +144,20 @@ public final class MultiblockRegistration {
         SAW_MILL = registerMetaTileEntity(1007, new MetaTileEntitySawMill(gregtechId("saw_mill")));
 
         WOODEN_TANK_VALVE = registerTankValve(1010, "wood", Materials.Wood, Textures.WOOD_WALL, SoundType.WOOD);
-        WOODEN_TANK = registerTank(1011, "wood", true, 250 * 1000, MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL), WOODEN_TANK_VALVE,
+        WOODEN_TANK = registerTank(1011, "wood", true, 250 * 1000,
+                MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL), WOODEN_TANK_VALVE,
                 Textures.WOOD_WALL, SoundType.WOOD);
 
         BRONZE_TANK_VALVE = registerTankValve(1012, "bronze", Materials.Bronze, Textures.BRONZE_PLATED_BRICKS,
                 SoundType.METAL);
-        BRONZE_TANK = registerTank(1013, "bronze", false, 1000 * 1000, MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS), BRONZE_TANK_VALVE,
+        BRONZE_TANK = registerTank(1013, "bronze", false, 1000 * 1000,
+                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS), BRONZE_TANK_VALVE,
                 Textures.BRONZE_PLATED_BRICKS, SoundType.METAL);
 
         STEEL_TANK_VALVE = registerTankValve(1014, "steel", Materials.Steel, Textures.SOLID_STEEL_CASING,
                 SoundType.METAL);
-        STEEL_TANK = registerTank(1015, "steel", false, 4 * 1000 * 1000, MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID), STEEL_TANK_VALVE,
+        STEEL_TANK = registerTank(1015, "steel", false, 4 * 1000 * 1000,
+                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID), STEEL_TANK_VALVE,
                 Textures.SOLID_STEEL_CASING, SoundType.METAL);
     }
 
@@ -188,7 +193,6 @@ public final class MultiblockRegistration {
                 new MetaTileEntityLargeCombustionEngine(gregtechId("extreme_combustion_engine"), IV));
     }
 
-
     private static void registerElectricMultiblocks() {
         // 多方块
         ELECTRIC_BLAST_FURNACE = registerMetaTileEntity(1150,
@@ -205,7 +209,6 @@ public final class MultiblockRegistration {
 
         IMPLOSION_COMPRESSOR = registerMetaTileEntity(1155,
                 new MetaTileEntityImplosionCompressor(gregtechId("implosion_compressor")));
-
 
         DISTILLATION_TOWER = registerMetaTileEntity(1156,
                 new MetaTileEntityDistillationTower(gregtechId("distillation_tower"), true));
@@ -293,7 +296,6 @@ public final class MultiblockRegistration {
         MEGA_CRACKING_UNIT = registerMetaTileEntity(1237,
                 new MetaTileEntityMegaCrackingUnit(gregtechId("mega_cracking_unit")));
 
-
         // 资源采集
         BASIC_LARGE_MINER = registerMetaTileEntity(1250,
                 new MetaTileEntityLargeMiner(gregtechId("large_miner.ev"), LargeMinerType.BASIC));
@@ -316,7 +318,6 @@ public final class MultiblockRegistration {
 
         ADVANCED_PROCESSING_ARRAY = registerMetaTileEntity(1261,
                 new MetaTileEntityProcessingArray(gregtechId("advanced_processing_array"), 1));
-
 
         CLEANROOM = registerMetaTileEntity(1262, new MetaTileEntityCleanroom(gregtechId("cleanroom")));
 

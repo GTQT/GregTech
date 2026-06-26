@@ -33,36 +33,37 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeChemicalBath extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_chemical_bath", () ->
-            DeclarativePatternBuilder.start(RIGHT, BACK, UP)
-                    .aisle("XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
-                    .aisle("XXSXX", "XCCCX", "XAAAX", "XAAAX", "XAAAX", "XCCCX", "XXXXX")
-                    .aisle("XXXXX", "XAAAX", "XAAAX", "XAAAX", "XAAAX", "XAAAX", "XXXXX")
-                    .self('S', MetaTileEntityLargeChemicalBath.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('A', fluidElement(FluidRegistry.WATER))
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_chemical_bath", () ->
+                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                            .aisle("XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
+                            .aisle("XXSXX", "XCCCX", "XAAAX", "XAAAX", "XAAAX", "XCCCX", "XXXXX")
+                            .aisle("XXXXX", "XAAAX", "XAAAX", "XAAAX", "XAAAX", "XAAAX", "XXXXX")
+                            .self('S', MetaTileEntityLargeChemicalBath.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .where('A', fluidElement(FluidRegistry.WATER))
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
     private boolean waterFilled;
     private List<BlockPos> waterPositions;
 
     public MetaTileEntityLargeChemicalBath(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{RecipeMaps.CHEMICAL_BATH_RECIPES, RecipeMaps.ORE_WASHER_RECIPES});
+        super(metaTileEntityId, new RecipeMap[] { RecipeMaps.CHEMICAL_BATH_RECIPES, RecipeMaps.ORE_WASHER_RECIPES });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.WATERTIGHT_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.TITANIUM_PIPE);
     }
 

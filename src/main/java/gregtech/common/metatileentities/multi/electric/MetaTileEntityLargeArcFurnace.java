@@ -24,38 +24,39 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_arc_furnace", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#")
-                    .aisle("XXXXX", "XCACX", "XCACX", "XXXXX")
-                    .aisle("XXXXX", "XAAAX", "XAAAX", "XXMXX")
-                    .aisle("XXXXX", "XACAX", "XACAX", "XXXXX")
-                    .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#")
-                    .self('S', MetaTileEntityLargeArcFurnace.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1,4)
-                    .maintenance()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .where('C', states(getCasingState2()))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_arc_furnace", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#")
+                            .aisle("XXXXX", "XCACX", "XCACX", "XXXXX")
+                            .aisle("XXXXX", "XAAAX", "XAAAX", "XXMXX")
+                            .aisle("XXXXX", "XACAX", "XACAX", "XXXXX")
+                            .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#")
+                            .self('S', MetaTileEntityLargeArcFurnace.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 4)
+                            .maintenance()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .where('C', states(getCasingState2()))
+                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeArcFurnace(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.ARC_FURNACE_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.HIGH_TEMPERATURE_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.MOLYBDENUM_DISILICIDE_COIL);
     }
 

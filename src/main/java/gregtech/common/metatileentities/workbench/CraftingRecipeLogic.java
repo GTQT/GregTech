@@ -60,33 +60,28 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     public static final int UPDATE_MATRIX = 0;
 
     private final World world;
-    private IItemHandlerModifiable availableHandlers;
     private final ItemStackHashStrategy strategy = ItemStackHashStrategy.builder()
             .compareItem(true)
             .compareMetadata(true)
             .build();
-
     /**
-     * Used to lookup a list of slots for a given stack
-     * filled by {@link CraftingRecipeLogic#refreshStackMap()}
+     * Used to lookup a list of slots for a given stack filled by {@link CraftingRecipeLogic#refreshStackMap()}
      **/
     private final Map<ItemStack, IntSet> stackLookupMap = new Object2ObjectOpenCustomHashMap<>(this.strategy);
-
     /**
      * List of items needed to complete the crafting recipe, filled by
      * {@link CraftingRecipeLogic#detectAndSendChanges(boolean)} )}
      **/
     private final Object2IntMap<ItemStack> requiredItems = new Object2IntOpenCustomHashMap<>(
             this.strategy);
-
     private final Int2IntMap compactedIndexes = new Int2IntArrayMap(9);
     private final Int2IntMap slotMap = new Int2IntArrayMap();
-
     private final Int2ObjectMap<Object2BooleanMap<ItemStack>> replaceAttemptMap = new Int2ObjectArrayMap<>();
     private final InventoryCrafting craftingMatrix;
     private final IInventory craftingResultInventory = new InventoryCraftResult();
     private final CachedRecipeData cachedRecipeData;
     private final CraftingInputSlot[] inputSlots = new CraftingInputSlot[9];
+    private IItemHandlerModifiable availableHandlers;
 
     // ==================== 库存快照（增量变化检测） ====================
     /** 上一次的库存快照，用于增量比较判断库存是否变化 */
@@ -105,6 +100,27 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
         this.cachedRecipeData = new CachedRecipeData();
     }
 
+    public static InventoryCrafting wrapHandler(IItemHandlerModifiable handler) {
+        return new InventoryCrafting(new DummyContainer(), 3, 3) {
+
+            @Override
+            public ItemStack getStackInRowAndColumn(int row, int column) {
+                int index = row + (3 * column);
+                return handler.getStackInSlot(index);
+            }
+
+            @Override
+            public ItemStack getStackInSlot(int index) {
+                return handler.getStackInSlot(index);
+            }
+
+            @Override
+            public void setInventorySlotContents(int index, ItemStack stack) {
+                handler.setStackInSlot(index, GTUtility.copy(1, stack));
+            }
+        };
+    }
+
     public IInventory getCraftingResultInventory() {
         return craftingResultInventory;
     }
@@ -118,8 +134,7 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     }
 
     /**
-     * 利用 stackLookupMap 索引快速统计库存中指定物品的总数量。
-     * 时间复杂度 O(匹配的 slot 数) 而非 O(全部 slot 数)。
+     * 利用 stackLookupMap 索引快速统计库存中指定物品的总数量。 时间复杂度 O(匹配的 slot 数) 而非 O(全部 slot 数)。
      */
     public int countItemInInventory(ItemStack target) {
         if (target.isEmpty()) return 0;
@@ -179,8 +194,7 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     }
 
     /**
-     * 执行合成链中的一个步骤：临时将指定配方加载到合成网格中，执行合成，
-     * 产物放入库存，然后恢复原来的合成网格内容。
+     * 执行合成链中的一个步骤：临时将指定配方加载到合成网格中，执行合成， 产物放入库存，然后恢复原来的合成网格内容。
      *
      * @param step 合成链步骤
      * @return 是否成功
@@ -521,9 +535,7 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
     }
 
     /**
-     * Searches available handlers and
-     * adds the stack and slots the stack lookup map.
-     * 使用增量变化检测：通过快照比较判断库存是否变化，未变化时跳过重建。
+     * Searches available handlers and adds the stack and slots the stack lookup map. 使用增量变化检测：通过快照比较判断库存是否变化，未变化时跳过重建。
      */
     public void refreshStackMap() {
         int slots = this.availableHandlers.getSlots();
@@ -640,26 +652,5 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
             }
         }
         return matrix;
-    }
-
-    public static InventoryCrafting wrapHandler(IItemHandlerModifiable handler) {
-        return new InventoryCrafting(new DummyContainer(), 3, 3) {
-
-            @Override
-            public ItemStack getStackInRowAndColumn(int row, int column) {
-                int index = row + (3 * column);
-                return handler.getStackInSlot(index);
-            }
-
-            @Override
-            public ItemStack getStackInSlot(int index) {
-                return handler.getStackInSlot(index);
-            }
-
-            @Override
-            public void setInventorySlotContents(int index, ItemStack stack) {
-                handler.setStackInSlot(index, GTUtility.copy(1, stack));
-            }
-        };
     }
 }

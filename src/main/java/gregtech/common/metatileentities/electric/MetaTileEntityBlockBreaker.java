@@ -62,9 +62,6 @@ import static gregtech.api.capability.GregtechDataCodes.UPDATE_OUTPUT_FACING;
 
 public class MetaTileEntityBlockBreaker extends TieredMetaTileEntity {
 
-    private EnumFacing outputFacing;
-    private int breakProgressTicksLeft;
-    private float currentBlockHardness;
     private static final List<@NotNull TriPredicate<@NotNull World, @NotNull BlockPos, @NotNull FakePlayer>> PREDICATE_LIST = new ObjectArrayList<>(
             3);
 
@@ -78,23 +75,27 @@ public class MetaTileEntityBlockBreaker extends TieredMetaTileEntity {
         }
     }
 
-    /**
-     * Add a predicate check to the block breaker. Intended to be used to prevent a certain block from being broken.
-     * <br/>
-     * <b>Warning!</b> the {@link FakePlayer} passed to the predicate is not a real player, but a fake one with
-     * the same UUID as the real player who placed the block breaker. <br/>
-     * Return {@code false} to cancel a break attempt on this block. <br/>
-     * Return {@code true} to move onto the next predicate, and eventually break the block only if all other predicates
-     * returned {@code false}.
-     */
-    @SuppressWarnings("unused")
-    public static void registerBlockBreakerPredicate(@NotNull TriPredicate<@NotNull World, @NotNull BlockPos, @NotNull FakePlayer> predicate) {
-        PREDICATE_LIST.add(predicate);
-    }
+    private EnumFacing outputFacing;
+    private int breakProgressTicksLeft;
+    private float currentBlockHardness;
 
     public MetaTileEntityBlockBreaker(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
         initializeInventory();
+    }
+
+    /**
+     * Add a predicate check to the block breaker. Intended to be used to prevent a certain block from being broken.
+     * <br/>
+     * <b>Warning!</b> the {@link FakePlayer} passed to the predicate is not a real player, but a fake one with
+     * the same UUID as the real player who placed the block breaker. <br/> Return {@code false} to cancel a break
+     * attempt on this block. <br/> Return {@code true} to move onto the next predicate, and eventually break the block
+     * only if all other predicates returned {@code false}.
+     */
+    @SuppressWarnings("unused")
+    public static void registerBlockBreakerPredicate(
+            @NotNull TriPredicate<@NotNull World, @NotNull BlockPos, @NotNull FakePlayer> predicate) {
+        PREDICATE_LIST.add(predicate);
     }
 
     @Override

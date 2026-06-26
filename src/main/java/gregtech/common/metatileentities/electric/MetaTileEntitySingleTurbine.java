@@ -36,7 +36,7 @@ public class MetaTileEntitySingleTurbine extends SimpleGeneratorMetaTileEntity {
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntitySingleTurbine(metaTileEntityId, recipeMap, renderer, getTier(),
-                getTankScalingFunction(),false, getEfficiency());
+                getTankScalingFunction(), false, getEfficiency());
     }
 
     @Override

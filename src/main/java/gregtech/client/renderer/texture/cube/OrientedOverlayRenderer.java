@@ -196,7 +196,7 @@ public class OrientedOverlayRenderer implements ICubeRenderer {
 
                 // Rotate the top and bottom faces to match front facing
                 Rotation rotation = getRotation(renderTranslation, renderSide, frontFacing);
-                renderTranslation = RenderUtil.adjustTrans(renderTranslation, renderSide, 1);
+                renderTranslation = RenderUtil.adjustTrans(renderTranslation, renderSide, 10);
                 renderTranslation.apply(rotation);
 
                 Textures.renderFace(renderState, renderTranslation, ArrayUtils.addAll(pipeline, rotation), renderSide,

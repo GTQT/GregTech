@@ -1,4 +1,4 @@
-package gregtech.common.metatileentities.heat;
+package gregtech.common.metatileentities.electric;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IHeatable;

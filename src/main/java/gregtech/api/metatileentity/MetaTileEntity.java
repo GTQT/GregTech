@@ -32,7 +32,6 @@ import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.Mods;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.client.utils.RenderUtil;
@@ -313,8 +312,21 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         }
     }
 
+    /**
+     * Returns the {@link net.minecraft.block.state.IBlockState} representing this machine's casing
+     * for Connected Textures (CTM). Returning {@code null} (default) disables CTM.
+     */
+    @SideOnly(Side.CLIENT)
+    public IBlockState getCasingBlock() {
+        return null;
+    }
+
     @SideOnly(Side.CLIENT)
     public boolean canRenderInLayer(BlockRenderLayer renderLayer) {
+        IBlockState casing = getCasingBlock();
+        if (casing != null && casing.getBlock().canRenderInLayer(casing, renderLayer)) {
+            return true;
+        }
         return renderLayer == BlockRenderLayer.CUTOUT_MIPPED ||
                 renderLayer == BloomEffectUtil.getEffectiveBloomLayer() ||
                 (renderLayer == BlockRenderLayer.TRANSLUCENT &&

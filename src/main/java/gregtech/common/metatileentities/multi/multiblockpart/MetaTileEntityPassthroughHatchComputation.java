@@ -1,10 +1,5 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
-import codechicken.lib.render.CCRenderState;
-
-import codechicken.lib.render.pipeline.IVertexOperation;
-import codechicken.lib.vec.Matrix4;
-
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IOpticalComputationHatch;
 import gregtech.api.capability.IOpticalComputationProvider;
@@ -16,28 +11,26 @@ import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IPassthroughHatch;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.client.renderer.texture.Textures;
-
 import gregtech.common.pipelike.optical.tile.TileEntityOpticalPipe;
 
-import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
-import java.util.List;
 
 public class MetaTileEntityPassthroughHatchComputation extends MetaTileEntityMultiblockPart
         implements IPassthroughHatch,
                    IMultiblockAbilityPart<IPassthroughHatch>, IOpticalComputationHatch {
 
-    public MetaTileEntityPassthroughHatchComputation(ResourceLocation metaTileEntityId,int tier) {
+    public MetaTileEntityPassthroughHatchComputation(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);
     }
 
@@ -45,15 +38,18 @@ public class MetaTileEntityPassthroughHatchComputation extends MetaTileEntityMul
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity iGregTechTileEntity) {
         return new MetaTileEntityPassthroughHatchComputation(this.metaTileEntityId, getTier());
     }
+
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay()) {
 
             Textures.OPTICAL_DATA_ACCESS_HATCH.renderSided(getFrontFacing(), renderState, translation, pipeline);
-            Textures.OPTICAL_DATA_ACCESS_HATCH.renderSided(getFrontFacing().getOpposite(), renderState, translation, pipeline);
+            Textures.OPTICAL_DATA_ACCESS_HATCH.renderSided(getFrontFacing().getOpposite(), renderState, translation,
+                    pipeline);
         }
     }
+
     @Override
     protected ModularUI createUI(EntityPlayer entityPlayer) {
         return null;
@@ -72,23 +68,26 @@ public class MetaTileEntityPassthroughHatchComputation extends MetaTileEntityMul
     public @NotNull Class<?> getPassthroughType() {
         return IOpticalComputationProvider.class;
     }
+
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
-        if (side == getFrontFacing().getOpposite() && capability == GregtechTileCapabilities.CABABILITY_COMPUTATION_PROVIDER) {
+        if (side == getFrontFacing().getOpposite() &&
+                capability == GregtechTileCapabilities.CABABILITY_COMPUTATION_PROVIDER) {
             return GregtechTileCapabilities.CABABILITY_COMPUTATION_PROVIDER.cast(this);
         }
         return super.getCapability(capability, side);
     }
+
     private IOpticalComputationProvider getOpticalNetProvider() {
         TileEntity tileEntity = getNeighbor(getFrontFacing());
         if (tileEntity == null) return null;
 
         if (tileEntity instanceof TileEntityOpticalPipe) {
-            if(tileEntity.hasCapability(GregtechTileCapabilities.CABABILITY_COMPUTATION_PROVIDER, getFrontFacing().getOpposite()))
-            {
-                return tileEntity.getCapability(GregtechTileCapabilities.CABABILITY_COMPUTATION_PROVIDER, getFrontFacing().getOpposite());
-            }
-            else return null;
+            if (tileEntity.hasCapability(GregtechTileCapabilities.CABABILITY_COMPUTATION_PROVIDER,
+                    getFrontFacing().getOpposite())) {
+                return tileEntity.getCapability(GregtechTileCapabilities.CABABILITY_COMPUTATION_PROVIDER,
+                        getFrontFacing().getOpposite());
+            } else return null;
         }
         return null;
     }
@@ -101,9 +100,8 @@ public class MetaTileEntityPassthroughHatchComputation extends MetaTileEntityMul
     @Override
     public int requestCWUt(int cwut, boolean simulate, @NotNull Collection<IOpticalComputationProvider> seen) {
         IOpticalComputationProvider providerin = getOpticalNetProvider();
-        if(providerin!=null)
-        {
-            return providerin.requestCWUt(cwut,simulate);
+        if (providerin != null) {
+            return providerin.requestCWUt(cwut, simulate);
         }
         return 0;
 
@@ -112,8 +110,7 @@ public class MetaTileEntityPassthroughHatchComputation extends MetaTileEntityMul
     @Override
     public int getMaxCWUt(@NotNull Collection<IOpticalComputationProvider> seen) {
         IOpticalComputationProvider providerin = getOpticalNetProvider();
-        if(providerin!=null)
-        {
+        if (providerin != null) {
             return providerin.getMaxCWUt();
         }
         return 0;

@@ -35,7 +35,9 @@ public class MetaTileEntityPrimitiveBlastFurnaceHatch extends MetaTileEntityMult
 
     @Override
     public ICubeRenderer getBaseTexture() {
-        return Textures.PRIMITIVE_BRICKS;
+        if(getController()==null)
+            return Textures.PRIMITIVE_BRICKS;
+        return super.getBaseTexture();
     }
 
     @Override

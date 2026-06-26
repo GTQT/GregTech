@@ -26,36 +26,38 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeSonicator extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_sonicator", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXXXX", "XXXXX", "XXXXX", "     ")
-                    .aisle("XXXXX", "XCCCX", "XGGGX", "     ")
-                    .aisle("XXXXX", "XCPCX", "XGPGX", "  P  ")
-                    .aisle("XXXXX", "XCCCX", "XGGGX", "  P  ")
-                    .aisle("XXXXX", "XXXXX", "XXXXX", "  P  ")
-                    .aisle(" XXX ", " XPX ", " XPX ", "  P  ")
-                    .aisle(" XXX ", " XSX ", " XXX ", "     ")
-                    .self('S', MetaTileEntityLargeSonicator.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('P', states(getBoilerCasingState()))
-                    .where('C', states(getUniqueCasingState()))
-                    .where('G', states(getGlassState()))
-                    .where(' ', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_sonicator", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXX", "XXXXX", "XXXXX", "     ")
+                            .aisle("XXXXX", "XCCCX", "XGGGX", "     ")
+                            .aisle("XXXXX", "XCPCX", "XGPGX", "  P  ")
+                            .aisle("XXXXX", "XCCCX", "XGGGX", "  P  ")
+                            .aisle("XXXXX", "XXXXX", "XXXXX", "  P  ")
+                            .aisle(" XXX ", " XPX ", " XPX ", "  P  ")
+                            .aisle(" XXX ", " XSX ", " XXX ", "     ")
+                            .self('S', MetaTileEntityLargeSonicator.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('P', states(getBoilerCasingState()))
+                            .where('C', states(getUniqueCasingState()))
+                            .where('G', states(getGlassState()))
+                            .where(' ', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeSonicator(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.SONICATION_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
+    public static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
+                BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
     }
 
     private static IBlockState getBoilerCasingState() {

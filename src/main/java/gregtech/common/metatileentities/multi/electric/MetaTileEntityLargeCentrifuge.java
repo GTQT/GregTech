@@ -23,38 +23,39 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeCentrifuge extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_centrifuge", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("#XXX#", "XXXXX", "#XXX#")
-                    .aisle("XXXXX", "XACAX", "XXXXX")
-                    .aisle("XXXXX", "XXSXX", "XXXXX")
-                    .aisle("XXXXX", "XCCCX", "XXXXX")
-                    .aisle("XXXXX", "XXXXX", "XXXXX")
-                    .aisle("#XXX#", "XXSXX", "#XXX#")
-                    .self('S', MetaTileEntityLargeCentrifuge.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_centrifuge", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("#XXX#", "XXXXX", "#XXX#")
+                            .aisle("XXXXX", "XACAX", "XXXXX")
+                            .aisle("XXXXX", "XXSXX", "XXXXX")
+                            .aisle("XXXXX", "XCCCX", "XXXXX")
+                            .aisle("XXXXX", "XXXXX", "XXXXX")
+                            .aisle("#XXX#", "XXSXX", "#XXX#")
+                            .self('S', MetaTileEntityLargeCentrifuge.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeCentrifuge(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.CENTRIFUGE_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.VIBRATION_SAFE_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 

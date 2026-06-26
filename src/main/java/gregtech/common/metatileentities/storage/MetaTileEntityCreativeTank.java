@@ -208,6 +208,11 @@ public class MetaTileEntityCreativeTank extends MetaTileEntityQuantumTank {
         }
 
         @Override
+        public void setFluid(FluidStack fluid) {
+            this.internal.setFluid(fluid);
+        }
+
+        @Override
         public int getFluidAmount() {
             return this.internal.getFluidAmount();
         }
@@ -215,11 +220,6 @@ public class MetaTileEntityCreativeTank extends MetaTileEntityQuantumTank {
         @Override
         public int getCapacity() {
             return mBPerCycle;
-        }
-
-        @Override
-        public void setFluid(FluidStack fluid) {
-            this.internal.setFluid(fluid);
         }
 
         @Override

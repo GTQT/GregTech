@@ -24,20 +24,23 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityVacuumFreezer extends RecipeMapMultiblockController {
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:vacuum_freezer", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XSX", "XXX")
                     .self('S', MetaTileEntityVacuumFreezer.class)
                     .air('#')
-                    .casing('X',
-                            MetaBlocks.METAL_CASING.getState(MetalCasingType.ALUMINIUM_FROSTPROOF))
-                        .preset(HatchPresets.ELECTRIC_STANDARD)
+                    .casing('X', getCasingState())
+                    .preset(HatchPresets.ELECTRIC_STANDARD)
                     .buildStructureDefinition());
 
     public MetaTileEntityVacuumFreezer(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.VACUUM_RECIPES);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(MetalCasingType.ALUMINIUM_FROSTPROOF);
     }
 
     @Override
@@ -54,10 +57,6 @@ public class MetaTileEntityVacuumFreezer extends RecipeMapMultiblockController {
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         return Textures.FROST_PROOF_CASING;
-    }
-
-    protected IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(MetalCasingType.ALUMINIUM_FROSTPROOF);
     }
 
     @Override

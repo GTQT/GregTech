@@ -26,46 +26,47 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_sifter", () ->
-            DeclarativePatternBuilder.start(RIGHT, BACK, UP)
-                    .aisle("#X#X#", "XXXXX", "#XXX#", "XXXXX", "#X#X#")
-                    .aisle("#X#X#", "XAXAX", "#XXX#", "XAXAX", "#X#X#")
-                    .aisle("#XXX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
-                    .aisle("#XSX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
-                    .aisle("#XXX#", "X###X", "X###X", "X###X", "#XXX#")
-                    .self('S', MetaTileEntityLargeSifter.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_sifter", () ->
+                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                            .aisle("#X#X#", "XXXXX", "#XXX#", "XXXXX", "#X#X#")
+                            .aisle("#X#X#", "XAXAX", "#XXX#", "XAXAX", "#X#X#")
+                            .aisle("#XXX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
+                            .aisle("#XSX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
+                            .aisle("#XXX#", "X###X", "X###X", "X###X", "#XXX#")
+                            .self('S', MetaTileEntityLargeSifter.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeSifter(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, determineRecipeMaps());
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.VIBRATION_SAFE_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.MULTIBLOCK_CASING.getState(BlockMultiblockCasing.MultiblockCasingType.GRATE_CASING);
     }
 
     private static @NotNull RecipeMap<?> @NotNull [] determineRecipeMaps() {
         RecipeMap<?> sieveMap = RecipeMap.getByName("electric_sieve");
         if (sieveMap != null) {
-            return new RecipeMap<?>[]{RecipeMaps.SIFTER_RECIPES, sieveMap};
+            return new RecipeMap<?>[] { RecipeMaps.SIFTER_RECIPES, sieveMap };
         }
-        return new RecipeMap<?>[]{RecipeMaps.SIFTER_RECIPES};
+        return new RecipeMap<?>[] { RecipeMaps.SIFTER_RECIPES };
     }
 
     @Override

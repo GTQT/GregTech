@@ -46,7 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotifiablePart
-                                           implements IMultiblockAbilityPart<IFluidTank>, IControllable {
+        implements IMultiblockAbilityPart<IFluidTank>, IControllable {
 
     private static final int BASE_TANK_SIZE = 8000;
 
@@ -66,11 +66,10 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
         // Nonuple: 1/8th the capacity of a fluid hatch of this tier
         // Sixtenths: 1/16th the capacity of a fluid hatch of this tier
 
-
         this.tankSize = BASE_TANK_SIZE * (1 << tier) /
                 (numSlots == 4 ? 4 :
                         numSlots == 9 ? 8 :
-                                numSlots == 16 ? 16 : 1);
+                        numSlots == 16 ? 16 : 1);
 
         FluidTank[] fluidsHandlers = new FluidTank[numSlots];
         for (int i = 0; i < fluidsHandlers.length; i++) {
@@ -106,17 +105,17 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
     }
 
     @Override
+    public boolean isWorkingEnabled() {
+        return workingEnabled;
+    }
+
+    @Override
     public void setWorkingEnabled(boolean workingEnabled) {
         this.workingEnabled = workingEnabled;
         World world = getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
         }
-    }
-
-    @Override
-    public boolean isWorkingEnabled() {
-        return workingEnabled;
     }
 
     @Override
@@ -177,9 +176,10 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
             renderer.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
     }
+
     public SimpleOverlayRenderer getOverlay() {
-        if(numSlots==4)return Textures.PIPE_4X_OVERLAY;
-        if(numSlots==9)return Textures.PIPE_9X_OVERLAY;
+        if (numSlots == 4) return Textures.PIPE_4X_OVERLAY;
+        if (numSlots == 9) return Textures.PIPE_9X_OVERLAY;
         return Textures.PIPE_16X_OVERLAY;
     }
 

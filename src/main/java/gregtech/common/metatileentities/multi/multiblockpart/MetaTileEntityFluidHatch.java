@@ -71,12 +71,11 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
     // only holding this for convenience
     protected final HatchFluidTank fluidTank;
     protected boolean workingEnabled;
-    private GhostCircuitItemStackHandler circuitInventory;
-
     // export hatch-only fields
     protected boolean locked;
     @Nullable
     protected FluidStack lockedFluid;
+    private GhostCircuitItemStackHandler circuitInventory;
 
     public MetaTileEntityFluidHatch(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
@@ -99,6 +98,14 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
     }
 
     @Override
+    public int getGhostCircuitConfig() {
+        if (this.circuitInventory == null) {
+            return 0;
+        }
+        return this.circuitInventory.getCircuitValue();
+    }
+
+    @Override
     public void setGhostCircuitConfig(int config) {
         if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
             return;
@@ -108,13 +115,7 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
             markDirty();
         }
     }
-    @Override
-    public int getGhostCircuitConfig() {
-        if (this.circuitInventory == null) {
-            return 0;
-        }
-        return this.circuitInventory.getCircuitValue();
-    }
+
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityFluidHatch(metaTileEntityId, getTier(), isExportHatch);
@@ -171,17 +172,17 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
     }
 
     @Override
+    public boolean isWorkingEnabled() {
+        return workingEnabled;
+    }
+
+    @Override
     public void setWorkingEnabled(boolean workingEnabled) {
         this.workingEnabled = workingEnabled;
         World world = getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
         }
-    }
-
-    @Override
-    public boolean isWorkingEnabled() {
-        return workingEnabled;
     }
 
     @Override
@@ -305,12 +306,12 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(6, 6))
 
                 // export specific
-                .childIf(isExportHatch,()-> new ItemSlot()
+                .childIf(isExportHatch, () -> new ItemSlot()
                         .pos(90, 44)
                         .background(GTGuiTextures.SLOT, GTGuiTextures.OUT_SLOT_OVERLAY)
                         .slot(new ModularSlot(exportItems, 0)
                                 .accessibility(false, true)))
-                .childIf(isExportHatch,()-> new ToggleButton()
+                .childIf(isExportHatch, () -> new ToggleButton()
                         .pos(7, 63)
                         .overlay(GTGuiTextures.BUTTON_LOCK)
                         .value(new BooleanSyncValue(this::isLocked, fluidSyncHandler::lockFluid))
@@ -318,15 +319,15 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
                         .addTooltip(false, IKey.lang("gregtech.gui.fluid_lock.tooltip.disabled")))
 
                 // import specific
-                .childIf(!isExportHatch,()-> GTGuiTextures.TANK_ICON.asWidget()
+                .childIf(!isExportHatch, () -> GTGuiTextures.TANK_ICON.asWidget()
                         .pos(91, 36)
                         .size(14, 15))
-                .childIf(!isExportHatch,()-> new ItemSlot()
+                .childIf(!isExportHatch, () -> new ItemSlot()
                         .pos(90, 53)
                         .background(GTGuiTextures.SLOT, GTGuiTextures.OUT_SLOT_OVERLAY)
                         .slot(new ModularSlot(exportItems, 0)
                                 .accessibility(false, true)))
-                .childIf(!isExportHatch,()-> new GhostCircuitSlotWidget()
+                .childIf(!isExportHatch, () -> new GhostCircuitSlotWidget()
                         .slot(circuitInventory, 0)
                         .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY)
                         .pos(124, 62))

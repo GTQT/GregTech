@@ -11,9 +11,9 @@ import org.jetbrains.annotations.Nullable;
  * Registry of all electrolyte fluid pairs supported by the Battery Accumulator multiblock.
  *
  * <p>Each enum constant maps an uncharged electrolyte fluid (used in disposable battery
- * crafting) to its charged variant, along with the EU energy capacity per 1000 mB (one bucket).
- * The accumulator charges uncharged fluid + EU → charged fluid, and discharges
- * charged fluid → uncharged fluid + EU, with a configurable loss rate.
+ * crafting) to its charged variant, along with the EU energy capacity per 1000 mB (one bucket). The accumulator charges
+ * uncharged fluid + EU → charged fluid, and discharges charged fluid → uncharged fluid + EU, with a configurable loss
+ * rate.
  *
  * <p>EU per bucket is derived from the corresponding {@link DisposableBatteryType}'s
  * total EU capacity divided by the fluid amount consumed per battery in the Canner step.
@@ -91,63 +91,6 @@ public enum BatteryAccumulatorFluidMapping {
         this.euPerBucket = euPerBucket;
     }
 
-    public Material getUnchargedFluid() {
-        return unchargedFluid;
-    }
-
-    public Material getChargedFluid() {
-        return chargedFluid;
-    }
-
-    public long getEuPerBucket() {
-        return euPerBucket;
-    }
-
-    /**
-     * Returns the EU stored in a given amount of charged fluid.
-     *
-     * @param amountMb fluid amount in millibuckets
-     * @return EU equivalent
-     */
-    public long getEuForAmount(int amountMb) {
-        return euPerBucket * amountMb / 1000;
-    }
-
-    /**
-     * Returns the fluid amount (mB) that represents the given EU.
-     *
-     * @param eu energy in EU
-     * @return fluid amount in millibuckets
-     */
-    public int getAmountForEu(long eu) {
-        if (euPerBucket == 0) return 0;
-        return (int) (eu * 1000 / euPerBucket);
-    }
-
-    /**
-     * Creates a FluidStack of the uncharged electrolyte.
-     *
-     * @param amount fluid amount in millibuckets
-     * @return the uncharged FluidStack, or null if the fluid is not registered
-     */
-    @Nullable
-    public FluidStack getUnchargedFluidStack(int amount) {
-        if (unchargedFluid.getFluid() == null) return null;
-        return unchargedFluid.getFluid(amount);
-    }
-
-    /**
-     * Creates a FluidStack of the charged electrolyte.
-     *
-     * @param amount fluid amount in millibuckets
-     * @return the charged FluidStack, or null if the fluid is not registered
-     */
-    @Nullable
-    public FluidStack getChargedFluidStack(int amount) {
-        if (chargedFluid.getFluid() == null) return null;
-        return chargedFluid.getFluid(amount);
-    }
-
     /**
      * Finds the mapping for a given uncharged fluid material.
      *
@@ -213,8 +156,8 @@ public enum BatteryAccumulatorFluidMapping {
     }
 
     /**
-     * Attempts to resolve a FluidStack back to its GT Material.
-     * This relies on the fluid being registered via GT's material system.
+     * Attempts to resolve a FluidStack back to its GT Material. This relies on the fluid being registered via GT's
+     * material system.
      */
     @Nullable
     private static Material getMaterialFromFluid(FluidStack fluidStack) {
@@ -228,5 +171,62 @@ public enum BatteryAccumulatorFluidMapping {
             }
         }
         return null;
+    }
+
+    public Material getUnchargedFluid() {
+        return unchargedFluid;
+    }
+
+    public Material getChargedFluid() {
+        return chargedFluid;
+    }
+
+    public long getEuPerBucket() {
+        return euPerBucket;
+    }
+
+    /**
+     * Returns the EU stored in a given amount of charged fluid.
+     *
+     * @param amountMb fluid amount in millibuckets
+     * @return EU equivalent
+     */
+    public long getEuForAmount(int amountMb) {
+        return euPerBucket * amountMb / 1000;
+    }
+
+    /**
+     * Returns the fluid amount (mB) that represents the given EU.
+     *
+     * @param eu energy in EU
+     * @return fluid amount in millibuckets
+     */
+    public int getAmountForEu(long eu) {
+        if (euPerBucket == 0) return 0;
+        return (int) (eu * 1000 / euPerBucket);
+    }
+
+    /**
+     * Creates a FluidStack of the uncharged electrolyte.
+     *
+     * @param amount fluid amount in millibuckets
+     * @return the uncharged FluidStack, or null if the fluid is not registered
+     */
+    @Nullable
+    public FluidStack getUnchargedFluidStack(int amount) {
+        if (unchargedFluid.getFluid() == null) return null;
+        return unchargedFluid.getFluid(amount);
+    }
+
+    /**
+     * Creates a FluidStack of the charged electrolyte.
+     *
+     * @param amount fluid amount in millibuckets
+     * @return the charged FluidStack, or null if the fluid is not registered
+     */
+    @Nullable
+    public FluidStack getChargedFluidStack(int amount) {
+        if (chargedFluid.getFluid() == null) return null;
+        return chargedFluid.getFluid(amount);
     }
 }

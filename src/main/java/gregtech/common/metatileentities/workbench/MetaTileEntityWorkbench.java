@@ -13,6 +13,7 @@ import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.inventory.handlers.SingleItemStackHandler;
 import gregtech.common.inventory.handlers.ToolItemStackHandler;
+import gregtech.common.mui.widget.GTTextFieldWidget;
 import gregtech.common.mui.widget.workbench.CraftingInputSlot;
 import gregtech.common.mui.widget.workbench.CraftingOutputSlot;
 import gregtech.common.mui.widget.workbench.InventoryViewHandler;
@@ -20,7 +21,6 @@ import gregtech.common.mui.widget.workbench.InventoryViewSyncHandler;
 import gregtech.common.mui.widget.workbench.InventoryViewWidget;
 import gregtech.common.mui.widget.workbench.RecipeMemoryGridWidget;
 import gregtech.common.mui.widget.workbench.RecipeMemorySlot;
-import gregtech.common.mui.widget.GTTextFieldWidget;
 
 import net.minecraft.block.SoundType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -74,8 +74,8 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -90,21 +90,19 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
 
     /** BFS 库存扫描的最大搜索方块数量，可配置 */
     private static final int MAX_SCAN_RANGE = 24;
-
+    /** BFS 库存扫描定期执行间隔（tick），用于检测远处库存变化 */
+    private static final int SCAN_INTERVAL = 20;
     private final IDrawable WORKSTATION = new ItemDrawable(getStackForm())
             .asIcon().size(16);
-
     private final ItemStackHandler craftingGrid = new SingleItemStackHandler(9);
     private final ItemStackHandler internalInventory = new GTItemStackHandler(this, 18);
     private final ItemStackHandler toolInventory = new ToolItemStackHandler(9);
-
+    private final CraftingRecipeMemory recipeMemory = new CraftingRecipeMemory(
+            CraftingRecipeMemory.TEMP_RECIPE_SLOTS + CraftingRecipeMemory.LOCKED_RECIPE_SLOTS, this.craftingGrid);
     private ItemHandlerList combinedInventory;
     private ItemHandlerList connectedInventory;
     /** 标记缓存的 connectedInventory/combinedInventory 是否需要重建 */
     private boolean inventoryCacheDirty = true;
-
-    private final CraftingRecipeMemory recipeMemory = new CraftingRecipeMemory(
-            CraftingRecipeMemory.TEMP_RECIPE_SLOTS + CraftingRecipeMemory.LOCKED_RECIPE_SLOTS, this.craftingGrid);
     private CraftingRecipeLogic recipeLogic = null;
     /** One-shot server warmup to move lazy UI init cost out of first right-click. */
     private boolean uiWarmupDone = false;
@@ -217,9 +215,7 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
     }
 
     /**
-     * 使用 BFS 搜索周围可达的库存方块。
-     * 搜索从工作台位置开始，通过有 IItemHandler 能力的方块级联扩展。
-     * 最多搜索 {@link #MAX_SCAN_RANGE} 个方块（不含起始位置）。
+     * 使用 BFS 搜索周围可达的库存方块。 搜索从工作台位置开始，通过有 IItemHandler 能力的方块级联扩展。 最多搜索 {@link #MAX_SCAN_RANGE} 个方块（不含起始位置）。
      */
     private ItemHandlerList computeConnectedInventory() {
         ArrayList<IItemHandler> handlers = new ArrayList<>();
@@ -256,9 +252,6 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
 
         return this.connectedInventory = new ItemHandlerList(handlers);
     }
-
-    /** BFS 库存扫描定期执行间隔（tick），用于检测远处库存变化 */
-    private static final int SCAN_INTERVAL = 20;
 
     @Override
     public void update() {

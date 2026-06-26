@@ -37,30 +37,38 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
 
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:large_chemical_reactor", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXX", "XCX", "XXX")
-                    .aisle("XCX", "CPC", "XCX")
-                    .aisle("XXX", "XSX", "XXX")
-                    .self('S', MetaTileEntityLargeChemicalReactor.class)
-                    .block('P', getPipeCasingState())
-                    .where('C', Elements.chain(
-                            Elements.tieredCasing(
-                                    GTCasingGroups.heatingCoils().group(),
-                                    GTCasingGroups.heatingCoils().channel().getName(),
-                                    1, 1),
-                            Elements.hatch(MultiblockAbility.IMPORT_ITEMS, 0, -1, 0),
-                            Elements.hatch(MultiblockAbility.EXPORT_ITEMS, 0, -1, 0),
-                            Elements.hatch(MultiblockAbility.IMPORT_FLUIDS, 0, -1, 0),
-                            Elements.hatch(MultiblockAbility.EXPORT_FLUIDS, 0, -1, 0),
-                            Elements.block(getCasingState())))
-                    .casing('X', getCasingState())
-                        .maintenance().preset(HatchPresets.STANDARD_IO).optionalEnergyInput(2)
-                    .buildStructureDefinition()
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXX", "XCX", "XXX")
+                            .aisle("XCX", "CPC", "XCX")
+                            .aisle("XXX", "XSX", "XXX")
+                            .self('S', MetaTileEntityLargeChemicalReactor.class)
+                            .block('P', getPipeCasingState())
+                            .where('C', Elements.chain(
+                                    Elements.tieredCasing(
+                                            GTCasingGroups.heatingCoils().group(),
+                                            GTCasingGroups.heatingCoils().channel().getName(),
+                                            1, 1),
+                                    Elements.hatch(MultiblockAbility.IMPORT_ITEMS, 0, -1, 0),
+                                    Elements.hatch(MultiblockAbility.EXPORT_ITEMS, 0, -1, 0),
+                                    Elements.hatch(MultiblockAbility.IMPORT_FLUIDS, 0, -1, 0),
+                                    Elements.hatch(MultiblockAbility.EXPORT_FLUIDS, 0, -1, 0),
+                                    Elements.block(getCasingState())))
+                            .casing('X', getCasingState())
+                            .maintenance().preset(HatchPresets.STANDARD_IO).optionalEnergyInput(2)
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeChemicalReactor(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.LARGE_CHEMICAL_RECIPES);
         this.recipeMapWorkable = new MultiblockRecipeLogic(this, true);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PTFE_INERT_CASING);
+    }
+
+    protected static IBlockState getPipeCasingState() {
+        return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.POLYTETRAFLUOROETHYLENE_PIPE);
     }
 
     @Override
@@ -77,14 +85,6 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         return Textures.INERT_PTFE_CASING;
-    }
-
-    protected static IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PTFE_INERT_CASING);
-    }
-
-    protected static IBlockState getPipeCasingState() {
-        return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.POLYTETRAFLUOROETHYLENE_PIPE);
     }
 
     @Override

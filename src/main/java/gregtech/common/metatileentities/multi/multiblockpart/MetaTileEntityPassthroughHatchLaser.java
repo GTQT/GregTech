@@ -27,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MetaTileEntityPassthroughHatchLaser extends MetaTileEntityMultiblockPart implements IPassthroughHatch,
-                                                 IMultiblockAbilityPart<IPassthroughHatch> {
+                                                                                                 IMultiblockAbilityPart<IPassthroughHatch> {
 
     public MetaTileEntityPassthroughHatchLaser(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, tier);

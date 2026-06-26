@@ -35,6 +35,7 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.utils.TooltipHelper;
 import gregtech.core.sound.GTSoundEvents;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -79,12 +80,27 @@ import java.util.function.UnaryOperator;
 public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase implements ProgressBarMultiblock,
                                                                                     IControllable, ISteamMachine {
 
+    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
+            new HashMap<>();
+
+    static {
+        STRUCTURE_DEFINITIONS.put("bronze", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_boiler.bronze", () -> buildStructureDefinition(BoilerType.BRONZE)));
+        STRUCTURE_DEFINITIONS.put("steel", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_boiler.steel", () -> buildStructureDefinition(BoilerType.STEEL)));
+        STRUCTURE_DEFINITIONS.put("titanium", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_boiler.titanium",
+                        () -> buildStructureDefinition(BoilerType.TITANIUM)));
+        STRUCTURE_DEFINITIONS.put("tungstensteel", TemplatePool.getInstance()
+                .registerStructure("gregtech:large_boiler.tungstensteel",
+                        () -> buildStructureDefinition(BoilerType.TUNGSTENSTEEL)));
+    }
+
     public final IBoilerType boilerType;
     protected BoilerRecipeLogic recipeLogic;
     private FluidTankList fluidImportInventory;
     private ItemHandlerList itemImportInventory;
     private FluidTankList steamOutputTank;
-
     private int throttlePercentage = 100;
 
     public MetaTileEntityLargeBoiler(ResourceLocation metaTileEntityId, IBoilerType boilerType) {
@@ -92,6 +108,23 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         this.boilerType = boilerType;
         this.recipeLogic = new BoilerRecipeLogic(this);
         resetTileAbilities();
+    }
+
+    private static StructureDefinition<?> buildStructureDefinition(BoilerType boilerType) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "CCC", "CCC", "CCC")
+                .aisle("XXX", "CPC", "CPC", "CCC")
+                .aisle("XXX", "CSC", "CCC", "CCC")
+                .self('S', MetaTileEntityLargeBoiler.class)
+                .block('P', boilerType.pipeState)
+                .casing('X', boilerType.fireboxState)
+                .optionalEnergyInput(2)
+                .optionalItemInput(2)
+                .muffler()
+                .maintenance()
+                .casing('C', boilerType.casingState)
+                .itemOutput(1, 4)
+                .buildStructureDefinition();
     }
 
     @Override
@@ -184,7 +217,7 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     protected MultiblockUIFactory createUIFactory() {
         return super.createUIFactory()
                 .createFlexButton((guiData, syncManager) -> {
-                    var throttle = syncManager.syncedPanel("throttle_panel",true, this::makeThrottlePanel);
+                    var throttle = syncManager.syncedPanel("throttle_panel", true, this::makeThrottlePanel);
 
                     return new ButtonWidget<>()
                             .size(18)
@@ -293,6 +326,10 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
                                 .background(GTGuiTextures.DISPLAY)));
     }
 
+    private int getThrottlePercentage() {
+        return this.throttlePercentage;
+    }
+
     private void setThrottlePercentage(int amount) {
         int clamped = Math.max(20, Math.min(amount, 100));
         if (this.throttlePercentage != clamped) {
@@ -301,57 +338,21 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         }
     }
 
-    private int getThrottlePercentage() {
-        return this.throttlePercentage;
-    }
-
     @Override
     public boolean isActive() {
         return super.isActive() && recipeLogic.isActive() && recipeLogic.isWorkingEnabled();
     }
 
-    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
-            new HashMap<>();
-
-    static {
-        STRUCTURE_DEFINITIONS.put("bronze", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_boiler.bronze", () -> buildStructureDefinition(BoilerType.BRONZE)));
-        STRUCTURE_DEFINITIONS.put("steel", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_boiler.steel", () -> buildStructureDefinition(BoilerType.STEEL)));
-        STRUCTURE_DEFINITIONS.put("titanium", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_boiler.titanium", () -> buildStructureDefinition(BoilerType.TITANIUM)));
-        STRUCTURE_DEFINITIONS.put("tungstensteel", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_boiler.tungstensteel",
-                        () -> buildStructureDefinition(BoilerType.TUNGSTENSTEEL)));
-    }
-
-    private static StructureDefinition buildStructureDefinition(BoilerType boilerType) {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "CCC", "CCC", "CCC")
-                .aisle("XXX", "CPC", "CPC", "CCC")
-                .aisle("XXX", "CSC", "CCC", "CCC")
-                .self('S', MetaTileEntityLargeBoiler.class)
-                .block('P', boilerType.pipeState)
-                .casing('X', boilerType.fireboxState)
-                .optionalEnergyInput(2)
-                .optionalItemInput(2)
-                .muffler()
-                .maintenance()
-                .casing('C', boilerType.casingState)
-                .itemOutput(1,4)
-                .buildStructureDefinition();
-    }
-
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(boilerType.getName());
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(
+                boilerType.getName());
         if (definition == null) {
             throw new IllegalStateException("Unknown boiler type: " + boilerType.getName());
         }
         return definition.get();
     }
-
 
     @Override
     public String[] getDescription() {
@@ -363,22 +364,6 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().add(new BoilerInformation()).build(this, tooltip);
-    }
-
-    public class BoilerInformation extends AbstractTooltipComponent {
-
-        @Override
-        public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
-            tooltip.add(I18n.format("gregtech.multiblock.large_boiler.rate_tooltip",
-                    TextFormattingUtil
-                            .formatNumbers(
-                                    (int) (boilerType.steamPerTick() * 20 * boilerType.runtimeBoost(200) / 20.0))));
-            tooltip.add(
-                    I18n.format("gregtech.multiblock.large_boiler.heat_time_tooltip",
-                            boilerType.getTicksToBoiling() / 20));
-            tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_fluid", boilerType.steamPerTick()));
-            tooltip.add(TooltipHelper.BLINKING_RED + I18n.format("gregtech.multiblock.large_boiler.explosion_tooltip"));
-        }
     }
 
     @Override
@@ -393,6 +378,11 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     @Override
     protected ICubeRenderer getFrontOverlay() {
         return boilerType.getFrontOverlay();
+    }
+
+    @Override
+    public IBlockState getCasingBlock() {
+        return boilerType.getCasingState();
     }
 
     private boolean isFireboxPart(IMultiblockPart sourcePart) {
@@ -560,6 +550,22 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         recipeLogic.setWorkingEnabled(isWorkingAllowed);
         if (changed) {
             notifyStructureControllerModeChanged();
+        }
+    }
+
+    public class BoilerInformation extends AbstractTooltipComponent {
+
+        @Override
+        public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {
+            tooltip.add(I18n.format("gregtech.multiblock.large_boiler.rate_tooltip",
+                    TextFormattingUtil
+                            .formatNumbers(
+                                    (int) (boilerType.steamPerTick() * 20 * boilerType.runtimeBoost(200) / 20.0))));
+            tooltip.add(
+                    I18n.format("gregtech.multiblock.large_boiler.heat_time_tooltip",
+                            boilerType.getTicksToBoiling() / 20));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_fluid", boilerType.steamPerTick()));
+            tooltip.add(TooltipHelper.BLINKING_RED + I18n.format("gregtech.multiblock.large_boiler.explosion_tooltip"));
         }
     }
 }

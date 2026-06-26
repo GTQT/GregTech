@@ -63,20 +63,17 @@ import static gregtech.api.capability.IQuantumStorage.Type.*;
 public class MetaTileEntityQuantumStorageController extends MetaTileEntity implements IQuantumController {
 
     private static final int MAX_DISTANCE_RADIUS = 16;
-    private boolean needsRebuild = true;
-
-    private EnergyContainerList energyHandler = new EnergyContainerList(Collections.emptyList());
     private final List<IEnergyContainer> energyContainers = new ArrayList<>();
-    /** Somewhat lazily initialized, make sure to call {@code getStorage()} before trying to access anything in this */
-    private Map<BlockPos, WeakReference<IQuantumStorage<?>>> storageInstances = new HashMap<>();
-
-    /** The "definitive" set of positions of storage instances */
-    private Set<BlockPos> storagePositions = new HashSet<>();
     private final Map<IQuantumStorage.Type, Set<BlockPos>> typePosMap = new EnumMap<>(IQuantumStorage.Type.class);
     private final BlockPos[] bounds = new BlockPos[2];
-    private long energyConsumption = 0;
     private final QuantumControllerHandler handler = new QuantumControllerHandler();
-
+    private boolean needsRebuild = true;
+    private EnergyContainerList energyHandler = new EnergyContainerList(Collections.emptyList());
+    /** Somewhat lazily initialized, make sure to call {@code getStorage()} before trying to access anything in this */
+    private Map<BlockPos, WeakReference<IQuantumStorage<?>>> storageInstances = new HashMap<>();
+    /** The "definitive" set of positions of storage instances */
+    private Set<BlockPos> storagePositions = new HashSet<>();
+    private long energyConsumption = 0;
     private boolean isDead = false;
     private boolean isPowered = false;
 
@@ -85,6 +82,13 @@ public class MetaTileEntityQuantumStorageController extends MetaTileEntity imple
         for (var type : VALUES) {
             typePosMap.put(type, new HashSet<>());
         }
+    }
+
+    private static boolean checkStorageNeighbor(MetaTileEntity mte, EnumFacing facing) {
+        if (mte.getNeighbor(facing) instanceof IGregTechTileEntity gtte) {
+            return gtte.getMetaTileEntity() instanceof IQuantumStorage<?>;
+        }
+        return false;
     }
 
     @Override
@@ -98,11 +102,11 @@ public class MetaTileEntityQuantumStorageController extends MetaTileEntity imple
         if (getWorld().isRemote) return;
 
         if (getOffsetTimer() % 10 == 0) {
-            if (this.needsRebuild == true){
+            if (this.needsRebuild) {
                 rebuildNetwork();
                 this.needsRebuild = false;
             }
-            
+
             boolean isPowered = energyHandler.getEnergyStored() > energyConsumption && energyConsumption > 0;
             if (isPowered) energyHandler.removeEnergy(energyConsumption);
 
@@ -183,7 +187,7 @@ public class MetaTileEntityQuantumStorageController extends MetaTileEntity imple
         }
         // need to make sure it still exists
         MetaTileEntity mte = GTUtility.getMetaTileEntity(getWorld(), pos);
-        if (mte instanceof IQuantumStorage<?>storage) {
+        if (mte instanceof IQuantumStorage<?> storage) {
             storageInstances.put(pos, new WeakReference<>(storage));
             return storage;
         } else if (rebuild) {
@@ -334,7 +338,7 @@ public class MetaTileEntityQuantumStorageController extends MetaTileEntity imple
             IQuantumStorage<?> storage = oldInstances.get(pos).get();
             if (storage == null) {
                 MetaTileEntity mte = GTUtility.getMetaTileEntity(getWorld(), pos);
-                if (!(mte instanceof IQuantumStorage<?>quantumStorage)) {
+                if (!(mte instanceof IQuantumStorage<?> quantumStorage)) {
                     continue;
                 }
                 storage = quantumStorage;
@@ -345,13 +349,6 @@ public class MetaTileEntityQuantumStorageController extends MetaTileEntity imple
         onHandlerUpdate();
         calculateEnergyUsage();
         markDirty();
-    }
-
-    private static boolean checkStorageNeighbor(MetaTileEntity mte, EnumFacing facing) {
-        if (mte.getNeighbor(facing) instanceof IGregTechTileEntity gtte) {
-            return gtte.getMetaTileEntity() instanceof IQuantumStorage<?>;
-        }
-        return false;
     }
 
     @Override

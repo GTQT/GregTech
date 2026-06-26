@@ -26,30 +26,31 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_gas_collector", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("F   F", "F   F", "CCCCC", "CCCCC", "CCCCC")
-                    .aisle("     ", "     ", "CCCCC", "GACAG", "CCCCC")
-                    .aisle("F   F", "F   F", "CCCCC", "CCSCC", "CCCCC")
-                    .self('S', MetaTileEntityLargeGasCollector.class)
-                    .casing('C', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('A', states(getBoilerCasingState()))
-                    .where('G', states(getGlassState()))
-                    .where('F', states(getFrameState()))
-                    .where(' ', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_gas_collector", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("F   F", "F   F", "CCCCC", "CCCCC", "CCCCC")
+                            .aisle("     ", "     ", "CCCCC", "GACAG", "CCCCC")
+                            .aisle("F   F", "F   F", "CCCCC", "CCSCC", "CCCCC")
+                            .self('S', MetaTileEntityLargeGasCollector.class)
+                            .casing('C', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('A', states(getBoilerCasingState()))
+                            .where('G', states(getGlassState()))
+                            .where('F', states(getFrameState()))
+                            .where(' ', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeGasCollector(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.GAS_COLLECTOR_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.STEAM_CASING);
     }
 
@@ -74,7 +75,6 @@ public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockCont
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
-
 
     @SideOnly(Side.CLIENT)
     @Override

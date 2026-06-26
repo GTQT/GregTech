@@ -26,44 +26,45 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeBrewery extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_brewer", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#", "#####")
-                    .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
-                    .aisle("XXXXX", "XCPCX", "XAPAX", "XAPAX", "#XMX#")
-                    .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
-                    .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#####")
-                    .self('S', MetaTileEntityLargeBrewery.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .maintenance()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('P', states(getCasingState3()))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_brewer", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#", "#####")
+                            .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
+                            .aisle("XXXXX", "XCPCX", "XAPAX", "XAPAX", "#XMX#")
+                            .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
+                            .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#####")
+                            .self('S', MetaTileEntityLargeBrewery.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .maintenance()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .where('C', states(getCasingState2()))
+                            .where('P', states(getCasingState3()))
+                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeBrewery(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{RecipeMaps.BREWING_RECIPES, RecipeMaps.FERMENTING_RECIPES,
-                RecipeMaps.FLUID_HEATER_RECIPES});
+        super(metaTileEntityId, new RecipeMap[] { RecipeMaps.BREWING_RECIPES, RecipeMaps.FERMENTING_RECIPES,
+                RecipeMaps.FLUID_HEATER_RECIPES });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.MOLYBDENUM_DISILICIDE_COIL);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 

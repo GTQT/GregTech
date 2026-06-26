@@ -15,6 +15,7 @@ import gregtech.common.blocks.BlockSteamCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.wood.BlockGregPlanks;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
@@ -22,15 +23,6 @@ import org.jetbrains.annotations.NotNull;
 import static gregtech.api.recipes.RecipeMaps.SAWMILL_RECIPES;
 
 public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
-
-    public MetaTileEntitySawMill(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, SAWMILL_RECIPES);
-    }
-
-    @Override
-    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity iGregTechTileEntity) {
-        return new MetaTileEntitySawMill(metaTileEntityId);
-    }
 
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:saw_mill", () -> DeclarativePatternBuilder.start()
@@ -43,12 +35,24 @@ public class MetaTileEntitySawMill extends NoEnergyMultiblockController {
                     .frames('F', Materials.TreatedWood)
                     .block('X', MetaBlocks.PLANKS.getState(BlockGregPlanks.BlockType.TREATED_PLANK))
                     .any(' ')
-                    .casing('P',
-                            MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL))
-                        .optionalHatch(MultiblockAbility.IMPORT_ITEMS, 2)
-                        .optionalHatch(MultiblockAbility.EXPORT_ITEMS, 2)
-                        .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 2)
+                    .casing('P', getCasingState())
+                    .optionalHatch(MultiblockAbility.IMPORT_ITEMS, 2)
+                    .optionalHatch(MultiblockAbility.EXPORT_ITEMS, 2)
+                    .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 2)
                     .buildStructureDefinition());
+
+    public MetaTileEntitySawMill(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId, SAWMILL_RECIPES);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL);
+    }
+
+    @Override
+    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity iGregTechTileEntity) {
+        return new MetaTileEntitySawMill(metaTileEntityId);
+    }
 
     @Override
     protected @NotNull StructureDefinition<?> createStructureDefinition() {

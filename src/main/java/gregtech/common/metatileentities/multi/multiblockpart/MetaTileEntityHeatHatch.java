@@ -1,4 +1,4 @@
-package gregtech.common.metatileentities.heat;
+package gregtech.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IHeatable;
@@ -10,7 +10,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -39,10 +38,12 @@ public class MetaTileEntityHeatHatch extends MetaTileEntityMultiblockPart implem
         this.isExportHatch = isExportHatch;
 
         if (isExportHatch) {
-            this.heatable = HeatContainerHandler.emitterContainer(this, GTValues.V[tier] * 64L, (tier+1) * 200 + 273, GTValues.V[tier]*20);
+            this.heatable = HeatContainerHandler.emitterContainer(this, GTValues.V[tier] * 64L, (tier + 1) * 200 + 273,
+                    GTValues.V[tier] * 20);
             ((HeatContainerHandler) this.heatable).setSideOutputCondition(s -> s == getFrontFacing());
         } else {
-            this.heatable = HeatContainerHandler.receiverContainer(this, GTValues.V[tier] * 64L, (tier+1) * 200 + 273, GTValues.V[tier]*20);
+            this.heatable = HeatContainerHandler.receiverContainer(this, GTValues.V[tier] * 64L, (tier + 1) * 200 + 273,
+                    GTValues.V[tier] * 20);
         }
     }
 
@@ -92,14 +93,15 @@ public class MetaTileEntityHeatHatch extends MetaTileEntityMultiblockPart implem
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World world, @NotNull List<String> tooltip,
+                               boolean advanced) {
         super.addInformation(stack, world, tooltip, advanced);
         if (isExportHatch) {
             tooltip.add(I18n.format("gregtech.machine.heat_hatch.output.tooltip"));
-            tooltip.add(I18n.format("gregtech.universal.tooltip.heat_out_till", GTValues.V[getTier()]*20));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.heat_out_till", GTValues.V[getTier()] * 20));
         } else {
             tooltip.add(I18n.format("gregtech.machine.heat_hatch.input.tooltip"));
-            tooltip.add(I18n.format("gregtech.universal.tooltip.heat_in_till", GTValues.V[getTier()]*20));
+            tooltip.add(I18n.format("gregtech.universal.tooltip.heat_in_till", GTValues.V[getTier()] * 20));
         }
         tooltip.add(I18n.format("gregtech.universal.tooltip.max_temperature", heatable.getMaxTemperature()));
         tooltip.add(I18n.format("gregtech.universal.tooltip.heat_storage_capacity", heatable.getHeatCapacity()));

@@ -1,18 +1,6 @@
 {
   "forge_marker": 1,
   "variants": {
-    "active=false,variant=bronze_bricks": {
-      "model": "minecraft:cube_all",
-      "textures": {
-        "all": "gregtech:blocks/rendering_error"
-      }
-    },
-    "active=true,variant=bronze_bricks": {
-      "model": "minecraft:cube_all",
-      "textures": {
-        "all": "gregtech:blocks/rendering_error"
-      }
-    },
     "active=false,variant=engine_intake": {
       "model": "minecraft:cube_all",
       "textures": {

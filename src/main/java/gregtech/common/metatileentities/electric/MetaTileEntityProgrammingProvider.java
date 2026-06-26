@@ -8,6 +8,8 @@ import gregtech.api.mui.GTGuis;
 import gregtech.api.recipes.ingredients.IntCircuitIngredient;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.common.items.MetaItems;
+import gregtech.common.items.behaviors.ProgrammableCircuit;
 
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.I18n;
@@ -40,8 +42,6 @@ import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import gregtech.common.items.MetaItems;
-import gregtech.common.items.behaviors.ProgrammableCircuit;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -52,12 +52,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * 可编程提供器方块。
- * 对外通过 IItemHandler capability 暴露虚拟无限库存的可编程电路。
- * 默认提供空白可编程电路和包裹了数字电路 1~32 的可编程电路（共34种）。
- * 玩家可以在 GUI 中放入额外物品，提供器会追加对应的可编程电路。
- * 连接 AE 存储总线后可直接向 ME 网络无限量提供。
- * 当外部向此方块输入可编程电路时，直接销毁。
+ * 可编程提供器方块。 对外通过 IItemHandler capability 暴露虚拟无限库存的可编程电路。 默认提供空白可编程电路和包裹了数字电路 1~32 的可编程电路（共34种）。 玩家可以在 GUI
+ * 中放入额外物品，提供器会追加对应的可编程电路。 连接 AE 存储总线后可直接向 ME 网络无限量提供。 当外部向此方块输入可编程电路时，直接销毁。
  */
 public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements ITieredMetaTileEntity {
 
@@ -128,9 +124,7 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     }
 
     /**
-     * 重建虚拟物品处理器内容。
-     * 保持同一个 handler 实例不变，只更新内容列表，
-     * 避免 AE 存储总线缓存的旧引用失效。
+     * 重建虚拟物品处理器内容。 保持同一个 handler 实例不变，只更新内容列表， 避免 AE 存储总线缓存的旧引用失效。
      */
     private void rebuildVirtualHandler() {
         List<ItemStack> circuits = buildProvidedCircuits();
@@ -270,8 +264,7 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     }
 
     /**
-     * 当用户在 GUI 中修改配置槽位时调用。
-     * 重新同步 customTemplates 列表并重建虚拟处理器。
+     * 当用户在 GUI 中修改配置槽位时调用。 重新同步 customTemplates 列表并重建虚拟处理器。
      */
     void onConfigChanged() {
         customTemplates.clear();
@@ -296,12 +289,12 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     // ==================== 内部类：配置槽位处理器 ====================
 
     /**
-     * GUI 中用于放入模板物品的可变长度槽位处理器。
-     * 放入物品后自动扩展一个空槽位，取出后自动收缩。
-     * 每个槽位只保留 1 个物品作为模板。
+     * GUI 中用于放入模板物品的可变长度槽位处理器。 放入物品后自动扩展一个空槽位，取出后自动收缩。 每个槽位只保留 1 个物品作为模板。
      */
     static class ConfigSlotHandler extends ItemStackHandler {
 
+        /** 尾部始终保留的空槽位数量 */
+        private static final int TRAILING_EMPTY_SLOTS = 8;
         private final MetaTileEntityProgrammingProvider provider;
 
         ConfigSlotHandler(MetaTileEntityProgrammingProvider provider, int size) {
@@ -328,13 +321,8 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
             provider.onConfigChanged();
         }
 
-        /** 尾部始终保留的空槽位数量 */
-        private static final int TRAILING_EMPTY_SLOTS = 8;
-
         /**
-         * 动态调整槽位数量：
-         * - 确保尾部始终有 {@link #TRAILING_EMPTY_SLOTS} 个空槽位
-         * - 移除多余的空槽位，补充不足的空槽位
+         * 动态调整槽位数量： - 确保尾部始终有 {@link #TRAILING_EMPTY_SLOTS} 个空槽位 - 移除多余的空槽位，补充不足的空槽位
          */
         private void adjustSlots() {
             // 找到最后一个非空槽位的 index
@@ -364,13 +352,10 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
     // ==================== 内部类：虚拟无限物品处理器 ====================
 
     /**
-     * 对外暴露的虚拟 IItemHandler。
-     * 每个槽位返回对应的可编程电路，数量为 Integer.MAX_VALUE（约 2.1G）模拟无限。
-     * 提取物品时返回副本，不修改内部状态。
+     * 对外暴露的虚拟 IItemHandler。 每个槽位返回对应的可编程电路，数量为 Integer.MAX_VALUE（约 2.1G）模拟无限。 提取物品时返回副本，不修改内部状态。
      * 插入物品时（insertItem）直接吞噬（返回 EMPTY 表示接受成功），实现可编程电路销毁。
      * <p>
-     * 保持单一实例，通过 {@link #updateCircuits(List)} 原地更新内容，
-     * 避免 AE 存储总线缓存的旧引用失效。
+     * 保持单一实例，通过 {@link #updateCircuits(List)} 原地更新内容， 避免 AE 存储总线缓存的旧引用失效。
      */
     static class VirtualInfiniteItemHandler implements IItemHandler {
 

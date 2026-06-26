@@ -8,9 +8,11 @@ import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
+import gregtech.client.renderer.texture.cube.VisualStateRenderer;
 import gregtech.client.renderer.texture.custom.FireboxActiveRenderer;
 import gregtech.common.creativetab.GTCreativeTabs;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
@@ -29,18 +31,18 @@ import org.apache.commons.lang3.tuple.Pair;
 import static gregtech.api.capability.GregtechDataCodes.SYNC_CONTROLLER;
 
 public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
-                                                   implements IMultiblockPart, ITieredMetaTileEntity {
+        implements IMultiblockPart, ITieredMetaTileEntity {
+
+    private final int tier;
+    protected ICubeRenderer hatchTexture = null;
+    private BlockPos controllerPos;
+    private MultiblockControllerBase controllerTile;
 
     // Move multiblock parts from the generic machines tab into their own tab
     {
         creativeTabs.add(GTCreativeTabs.TAB_GREGTECH_MULTIBLOCK_PARTS);
         creativeTabs.remove(GTCreativeTabs.TAB_GREGTECH_MACHINES);
     }
-
-    private final int tier;
-    private BlockPos controllerPos;
-    private MultiblockControllerBase controllerTile;
-    protected ICubeRenderer hatchTexture = null;
 
     public MetaTileEntityMultiblockPart(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId);
@@ -88,9 +90,33 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
         return controllerTile;
     }
 
+    private void setController(MultiblockControllerBase controller1) {
+        this.controllerTile = controller1;
+        if (!getWorld().isRemote) {
+            writeCustomData(SYNC_CONTROLLER, writer -> {
+                writer.writeBoolean(controllerTile != null);
+                if (controllerTile != null) {
+                    writer.writeBlockPos(controllerTile.getPos());
+                }
+            });
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    @Override
+    public IBlockState getCasingBlock() {
+        MultiblockControllerBase controller = getController();
+        if (controller != null) {
+            return controller.getCasingBlock();
+        }
+        return null;
+    }
+
     public ICubeRenderer getBaseTexture() {
         MultiblockControllerBase controller = getController();
         if (controller != null) {
+            IBlockState casing = controller.getCasingBlock();
+            if (casing != null) return this.hatchTexture = new VisualStateRenderer(casing);
             return this.hatchTexture = controller.getBaseTexture(this);
         } else if (this.hatchTexture != null) {
             if (hatchTexture != Textures.getInactiveTexture(hatchTexture)) {
@@ -143,18 +169,6 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
                 this.controllerTile = null;
             }
             scheduleRenderUpdate();
-        }
-    }
-
-    private void setController(MultiblockControllerBase controller1) {
-        this.controllerTile = controller1;
-        if (!getWorld().isRemote) {
-            writeCustomData(SYNC_CONTROLLER, writer -> {
-                writer.writeBoolean(controllerTile != null);
-                if (controllerTile != null) {
-                    writer.writeBlockPos(controllerTile.getPos());
-                }
-            });
         }
     }
 

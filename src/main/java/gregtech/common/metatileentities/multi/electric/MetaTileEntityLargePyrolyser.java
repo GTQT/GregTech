@@ -44,26 +44,27 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_pyrolyser", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXXXX", "XXXXX", "XXMXX", "XXXXX", "XXXXX")
-                    .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
-                    .aisle("CCCCC", "CCCCC", "CCCCC", "CCCCC", "CCCCC")
-                    .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
-                    .aisle("XXXXX", "XXXXX", "XXSXX", "XXXXX", "XXXXX")
-                    .self('S', MetaTileEntityLargePyrolyser.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .maintenance()
-                    .tieredCasing('C', GTCasingGroups.heatingCoils().group())
-                    .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .where('P', states(getCasingState3()))
-                    .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                    .where('A', air())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_pyrolyser", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXX", "XXXXX", "XXMXX", "XXXXX", "XXXXX")
+                            .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
+                            .aisle("CCCCC", "CCCCC", "CCCCC", "CCCCC", "CCCCC")
+                            .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
+                            .aisle("XXXXX", "XXXXX", "XXSXX", "XXXXX", "XXXXX")
+                            .self('S', MetaTileEntityLargePyrolyser.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .maintenance()
+                            .tieredCasing('C', GTCasingGroups.heatingCoils().group())
+                            .withChannel(GTCasingGroups.heatingCoils().channel())
+                            .where('P', states(getCasingState3()))
+                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
+                            .where('A', air())
+                            .buildStructureDefinition()
     );
     private int coilTier;
 
@@ -72,11 +73,12 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
         this.recipeMapWorkable = new PyrolyseOvenWorkableHandler(this);
     }
 
-    private static IBlockState getCasingState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
+    public static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
+                BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 
@@ -155,7 +157,8 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addCoilLogic().build(this, tooltip);
         tooltip.add(I18n.format("gregtech.machine.pyrolyse_oven.tooltip.1"));

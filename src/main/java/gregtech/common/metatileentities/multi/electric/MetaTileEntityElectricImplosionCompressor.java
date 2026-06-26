@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -26,41 +25,50 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:electric_implosion_compressor", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("               ", "F F         F F", "F F         F F", "F F         F F", "F F         F F", "F F         F F", "               ")
-                    .aisle("F F         F F", "F F   FFF   F F", "FBF  FFAFF  FBF", "FBF  AAAAA  FBF", "FBF  FFAFF  FBF", "F F   FFF   F F", "F F         F F")
-                    .aisle("F F         F F", "FBF  FFCFF  FBF", "F FFFEEEEEFFF F", "F FAA     AAF F", "F FFFEEEEEFFF F", "FBF  FFCFF  FBF", "F F         F F")
-                    .aisle("F F         F F", "FBFFFFCCCFFFFBF", "F FBBBEDEBBBF F", "F F         F F", "F FBBBEDEBBBF F", "FBFFFFCCCFFFFBF", "F F         F F")
-                    .aisle("F F         F F", "FBF  FFCFF  FBF", "F FFFEEEEEFFF F", "F FAA     AAF F", "F FFFEEEEEFFF F", "FBF  FFCFF  FBF", "F F         F F")
-                    .aisle("F F         F F", "F F   F~F   F F", "FBF  FFAFF  FBF", "FBF  AAAAA  FBF", "FBF  FFAFF  FBF", "F F   FFF   F F", "F F         F F")
-                    .aisle("               ", "F F         F F", "F F         F F", "F F         F F", "F F         F F", "F F         F F", "               ")
-                    .self('~', MetaTileEntityElectricImplosionCompressor.class)
-                    .where('A', states(geGlassState()))
-                    .where('B', states(getCasingState()))
-                    .where('C', states(getPipeState()))
-                    .where('D', frames(Materials.Naquadah))
-                    .where('E', air())
-                    .casing('F', CasingDefinition.simple(getStructureState()))
-                    .energyInput(1,4)
-                    .maintenance()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .where(' ', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:electric_implosion_compressor", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("               ", "F F         F F", "F F         F F", "F F         F F",
+                                    "F F         F F", "F F         F F", "               ")
+                            .aisle("F F         F F", "F F   FFF   F F", "FBF  FFAFF  FBF", "FBF  AAAAA  FBF",
+                                    "FBF  FFAFF  FBF", "F F   FFF   F F", "F F         F F")
+                            .aisle("F F         F F", "FBF  FFCFF  FBF", "F FFFEEEEEFFF F", "F FAA     AAF F",
+                                    "F FFFEEEEEFFF F", "FBF  FFCFF  FBF", "F F         F F")
+                            .aisle("F F         F F", "FBFFFFCCCFFFFBF", "F FBBBEDEBBBF F", "F F         F F",
+                                    "F FBBBEDEBBBF F", "FBFFFFCCCFFFFBF", "F F         F F")
+                            .aisle("F F         F F", "FBF  FFCFF  FBF", "F FFFEEEEEFFF F", "F FAA     AAF F",
+                                    "F FFFEEEEEFFF F", "FBF  FFCFF  FBF", "F F         F F")
+                            .aisle("F F         F F", "F F   F~F   F F", "FBF  FFAFF  FBF", "FBF  AAAAA  FBF",
+                                    "FBF  FFAFF  FBF", "F F   FFF   F F", "F F         F F")
+                            .aisle("               ", "F F         F F", "F F         F F", "F F         F F",
+                                    "F F         F F", "F F         F F", "               ")
+                            .self('~', MetaTileEntityElectricImplosionCompressor.class)
+                            .where('A', states(geGlassState()))
+                            .where('B', states(getCasingState()))
+                            .where('C', states(getPipeState()))
+                            .where('D', frames(Materials.Naquadah))
+                            .where('E', air())
+                            .casing('F', getCasingState())
+                            .energyInput(1, 4)
+                            .maintenance()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .where(' ', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityElectricImplosionCompressor(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.ELECTRIC_IMPLOSION_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getStructureState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST);
     }
 
-    private static IBlockState getStructureState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.NAQUADAH_REINFORCED_CASING);
+    private static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
+                BlockLargeMultiblockCasing.CasingType.NAQUADAH_REINFORCED_CASING);
     }
 
     private static IBlockState getPipeState() {

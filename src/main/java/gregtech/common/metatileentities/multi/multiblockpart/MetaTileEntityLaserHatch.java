@@ -33,7 +33,7 @@ import static gregtech.api.GTValues.V;
 import static gregtech.api.GTValues.VNF;
 
 public class MetaTileEntityLaserHatch extends MetaTileEntityMultiblockPart
-                                      implements IMultiblockAbilityPart<ILaserContainer>, IDataInfoProvider {
+        implements IMultiblockAbilityPart<ILaserContainer>, IDataInfoProvider {
 
     private final boolean isOutput;
     private final int tier;

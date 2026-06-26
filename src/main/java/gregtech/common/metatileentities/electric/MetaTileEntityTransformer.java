@@ -251,7 +251,8 @@ public class MetaTileEntityTransformer extends TieredMetaTileEntity {
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         String lowerTierName = GTValues.VNF[getTier()];
         String higherTierName = GTValues.VNF[getTier() + 1];
         long lowerVoltage = energyContainer.getOutputVoltage();

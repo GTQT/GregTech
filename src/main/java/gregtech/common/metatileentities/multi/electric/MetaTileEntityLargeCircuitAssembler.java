@@ -32,46 +32,47 @@ import java.util.List;
 
 public class MetaTileEntityLargeCircuitAssembler extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_circuit_assembler", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX")
-                    .aisle("XXXXXXX", "XPPPPPX", "XGGGGGX")
-                    .aisle("XXXXXXX", "XAAAAPX", "XGGGGGX")
-                    .aisle("XXXXXXX", "XCCCCPX", "XXXXXXX")
-                    .aisle("#####XX", "#####SX", "#####XX")
-                    .self('S', MetaTileEntityLargeCircuitAssembler.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('C', states(getCasingState2()))
-                    .where('P', states(getCasingState3()))
-                    .where('G', states(getCasingState4()))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_circuit_assembler", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX")
+                            .aisle("XXXXXXX", "XPPPPPX", "XGGGGGX")
+                            .aisle("XXXXXXX", "XAAAAPX", "XGGGGGX")
+                            .aisle("XXXXXXX", "XCCCCPX", "XXXXXXX")
+                            .aisle("#####XX", "#####SX", "#####XX")
+                            .self('S', MetaTileEntityLargeCircuitAssembler.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('C', states(getCasingState2()))
+                            .where('P', states(getCasingState3()))
+                            .where('G', states(getCasingState4()))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeCircuitAssembler(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.CIRCUIT_ASSEMBLER_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.ASSEMBLING_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.TEMPERED_GLASS);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.TUNGSTENSTEEL_PIPE);
     }
 
-    private static IBlockState getCasingState4() {
+    public static IBlockState getCasingState4() {
         return MetaBlocks.MULTIBLOCK_CASING.getState(BlockMultiblockCasing.MultiblockCasingType.GRATE_CASING);
     }
 

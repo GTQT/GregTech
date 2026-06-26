@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -29,9 +28,8 @@ import java.util.List;
 public class MetaTileEntityHugeSteamFluidHatch extends MetaTileEntityMultiFluidHatch {
 
     public MetaTileEntityHugeSteamFluidHatch(ResourceLocation metaTileEntityId, boolean isExportHatch) {
-        super(metaTileEntityId, 1, 4,isExportHatch);
+        super(metaTileEntityId, 1, 4, isExportHatch);
     }
-
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
@@ -48,13 +46,11 @@ public class MetaTileEntityHugeSteamFluidHatch extends MetaTileEntityMultiFluidH
         abilityInstances.add(isExportHatch ? this.exportFluids : this.importFluids);
     }
 
-    // Override base texture to have a bus with 4 slots, but ULV textures
     @Override
     public ICubeRenderer getBaseTexture() {
-        MultiblockControllerBase controller = getController();
-        if (controller == null)
+        if(getController()==null)
             return Textures.STEAM_CASING_STEEL;
-        return controller.getBaseTexture(this);
+        return super.getBaseTexture();
     }
 
     @Override

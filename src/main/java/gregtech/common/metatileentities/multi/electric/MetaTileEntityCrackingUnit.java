@@ -46,18 +46,18 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
 
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:cracker", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("HCHCH", "HCHCH", "HCHCH")
-                    .aisle("HCHCH", "H###H", "HCHCH")
-                    .aisle("HCHCH", "HCOCH", "HCHCH")
-                    .self('O', MetaTileEntityCrackingUnit.class)
-                    .air('#')
-                    .casing('H',
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN))
-                        .preset(HatchPresets.ELECTRIC_STANDARD)
-                    .tieredCasing('C', GTCasingGroups.heatingCoils().group())
-                        .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .buildStructureDefinition()
+                    DeclarativePatternBuilder.start()
+                            .aisle("HCHCH", "HCHCH", "HCHCH")
+                            .aisle("HCHCH", "H###H", "HCHCH")
+                            .aisle("HCHCH", "HCOCH", "HCHCH")
+                            .self('O', MetaTileEntityCrackingUnit.class)
+                            .air('#')
+                            .casing('H',
+                                    MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN))
+                            .preset(HatchPresets.ELECTRIC_STANDARD)
+                            .tieredCasing('C', GTCasingGroups.heatingCoils().group())
+                            .withChannel(GTCasingGroups.heatingCoils().channel())
+                            .buildStructureDefinition()
     );
 
     private int coilTier;
@@ -65,6 +65,10 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
     public MetaTileEntityCrackingUnit(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.CRACKING_RECIPES);
         this.recipeMapWorkable = new CrackingUnitWorkableHandler(this);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN);
     }
 
     @Override
@@ -81,10 +85,6 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         return Textures.CLEAN_STAINLESS_STEEL_CASING;
-    }
-
-    protected IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN);
     }
 
     @Override
@@ -121,7 +121,8 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addCoilLogic().build(this, tooltip);
         tooltip.add(I18n.format("gregtech.machine.cracker.tooltip.1"));

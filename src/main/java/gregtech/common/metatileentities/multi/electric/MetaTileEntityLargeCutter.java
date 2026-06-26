@@ -27,49 +27,52 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeCutter extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_cutter", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX", "##XXXXX")
-                    .aisle("XXXXXXX", "XAXCCCX", "XXXAAAX", "##XXXXX")
-                    .aisle("XXXXXXX", "XXXCCCX", "XXXAAAX", "##XXXXX")
-                    .aisle("XXXXXXX", "CSCGGGX", "XXXGGGX", "##XXXXX")
-                    .self('S', MetaTileEntityLargeCutter.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
-                    .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .threadHatch()
-                    .preset(HatchPresets.STANDARD_IO)
-                    .preset(HatchPresets.MUFFLER_IO)
-                    .where('G', states(getCasingState2()))
-                    .where('C', states(getCasingState3()))
-                    .where('A', air())
-                    .where('#', any())
-                    .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gcym:large_cutter", () ->
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX", "##XXXXX")
+                            .aisle("XXXXXXX", "XAXCCCX", "XXXAAAX", "##XXXXX")
+                            .aisle("XXXXXXX", "XXXCCCX", "XXXAAAX", "##XXXXX")
+                            .aisle("XXXXXXX", "CSCGGGX", "XXXGGGX", "##XXXXX")
+                            .self('S', MetaTileEntityLargeCutter.class)
+                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .energyInput(1, 2)
+                            .tieredHatch()
+                            .parallelHatch()
+                            .threadHatch()
+                            .preset(HatchPresets.STANDARD_IO)
+                            .preset(HatchPresets.MUFFLER_IO)
+                            .where('G', states(getCasingState2()))
+                            .where('C', states(getCasingState3()))
+                            .where('A', air())
+                            .where('#', any())
+                            .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeCutter(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, determineRecipeMaps());
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.CUTTER_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.TEMPERED_GLASS);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.SLICING_BLADES);
     }
 
     private static @NotNull RecipeMap<?> @NotNull [] determineRecipeMaps() {
         RecipeMap<?> slicerMap = RecipeMap.getByName("slicer");
         if (Loader.isModLoaded(GCYMValues.GTFO_MODID) && slicerMap != null) {
-            return new RecipeMap<?>[]{RecipeMaps.CUTTER_RECIPES, RecipeMaps.LATHE_RECIPES, RecipeMaps.POLISHER_RECIPES, RecipeMaps.SAWMILL_RECIPES, slicerMap};
+            return new RecipeMap<?>[] { RecipeMaps.CUTTER_RECIPES, RecipeMaps.LATHE_RECIPES,
+                    RecipeMaps.POLISHER_RECIPES, RecipeMaps.SAWMILL_RECIPES, slicerMap };
         }
-        return new RecipeMap<?>[]{RecipeMaps.CUTTER_RECIPES, RecipeMaps.LATHE_RECIPES, RecipeMaps.POLISHER_RECIPES, RecipeMaps.SAWMILL_RECIPES};
+        return new RecipeMap<?>[] { RecipeMaps.CUTTER_RECIPES, RecipeMaps.LATHE_RECIPES, RecipeMaps.POLISHER_RECIPES,
+                RecipeMaps.SAWMILL_RECIPES };
     }
 
     @Override

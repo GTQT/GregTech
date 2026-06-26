@@ -51,8 +51,8 @@ import static gregtech.api.util.GTUtility.gregtechId;
 import static gregtech.common.metatileentities.MetaTileEntities.*;
 
 /**
- * Registration for infrastructure and non-processing single-block machines.
- * All IDs start from 4000, organized in ascending order:
+ * Registration for infrastructure and non-processing single-block machines. All IDs start from 4000, organized in
+ * ascending order:
  *
  * <pre>
  *   4000-4019  基础杂项 (Basic Misc)
@@ -406,7 +406,8 @@ public final class InfrastructureRegistration {
         IRIDIUM_DRUM = registerMetaTileEntity(4443,
                 new MetaTileEntityDrum(gregtechId("drum.iridium"), Materials.Iridium, 1536000));
         RHODIUM_PLATED_PALLADIUM_DRUM = registerMetaTileEntity(4444,
-                new MetaTileEntityDrum(gregtechId("drum.rhodium_plated_palladium"), Materials.RhodiumPlatedPalladium, 2048000));
+                new MetaTileEntityDrum(gregtechId("drum.rhodium_plated_palladium"), Materials.RhodiumPlatedPalladium,
+                        2048000));
         NAQUADAH_ALLOY_DRUM = registerMetaTileEntity(4445,
                 new MetaTileEntityDrum(gregtechId("drum.naquadah_alloy"), Materials.NaquadahAlloy, 4096000));
         DARMSTADTIUM_DRUM = registerMetaTileEntity(4446,
@@ -440,7 +441,8 @@ public final class InfrastructureRegistration {
         TUNGSTENSTEEL_CRATE = registerMetaTileEntity(4461,
                 new MetaTileEntityCrate(gregtechId("crate.tungstensteel"), Materials.TungstenSteel, 144, 16));
         RHODIUM_PLATED_PALLADIUM_CRATE = registerMetaTileEntity(4462,
-                new MetaTileEntityCrate(gregtechId("crate.rhodium_plated_palladium"), Materials.RhodiumPlatedPalladium, 162, 18));
+                new MetaTileEntityCrate(gregtechId("crate.rhodium_plated_palladium"), Materials.RhodiumPlatedPalladium,
+                        162, 18));
         NAQUADAH_ALLOY_CRATE = registerMetaTileEntity(4463,
                 new MetaTileEntityCrate(gregtechId("crate.naquadah_alloy"), Materials.NaquadahAlloy, 180, 20));
         DARMSTADTIUM_CRATE = registerMetaTileEntity(4464,

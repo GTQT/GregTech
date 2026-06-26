@@ -45,21 +45,20 @@ import static gregtech.api.recipes.logic.OverclockingLogic.standardOC;
 
 public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:multi_furnace", () ->
-            DeclarativePatternBuilder.start()
-                    .aisle("XXX", "CCC", "XXX")
-                    .aisle("XXX", "C#C", "XMX")
-                    .aisle("XSX", "CCC", "XXX")
-                    .self('S', MetaTileEntityMultiSmelter.class)
-                    .hatches('M', MultiblockAbility.MUFFLER_HATCH)
-                    .air('#')
-                    .casing('X', 
-                            MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF))
-                        .preset(HatchPresets.ELECTRIC_STANDARD_FIXED_MUFFLER)
-                    .tieredCasing('C', GTCasingGroups.heatingCoils().group())
-                        .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .buildStructureDefinition()
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXX", "CCC", "XXX")
+                            .aisle("XXX", "C#C", "XMX")
+                            .aisle("XSX", "CCC", "XXX")
+                            .self('S', MetaTileEntityMultiSmelter.class)
+                            .hatches('M', MultiblockAbility.MUFFLER_HATCH)
+                            .air('#')
+                            .casing('X', getCasingState())
+                            .preset(HatchPresets.ELECTRIC_STANDARD_FIXED_MUFFLER)
+                            .tieredCasing('C', GTCasingGroups.heatingCoils().group())
+                            .withChannel(GTCasingGroups.heatingCoils().channel())
+                            .buildStructureDefinition()
     );
 
     protected int heatingCoilLevel;
@@ -68,6 +67,36 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
     public MetaTileEntityMultiSmelter(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.FURNACE_RECIPES);
         this.recipeMapWorkable = new MultiSmelterWorkable(this);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF);
+    }
+
+    /**
+     * @param parallel the amount of parallel recipes
+     * @param discount the energy discount
+     * @return the un-overclocked EUt for an amount of parallel recipes
+     */
+    public static int getEUtForParallel(int parallel, int discount) {
+        return RecipeMapFurnace.RECIPE_EUT * Math.max(1, (parallel / 8) / discount);
+    }
+
+    /**
+     * @param heatingCoilLevel the level to get the parallel for
+     * @return the max parallel for the heating coil level
+     */
+    public static int getMaxParallel(int heatingCoilLevel) {
+        return 32 * heatingCoilLevel;
+    }
+
+    /**
+     * @param parallel      the amount of parallel recipes
+     * @param parallelLimit the maximum limit on parallel recipes
+     * @return the un-overclocked duration for an amount of parallel recipes
+     */
+    public static int getDurationForParallel(int parallel, int parallelLimit) {
+        return (int) Math.max(1.0, RecipeMapFurnace.RECIPE_DURATION * 2 * parallel / Math.max(1, parallelLimit * 1.0));
     }
 
     @Override
@@ -144,10 +173,6 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
         return STRUCTURE_DEFINITION;
     }
 
-    public IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF);
-    }
-
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
@@ -169,32 +194,6 @@ public class MetaTileEntityMultiSmelter extends RecipeMapMultiblockController {
     @Override
     public boolean hasMufflerMechanics() {
         return true;
-    }
-
-    /**
-     * @param parallel the amount of parallel recipes
-     * @param discount the energy discount
-     * @return the un-overclocked EUt for an amount of parallel recipes
-     */
-    public static int getEUtForParallel(int parallel, int discount) {
-        return RecipeMapFurnace.RECIPE_EUT * Math.max(1, (parallel / 8) / discount);
-    }
-
-    /**
-     * @param heatingCoilLevel the level to get the parallel for
-     * @return the max parallel for the heating coil level
-     */
-    public static int getMaxParallel(int heatingCoilLevel) {
-        return 32 * heatingCoilLevel;
-    }
-
-    /**
-     * @param parallel      the amount of parallel recipes
-     * @param parallelLimit the maximum limit on parallel recipes
-     * @return the un-overclocked duration for an amount of parallel recipes
-     */
-    public static int getDurationForParallel(int parallel, int parallelLimit) {
-        return (int) Math.max(1.0, RecipeMapFurnace.RECIPE_DURATION * 2 * parallel / Math.max(1, parallelLimit * 1.0));
     }
 
     protected class MultiSmelterWorkable extends MultiblockRecipeLogic {

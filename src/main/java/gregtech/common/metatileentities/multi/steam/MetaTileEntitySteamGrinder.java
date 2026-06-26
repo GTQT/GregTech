@@ -34,10 +34,26 @@ import static gregtech.client.renderer.texture.Textures.BRONZE_PLATED_BRICKS;
 public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockController {
 
     private static final int PARALLEL_LIMIT = 8;
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+            "gregtech:steam_grinder", () -> DeclarativePatternBuilder.start()
+                    .aisle("XXX", "XXX", "XXX")
+                    .aisle("XXX", "X#X", "XXX")
+                    .aisle("XXX", "XSX", "XXX")
+                    .self('S', MetaTileEntitySteamGrinder.class)
+                    .air('#')
+                    .casing('X', getCasingState())
+                    .hatch(MultiblockAbility.STEAM, 1, 2)
+                    .optionalHatch(MultiblockAbility.STEAM_IMPORT_ITEMS, 2)
+                    .optionalHatch(MultiblockAbility.STEAM_EXPORT_ITEMS, 2)
+                    .buildStructureDefinition());
 
     public MetaTileEntitySteamGrinder(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.MACERATOR_RECIPES, CONVERSION_RATE, ParallelLogicType.CROSS_RECIPE);
         this.recipeMapWorkable.setParallelLimit(PARALLEL_LIMIT);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS);
     }
 
     @Override
@@ -45,27 +61,9 @@ public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockControll
         return new MetaTileEntitySteamGrinder(metaTileEntityId);
     }
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gregtech:steam_grinder", () -> DeclarativePatternBuilder.start()
-                    .aisle("XXX", "XXX", "XXX")
-                    .aisle("XXX", "X#X", "XXX")
-                    .aisle("XXX", "XSX", "XXX")
-                    .self('S', MetaTileEntitySteamGrinder.class)
-                    .air('#')
-                    .casing('X',
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS))
-                        .hatch(MultiblockAbility.STEAM, 1, 2)
-                        .optionalHatch(MultiblockAbility.STEAM_IMPORT_ITEMS, 2)
-                        .optionalHatch(MultiblockAbility.STEAM_EXPORT_ITEMS, 2)
-                    .buildStructureDefinition());
-
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
-    }
-
-    public IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS);
     }
 
     @SideOnly(Side.CLIENT)

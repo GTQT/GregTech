@@ -27,7 +27,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MetaTileEntityAutoMaintenanceHatch extends MetaTileEntityMultiblockPart implements
-                                                IMultiblockAbilityPart<IMaintenanceHatch>, IMaintenanceHatch {
+                                                                                     IMultiblockAbilityPart<IMaintenanceHatch>,
+                                                                                     IMaintenanceHatch {
 
     public MetaTileEntityAutoMaintenanceHatch(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, 3);

@@ -198,17 +198,6 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
     }
 
     @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
-            return;
-        }
-        this.circuitInventory.setCircuitValue(config);
-        if (!getWorld().isRemote) {
-            markDirty();
-        }
-    }
-
-    @Override
     public void setGhostCustomStack(@NotNull ItemStack stack) {
         if (this.circuitInventory == null) {
             return;
@@ -225,6 +214,17 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
             return 0;
         }
         return this.circuitInventory.getCircuitValue();
+    }
+
+    @Override
+    public void setGhostCircuitConfig(int config) {
+        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+            return;
+        }
+        this.circuitInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
     }
 
     @Override
@@ -271,7 +271,8 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
                                         .ignoreMaxStackSize(true)
                                         .slotGroup("item_inv")
                                         .changeListener((newItem, onlyAmountChanged, client, init) -> {
-                                            if (onlyAmountChanged && handler instanceof LargeSlotItemStackHandler gtHandler) {
+                                            if (onlyAmountChanged &&
+                                                    handler instanceof LargeSlotItemStackHandler gtHandler) {
                                                 gtHandler.onContentsChanged(index);
                                             }
                                         })
@@ -362,17 +363,17 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
     }
 
     @Override
+    public boolean isWorkingEnabled() {
+        return workingEnabled;
+    }
+
+    @Override
     public void setWorkingEnabled(boolean workingEnabled) {
         this.workingEnabled = workingEnabled;
         World world = getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
         }
-    }
-
-    @Override
-    public boolean isWorkingEnabled() {
-        return workingEnabled;
     }
 
     @Override
@@ -470,7 +471,8 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
             tooltip.add(I18n.format("gregtech.machine.dual_hatch.export.tooltip"));
 
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getItemSize()));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(), getTankCapacity()));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity_mult", getTankSize(),
+                getTankCapacity()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
         tooltip.add(GREEN + I18n.format("gregtech.machine.super_item_bus.tooltip"));
     }
@@ -486,6 +488,6 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
     @Override
     public void onRemoval() {
         super.onRemoval();
-        GTTransferUtils.dropInventoryItems(getWorld(),getPos(), largeSlotItemStackHandler);
+        GTTransferUtils.dropInventoryItems(getWorld(), getPos(), largeSlotItemStackHandler);
     }
 }

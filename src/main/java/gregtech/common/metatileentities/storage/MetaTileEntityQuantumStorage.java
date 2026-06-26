@@ -65,11 +65,6 @@ import static gregtech.api.capability.GregtechDataCodes.*;
 public abstract class MetaTileEntityQuantumStorage<T> extends MetaTileEntity implements IQuantumStorage<T>,
                                                                                         IActiveOutputSide {
 
-    /** not synced, server only. lazily initialized from pos */
-    private WeakReference<IQuantumController> controller = new WeakReference<>(null);
-
-    /** synced, server and client */
-    private BlockPos controllerPos;
     protected static final String IS_VOIDING = "IsVoiding";
     protected static final String INPUT_FROM_OUTPUT = "AllowInputFromOutputSide";
     protected static final String INPUT_FROM_OUTPUT_FLUID = "AllowInputFromOutputSideF";
@@ -78,12 +73,15 @@ public abstract class MetaTileEntityQuantumStorage<T> extends MetaTileEntity imp
     protected static final String IS_LOCKED = "IsLocked";
     protected static final String HAS_CONTROLLER = "HasController";
     protected static final String CONTROLLER_POS = "ControllerPos";
-
     protected EnumFacing outputFacing;
     protected boolean voiding = false;
     protected boolean autoOutput;
     protected boolean allowInputFromOutputSide = false;
     protected boolean locked = false;
+    /** not synced, server only. lazily initialized from pos */
+    private WeakReference<IQuantumController> controller = new WeakReference<>(null);
+    /** synced, server and client */
+    private BlockPos controllerPos;
 
     public MetaTileEntityQuantumStorage(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);

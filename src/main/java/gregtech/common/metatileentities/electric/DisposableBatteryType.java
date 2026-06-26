@@ -15,9 +15,9 @@ import java.util.function.Supplier;
  * Registry of all A-series disposable (single-use) battery block variants.
  *
  * <p>Each enum constant fully defines one battery type: voltage tier, EU capacity,
- * and a lambda that produces the chemical byproduct stacks dropped on depletion.
- * The base MTE class {@link MetaTileEntityDisposableBatteryBase} reads these at
- * construction and depletion time, eliminating the need for per-variant subclasses.
+ * and a lambda that produces the chemical byproduct stacks dropped on depletion. The base MTE class
+ * {@link MetaTileEntityDisposableBatteryBase} reads these at construction and depletion time, eliminating the need for
+ * per-variant subclasses.
  */
 public enum DisposableBatteryType {
 
@@ -107,8 +107,8 @@ public enum DisposableBatteryType {
     }
 
     /**
-     * Creates a fresh array of byproduct {@link ItemStack}s to drop on depletion.
-     * A new array is returned each call so callers may mutate it safely.
+     * Creates a fresh array of byproduct {@link ItemStack}s to drop on depletion. A new array is returned each call so
+     * callers may mutate it safely.
      */
     public ItemStack[] createByproducts() {
         return byproductsSupplier.get();

@@ -51,7 +51,7 @@ import java.util.List;
 
 public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockController implements IHeatingCoil {
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:electric_blast_furnace", () ->
                     DeclarativePatternBuilder.start()
                             .aisle("XXX", "CCC", "CCC", "XXX")
@@ -60,18 +60,22 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
                             .self('S', MetaTileEntityElectricBlastFurnace.class)
                             .hatches('M', MultiblockAbility.MUFFLER_HATCH)
                             .air('#')
-                            .casing('X', MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF))
+                            .casing('X', getCasingState())
                             .preset(HatchPresets.ELECTRIC_STANDARD_FIXED_MUFFLER)
                             .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                             .withChannel(GTCasingGroups.heatingCoils().channel())
                             .buildStructureDefinition()
-            );
+    );
 
     private int blastFurnaceTemperature;
 
     public MetaTileEntityElectricBlastFurnace(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.BLAST_RECIPES);
         this.recipeMapWorkable = new HeatingCoilRecipeLogic(this);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF);
     }
 
     @Override
@@ -124,10 +128,6 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
     @Override
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
-    }
-
-    protected IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(MetalCasingType.INVAR_HEATPROOF);
     }
 
     @SideOnly(Side.CLIENT)

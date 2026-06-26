@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Objects;
 
 public abstract class MetaTileEntityLongDistanceEndpoint extends MetaTileEntity
-                                                         implements ILDEndpoint, IDataInfoProvider {
+        implements ILDEndpoint, IDataInfoProvider {
 
     private final LongDistancePipeType pipeType;
     private IOType ioType = IOType.NONE;

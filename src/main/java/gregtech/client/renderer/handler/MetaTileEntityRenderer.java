@@ -111,7 +111,7 @@ public class MetaTileEntityRenderer implements ICCBlockRenderer, IItemRenderer {
         for (EnumFacing side : EnumFacing.VALUES) {
             sideMask[side.getIndex()] = state.shouldSideBeRendered(world, pos, side);
         }
-        Textures.RENDER_STATE.set(new CubeRendererState(renderLayer, sideMask, world));
+        Textures.RENDER_STATE.set(new CubeRendererState(renderLayer, sideMask, world, pos));
         if (metaTileEntity.canRenderInLayer(renderLayer)) {
             renderState.lightMatrix.locate(world, pos);
             IVertexOperation[] pipeline = extraPipeline == null || extraPipeline.length == 0

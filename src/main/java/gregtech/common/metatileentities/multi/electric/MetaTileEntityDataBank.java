@@ -55,46 +55,57 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
     private static final int EUT_PER_HATCH = GTValues.VA[GTValues.EV];
     private static final int EUT_PER_HATCH_CHAINED = GTValues.VA[GTValues.LuV];
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:data_bank", () -> DeclarativePatternBuilder.start(BACK, UP, RIGHT)
                     .piece("top")
-                        .aisle("XXX", "XXX", "XXX")
+                    .aisle("XXX", "XXX", "XXX")
                     .repeatablePiece("body1", 1, 3)
-                        .aisle("CDD", "CAD", "CDD")
-                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
+                    .aisle("CDD", "CAD", "CDD")
+                    .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .piece("middle")
-                        .aisle("CDD", "SAD", "CDD")
+                    .aisle("CDD", "SAD", "CDD")
                     .repeatablePiece("body2", 1, 3)
-                        .aisle("CDD", "CAD", "CDD")
-                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
+                    .aisle("CDD", "CAD", "CDD")
+                    .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .piece("bottom")
-                        .aisle("XXX", "XXX", "XXX")
+                    .aisle("XXX", "XXX", "XXX")
                     .self('S', MetaTileEntityDataBank.class)
                     .block('X', getOuterState())
                     .block('A', getInnerState())
                     .casing('D', getInnerState())
-                        .optionalHatch(MultiblockAbility.DATA_ACCESS_HATCH, 9)
-                        .custom(
-                                Elements.abilities(1, -1, 1,
-                                        MultiblockAbility.OPTICAL_DATA_TRANSMISSION), 1)
-                        .custom(
-                                Elements.abilities(0, -1, 1,
-                                        MultiblockAbility.OPTICAL_DATA_RECEPTION), 3)
-                    .casing('C', getFrontState())
-                        .energyInput(1,2)
+                    .optionalHatch(MultiblockAbility.DATA_ACCESS_HATCH, 9)
+                    .custom(
+                            Elements.abilities(1, -1, 1,
+                                    MultiblockAbility.OPTICAL_DATA_TRANSMISSION), 1)
+                    .custom(
+                            Elements.abilities(0, -1, 1,
+                                    MultiblockAbility.OPTICAL_DATA_RECEPTION), 3)
+                    .casing('C', getCasingState())
+                    .energyInput(1, 2)
                     .buildStructureDefinition());
-
+    protected boolean hasNotEnoughEnergy;
     private IEnergyContainer energyContainer;
-
     private boolean isActive = false;
     private boolean isWorkingEnabled = true;
-    protected boolean hasNotEnoughEnergy;
-
     private int energyUsage = 0;
 
     public MetaTileEntityDataBank(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
         this.energyContainer = new EnergyContainerList(new ArrayList<>());
+    }
+
+    @NotNull
+    private static IBlockState getOuterState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_HEAT_VENT);
+    }
+
+    @NotNull
+    private static IBlockState getInnerState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING);
     }
 
     @Override
@@ -207,20 +218,6 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
         return STRUCTURE_DEFINITION;
     }
 
-    @NotNull
-    private static IBlockState getOuterState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_HEAT_VENT);
-    }
-
-    @NotNull
-    private static IBlockState getInnerState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
-    }
-
-    private static IBlockState getFrontState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING);
-    }
-
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
@@ -287,7 +284,7 @@ public class MetaTileEntityDataBank extends MultiblockWithDisplayBase implements
                         "gregtech.multiblock.data_bank.providing")
                 .addWorkingStatusLine();
 
-        if(isWorkingEnabled() && isActive())
+        if (isWorkingEnabled() && isActive())
             builder.addEnergyUsageExactLine(getEnergyUsage());
     }
 

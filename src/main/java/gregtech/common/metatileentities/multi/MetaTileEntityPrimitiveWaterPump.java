@@ -19,6 +19,7 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.block.SoundType;
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
@@ -42,7 +43,7 @@ import java.util.Set;
 
 public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase implements IPrimitivePump {
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:primitive_water_pump", () -> DeclarativePatternBuilder.start()
                     .aisle("XXXX", "**F*", "**F*")
                     .aisle("XXHX", "F**F", "FFFF")
@@ -56,8 +57,7 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
                                             MetaTileEntities.FLUID_EXPORT_HATCH[0],
                                             MetaTileEntities.FLUID_EXPORT_HATCH[1])))
                     .any('*')
-                    .casing('X',
-                            MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.PUMP_DECK))
+                    .casing('X', getCasingState())
                     .buildStructureDefinition());
 
     private IFluidTank waterTank;
@@ -67,6 +67,10 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
     public MetaTileEntityPrimitiveWaterPump(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
         resetTileAbilities();
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.PUMP_DECK);
     }
 
     @Override
@@ -104,14 +108,14 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
             return 350;
         } else if (biomeTypes.contains(BiomeDictionary.Type.SNOWY)) {
             return 300;
-        } else
-            if (biomeTypes.contains(BiomeDictionary.Type.PLAINS) || biomeTypes.contains(BiomeDictionary.Type.FOREST)) {
-                return 250;
-            } else if (biomeTypes.contains(BiomeDictionary.Type.COLD)) {
-                return 175;
-            } else if (biomeTypes.contains(BiomeDictionary.Type.BEACH)) {
-                return 170;
-            }
+        } else if (biomeTypes.contains(BiomeDictionary.Type.PLAINS) ||
+                biomeTypes.contains(BiomeDictionary.Type.FOREST)) {
+            return 250;
+        } else if (biomeTypes.contains(BiomeDictionary.Type.COLD)) {
+            return 175;
+        } else if (biomeTypes.contains(BiomeDictionary.Type.BEACH)) {
+            return 170;
+        }
         return 100;
     }
 

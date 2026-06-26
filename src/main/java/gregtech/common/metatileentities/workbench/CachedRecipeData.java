@@ -15,9 +15,9 @@ import java.util.List;
 
 public class CachedRecipeData {
 
+    private final List<Ingredient> recipeIngredients = new ArrayList<>();
     private IRecipe recipe;
     private IRecipe previousRecipe;
-    private final List<Ingredient> recipeIngredients = new ArrayList<>();
 
     public CachedRecipeData() {
         this(null);
@@ -34,6 +34,10 @@ public class CachedRecipeData {
         return recipe.matches(inventoryCrafting, world);
     }
 
+    public IRecipe getRecipe() {
+        return recipe;
+    }
+
     public void setRecipe(IRecipe newRecipe) {
         this.previousRecipe = this.recipe;
         this.recipe = newRecipe;
@@ -42,10 +46,6 @@ public class CachedRecipeData {
             this.recipeIngredients.addAll(newRecipe.getIngredients());
             this.recipeIngredients.removeIf(ing -> ing == Ingredient.EMPTY);
         }
-    }
-
-    public IRecipe getRecipe() {
-        return recipe;
     }
 
     public IRecipe getPreviousRecipe() {

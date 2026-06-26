@@ -62,6 +62,10 @@ public class MetaTileEntityHugeTransformer extends MultiblockWithDisplayBase imp
         this.powerInput = new EnergyContainerList(new ArrayList<>());
     }
 
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN);
+    }
+
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityHugeTransformer(metaTileEntityId);
@@ -112,14 +116,15 @@ public class MetaTileEntityHugeTransformer extends MultiblockWithDisplayBase imp
 
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        return StructureDefinition.getOrBuild("gtqt:huge_transformer", () -> StructureDefinition.builder(RIGHT, UP, BACK)
-                .piece("main", "ISI")
-                    .where('S', Elements.self(MetaTileEntityHugeTransformer.class))
-                    .where('I', Elements.chain(
-                            Elements.hatch(MultiblockAbility.INPUT_ENERGY, 0, -1, 1),
-                            Elements.hatch(MultiblockAbility.OUTPUT_ENERGY, 0, -1, 2)))
-                    .end()
-                .build());
+        return StructureDefinition.getOrBuild("gtqt:huge_transformer",
+                () -> StructureDefinition.builder(RIGHT, UP, BACK)
+                        .piece("main", "ISI")
+                        .where('S', Elements.self(MetaTileEntityHugeTransformer.class))
+                        .where('I', Elements.chain(
+                                Elements.hatch(MultiblockAbility.INPUT_ENERGY, 0, -1, 1),
+                                Elements.hatch(MultiblockAbility.OUTPUT_ENERGY, 0, -1, 2)))
+                        .end()
+                        .build());
     }
 
     @Override
@@ -136,10 +141,6 @@ public class MetaTileEntityHugeTransformer extends MultiblockWithDisplayBase imp
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         return Textures.CLEAN_STAINLESS_STEEL_CASING;
-    }
-
-    protected IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN);
     }
 
     @SideOnly(Side.CLIENT)
