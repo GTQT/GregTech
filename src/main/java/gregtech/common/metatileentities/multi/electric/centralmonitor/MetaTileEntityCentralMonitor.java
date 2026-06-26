@@ -56,6 +56,7 @@ import gregtech.common.pipelike.cable.net.EnergyNet;
 import gregtech.common.pipelike.cable.net.WorldENet;
 import gregtech.common.pipelike.cable.tile.TileEntityCable;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -142,6 +143,10 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         super(metaTileEntityId);
     }
 
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
+    }
+
     private static boolean detectRuntimeStructure(
             @NotNull StructureRuntimeDetectionContext<
                     MetaTileEntityCentralMonitor> context) {
@@ -218,12 +223,10 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         context.emit(MONITOR_DIMENSIONS_KEY, dimensions);
 
         IStructureElement<?> controllerElement =
-                gregtech.api.pattern.element.Elements.self(
+                Elements.self(
                         MetaTileEntityCentralMonitor.class);
         IStructureElement<?> frameElement = new ChainElement(
-                gregtech.api.pattern.element.Elements.block(
-                        MetaBlocks.METAL_CASING.getState(
-                                BlockMetalCasing.MetalCasingType.STEEL_SOLID)),
+                Elements.block(getCasingState()),
                 new HatchElement(
                         MultiblockAbility.INPUT_ENERGY, 0, 3));
 
@@ -603,8 +606,7 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
                 .aisle(end.toString())
                 .self('S', MetaTileEntityCentralMonitor.class)
                 .metaTileEntities('B', MetaTileEntities.MONITOR_SCREEN)
-                .casing('A',
-                        MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID))
+                .casing('A', getCasingState())
                 .energyInput(1, 3)
                 .buildStructureDefinition();
     }

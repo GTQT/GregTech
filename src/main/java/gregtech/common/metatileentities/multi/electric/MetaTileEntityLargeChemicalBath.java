@@ -28,16 +28,19 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static gregtech.api.pattern.FluidTraceability.*;
-import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeChemicalBath extends GCYMAdvanceRecipeMapMultiblockController {
 
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gcym:large_chemical_bath", () ->
-                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
-                            .aisle("XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
-                            .aisle("XXSXX", "XCCCX", "XAAAX", "XAAAX", "XAAAX", "XCCCX", "XXXXX")
-                            .aisle("XXXXX", "XAAAX", "XAAAX", "XAAAX", "XAAAX", "XAAAX", "XXXXX")
+                    DeclarativePatternBuilder.start()
+                            .aisle("XXXXX", "XXXXX", "XXXXX")
+                            .aisle("XXXXX", "XCCCX", "XAAAX")
+                            .aisle("XXXXX", "XAAAX", "XAAAX")
+                            .aisle("XXXXX", "XAAAX", "XAAAX")
+                            .aisle("XXXXX", "XAAAX", "XAAAX")
+                            .aisle("XXXXX", "XCCCX", "XAAAX")
+                            .aisle("XXXXX", "XXSXX", "XXXXX")
                             .self('S', MetaTileEntityLargeChemicalBath.class)
                             .casing('X', getCasingState())
                             .energyInput(1, 2)
