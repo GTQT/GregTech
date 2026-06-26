@@ -62,7 +62,7 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:assembly_line", () -> DeclarativePatternBuilder.start(BACK, UP, RIGHT)
                     .piece("start")
                         .aisle("FIF", "RTR", "SAG", " Y ")

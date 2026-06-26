@@ -31,12 +31,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-import static gregtech.api.util.RelativeDirection.*;
-
 public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblockController {
 
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_assembler", () ->
-            DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
+            DeclarativePatternBuilder.start()
                     .aisle("XXXXXXXXX", "XXXXXXXXX", "XXXXXXXXX")
                     .aisle("XXXXXXXXX", "XAAAXAXAX", "XCCCXXXXX")
                     .aisle("XXXXXXXXX", "XCCCXXSXX", "XCCCX###X")

@@ -8,7 +8,6 @@ import gregtech.api.metatileentity.multiblock.DummyCleanroom;
 import gregtech.api.metatileentity.multiblock.ICleanroomProvider;
 import gregtech.api.metatileentity.multiblock.ICleanroomReceiver;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.ConfigHolder;
@@ -22,12 +21,10 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
 import codechicken.lib.render.CCRenderState;
-import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -105,8 +102,7 @@ public class MetaTileEntitySterileCleaningMaintenanceHatch extends MetaTileEntit
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
-        getBaseTexture().render(renderState, translation, ArrayUtils.add(pipeline,
-                new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering()))));
+        super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay())
             MAINTENANCE_OVERLAY_STERILE_CLEANING.renderSided(getFrontFacing(), renderState, translation, pipeline);
     }

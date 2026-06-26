@@ -21,15 +21,16 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
 
-import static gregtech.api.util.RelativeDirection.*;
-
 public class MetaTileEntityLargeCentrifuge extends GCYMAdvanceRecipeMapMultiblockController {
 
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_centrifuge", () ->
-            DeclarativePatternBuilder.start(RIGHT, BACK, UP)
-                    .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
-                    .aisle("XXSXX", "XACAX", "XCCCX", "XACAX", "XXXXX")
-                    .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
+            DeclarativePatternBuilder.start()
+                    .aisle("#XXX#", "XXXXX", "#XXX#")
+                    .aisle("XXXXX", "XACAX", "XXXXX")
+                    .aisle("XXXXX", "XXSXX", "XXXXX")
+                    .aisle("XXXXX", "XCCCX", "XXXXX")
+                    .aisle("XXXXX", "XXXXX", "XXXXX")
+                    .aisle("#XXX#", "XXSXX", "#XXX#")
                     .self('S', MetaTileEntityLargeCentrifuge.class)
                     .casing('X', CasingDefinition.simple(getCasingState()))
                     .energyInput(1, 2)
