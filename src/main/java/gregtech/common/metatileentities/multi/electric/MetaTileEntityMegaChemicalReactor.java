@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -62,7 +61,7 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
                             .where('#', air())
                             .where('G', states(getGlassState()))
                             .where('F', states(getCoilState()))
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .preset(HatchPresets.STANDARD_IO)
                             .preset(HatchPresets.MUFFLER_IO)
                             .tieredHatch()

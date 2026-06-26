@@ -7,7 +7,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.TieredMetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -65,12 +64,8 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
-        getOverlay().renderSided(getFrontFacing(), renderState, translation, pipeline);
-    }
-
-    @NotNull
-    private SimpleOverlayRenderer getOverlay() {
-        return Textures.HEAT_OUT;
+        Textures.HEATER_OVERLAY.renderOrientedState(renderState, translation, pipeline, getFrontFacing(),
+                heatable.getHeatStored()>0, heatable.getHeatStored()>0);
     }
 
     @Override

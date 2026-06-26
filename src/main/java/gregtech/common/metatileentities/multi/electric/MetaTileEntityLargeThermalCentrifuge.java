@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -34,7 +33,7 @@ public class MetaTileEntityLargeThermalCentrifuge extends GCYMAdvanceRecipeMapMu
                             .aisle("XXXXX", "XCCCX", "X#W#X", "##F##", "##F##", "X#W#X", "XCCCX", "XXXXX")
                             .aisle("#XXX#", "#XSX#", "#####", "#####", "#####", "#####", "#XXX#", "#XXX#")
                             .self('S', MetaTileEntityLargeThermalCentrifuge.class)
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .energyInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()

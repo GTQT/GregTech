@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -35,7 +34,7 @@ public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockCon
                             .aisle("#XSX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
                             .aisle("#XXX#", "X###X", "X###X", "X###X", "#XXX#")
                             .self('S', MetaTileEntityLargeSifter.class)
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .energyInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()

@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -32,7 +31,7 @@ public class MetaTileEntityLargeRockBreaker extends GCYMAdvanceRecipeMapMultiblo
                             .aisle("CCC", "C#C", "C#C", "CMC")
                             .aisle("CSC", "CCC", "CCC", "CCC")
                             .self('S', MetaTileEntityLargeRockBreaker.class)
-                            .casing('C', CasingDefinition.simple(getCasingState()))
+                            .casing('C', getCasingState())
                             .energyInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()

@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -31,7 +30,7 @@ public class MetaTileEntityLargePolymerization extends GCYMAdvanceRecipeMapMulti
                             .aisle("     ", "XXXXX", "XPPPX", "XXXXX")
                             .aisle("F   F", "XXXXX", "XSXXX", "XXXXX")
                             .self('S', MetaTileEntityLargePolymerization.class)
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .energyInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()

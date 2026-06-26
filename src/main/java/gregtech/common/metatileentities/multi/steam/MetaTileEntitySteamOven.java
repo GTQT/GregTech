@@ -80,6 +80,14 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
         return isStructureFormed() && (((MetaTileEntity) sourcePart).getPos().getY() < getPos().getY());
     }
 
+    @Override
+    public IBlockState getCasingBlock(@Nullable IMultiblockPart sourcePart) {
+        if (sourcePart != null && isFireboxPart(sourcePart)) {
+            return getFireboxState();
+        }
+        return super.getCasingBlock(sourcePart);
+    }
+
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {

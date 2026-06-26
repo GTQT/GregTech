@@ -532,22 +532,38 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         try {
             java.lang.reflect.Method m = getClass().getMethod("getCasingState");
             Class<?> declaringClass = m.getDeclaringClass();
-            GTLog.logger.info("[CTM-DEBUG] {} getCasingBlock(): found getCasingState() declared in {}",
-                    getClass().getSimpleName(), declaringClass.getSimpleName());
+            //GTLog.logger.info("[CTM-DEBUG] {} getCasingBlock(): found getCasingState() declared in {}",
+                   // getClass().getSimpleName(), declaringClass.getSimpleName());
             if (!declaringClass.equals(MultiblockControllerBase.class)) {
                 cachedCasingBlock = (IBlockState) m.invoke(null);
-                GTLog.logger.info("[CTM-DEBUG] {} getCasingBlock(): invoke succeeded, casing={}",
-                        getClass().getSimpleName(), cachedCasingBlock);
+                //GTLog.logger.info("[CTM-DEBUG] {} getCasingBlock(): invoke succeeded, casing={}",
+                       // getClass().getSimpleName(), cachedCasingBlock);
                 return cachedCasingBlock;
             } else {
-                GTLog.logger.warn("[CTM-DEBUG] {} getCasingBlock(): getCasingState() declared in MultiblockControllerBase, skipping",
-                        getClass().getSimpleName());
+                //GTLog.logger.warn("[CTM-DEBUG] {} getCasingBlock(): getCasingState() declared in MultiblockControllerBase, skipping",
+                        //getClass().getSimpleName());
             }
         } catch (Exception e) {
-            GTLog.logger.error("[CTM-DEBUG] {} getCasingBlock(): reflection failed", getClass().getSimpleName(), e);
+            //GTLog.logger.error("[CTM-DEBUG] {} getCasingBlock(): reflection failed", getClass().getSimpleName(), e);
         }
-        GTLog.logger.warn("[CTM-DEBUG] {} getCasingBlock(): returning null (no CTM)", getClass().getSimpleName());
+        //GTLog.logger.warn("[CTM-DEBUG] {} getCasingBlock(): returning null (no CTM)", getClass().getSimpleName());
         return null;
+    }
+
+    /**
+     * Returns the casing {@link IBlockState} for a specific multiblock part.
+     * <p>
+     * Override this to provide different CTM textures for different areas
+     * of the multiblock (e.g. firebox vs regular casing).
+     * <p>
+     * Default implementation delegates to {@link #getCasingBlock()} which
+     * provides a uniform casing for all parts.
+     *
+     * @param sourcePart the multiblock part requesting the casing, or null for the controller itself
+     * @return the casing state for CTM, or null to fall back to {@link #getBaseTexture(IMultiblockPart)}
+     */
+    public IBlockState getCasingBlock(@Nullable IMultiblockPart sourcePart) {
+        return getCasingBlock();
     }
 
     private IBlockState cachedCasingBlock;
@@ -555,7 +571,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
-        IBlockState casing = getCasingBlock();
+        IBlockState casing = getCasingBlock(null);
         ICubeRenderer baseTexture;
         if (casing != null) {
             baseTexture = new VisualStateRenderer(casing);
@@ -588,7 +604,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @SideOnly(Side.CLIENT)
     @Override
     public Pair<TextureAtlasSprite, Integer> getParticleTexture() {
-        IBlockState casing = getCasingBlock();
+        IBlockState casing = getCasingBlock(null);
         if (casing != null) {
             return Pair.of(new VisualStateRenderer(casing).getParticleSprite(), getPaintingColorForRendering());
         }

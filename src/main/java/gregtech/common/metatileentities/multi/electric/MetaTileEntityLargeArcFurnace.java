@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -33,7 +32,7 @@ public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultibloc
                             .aisle("XXXXX", "XACAX", "XACAX", "XXXXX")
                             .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#")
                             .self('S', MetaTileEntityLargeArcFurnace.class)
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .energyInput(1, 4)
                             .maintenance()
                             .preset(HatchPresets.STANDARD_IO)

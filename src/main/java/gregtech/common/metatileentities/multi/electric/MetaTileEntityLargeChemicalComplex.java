@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -46,7 +45,7 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
                             .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
                             .aisle("X###X", "SXXXX", "X###X", "XXXXX", "X###X")
                             .self('S', MetaTileEntityLargeChemicalComplex.class)
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .energyInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()

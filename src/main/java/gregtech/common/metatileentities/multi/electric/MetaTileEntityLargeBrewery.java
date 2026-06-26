@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -35,7 +34,7 @@ public class MetaTileEntityLargeBrewery extends GCYMAdvanceRecipeMapMultiblockCo
                             .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
                             .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#####")
                             .self('S', MetaTileEntityLargeBrewery.class)
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .energyInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()

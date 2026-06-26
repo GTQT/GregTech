@@ -111,6 +111,14 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
     }
 
+    @Override
+    public IBlockState getCasingBlock(@Nullable IMultiblockPart sourcePart) {
+        if (sourcePart instanceof IDataAccessHatch) {
+            return getGrateState();
+        }
+        return getCasingState();
+    }
+
     @NotNull
     protected static IBlockState getGrateState() {
         return MetaBlocks.MULTIBLOCK_CASING.getState(BlockMultiblockCasing.MultiblockCasingType.GRATE_CASING);

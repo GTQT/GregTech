@@ -8,7 +8,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -55,7 +54,7 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
                             .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
                             .aisle("CCCCC", "CCSCC", "CCCCC", " CCC ", " CCC ")
                             .self('S', MetaTileEntityLargeDesulfurization.class)
-                            .casing('C', CasingDefinition.simple(getCasingState()))
+                            .casing('C', getCasingState())
                             .energyInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()

@@ -10,7 +10,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -71,7 +70,7 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
                             .aisle("CCCCCCSCCCCCC", " C         C ", " C         C ", " C         C ", " C         C ",
                                     " C         C ", " C         C ")
                             .self('S', MetaTileEntityMegaCrackingUnit.class)
-                            .casing('C', CasingDefinition.simple(getCasingState()))
+                            .casing('C', getCasingState())
                             .optionalEnergyInput(8)
                             .optionalLaserInput(1)
                             .preset(HatchPresets.MUFFLER_IO)

@@ -11,7 +11,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockDisplayText;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -55,7 +54,7 @@ public class MetaTileEntityAlloyBlastSmelter extends RecipeMapMultiblockControll
                             .aisle("XXXXX", "CAAAC", "GAAAG", "CAAAC", "XXXXX")
                             .aisle("#XSX#", "#CCC#", "#GGG#", "#CCC#", "#XXX#")
                             .self('S', MetaTileEntityAlloyBlastSmelter.class)
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .optionalEnergyInput(8)
                             .optionalLaserInput(1)
                             .maintenance()

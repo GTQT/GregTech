@@ -385,6 +385,19 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         return boilerType.getCasingState();
     }
 
+    @Override
+    public IBlockState getCasingBlock(@Nullable IMultiblockPart sourcePart) {
+        if (sourcePart != null && isFireboxPart(sourcePart)) {
+            return boilerType.getFireboxState();
+        }
+        return boilerType.getCasingState();
+    }
+
+    @Override
+    public boolean hasMaintenanceMechanics() {
+        return false;
+    }
+
     private boolean isFireboxPart(IMultiblockPart sourcePart) {
         return isStructureFormed() && (((MetaTileEntity) sourcePart).getPos().getY() < getPos().getY());
     }

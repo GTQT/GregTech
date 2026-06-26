@@ -9,7 +9,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -53,7 +52,7 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
                             .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
                             .aisle("XXXXX", "XXXXX", "XXSXX", "XXXXX", "XXXXX")
                             .self('S', MetaTileEntityLargePyrolyser.class)
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .energyInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()

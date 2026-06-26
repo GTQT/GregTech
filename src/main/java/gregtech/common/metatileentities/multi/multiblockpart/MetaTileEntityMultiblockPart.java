@@ -107,7 +107,7 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
     public IBlockState getCasingBlock() {
         MultiblockControllerBase controller = getController();
         if (controller != null) {
-            return controller.getCasingBlock();
+            return controller.getCasingBlock(this);
         }
         return null;
     }
@@ -115,7 +115,7 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
     public ICubeRenderer getBaseTexture() {
         MultiblockControllerBase controller = getController();
         if (controller != null) {
-            IBlockState casing = controller.getCasingBlock();
+            IBlockState casing = controller.getCasingBlock(this);
             if (casing != null) return this.hatchTexture = new VisualStateRenderer(casing);
             return this.hatchTexture = controller.getBaseTexture(this);
         } else if (this.hatchTexture != null) {
