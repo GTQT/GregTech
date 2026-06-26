@@ -4,6 +4,9 @@ import gregtech.api.GTValues;
 import gregtech.api.metatileentity.multiblock.CleanroomType;
 import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.recipes.ingredients.GTRecipeItemInput;
+import gregtech.api.recipes.ingredients.nbtmatch.NBTCondition;
+import gregtech.api.recipes.ingredients.nbtmatch.NBTMatcher;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
@@ -35,6 +38,10 @@ import java.util.Arrays;
 import java.util.Map;
 
 public class CombRecipes {
+
+    private static final int HONEYCOMB_EXTRACT_CENTRIFUGE_AMOUNT = 288;
+    private static final int PREMIUM_HONEYCOMB_EXTRACT_CENTRIFUGE_AMOUNT = 144;
+    private static final int PREMIUM_GRADE_HONEYCOMB_EXTRACT_CENTRIFUGE_AMOUNT = 72;
 
     public static void initForestryCombs() {
         if (!ModuleFactory.machineEnabled(MachineUIDs.CENTRIFUGE)) return;
@@ -471,8 +478,8 @@ public class CombRecipes {
         ImmutableMap.Builder<ItemStack, Float> product = new ImmutableMap.Builder<>();
         // Start of the GregTech Map
         RecipeBuilder<?> builder = RecipeMaps.CENTRIFUGE_RECIPES.recipeBuilder()
-                .inputs(combStack)
                 .duration(duration)
+                .circuitMeta(1)
                 .EUt(volt.getCentrifugeEnergy());
 
         int numGTOutputs = 0;
@@ -497,9 +504,53 @@ public class CombRecipes {
                 RecipeManagers.centrifugeManager.addRecipe(duration, combStack, product.build());
             }
         }
+
+        addHoneycombExtractCentrifugeRecipes(combStack, item, chance, volt, duration);
         // Finalize GregTech Map
-        builder.buildAndRegister();
+        builder.inputNBT(new GTRecipeItemInput(combStack.copy()), NBTMatcher.ANY, NBTCondition.ANY)
+                .buildAndRegister();
     }
+
+    private static void addHoneycombExtractCentrifugeRecipes(ItemStack combStack, ItemStack[] item, int[] chance,
+                                                             Voltage volt, int duration) {
+        addHoneycombExtractCentrifugeRecipe(combStack, item, chance, Materials.HoneycombExtract,
+                HONEYCOMB_EXTRACT_CENTRIFUGE_AMOUNT, 2, 1, volt, duration);
+        addHoneycombExtractCentrifugeRecipe(combStack, item, chance, Materials.PremiumHoneycombExtract,
+                PREMIUM_HONEYCOMB_EXTRACT_CENTRIFUGE_AMOUNT, 4, 2, volt, duration);
+        addHoneycombExtractCentrifugeRecipe(combStack, item, chance, Materials.PremiumGradeHoneycombExtract,
+                PREMIUM_GRADE_HONEYCOMB_EXTRACT_CENTRIFUGE_AMOUNT, 8, 4, volt, duration);
+    }
+
+    private static void addHoneycombExtractCentrifugeRecipe(ItemStack combStack, ItemStack[] item, int[] chance,
+                                                            Material extract, int extractAmount, int multiplier,
+                                                            int durationDivisor, Voltage volt, int duration) {
+        RecipeBuilder<?> builder = RecipeMaps.CENTRIFUGE_RECIPES.recipeBuilder()
+                .inputs(combStack.copy())
+                .circuitMeta(2)
+                .fluidInputs(extract.getFluid(extractAmount))
+                .duration(Math.max(1, duration / durationDivisor))
+                .EUt(volt.getCentrifugeEnergy());
+
+        int numGTOutputs = 0;
+        for (int i = 0; i < item.length; i++) {
+            if (item[i] == null || item[i] == ItemStack.EMPTY || chance[i] <= 0) continue;
+            if (numGTOutputs >= RecipeMaps.CENTRIFUGE_RECIPES.getMaxOutputs()) break;
+
+            ItemStack output = GTUtility.copy(item[i].getCount() * multiplier, item[i]);
+            int boostedChance = chance[i] * multiplier;
+            if (boostedChance >= 10000) {
+                builder.outputs(output);
+            } else {
+                builder.chancedOutput(output, boostedChance, 0);
+            }
+            numGTOutputs++;
+        }
+
+        if (numGTOutputs > 0) {
+            builder.buildAndRegister();
+        }
+    }
+
     private static void addCombProductProcess(GTCombType comb, Material[] material, Voltage volt) {
         int duration = 200 * (volt.ordinal() + 1);
 
