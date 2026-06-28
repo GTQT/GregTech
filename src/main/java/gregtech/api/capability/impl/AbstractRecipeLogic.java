@@ -30,6 +30,7 @@ import gregtech.api.recipes.properties.RecipePropertyStorage;
 import gregtech.api.recipes.properties.impl.CleanroomProperty;
 import gregtech.api.recipes.properties.impl.DimensionProperty;
 import gregtech.api.util.GTLog;
+import gregtech.api.util.GTQTUtility;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
@@ -45,7 +46,6 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
-import gregtech.api.util.GTQTUtility;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.MustBeInvokedByOverriders;
 import org.jetbrains.annotations.NotNull;
@@ -99,7 +99,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private double speedBonus = -1;
     private boolean allowOverclocking = true;
     private long overclockVoltage;
-    private boolean enableBatch = true;
+    private boolean enableBatch = false;
     private boolean lockRecipe = false;
     private boolean overflowMode = false;
     private boolean lackEnergyWarning = false;
