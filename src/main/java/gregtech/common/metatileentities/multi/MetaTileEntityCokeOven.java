@@ -62,8 +62,7 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
                     .self('Y', MetaTileEntityCokeOven.class)
                     .air('#')
                     .casing('X', getCasingState())
-                    .custom(
-                            Elements.metaTileEntities(0, 5, 5, MetaTileEntities.COKE_OVEN_HATCH), 5)
+                    .custom(Elements.metaTileEntities(0, 5, 5, MetaTileEntities.COKE_OVEN_HATCH), 5)
                     .buildStructureDefinition());
 
     public MetaTileEntityCokeOven(ResourceLocation metaTileEntityId) {
