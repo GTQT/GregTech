@@ -253,11 +253,6 @@ public abstract class FuelMultiblockController extends RecipeMapMultiblockContro
     }
 
     @Override
-    public boolean isBatchAllowed() {
-        return false;
-    }
-
-    @Override
     public boolean isDynamoFull() {
         IEnergyContainer energyContainer = getEnergyContainer();
         if (energyContainer == null || energyContainer.getEnergyCapacity() <= 0) {

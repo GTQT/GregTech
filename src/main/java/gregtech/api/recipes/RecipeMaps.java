@@ -733,6 +733,7 @@ public final class RecipeMaps {
     @ZenProperty
     public static final RecipeMap<UniversalDistillationRecipeBuilder> DISTILLATION_RECIPES = new RecipeMapBuilder<>(
             "distillation_tower", new UniversalDistillationRecipeBuilder())
+            .itemInputs(2)
             .itemOutputs(1)
             .fluidInputs(1)
             .fluidOutputs(12)

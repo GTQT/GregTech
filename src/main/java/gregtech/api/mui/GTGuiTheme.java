@@ -28,8 +28,8 @@ public class GTGuiTheme {
 
     public static class Colors {
 
-        public static final int BRONZE = 0xFF7706;
-        public static final int STEEL = 0x57576A;
+        public static final int BRONZE = 0XD8A677;
+        public static final int STEEL = 0X69645F;
         public static final int PRIMITIVE = 0x826B51;
     }
 

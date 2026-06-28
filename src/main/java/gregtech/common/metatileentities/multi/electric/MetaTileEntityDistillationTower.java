@@ -63,6 +63,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
                             .self('S', MetaTileEntityDistillationTower.class)
                             .air('#')
                             .casing('Y', getCasingState())
+                            .optionalItemInput(2)
                             .optionalItemOutput(1)
                             .energyInput(1, 3)
                             .fluidInput(1)
