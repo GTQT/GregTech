@@ -94,7 +94,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         return primaryTemplate(pooledStructureDefinition(type), type.getName());
     }
 
-    private static StructureDefinition pooledStructureDefinition(ILargeTurbineType type) {
+    private static StructureDefinition<?> pooledStructureDefinition(ILargeTurbineType type) {
         SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
                 .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
         return definition.get();
@@ -104,7 +104,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         return "gregtech:large_turbine." + type.getName();
     }
 
-    private static StructureDefinition buildStructureDefinition(ILargeTurbineType type) {
+    private static StructureDefinition<?> buildStructureDefinition(ILargeTurbineType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("CCCC", "CHHC", "CCCC")
                 .aisle("CHHC", "RGGR", "CHHC")
@@ -154,7 +154,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         return MetaTileEntities.ENERGY_OUTPUT_HATCH[tier];
     }
 
-    private static BlockPatternTemplate primaryTemplate(StructureDefinition definition, String key) {
+    private static BlockPatternTemplate primaryTemplate(StructureDefinition<?> definition, String key) {
         BlockPatternTemplate template = definition.getPrimaryTemplate();
         if (template == null) {
             throw new IllegalStateException("Large turbine type '" + key + "' is not a single-piece structure");
