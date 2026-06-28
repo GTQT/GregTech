@@ -117,4 +117,9 @@ public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockCo
     public boolean getIsWeatherOrTerrainResistant() {
         return true;
     }
+
+    @Override
+    public boolean isBatchAllowed() {
+        return false;
+    }
 }

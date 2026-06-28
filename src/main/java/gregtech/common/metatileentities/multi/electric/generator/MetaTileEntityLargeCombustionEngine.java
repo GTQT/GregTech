@@ -399,11 +399,6 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
         return isExtreme ? 0.025 : 0.02;
     }
 
-    @Override
-    public boolean isBatchAllowed() {
-        return false;
-    }
-
     private static class LargeCombustionEngineWorkableHandler extends MultiblockFuelRecipeLogic {
 
         private static final FluidStack OXYGEN_STACK = Materials.Oxygen.getFluid(20);
