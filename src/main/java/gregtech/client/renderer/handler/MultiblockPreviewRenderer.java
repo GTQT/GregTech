@@ -319,7 +319,7 @@ public class MultiblockPreviewRenderer {
         if (piecePreview == null) return;
         MultiblockShapeInfo shapeInfo = piecePreview.getShape();
 
-        MultiPiecePattern multiPiece = controller.getMultiPiecePattern();
+        MultiPiecePattern multiPiece = controller.getStructureDefinition().getCompiledPattern();
         if (multiPiece == null) return;
 
         StructurePiece piece = multiPiece.getToolingPiece(pieceIndex);

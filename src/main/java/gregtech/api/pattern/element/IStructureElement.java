@@ -36,8 +36,7 @@ import java.util.function.Predicate;
  * <p>This interface is the single canonical concept for cell-level matching
  * in the new (StructureDefinition) path. The legacy
  * {@link gregtech.api.pattern.TraceabilityPredicate} remains a public API
- * for the old (FactoryBlockPattern) path and as an optional compatibility
- * view for old tooling.
+ * for the old path and as an optional compatibility view for old tooling.
  */
 public interface IStructureElement<T> {
 

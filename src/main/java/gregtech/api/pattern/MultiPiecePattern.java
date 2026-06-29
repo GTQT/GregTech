@@ -710,41 +710,6 @@ public class MultiPiecePattern {
     }
 
     /**
-     * @deprecated The operation checks the complete active graph, not only dirty pieces.
-     */
-    @Deprecated
-    public boolean checkDirtyPieces(World world, BlockPos controllerPos,
-                                    @NotNull StructureOrientation orientation,
-                                    @NotNull PieceRuntimes runtimes) {
-        return checkActiveGraph(world, controllerPos, orientation, runtimes);
-    }
-
-    /**
-     * @deprecated The operation checks the complete active graph, not only dirty pieces.
-     */
-    @Deprecated
-    public boolean checkDirtyPieces(World world, BlockPos controllerPos,
-                                    @NotNull StructureOrientation orientation,
-                                    @NotNull PieceRuntimes runtimes,
-                                    @Nullable MultiblockControllerBase controller) {
-        return checkActiveGraph(world, controllerPos, orientation, runtimes, controller);
-    }
-
-    /**
-     * @deprecated The operation checks the complete active graph, not only dirty pieces.
-     */
-    @Deprecated
-    @NotNull
-    public ActiveGraphCheckResult checkDirtyPiecesWithResult(
-            World world, BlockPos controllerPos,
-            @NotNull StructureOrientation orientation,
-            @NotNull PieceRuntimes runtimes,
-            @Nullable MultiblockControllerBase controller) {
-        return checkActiveGraphWithResult(
-                world, controllerPos, orientation, runtimes, controller);
-    }
-
-    /**
      * Perform a full check of all active pieces (ignoring dirty flags).
      *
      * @param world          the world to check against

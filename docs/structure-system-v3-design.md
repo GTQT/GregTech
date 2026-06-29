@@ -8,7 +8,8 @@ multiblock controller 的迁移边界。
 
 **External compatibility sample:** 上级目录 `GTQTCore`。该项目当前大量使用旧结构 API，
 包括 `createStructureTemplate()`、`formStructure(PatternMatchContext)`、
-`FactoryBlockPattern`、`BlockPatternTemplate`、`TraceabilityPredicate` 和自定义
+`FactoryBlockPattern`（已从 GregTech 删除，需迁移到 `DeclarativePatternBuilder`）、
+`BlockPatternTemplate`、`TraceabilityPredicate` 和自定义
 predicate helper；未使用 `StructureDefinition` / `FormedStructureView` 作为主入口。
 
 ## 1. 核心结论
@@ -61,7 +62,7 @@ BlockPattern / BlockPatternTemplate / TraceabilityPredicate[][][] / MultiblockSt
 
 - controller override：`createStructurePattern()`、`createStructureTemplate()`、
   `createMultiPiecePattern()`、`formStructure(PatternMatchContext)`。
-- builder 和模板：`FactoryBlockPattern`、`BlockPattern`、`BlockPatternTemplate`。
+- builder 和模板：`BlockPattern`、`BlockPatternTemplate`（`FactoryBlockPattern` 已删除）。
 - predicate 和 context：`TraceabilityPredicate`、`PatternMatchContext`、
   `PieceTemplateLegacyView`。其中 `PatternMatchContext` 只能服务外部 legacy callback。
 - projection：`MultiblockState`、legacy predicate view、deprecated template getter。
@@ -156,7 +157,7 @@ legacy predicate map 只能作为 deprecated getter、外部 addon fallback 或 
 - 少量 controller 覆盖 `createStructurePattern()`。
 - 大量 controller 覆盖 `formStructure(PatternMatchContext)`。
 - 自定义 `TraceabilityPredicate` 子类，例如 tier/casing predicate。
-- 通过 `FactoryBlockPattern` / `BlockPatternTemplate` 构建结构。
+- 通过 `BlockPatternTemplate` 构建结构（`FactoryBlockPattern` 已删除，外部需迁移到 `DeclarativePatternBuilder`）。
 - 通过 controller helper 组合 `TraceabilityPredicate`，例如 ability、block、frame、state helper。
 
 这些旧入口必须继续让外部 addon 编译、加载和形成结构。兼容目标是外部行为可用，不是继续暴露内部旧
@@ -164,7 +165,6 @@ traversal。
 
 必须保留给外部 addon 的 surface：
 
-- `FactoryBlockPattern.start()`、`FactoryBlockPattern.buildTemplate()`。
 - `BlockPattern`、`BlockPatternTemplate` public/protected 使用。
 - `TraceabilityPredicate` 构造、继承、组合、limit、candidate 和 preview 相关方法。
 - `PatternMatchContext` callback 中外部已使用的读取能力；该能力只对外部旧 override 保留。
@@ -289,7 +289,7 @@ private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinit
 
 需要禁止的是旧模板构建链路：
 
-- `FactoryBlockPattern.start()`
+- ~~`FactoryBlockPattern.start()`~~（类已删除）
 - builder 链尾 `.buildTemplate()`
 - GregTech 内部先生成 `BlockPatternTemplate` 再导入 `StructureDefinition`
 
@@ -305,39 +305,43 @@ private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinit
 | `src/main/java/gtqt` 旧结构 API 引用 | 0 | 已清理；不再作为兼容例外。 |
 | common / gtqt controller 覆盖 `createStructurePattern()` | 0 | 扫描测试锁住。 |
 | common / gtqt controller 覆盖 `formStructure(PatternMatchContext)` | 0 | 扫描测试锁住。 |
-| common / gtqt 内部 `FactoryBlockPattern.start()` / `.buildTemplate()` | 0 | 扫描测试锁住；不误伤 `DeclarativePatternBuilder.start()`。 |
+| common / gtqt 内部旧 builder 链 (`FactoryBlockPattern.start()` / `.buildTemplate()`) | 0 | `FactoryBlockPattern` 已删除；扫描测试锁住。 |
 | common / gtqt `TraceabilityPredicate` 引用 | 0 | 自带 controller/helper 已迁到 typed element。 |
 | common / gtqt `MultiblockState` 引用 | 0 | runtime/tooling 主路径已清理。 |
-| common `BlockPatternTemplate` 引用 | 4 个文件 | 仅 public add-on 兼容 API，内部导出走池化 typed definition 的 `getPrimaryTemplate()`。 |
+| common `BlockPatternTemplate` 引用 | 0 | 4 个 controller 的 `register*Type` / `buildTemplate` 公共 compat 方法已删除；内部统一走 `StructureDefinition` / `registerStructure` pool。 |
+| common `MBPattern.getPredicateMap()` / `getPreviewEntries()` | 0 | 无调用者，已删除。 |
+| common `MultiblockControllerBase.getMultiPiecePattern()` | 0 | 已删除；外部访问统一走 `getStructureDefinition().getCompiledPattern()`。 |
+| common `StructureCheckResult.copyContext()` | 0 | 无调用者，已删除。 |
+| common `MultiblockWorldData.hasPendingRecheck()` | 0 | 无调用者，已删除。 |
 | common / gtqt `PatternMatchContext` 引用 | 0 | custom element 旧签名已清理；扫描测试锁住。 |
 | `IStructureElement` 旧 world/context 方法签名 | 0 | 主接口只保留 `StructureEvaluationContext` typed 合约。 |
 
-剩余严格残留只剩 public add-on compatibility API：
-
-`MetaTileEntityFluidDrill`、`MetaTileEntityLargeMiner`、`MetaTileEntityLargeTurbine`、
-`MetaTileEntityFusionReactor` 的 `register*Type(... Supplier<BlockPatternTemplate>)` 和
-`buildTemplate(...)`。
+剩余严格残留为零：GregTech common 内部结构系统已无 legacy public compat surface，
+所有路径统一走 typed `StructureDefinition` / `DeclarativePatternBuilder` /
+`MultiPiecePattern`。`PatternMatchContext` 只剩在 V3 adapter 边界（`StructureCheckResult`
+构造时复制、`StructureChannelValues.fromContext` 派生 channel）。
 
 ### 8.3 保留边界
 
-`..\GTQTCore` 当前真实依赖的 GregTech common public compat surface 包括：
+GregTech common 的 `register*Type` / `buildTemplate` 公共 compat surface 已删除。
+4 个 controller (`MetaTileEntityLargeTurbine` / `MetaTileEntityFluidDrill` /
+`MetaTileEntityFusionReactor` / `MetaTileEntityLargeMiner`) 内部统一通过
+`StructureDefinition` + `registerStructure(structurePoolKey(...))` pool 注册各子类型。
 
-- `MetaTileEntityLargeTurbine.registerTurbineType(...)`
-- `MetaTileEntityLargeTurbine.buildTemplate(...)`
-- `MetaTileEntityFluidDrill.registerFluidDrillType(...)`
-- `MetaTileEntityFluidDrill.buildTemplate(...)`
-- `MetaTileEntityFusionReactor.registerFusionType(...)`
-- `MetaTileEntityFusionReactor.buildTemplate(...)`
+`..\GTQTCore` 仍在调用已删除的 compat 方法，所以 GTQTCore 当前不能编译。它需要：
 
-同类 add-on 扩展 API `MetaTileEntityLargeMiner.registerLargeMinerType(...)` /
-`MetaTileEntityLargeMiner.buildTemplate(...)` 也按同一兼容边界暂留。
+- 不再调用 `MetaTileEntityLargeTurbine.registerTurbineType(...)` /
+  `MetaTileEntityLargeTurbine.buildTemplate(...)`
+- 不再调用 `MetaTileEntityFluidDrill.registerFluidDrillType(...)` /
+  `MetaTileEntityFluidDrill.buildTemplate(...)`
+- 不再调用 `MetaTileEntityFusionReactor.registerFusionType(...)` /
+  `MetaTileEntityFusionReactor.buildTemplate(...)`
+- 不再调用 `MetaTileEntityLargeMiner.registerLargeMinerType(...)` /
+  `MetaTileEntityLargeMiner.buildTemplate(...)`
 
-这些方法可以继续暴露 `BlockPatternTemplate`，但只能作为 add-on ABI：
-
-- 外部传入 `BlockPatternTemplate` 时，立即通过 `StructureDefinition.fromTemplate(...)` 导入 V3。
-- GregTech 自带类型导出旧模板时，只能从同一个 `TemplatePool` / typed `StructureDefinition`
-  调 `getPrimaryTemplate()`。
-- 不能在 common / gtqt 内部重新使用 `FactoryBlockPattern.start()` 或 `.buildTemplate()` 构建结构。
+替代方案是在 GTQTCore 内部用 `DeclarativePatternBuilder.start()...buildStructureDefinition()`
+自行构造 typed `StructureDefinition`，或者直接复用 GregTech 已经注册好的 pool entry
+（通过 `StructureDefinition.getOrBuild(...)` 拿到共享 instance）。
 
 ### 8.4 已完成项
 
@@ -345,13 +349,13 @@ private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinit
 
 - common 和 gtqt controller 声明侧都使用 `createStructureDefinition()`。
 - common 和 gtqt 形成回调都使用 `FormedStructureView` 或 typed helper。
-- common 声明 helper 的 `FactoryBlockPattern` / `TraceabilityPredicate` 已迁到
-  `DeclarativePatternBuilder` 和 `Elements` typed element。
+- common 声明 helper 的旧 builder / `TraceabilityPredicate` 已迁到
+  `DeclarativePatternBuilder` 和 `Elements` typed element；`FactoryBlockPattern` 已整体删除。
 - `MetaTileEntityForgeOfGods`、`MTEBaseModule` 不再通过 `BlockPatternTemplate` 桥接内部结构。
 - monitor tooling、builder/removal/projector、JEI tooltip/candidate preview、registry preview
   metadata 不再把 legacy predicate/state 当主路径。
 - dynamic sized controller (`Cleanroom` / `CharcoalPileIgniter`) 的 preview/build/hint 已走 typed
-  template path，不再通过 `BlockPattern`、`FactoryBlockPattern` 或 `MultiblockState`。
+  template path，不再通过 `BlockPattern` 或 `MultiblockState`。
 - custom element (`CharcoalPileIgniter` / `Cleanroom` / `ResearchStation` / `PowerSubstation` /
   `CentralMonitor`) 已迁到 `ITypedStructureElement`，不再实现 `PatternMatchContext` 旧签名。
 - `IStructureElement` 不再暴露 `check(World, BlockPos, PatternMatchContext)`、
@@ -361,6 +365,26 @@ private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinit
 - `DeclarativePatternBuilder` 增加 typed 快捷方法：
   `.self(...)`、`.block(...)`、`.blocks(...)`、`.air(...)`、`.any(...)`、`.frames(...)`、
   `.hatches(...)`、`.casing(char, IBlockState)`，避免迁移后调用点比旧 API 更复杂。
+- `DeclarativePatternBuilder.aisleRepeated(exactCount, aisle...)` 覆盖固定重复的 aisle
+  声明；可变重复结构统一使用 `repeatablePiece(...)`，必要时继续配合
+  `.withAisleChannel(name)`。
+- 4 个公共 compat 方法（`MetaTileEntityLargeTurbine.registerTurbineType` /
+  `MetaTileEntityFluidDrill.registerFluidDrillType` /
+  `MetaTileEntityFusionReactor.registerFusionType` /
+  `MetaTileEntityLargeMiner.registerLargeMinerType` 以及对应的 `buildTemplate`）
+  已删除；内部统一通过 `StructureDefinition` + `registerStructure(structurePoolKey(...))`
+  pool 注册子类型。
+- `MultiblockControllerBase.getMultiPiecePattern()` 已删除；外部访问统一走
+  `getStructureDefinition().getCompiledPattern()`。3 个内部 caller
+  (`StructureProjectorBehavior` / `MultiblockPreviewRenderer` / `GhostBlockRenderer`)
+  已迁移到新 API。
+- `MBPattern.getPredicateMap()` / `getPreviewEntries()` 已删除（无 caller），
+  `predicateMap` 字段及对应构造参数一并清理；`MBPattern` 简化为
+  `(sceneRenderer, parts, previewEntries)` 三参数构造。
+- `StructureCheckResult.copyContext()` 已删除（无 caller）；`context` 字段仍保留
+  供 `StructureChannelValues.fromContext(...)` 派生 channel。
+- `MultiblockWorldData.hasPendingRecheck()` 已删除（无 caller）；dirty 检查统一走
+  `consumeDirtyCheck(...)`。
 
 ### 8.5 测试锁定
 
@@ -371,22 +395,25 @@ private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinit
 - common 和 gtqt controller 不得重新覆盖 `createStructurePattern()`、
   `formStructure(PatternMatchContext)` 或调用 `copyLegacyCallbackContext()`。
 - common 和 gtqt 内部不得重新引用 `PatternMatchContext`；它只属于 API compatibility adapter。
-- common 和 gtqt controller 不得重新出现 `FactoryBlockPattern.start()` 或 `.buildTemplate()`。
+- common 和 gtqt controller 不得重新引入 `FactoryBlockPattern` 类（已删除）。
 - `DeclarativePatternBuilder.start()` 明确允许，它是 typed declaration 入口。
 - `gregtech/api/pattern/element` 不得重新暴露旧 world/`PatternMatchContext` element 方法签名。
 - `Cleanroom` / `CharcoalPileIgniter` 的 dynamic tooling 必须继续走 typed template path。
 
 ### 8.6 后续清理顺序
 
-后续只剩一条线：
+GregTech common 内部的结构系统兼容层已清零，剩余只有一条线：
 
-升级上级目录 `..\GTQTCore`，把它对 `register*Type(... Supplier<BlockPatternTemplate>)`
-和 `buildTemplate(...)` 的调用迁到 typed `StructureDefinition` 或 typed builder fragment。
-外部调用清零后，再移除这 4 个 common public compat 残留。
+升级上级目录 `..\GTQTCore`，把它的 `MEMultiblockBuilderBehavior` / 各类
+`register*Type` 调用替换为 `DeclarativePatternBuilder` 自建 `StructureDefinition`，
+或直接复用 GregTech 注册好的 pool entry。GTQTCore 一旦迁移完成，
+即可把 `gregtech/api/pattern` 内部的 `BlockPatternTemplate` / `PatternMatchContext`
+降到只剩 V3 adapter 边界（`StructureCheckResult` 构造、`StructureChannelValues.fromContext`
+派生）的最小集合。
 
 完成后，common / gtqt 可扩大扫描为：除 `gregtech/api` 的 deprecated public adapter /
 projection、compatibility tests 和 migration docs 外，禁止 `BlockPatternTemplate`、`BlockPattern`、
-`FactoryBlockPattern`、`TraceabilityPredicate`、`MultiblockState`。`PatternMatchContext` 已经按这个口径
+`TraceabilityPredicate`、`MultiblockState`（`FactoryBlockPattern` 已删除）。`PatternMatchContext` 已经按这个口径
 在 common / gtqt 清零并锁住。
 
 ## 9. 不变量
@@ -511,7 +538,6 @@ legacy/compatibility：
 - `src/main/java/gregtech/api/pattern/MultiblockState.java`
 - `src/main/java/gregtech/api/pattern/BlockPattern.java`
 - `src/main/java/gregtech/api/pattern/BlockPatternTemplate.java`
-- `src/main/java/gregtech/api/pattern/FactoryBlockPattern.java`
 - `src/main/java/gregtech/api/pattern/TraceabilityPredicate.java`
 - `src/main/java/gregtech/api/pattern/PatternMatchContext.java`
 - `src/main/java/gregtech/api/pattern/PieceTemplateLegacyView.java`

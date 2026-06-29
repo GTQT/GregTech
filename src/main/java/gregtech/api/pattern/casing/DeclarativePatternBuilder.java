@@ -5,8 +5,9 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.AbilityGroupLimit;
-import gregtech.api.pattern.FactoryBlockPattern;
 import gregtech.api.pattern.OffsetMode;
+import gregtech.api.pattern.PieceTemplate;
+import gregtech.api.pattern.PieceTemplateCompiler;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -22,7 +23,6 @@ import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.Vec3i;
 
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -38,8 +38,7 @@ import java.util.function.Supplier;
 
 /**
  * A declarative builder for multiblock structure patterns.
- * Provides a higher-level API compared to raw {@link FactoryBlockPattern},
- * with automatic minimum casing count calculation, declarative hatch placement,
+ * Provides automatic minimum casing count calculation, declarative hatch placement,
  * and tiered casing tracking.
  *
  * <p>Supports both single-piece (legacy) and multi-piece (named) structure definitions.
@@ -65,7 +64,6 @@ import java.util.function.Supplier;
  *     .buildStructureDefinition();
  * }</pre>
  *
- * @see FactoryBlockPattern for the traditional builder
  * @see ICasing for casing definitions
  * @see ICasingGroup for tiered casing groups
  */
@@ -123,7 +121,7 @@ public class DeclarativePatternBuilder {
     }
 
     /**
-     * Start a new repeatable named piece (single-axis, aisle-repeatable style).
+     * Start a new repeatable named piece (single-axis piece-repeat style).
      *
      * @param name      the piece name
      * @param minRepeat minimum repetition count
@@ -166,34 +164,51 @@ public class DeclarativePatternBuilder {
      * Define an aisle for the current piece.
      */
     public DeclarativePatternBuilder aisle(String... aisle) {
-        currentPiece.aisles.add(new AisleDef(aisle));
+        currentPiece.aisles.add(new AisleDef(aisle, 1, 1));
         return this;
     }
 
     /**
-     * @deprecated Use {@link #repeatablePiece(String, int, int)} for multi-piece mode instead,
-     *             or {@link #aisle(String...)} for fixed aisles.
+     * Define an aisle slice for the current piece that repeats an exact number
+     * of times. Other aisles in the same piece remain fixed; only this slice is
+     * expanded.
+     *
+     * <p>Variable min/max repetition should be modeled with
+     * {@link #repeatablePiece(String, int, int)}.
+     *
+     * @param exactCount exact number of repetitions
+     * @param aisle      the flat row strings for this aisle slice
+     * @return this builder
      */
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-    public DeclarativePatternBuilder aisleRepeatable(int minRepeat, int maxRepeat, String... aisle) {
-        currentPiece.aisles.add(new AisleDef(aisle));
+    public DeclarativePatternBuilder aisleRepeated(int exactCount, String... aisle) {
+        validateExactRepeatCount(exactCount);
+        currentPiece.aisles.add(new AisleDef(aisle, exactCount, exactCount));
         return this;
     }
 
-    /**
-     * @deprecated Use {@link #repeatablePiece(String, int, int)} with
-     *             {@link PieceBuilder#withAisleChannel(String)} instead.
-     */
-    @Deprecated
-    @ApiStatus.ScheduledForRemoval(inVersion = "2.10")
-    public DeclarativePatternBuilder withAisleChannel(@NotNull String channelName) {
-        if (!currentPiece.aisles.isEmpty()) {
-            AisleDef last = currentPiece.aisles.get(currentPiece.aisles.size() - 1);
-            last.channelName = channelName;
+    private static void validateExactRepeatCount(int exactCount) {
+        if (exactCount < 1) {
+            throw new IllegalArgumentException("Exact repeat count must be at least 1!");
         }
+    }
+
+    /**
+     * Assign a channel name to the most recently added aisle. Channel names
+     * are used by some runtime predicates to disambiguate repeated slices
+     * of the same piece.
+     *
+     * @param channelName the channel name to assign
+     * @return this builder
+     */
+    public DeclarativePatternBuilder withAisleChannel(@NotNull String channelName) {
+        if (currentPiece.aisles.isEmpty()) {
+            throw new IllegalStateException("withAisleChannel requires a preceding aisle()");
+        }
+        currentPiece.aisles.get(currentPiece.aisles.size() - 1).channelName = channelName;
         return this;
     }
+
+    // --- Casing/hatch methods (delegate to current piece) ---
 
     // --- Standard where (shared across all pieces) ---
 
@@ -394,6 +409,10 @@ public class DeclarativePatternBuilder {
             // offset. Treating them as members of the linear aisle chain would
             // apply both that offset and an implicit predecessor offset.
             registerMultiAxisPiece(builder, piece, null, null);
+        } else if (hasAisleRepeats(piece)) {
+            // Per-aisle repeat ranges require a PieceTemplate; route through
+            // PieceTemplateCompiler so the repeat info is preserved.
+            registerPieceWithAisleRepeats(builder, piece, anchorName, anchorStep);
         } else if (piece.repeatable) {
             convertFactoryToMultiAxisPiece(
                     builder, piece, Vec3i.NULL_VECTOR, anchorName, anchorStep, repeatDirection);
@@ -646,6 +665,75 @@ public class DeclarativePatternBuilder {
     }
 
     /**
+     * Returns {@code true} if any aisle in the piece carries a non-trivial
+     * repeat range (i.e. {@code minRepeat != 1 || maxRepeat != 1}).
+     */
+    private static boolean hasAisleRepeats(@NotNull PieceDef piece) {
+        if (piece.rawPattern != null) return false;
+        for (AisleDef ad : piece.aisles) {
+            if (ad.isRepeated()) return true;
+        }
+        return false;
+    }
+
+    /**
+     * Register a piece that contains per-aisle repeat ranges. The piece is
+     * compiled into a {@link PieceTemplate} via {@link PieceTemplateCompiler}
+     * (which preserves per-aisle {@code aisleRepetitions}), then attached to
+     * the structure definition through {@code pieceFromTemplate(PieceTemplate)}.
+     *
+     * <p>This is the canonical path for structures that mix ordinary and
+     * fixed-count repeated aisle slices within a single piece.
+     */
+    private void registerPieceWithAisleRepeats(@NotNull StructureDefinition.Builder<?> builder,
+                                               @NotNull PieceDef piece,
+                                               @Nullable String anchorName,
+                                               @Nullable int[] anchorStep) {
+        PieceTemplateCompiler compiler = new PieceTemplateCompiler(
+                structureDir[0], structureDir[1], structureDir[2]);
+        for (AisleDef ad : piece.aisles) {
+            if (ad.isRepeated()) {
+                compiler.aisleRepeated(ad.minRepeat, ad.pattern);
+            } else {
+                compiler.aisle(ad.pattern);
+            }
+            if (ad.channelName != null) {
+                compiler.setRepeatable(ad.minRepeat, ad.maxRepeat, ad.channelName);
+            }
+        }
+
+        // Wire up character → element mappings using the same resolution path
+        // as registerFactoryPiece (casing counts, tiered slots, etc.).
+        String[][] pattern = flattenAisles(piece.aisles);
+        addCharMappings(pattern, piece, c -> buildPieceElement(c, piece), (ch, el) -> {
+            // whereElement stores the canonical element directly
+            compiler.whereElement(ch, el);
+        });
+
+        PieceTemplate template;
+        if (piece.centerOffset[0] != 0
+                || piece.centerOffset[1] != 0
+                || piece.centerOffset[2] != 0) {
+            template = compiler.buildPieceTemplate(new int[]{
+                    piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2],
+                    0, 0
+            });
+        } else {
+            template = compiler.buildPieceTemplate();
+        }
+
+        StructureDefinition.PieceBuilder<?> pb =
+                builder.pieceFromTemplate(piece.name, template, Vec3i.NULL_VECTOR,
+                        OffsetMode.RELATIVE, null);
+
+        if (anchorName != null && anchorStep != null) {
+            pb.positionedAfterRepeatable(anchorName, anchorStep);
+        }
+
+        pb.end();
+    }
+
+    /**
      * Resolve a character to an IStructureElement using per-piece casing counts.
      */
     private IStructureElement buildPieceElement(char c, @NotNull PieceDef piece) {
@@ -776,10 +864,18 @@ public class DeclarativePatternBuilder {
 
     private static class AisleDef {
         final String[] pattern;
+        final int minRepeat;
+        final int maxRepeat;
         String channelName;
 
-        AisleDef(String[] pattern) {
+        AisleDef(String[] pattern, int minRepeat, int maxRepeat) {
             this.pattern = pattern;
+            this.minRepeat = minRepeat;
+            this.maxRepeat = maxRepeat;
+        }
+
+        boolean isRepeated() {
+            return minRepeat != 1 || maxRepeat != 1;
         }
     }
 
@@ -831,7 +927,14 @@ public class DeclarativePatternBuilder {
 
         /** Add an aisle to this piece. */
         public PieceBuilder aisle(String... aisle) {
-            piece.aisles.add(new AisleDef(aisle));
+            piece.aisles.add(new AisleDef(aisle, 1, 1));
+            return this;
+        }
+
+        /** Add an aisle slice repeated an exact number of times to this piece. */
+        public PieceBuilder aisleRepeated(int exactCount, String... aisle) {
+            validateExactRepeatCount(exactCount);
+            piece.aisles.add(new AisleDef(aisle, exactCount, exactCount));
             return this;
         }
 

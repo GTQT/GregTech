@@ -23,32 +23,23 @@ import java.util.Map.Entry;
  * Core algorithm for compiling a single structure piece (flat-string aisles +
  * symbol mappings) into a {@link BlockPatternTemplate}.
  *
- * <p>This class owns the canonical piece-compilation logic that was previously
- * embedded directly inside {@link FactoryBlockPattern}. Splitting it out has two
- * benefits:
- * <ul>
- *   <li>The new structure system ({@link gregtech.api.pattern.element.StructureCompiler})
- *       can compile an {@link gregtech.api.pattern.element.IStructurePiece} into a
- *       template <b>without</b> going through the public
- *       {@link FactoryBlockPattern} facade.</li>
- *   <li>{@link FactoryBlockPattern} is reduced to a thin fluent facade that
- *       delegates here, so the 100+ existing legacy multiblocks continue to
- *       compile through the same algorithm.</li>
- * </ul>
+ * <p>This class owns the canonical piece-compilation logic. The new structure
+ * system ({@link gregtech.api.pattern.element.StructureCompiler}) can compile
+ * an {@link gregtech.api.pattern.element.IStructurePiece} into a template
+ * directly through this compiler.
  *
- * <p>Typical usage (mirrors the legacy factory workflow):
+ * <p>Typical usage:
  * <pre>{@code
  * PieceTemplateCompiler c = new PieceTemplateCompiler(RIGHT, UP, BACK);
  * c.aisle("XXX", "X#X", "XXX")
- *  .aisleRepeatable(1, 7, "YEY", "Y#Y", "YEY")
+ *  .aisleRepeated(7, "YEY", "Y#Y", "YEY")
  *  .where('X', somePredicate)
  *  .where('#', airPredicate);
  * BlockPatternTemplate tpl = c.buildTemplate();
  * }</pre>
  *
  * <p>Thread safety: instances are <b>not</b> thread-safe; each piece compilation
- * should use its own instance, matching the original {@link FactoryBlockPattern}
- * behavior.
+ * should use its own instance.
  */
 public final class PieceTemplateCompiler {
 
@@ -100,15 +91,19 @@ public final class PieceTemplateCompiler {
 
     /**
      * Adds a single aisle to this piece. Equivalent to
-     * {@code aisleRepeatable(1, 1, aisle)}.
+     * {@code aisleRepeated(1, aisle)}.
      */
     @NotNull
     public PieceTemplateCompiler aisle(@NotNull String... aisle) {
-        return aisleRepeatable(1, 1, aisle);
+        return addAisle(1, 1, aisle);
     }
 
     /**
-     * Adds a repeatable aisle to this piece.
+     * Adds an aisle that is repeated an exact number of times.
+     *
+     * <p>Use a repeatable piece for variable min/max repetition. This method is
+     * for fixed-size structures that would otherwise duplicate identical aisle
+     * slices in the declaration.
      *
      * <p>Validates that the new aisle matches the previously recorded
      * height/width, and registers any previously-unseen characters as null
@@ -116,16 +111,20 @@ public final class PieceTemplateCompiler {
      * {@link #where(char, TraceabilityPredicate)} before
      * {@link #buildTemplate()}).
      *
-     * @param minRepeat minimum number of repetitions
-     * @param maxRepeat maximum number of repetitions
-     * @param aisle     the flat row strings for this aisle
+     * @param exactCount exact number of repetitions
+     * @param aisle      the flat row strings for this aisle
      * @return this compiler
      * @throws IllegalArgumentException if aisle is empty, or its dimensions do
      *                                  not match previously added aisles, or
-     *                                  minRepeat &gt; maxRepeat
+     *                                  exactCount is less than 1
      */
     @NotNull
-    public PieceTemplateCompiler aisleRepeatable(int minRepeat, int maxRepeat, @NotNull String... aisle) {
+    public PieceTemplateCompiler aisleRepeated(int exactCount, @NotNull String... aisle) {
+        validateExactRepeatCount(exactCount);
+        return addAisle(exactCount, exactCount, aisle);
+    }
+
+    private PieceTemplateCompiler addAisle(int minRepeat, int maxRepeat, @NotNull String... aisle) {
         if (!ArrayUtils.isEmpty(aisle) && !StringUtils.isEmpty(aisle[0])) {
             if (this.depth.isEmpty()) {
                 this.aisleHeight = aisle.length;
@@ -164,8 +163,7 @@ public final class PieceTemplateCompiler {
     }
 
     /**
-     * Set the last added aisle's repeat range (overrides the value passed to
-     * {@link #aisleRepeatable(int, int, String...)}).
+     * Set the last added aisle's repeat range.
      */
     @NotNull
     public PieceTemplateCompiler setRepeatable(int minRepeat, int maxRepeat) {
@@ -193,7 +191,14 @@ public final class PieceTemplateCompiler {
      */
     @NotNull
     public PieceTemplateCompiler setRepeatable(int repeatCount) {
+        validateExactRepeatCount(repeatCount);
         return setRepeatable(repeatCount, repeatCount);
+    }
+
+    private static void validateExactRepeatCount(int exactCount) {
+        if (exactCount < 1) {
+            throw new IllegalArgumentException("Exact repeat count must be at least 1!");
+        }
     }
 
     /**
@@ -401,11 +406,11 @@ public final class PieceTemplateCompiler {
         return structureDir;
     }
 
-    // --- Read-only views for the FactoryBlockPattern facade ---
+    // --- Read-only views for migration code ---
     //
-    // These expose the underlying lists/maps without copying, so the
-    // facade can forward reads cheaply. They are intended only for
-    // internal migration code and should not be used by new callers.
+    // These expose the underlying lists/maps without copying, so callers
+    // can forward reads cheaply. They are intended only for internal
+    // migration code and should not be used by new callers.
 
     /** @return the aisle repetition ranges. Each entry is {@code [minRepeat, maxRepeat]}. */
     @NotNull

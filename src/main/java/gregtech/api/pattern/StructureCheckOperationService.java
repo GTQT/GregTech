@@ -199,15 +199,6 @@ final class StructureCheckOperationService {
                 .withEligibilityPlan(plan);
     }
 
-    /**
-     * @deprecated The operation checks the complete active graph, not only dirty pieces.
-     */
-    @Deprecated
-    @NotNull
-    public StructureCheckResult checkDirtyPieces(@NotNull StructureOperationRequest request) {
-        return checkActiveGraph(request);
-    }
-
     @NotNull
     public StructureCheckState.Result checkDefinition(
             @NotNull World world,

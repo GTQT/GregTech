@@ -92,12 +92,6 @@ public final class StructureOperationEvaluator {
         return checkOperations.checkIncremental(request, baseline, dirtyRoots, plan, detachedPrecheck);
     }
 
-    @Deprecated
-    @NotNull
-    public StructureCheckResult checkDirtyPieces(@NotNull StructureOperationRequest request) {
-        return checkOperations.checkDirtyPieces(request);
-    }
-
     public void clearSingleCache() {
         checkOperations.clearSingleCache();
     }

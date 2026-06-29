@@ -403,16 +403,6 @@ public final class StructureCheckResult {
         return matched;
     }
 
-    @Nullable
-    public PatternMatchContext copyContext() {
-        if (context == null) {
-            return null;
-        }
-        PatternMatchContext copy = context.copy();
-        operationState.applyCompatibilityView(copy);
-        return copy;
-    }
-
     @NotNull
     public StructureOperationState copyOperationState() {
         return operationState.copy();

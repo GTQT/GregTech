@@ -412,7 +412,7 @@ public class RepeatGroupPiece extends StructurePiece {
 
     /**
      * Single 1D sliding window search (single axis).
-     * Equivalent to the old aisleRepeatable sliding window algorithm.
+     * Equivalent to the legacy per-aisle sliding window algorithm.
      */
     private boolean searchSliding1D(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                     @NotNull StructureOrientation orientation,

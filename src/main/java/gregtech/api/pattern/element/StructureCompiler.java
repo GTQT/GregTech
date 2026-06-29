@@ -723,8 +723,7 @@ public final class StructureCompiler {
             }
         }
 
-        // Build the piece's template directly via PieceTemplateCompiler,
-        // bypassing the public FactoryBlockPattern facade.
+        // Build the piece's template directly via PieceTemplateCompiler.
         PieceTemplateCompiler compiler = new PieceTemplateCompiler(
                 structureDir[0], structureDir[1], structureDir[2]);
 

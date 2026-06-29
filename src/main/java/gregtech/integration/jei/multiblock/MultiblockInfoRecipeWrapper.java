@@ -1159,7 +1159,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     return two.amount - one.amount;
                 }).map(PartInfo::getItemStack).collect(Collectors.toList());
 
-        return new MBPattern(worldSceneRenderer, sortedParts, Collections.emptyMap(), previewEntries);
+        return new MBPattern(worldSceneRenderer, sortedParts, previewEntries);
     }
 
     private static final class PreviewCandidate {

@@ -27,9 +27,8 @@ public class MetaTileEntityLargeExtruder extends GCYMAdvanceRecipeMapMultiblockC
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_extruder", () ->
             DeclarativePatternBuilder.start()
                     .aisle("##XXX", "##XXX", "##XXX")
-                    .aisleRepeatable(2, 2, "##XXX", "##XPX", "##XGX")
-                    .aisle("XXXXX", "XXXPX", "XXXGX")
-                    .aisle("XXXXX", "XXXPX", "XXXGX")
+                    .aisleRepeated(2, "##XXX", "##XPX", "##XGX")
+                    .aisleRepeated(2, "XXXXX", "XXXPX", "XXXGX")
                     .aisle("XXXXX", "XSXXX", "XXXXX")
                     .self('S', MetaTileEntityLargeExtruder.class)
                     .casing('X', CasingDefinition.simple(getCasingState()))

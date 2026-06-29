@@ -247,19 +247,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     protected abstract StructureDefinition<?> createStructureDefinition();
 
     /**
-     * @return the multi-piece pattern if this controller uses one, or null
-     * @deprecated Prefer {@link #getStructureDefinition()} and its compiled
-     *             {@link gregtech.api.pattern.MultiPiecePattern} via
-     *             {@link StructureDefinition#getCompiledPattern()}. This accessor is
-     *             retained for runtime structure checking internals and external mods.
-     */
-    @Nullable
-    @Deprecated
-    public MultiPiecePattern getMultiPiecePattern() {
-        return multiPiecePattern;
-    }
-
-    /**
      * Get the per-controller state for the multi-piece pattern.
      * Each controller of a given multiblock type has its own independent
      * {@link PieceRuntimes} so that per-instance state (the
@@ -737,7 +724,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     public boolean autoBuildStructure(@NotNull StructureOperationRequest request) {
         request.requireBuildKind();
-        return autoBuildStructure(request.requirePlayer(), request.getChannelValues(), request.skipHatches());
+        return false;
     }
 
     /**
@@ -820,22 +807,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                                                        @NotNull String pieceName,
                                                        @NotNull BlockPatternTemplate template) {
         return MultiblockStructureOperations.hintDynamicStructure(this, request, pieceName, template);
-    }
-
-    /**
-     * Hook for multiblocks whose preview/build dimensions are controlled by channels
-     * outside the canonical runtime template. Returning {@code true} means the
-     * structure build was handled by the controller.
-     *
-     * @deprecated Tool callers should submit a {@link StructureOperationRequest}
-     *             to {@link #autoBuildStructure(StructureOperationRequest)} so
-     *             the build operation token is preserved.
-     */
-    @Deprecated
-    public boolean autoBuildStructure(@NotNull EntityPlayer player,
-                                      @Nullable Map<String, Integer> channelValues,
-                                      boolean skipHatches) {
-        return false;
     }
 
     public void invalidateStructure() {

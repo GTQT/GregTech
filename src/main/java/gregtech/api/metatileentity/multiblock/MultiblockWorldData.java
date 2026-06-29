@@ -131,15 +131,6 @@ public class MultiblockWorldData {
     }
 
     /**
-     * @deprecated Use {@link #consumeDirtyCheck(MultiblockControllerBase, long)}
-     *             so the scheduler can choose between active-graph and full checks.
-     */
-    @Deprecated
-    public boolean hasPendingRecheck(MultiblockControllerBase controller, long currentTick) {
-        return consumeDirtyCheck(controller, currentTick).shouldCheck();
-    }
-
-    /**
      * Check if a controller is registered for event-driven checking.
      *
      * @param controller the controller to check

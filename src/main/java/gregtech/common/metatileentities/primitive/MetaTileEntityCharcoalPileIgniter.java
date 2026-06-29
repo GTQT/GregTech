@@ -22,7 +22,6 @@ import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
 import gregtech.api.pattern.StructureOperationRequest;
-import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePreviewResult;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureRuntimeDetectionContext;
@@ -302,16 +301,6 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
     public StructureHintResult hintStructure(@NotNull StructureOperationRequest request) {
         request.requireKind(StructureOperationRequest.Kind.HINT);
         return createToolingRuntime(request.getChannelValues()).hintAllPieces(request);
-    }
-
-    @Override
-    @Deprecated
-    public boolean autoBuildStructure(@NotNull EntityPlayer player,
-                                      @Nullable Map<String, Integer> channelValues,
-                                      boolean skipHatches) {
-        return autoBuildStructure(StructureOperationRequest.build(
-                player, this, StructureOrientation.fromController(this),
-                channelValues, skipHatches, ItemStack.EMPTY));
     }
 
     @NotNull

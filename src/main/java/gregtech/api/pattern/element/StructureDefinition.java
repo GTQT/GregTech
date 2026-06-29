@@ -507,6 +507,20 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     }
 
     /**
+     * Adapt a canonical {@link PieceTemplate} into a single-piece {@link StructureDefinition}.
+     * Preferred over {@link #fromTemplate(BlockPatternTemplate)} for new code.
+     */
+    @NotNull
+    public static <T extends MultiblockControllerBase> StructureDefinition<T> fromTemplate(
+            @NotNull String pieceName,
+            @NotNull PieceTemplate template) {
+        RelativeDirection[] dirs = template.getStructureDir();
+        return StructureDefinition.<T>builder(dirs[0], dirs[1], dirs[2])
+                .pieceFromTemplate(pieceName, template)
+                .build();
+    }
+
+    /**
      * Adapt a legacy multi-piece pattern into the canonical definition model.
      *
      * <p>The supplied pattern is kept as the compiled product so legacy subclasses

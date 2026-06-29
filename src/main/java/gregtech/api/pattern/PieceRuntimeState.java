@@ -1582,29 +1582,6 @@ public final class PieceRuntimeState {
     }
 
     /**
-     * Auto-build the structure in the world at the given tier.
-     * Converts tier to channelValues internally for backward compatibility.
-     *
-     * @param tier the repetition tier (0 = min/default, 1 = min, 2+ = specific repetition count)
-     * @deprecated Use {@link #autoBuild(EntityPlayer, MultiblockControllerBase, Map, boolean)} with channelValues
-     */
-    @Deprecated
-    public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase, int tier) {
-        Map<String, Integer> channels = new HashMap<>();
-        if (tier > 0) {
-            BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
-            for (int i = 0; i < aisles.length; i++) {
-                if (aisles[i].minRepeat() == aisles[i].maxRepeat()) continue;
-                String name = aisles[i].channelName();
-                if (name != null) {
-                    channels.put(name, tier);
-                }
-            }
-        }
-        autoBuild(player, controllerBase, channels, false);
-    }
-
-    /**
      * Auto-build the structure in the world using channel-based configuration.
      *
      * <p>Channel values control two aspects:

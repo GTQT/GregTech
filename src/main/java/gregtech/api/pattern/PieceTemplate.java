@@ -27,9 +27,7 @@ import java.util.function.BiConsumer;
  * facade for backward compatibility with public addons.
  *
  * <p>Construction: the primary builder is
- * {@link PieceTemplateCompiler#buildTemplate()}; the legacy builder
- * {@link FactoryBlockPattern#buildTemplate()} constructs a
- * {@code BlockPatternTemplate} facade over a {@code PieceTemplate}.
+ * {@link PieceTemplateCompiler#buildTemplate()}.
  */
 public final class PieceTemplate {
 

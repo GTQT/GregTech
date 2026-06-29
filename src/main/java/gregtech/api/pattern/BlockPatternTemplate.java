@@ -3,7 +3,6 @@ package gregtech.api.pattern;
 import gregtech.api.util.RelativeDirection;
 
 import com.github.bsideup.jabel.Desugar;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
@@ -18,10 +17,8 @@ import java.util.function.BiConsumer;
  * <p>The new structure compile path
  * {@link gregtech.api.pattern.element.IStructurePiece} → {@link StructurePiece}
  * holds a {@link PieceTemplate} directly. This class is retained so that the
- * public APIs ({@link FactoryBlockPattern#buildTemplate()},
- * {@link gregtech.api.metatileentity.multiblock.MultiblockControllerBase#createStructureTemplate()},
- * and the {@link #getTemplate()} accessor) continue to work for the
- * ~100 legacy multiblocks and any external addons.
+ * public APIs and the {@link #getTemplate()} accessor continue to work for
+ * legacy multiblocks and any external addons.
  *
  * <p>Conceptually, this class is no longer the canonical IR — it is a thin
  * view. New code should use {@link PieceTemplate} (or the {@link StructurePiece}
@@ -29,7 +26,6 @@ import java.util.function.BiConsumer;
  *
  * @see PieceTemplate for the canonical IR
  * @see PieceRuntimeState for internal per-instance mutable state
- * @see FactoryBlockPattern for the legacy builder
  */
 public class BlockPatternTemplate {
 
@@ -195,16 +191,6 @@ public class BlockPatternTemplate {
      * invoke {@code consumer} with the pattern-local world position (as if the controller
      * were at the origin) and the predicate occupying that cell.
      */
-    /**
-     * @deprecated Legacy orientation facade. New code should pass
-     *             {@link StructureOrientation}.
-     */
-    @Deprecated
-    public void forEachPredicate(@NotNull EnumFacing front, @NotNull EnumFacing up, boolean flipped,
-                                 @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
-        delegate.forEachPredicate(StructureOrientation.legacy(front, up, flipped, false), consumer);
-    }
-
     public void forEachPredicate(@NotNull StructureOrientation orientation,
                                  @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
         delegate.forEachPredicate(orientation, consumer);
@@ -213,18 +199,6 @@ public class BlockPatternTemplate {
     /**
      * Compute the precise world-space AABB for this structure template given the controller state.
      */
-    @NotNull
-    /**
-     * @deprecated Legacy orientation facade. New code should pass
-     *             {@link StructureOrientation}.
-     */
-    @Deprecated
-    public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos, @NotNull EnumFacing frontFacing,
-                                       @NotNull EnumFacing upwardsFacing, boolean isFlipped, int margin) {
-        return delegate.computeWorldAABB(centerPos,
-                StructureOrientation.legacy(frontFacing, upwardsFacing, isFlipped, false), margin);
-    }
-
     @NotNull
     public BlockPos[] computeWorldAABB(@NotNull BlockPos centerPos,
                                        @NotNull StructureOrientation orientation,
