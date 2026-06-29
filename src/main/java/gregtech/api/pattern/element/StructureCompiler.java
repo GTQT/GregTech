@@ -92,7 +92,7 @@ public final class StructureCompiler {
             if (hasCenter) {
                 PieceTemplate centerTemplate = compilePieceToPieceTemplate(
                         candidate, def.getStructureDir(), null, null);
-                BlockPatternTemplate.CenterOffset center = centerTemplate.getCenterOffset();
+                PieceTemplate.CenterOffset center = centerTemplate.getCenterOffset();
                 referenceCenterOffset = new int[]{center.x(), center.y(), center.z()};
                 break;
             }
