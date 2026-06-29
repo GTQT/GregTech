@@ -1,8 +1,7 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.casing.ICasingGroup;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.unification.material.Material;
@@ -152,7 +151,7 @@ public final class Elements {
     }
 
     /** Element with match callback */
-    public static IStructureElement onPass(Consumer<PatternMatchContext> callback, IStructureElement e) {
+    public static IStructureElement onPass(Consumer<StructureEvaluationContext<?>> callback, IStructureElement e) {
         return ElementUtility.onElementPass(callback, e);
     }
 

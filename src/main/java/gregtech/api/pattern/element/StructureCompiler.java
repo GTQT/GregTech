@@ -770,40 +770,35 @@ public final class StructureCompiler {
     }
 
     /**
-     * Legacy compile entry point that returns a {@link BlockPatternTemplate}
-     * facade. New code should call {@link #compilePieceToPieceTemplate}
-     * instead and use the canonical {@link PieceTemplate} directly.
-     *
-     * <p>If any element in the symbol map is a center element (isCenter = true),
-     * the template will auto-discover the center offset. Otherwise, the piece's
-     * explicit center offset is used.
+     * Compile a piece into a template. If any element in the symbol map is a
+     * center element (isCenter = true), the template will auto-discover the
+     * center offset. Otherwise, the piece's explicit center offset is used.
      *
      * @param piece        the structure piece to compile
      * @param structureDir the structure direction triple [charDir, stringDir, aisleDir]
-     * @return the compiled block pattern template (facade over a PieceTemplate)
+     * @return the compiled piece template
      */
     @NotNull
-    public static BlockPatternTemplate compilePieceTemplate(@NotNull IStructurePiece piece,
-                                                            @NotNull RelativeDirection[] structureDir) {
-        return new BlockPatternTemplate(compilePieceToPieceTemplate(piece, structureDir));
+    public static PieceTemplate compilePieceTemplate(@NotNull IStructurePiece piece,
+                                                     @NotNull RelativeDirection[] structureDir) {
+        return compilePieceToPieceTemplate(piece, structureDir);
     }
 
     /**
-     * Compile a piece into a template, optionally attaching an auto-generated structure
-     * description. The description is propagated through the underlying
-     * {@link PieceTemplateCompiler} so the resulting template is fully immutable
-     * (no setter is required).
+     * Compile a piece into a template, optionally attaching an auto-generated
+     * structure description. The description is propagated through the
+     * underlying {@link PieceTemplateCompiler} so the resulting template is
+     * fully immutable (no setter is required).
      *
      * @param piece                  the piece to compile
      * @param structureDir           the 3 relative directions
      * @param structureDescription   optional description lines; {@code null}/empty means "no description"
-     * @return the compiled template (facade over a PieceTemplate)
+     * @return the compiled piece template
      */
     @NotNull
-    public static BlockPatternTemplate compilePieceTemplate(@NotNull IStructurePiece piece,
-                                                            @NotNull RelativeDirection[] structureDir,
-                                                            @Nullable List<String> structureDescription) {
-        return new BlockPatternTemplate(
-                compilePieceToPieceTemplate(piece, structureDir, structureDescription));
+    public static PieceTemplate compilePieceTemplate(@NotNull IStructurePiece piece,
+                                                     @NotNull RelativeDirection[] structureDir,
+                                                     @Nullable List<String> structureDescription) {
+        return compilePieceToPieceTemplate(piece, structureDir, structureDescription);
     }
 }

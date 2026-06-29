@@ -104,7 +104,7 @@ public final class MultiPiecePreviewAssembler {
             }
             BlockPos pieceCenter = piece.getCenterPos(
                     BlockPos.ORIGIN, CANONICAL_PREVIEW_ORIENTATION, prior);
-            PieceTemplate template = piece.getPieceTemplate();
+            PieceTemplate template = piece.getTemplate();
             int[] internalRepetitions = resolveInternalRepetitions(template, channelValues);
             int[] externalRepetitions = resolveExternalRepetitions(piece, channelValues);
 
@@ -249,10 +249,10 @@ public final class MultiPiecePreviewAssembler {
 
     private static int[] resolveInternalRepetitions(@NotNull PieceTemplate template,
                                                     @Nullable Map<String, Integer> channelValues) {
-        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
+        PieceTemplate.AisleDef[] aisles = template.getAisles();
         int[] repetitions = new int[aisles.length];
         for (int i = 0; i < aisles.length; i++) {
-            BlockPatternTemplate.AisleDef aisle = aisles[i];
+            PieceTemplate.AisleDef aisle = aisles[i];
             Integer value = aisle.channelName() == null || channelValues == null
                     ? null
                     : channelValues.get(aisle.channelName());

@@ -5,9 +5,9 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.pattern.CountLimitError;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
@@ -34,8 +34,7 @@ public class MetaTileEntityElement implements ITypedStructureElement<Object> {
     private final MultiblockAbility<?> ability;
     private final int minCount;
     private final int maxCount;
-    private final TraceabilityPredicate legacyPredicate;
-    private final TraceabilityPredicate.SimplePredicate countPredicate;
+    private final int previewCount;
     private final StructureElementPreview preview;
 
     public MetaTileEntityElement(MetaTileEntity... metaTileEntities) {
@@ -62,9 +61,8 @@ public class MetaTileEntityElement implements ITypedStructureElement<Object> {
         this.ability = ability;
         this.minCount = minCount;
         this.maxCount = maxCount;
-        this.legacyPredicate = buildLegacyPredicate(previewCount);
-        this.countPredicate = findCountPredicate(legacyPredicate);
-        this.preview = StructureElementPreview.fromPredicate(legacyPredicate);
+        this.previewCount = previewCount;
+        this.preview = buildPreview();
     }
 
     @Override
@@ -78,13 +76,13 @@ public class MetaTileEntityElement implements ITypedStructureElement<Object> {
             StructureMatchCollector collector = transactionContext.getCollector();
             if (ability != null && metaTileEntity instanceof IMultiblockPart) {
                 if (!collector.recordAbility(this, (IMultiblockPart) metaTileEntity)) {
-                    transactionContext.setError(new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
+                    transactionContext.setError(new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxCount));
                     return false;
                 }
                 return true;
             }
             if (hasCountConstraint() && !collector.recordCount(this)) {
-                transactionContext.setError(new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
+                transactionContext.setError(new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxCount));
                 return false;
             }
             if (metaTileEntity instanceof IMultiblockPart) {
@@ -124,19 +122,14 @@ public class MetaTileEntityElement implements ITypedStructureElement<Object> {
         if (ability == null) {
             context.getCollector().declareCount(
                     this, minCount, maxCount,
-                    () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 1),
-                    () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
+                    () -> new CountLimitError(CountLimitError.Kind.MIN_GLOBAL, minCount),
+                    () -> new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxCount));
         } else {
             context.getCollector().declareAbility(
                     this, ability, minCount, maxCount,
-                    () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 1),
-                    () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
+                    () -> new CountLimitError(CountLimitError.Kind.MIN_GLOBAL, minCount),
+                    () -> new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxCount));
         }
-    }
-
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        return legacyPredicate;
     }
 
     private boolean matches(MetaTileEntity metaTileEntity) {
@@ -147,33 +140,24 @@ public class MetaTileEntityElement implements ITypedStructureElement<Object> {
         return minCount > 0 || maxCount >= 0;
     }
 
-    private TraceabilityPredicate buildLegacyPredicate(int previewCount) {
-        TraceabilityPredicate predicate = new TraceabilityPredicate(
-                blockWorldState -> matches(getMetaTileEntity(blockWorldState.getTileEntity())),
-                this::getCandidates);
-        if (minCount > 0) {
-            predicate.setMinGlobalLimited(minCount);
-        }
-        if (maxCount >= 0) {
-            predicate.setMaxGlobalLimited(maxCount);
+    @NotNull
+    private StructureElementPreview buildPreview() {
+        StructureElementPreview.Builder builder = StructureElementPreview.builder();
+        StructureElementPreview.CandidateGroup.Builder groupBuilder =
+                StructureElementPreview.CandidateGroup.builder(this::getCandidates);
+        if (hasCountConstraint()) {
+            groupBuilder.global(minCount, maxCount);
         }
         if (previewCount >= 0) {
-            predicate.setPreviewCount(previewCount);
+            groupBuilder.previewCount(previewCount);
         }
-        if (ability != null) {
-            predicate.setAbility(ability);
+        StructureElementPreview.CandidateGroup group = groupBuilder.build();
+        if (hasCountConstraint()) {
+            builder.limited(group);
+        } else {
+            builder.common(group);
         }
-        return predicate;
-    }
-
-    private static TraceabilityPredicate.SimplePredicate findCountPredicate(TraceabilityPredicate predicate) {
-        if (!predicate.limited.isEmpty()) {
-            return predicate.limited.get(0);
-        }
-        if (!predicate.common.isEmpty()) {
-            return predicate.common.get(0);
-        }
-        throw new IllegalStateException("MetaTileEntity predicate did not contain a matcher");
+        return builder.build();
     }
 
     private static MetaTileEntity getMetaTileEntity(TileEntity tileEntity) {

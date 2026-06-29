@@ -63,41 +63,18 @@ public class RepeatGroupPiece extends StructurePiece {
         boolean visit(@NotNull int[] localOffset);
     }
 
-    public RepeatGroupPiece(@NotNull String name, @NotNull BlockPatternTemplate tpl,
-                            @NotNull Vec3i offset, @NotNull OffsetMode mode,
-                            @Nullable BooleanSupplier cond,
-                            int[] axes, int[][] ranges, int[] steps,
-                            @Nullable String[] channelNames, int[] centerOffset,
-                            @NotNull StructureCompiler.SearchStrategy strategy) {
-        this(name, tpl, offset, mode, cond, axes, ranges, steps, channelNames, centerOffset, strategy, true);
-    }
-
-    public RepeatGroupPiece(@NotNull String name, @NotNull BlockPatternTemplate tpl,
-                            @NotNull Vec3i offset, @NotNull OffsetMode mode,
-                            @Nullable BooleanSupplier cond,
-                            int[] axes, int[][] ranges, int[] steps,
-                            @Nullable String[] channelNames, int[] centerOffset,
-                            @NotNull StructureCompiler.SearchStrategy strategy,
-                            boolean toolingVisible) {
-        // The 6-arg StructurePiece constructor binds a SnapshotChecker closure that
-        // receives the per-controller PieceRuntime as its last argument, so the
-        // per-instance state (cache / lastSuccessReps / lastAggregatedContext) all
-        // lives on the runtime and the piece itself stays stateless.
-        super(name, tpl, offset, mode, cond, RepeatGroupPiece::checkOnSnapshotDispatch, toolingVisible);
-        this.repeatAxes = axes;
-        this.repeatRanges = ranges;
-        this.stepSizes = steps;
-        this.repeatChannelNames = channelNames;
-        this.centerOffset = centerOffset;
-        this.strategy = strategy;
-    }
-
     /**
-     * New-path constructor taking a canonical {@link PieceTemplate} directly.
-     * Uses the new {@link StructurePiece} constructor that holds the
-     * {@code PieceTemplate} as the canonical IR and lazily constructs a
-     * {@link BlockPatternTemplate} facade only if {@link #getTemplate()}
-     * is called.
+     * @param name        unique name for this piece
+     * @param tpl         the canonical piece template
+     * @param offset      offset from the controller position
+     * @param mode        how the offset is interpreted
+     * @param cond        optional activation condition
+     * @param axes        repeat axes (e.g. [0] for x-axis only, [0,1,2] for all)
+     * @param ranges      repeat ranges per axis (e.g. [[1,3],[1,3]])
+     * @param steps       step size per axis
+     * @param channelNames channel names per axis; null entries allowed
+     * @param centerOffset center offset [x, y, z, minZ, maxZ]
+     * @param strategy    search strategy for snapshot checking
      */
     public RepeatGroupPiece(@NotNull String name, @NotNull PieceTemplate tpl,
                             @NotNull Vec3i offset, @NotNull OffsetMode mode,
@@ -115,6 +92,10 @@ public class RepeatGroupPiece extends StructurePiece {
                             @Nullable String[] channelNames, int[] centerOffset,
                             @NotNull StructureCompiler.SearchStrategy strategy,
                             boolean toolingVisible) {
+        // The 6-arg StructurePiece constructor binds a SnapshotChecker closure that
+        // receives the per-controller PieceRuntime as its last argument, so the
+        // per-instance state (cache / lastSuccessReps / lastAggregatedContext) all
+        // lives on the runtime and the piece itself stays stateless.
         super(name, tpl, offset, mode, cond, RepeatGroupPiece::checkOnSnapshotDispatch, toolingVisible);
         this.repeatAxes = axes;
         this.repeatRanges = ranges;

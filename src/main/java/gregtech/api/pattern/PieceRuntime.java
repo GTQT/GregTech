@@ -72,7 +72,7 @@ public final class PieceRuntime {
     PieceRuntime(@NotNull StructurePiece piece,
                  @Nullable PieceRuntimeState stateOverride) {
         this.piece = piece;
-        this.state = stateOverride == null ? new PieceRuntimeState(piece.getPieceTemplate()) : stateOverride;
+        this.state = stateOverride == null ? new PieceRuntimeState(piece.getTemplate()) : stateOverride;
     }
 
     // --- PieceRuntimeState access ---

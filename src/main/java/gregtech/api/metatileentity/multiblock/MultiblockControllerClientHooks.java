@@ -1,6 +1,6 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.handler.GhostBlockRenderer;
 import gregtech.client.renderer.handler.MultiblockPreviewRenderer;
@@ -31,7 +31,7 @@ final class MultiblockControllerClientHooks {
 
     @SideOnly(Side.CLIENT)
     static void addStructureInformation(@NotNull MultiblockControllerBase controller,
-                                        @Nullable BlockPatternTemplate patternTemplate,
+                                        @Nullable PieceTemplate patternTemplate,
                                         @NotNull List<String> tooltip) {
         TooltipBuilder.create().addStructure().build(controller, tooltip);
 

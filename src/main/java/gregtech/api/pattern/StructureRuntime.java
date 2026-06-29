@@ -87,7 +87,7 @@ public final class StructureRuntime {
         StructurePiece primaryPiece = definition.supportsSingleTemplatePath()
                 ? multiPiecePattern.getPrimaryPiece()
                 : null;
-        PieceRuntimeState state = primaryPiece == null ? null : new PieceRuntimeState(primaryPiece.getPieceTemplate());
+        PieceRuntimeState state = primaryPiece == null ? null : new PieceRuntimeState(primaryPiece.getTemplate());
         return new StructureRuntime(definition, null, state, multiPiecePattern,
                 state == null
                         ? new PieceRuntimes(multiPiecePattern)

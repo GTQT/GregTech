@@ -62,7 +62,7 @@ final class StructureOperationContext {
                 MultiPiecePattern syntheticPattern = new MultiPiecePattern(Collections.singletonList(
                         new StructurePiece(
                                 SYNTHETIC_SINGLE_PIECE_NAME,
-                                state.getPieceTemplate(),
+                                state.getTemplate(),
                                 Vec3i.NULL_VECTOR,
                                 OffsetMode.RELATIVE,
                                 null,
@@ -95,7 +95,7 @@ final class StructureOperationContext {
             if (piece.isConditional()) {
                 return false;
             }
-            for (IStructureElement<?>[][] layer : piece.getPieceTemplate().getElements()) {
+            for (IStructureElement<?>[][] layer : piece.getTemplate().getElements()) {
                 for (IStructureElement<?>[] row : layer) {
                     for (IStructureElement<?> element : row) {
                         if (element == null

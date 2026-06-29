@@ -1,7 +1,6 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.StructureEvaluationContext;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.pipenet.tile.IPipeTile;
@@ -27,7 +26,6 @@ public class FrameElement implements ITypedStructureElement<Object> {
 
     private final Material[] frameMaterials;
     private final IBlockState[] frameStates;
-    private final TraceabilityPredicate legacyPredicate;
     private final StructureElementPreview preview;
 
     public FrameElement(Material... frameMaterials) {
@@ -37,8 +35,7 @@ public class FrameElement implements ITypedStructureElement<Object> {
         this.frameStates = Arrays.stream(this.frameMaterials)
                 .map(material -> MetaBlocks.FRAMES.get(material).getBlock(material))
                 .toArray(IBlockState[]::new);
-        this.legacyPredicate = buildLegacyPredicate();
-        this.preview = StructureElementPreview.fromPredicate(legacyPredicate);
+        this.preview = StructureElementPreview.of(this::getCandidates);
     }
 
     @Override
@@ -75,23 +72,10 @@ public class FrameElement implements ITypedStructureElement<Object> {
         return true;
     }
 
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        return legacyPredicate;
-    }
-
     private boolean isFramePipe(TileEntity tileEntity) {
         if (!(tileEntity instanceof IPipeTile<?, ?>)) {
             return false;
         }
         return ArrayUtils.contains(frameMaterials, ((IPipeTile<?, ?>) tileEntity).getFrameMaterial());
-    }
-
-    private TraceabilityPredicate buildLegacyPredicate() {
-        return new TraceabilityPredicate(
-                blockWorldState -> ArrayUtils.contains(frameStates, blockWorldState.getBlockState()),
-                this::getCandidates)
-                        .or(new TraceabilityPredicate(
-                                blockWorldState -> isFramePipe(blockWorldState.getTileEntity())));
     }
 }

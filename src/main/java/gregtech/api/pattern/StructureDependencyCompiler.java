@@ -173,7 +173,7 @@ public final class StructureDependencyCompiler {
             @NotNull Map<StructureExternalDependencyKey<?>, Set<String>> externalDependencyRoots,
             @NotNull MutableFallback fallback,
             @NotNull List<String> diagnostics) {
-        IStructureElement<?>[][][] elements = piece.getPieceTemplate().getElements();
+        IStructureElement<?>[][][] elements = piece.getTemplate().getElements();
         for (int z = 0; z < elements.length; z++) {
             IStructureElement<?>[][] layer = elements[z];
             for (int y = 0; y < layer.length; y++) {

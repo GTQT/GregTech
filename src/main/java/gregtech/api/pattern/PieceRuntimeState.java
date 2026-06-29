@@ -45,9 +45,7 @@ import java.util.stream.Collectors;
  * Per-piece mutable matcher/cache state for multiblock pattern checking.
  * Each multiblock controller holds its own {@link PieceRuntimeState}, while sharing
  * the immutable canonical {@link PieceTemplate} IR with other controllers of
- * the same type. (The legacy {@link BlockPatternTemplate} facade is no longer
- * present at this layer — it lives only in the compile-result surface of
- * {@link StructurePiece#getTemplate()} for back-compat.)
+ * the same type.
  *
  * This class holds:
  * - The block position cache (formed structure positions)
@@ -71,9 +69,7 @@ public final class PieceRuntimeState {
             EnumFacing.SOUTH, EnumFacing.SOUTH, EnumFacing.UP, false, false);
 
     /**
-     * The canonical piece IR. The legacy
-     * {@link #getTemplate()} accessor returns a {@link BlockPatternTemplate}
-     * facade constructed lazily on first call.
+     * The canonical piece IR.
      */
     private final PieceTemplate template;
 
@@ -115,21 +111,9 @@ public final class PieceRuntimeState {
      * @return the canonical piece IR this state is bound to
      */
     @NotNull
-    public PieceTemplate getPieceTemplate() {
+    public PieceTemplate getTemplate() {
         return template;
     }
-
-    /**
-     * @return the legacy facade view of the piece IR. Lazily constructed on
-     *         first call; new code should prefer {@link #getPieceTemplate()}.
-     */
-    @NotNull
-    public BlockPatternTemplate getTemplate() {
-        return templateView != null ? templateView : (templateView = new BlockPatternTemplate(template));
-    }
-
-    @Nullable
-    private BlockPatternTemplate templateView;
 
     /**
      * @return the current pattern error, or null if no error
@@ -562,7 +546,7 @@ public final class PieceRuntimeState {
                                           @NotNull StructureOrientation orientation,
                                           int xOffset, int yOffset, int zOffset,
                                           @NotNull FixedStructureCellVisitor visitor) {
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        PieceTemplate.CenterOffset centerOffset = template.getCenterOffset();
         int fingerLength = template.getZLength();
 
         int z = -centerOffset.maxZ();
@@ -589,7 +573,7 @@ public final class PieceRuntimeState {
                                              int xOffset, int yOffset, int zOffset,
                                              @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts,
                                              @NotNull FixedStructureCellPredicate visitor) {
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        PieceTemplate.CenterOffset centerOffset = template.getCenterOffset();
         int thumbLength = template.getYLength();
         int palmLength = template.getXLength();
 
@@ -653,7 +637,7 @@ public final class PieceRuntimeState {
         }
 
         int[][] aisleRepetitions = template.getAisleRepetitions();
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        PieceTemplate.CenterOffset centerOffset = template.getCenterOffset();
         int fingerLength = template.getZLength();
 
         boolean findFirstAisle = false;
@@ -819,7 +803,7 @@ public final class PieceRuntimeState {
                                                   int xOffset, int yOffset, int zOffset,
                                                   @NotNull FixedStructureCellFilter filter,
                                                   @NotNull FixedStructureCellPredicate visitor) {
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        PieceTemplate.CenterOffset centerOffset = template.getCenterOffset();
         int fingerLength = template.getZLength();
         int thumbLength = template.getYLength();
         int palmLength = template.getXLength();
@@ -1427,7 +1411,7 @@ public final class PieceRuntimeState {
     }
 
     private boolean hasFixedAisleLayout() {
-        for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
+        for (PieceTemplate.AisleDef aisle : template.getAisles()) {
             if (aisle.minRepeat() != aisle.maxRepeat()) return false;
         }
         return true;
@@ -1542,7 +1526,7 @@ public final class PieceRuntimeState {
      * Aisles without an assigned channel value default to max repetition.
      */
     private int[] calculateRepetitionsFromChannels(Map<String, Integer> channelValues) {
-        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
+        PieceTemplate.AisleDef[] aisles = template.getAisles();
         int[] repetitions = new int[aisles.length];
 
         for (int i = 0; i < aisles.length; i++) {
@@ -2085,7 +2069,7 @@ public final class PieceRuntimeState {
             return blocks;
         }
 
-        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
+        PieceTemplate.AisleDef[] aisles = template.getAisles();
         int[] repetitions = new int[aisles.length];
         for (int c = 0; c < repetitions.length; c++) {
             repetitions[c] = (formedRepetitionCount != null && c < formedRepetitionCount.length)
@@ -2203,7 +2187,7 @@ public final class PieceRuntimeState {
     @NotNull
     private BlockPos calculatePreviewCenter(@NotNull int[] repetition,
                                             @NotNull StructureOrientation orientation) {
-        BlockPatternTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        PieceTemplate.CenterOffset centerOffset = template.getCenterOffset();
         int finger = -centerOffset.maxZ();
         for (int i = 0; i < centerOffset.z() && i < repetition.length; i++) {
             finger += repetition[i];

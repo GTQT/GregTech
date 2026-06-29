@@ -1,7 +1,6 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
 import org.jetbrains.annotations.NotNull;
@@ -17,10 +16,9 @@ import java.util.function.Supplier;
 /**
  * Direct-element preview/build metadata.
  *
- * <p>This is the V3 replacement for reading candidate/channel/default metadata
- * from {@link TraceabilityPredicate.SimplePredicate}. Legacy predicates are
- * still adapted into this shape, but new elements can expose preview and build
- * behavior without converting themselves into a predicate.
+ * <p>This is the V3 typed view of an element's candidate blocks and limits.
+ * Elements build instances directly via {@link #builder()} without going
+ * through {@code TraceabilityPredicate.SimplePredicate}.
  */
 public final class StructureElementPreview {
 
@@ -48,18 +46,6 @@ public final class StructureElementPreview {
     @NotNull
     public static StructureElementPreview empty() {
         return builder().build();
-    }
-
-    @NotNull
-    public static StructureElementPreview fromPredicate(@NotNull TraceabilityPredicate predicate) {
-        Builder builder = builder();
-        for (TraceabilityPredicate.SimplePredicate simple : predicate.limited) {
-            builder.limited(CandidateGroup.fromPredicate(simple, predicate));
-        }
-        for (TraceabilityPredicate.SimplePredicate simple : predicate.common) {
-            builder.common(CandidateGroup.fromPredicate(simple, predicate));
-        }
-        return builder.build();
     }
 
     @NotNull
@@ -108,12 +94,6 @@ public final class StructureElementPreview {
         }
 
         @NotNull
-        public Builder common(@NotNull TraceabilityPredicate.SimplePredicate predicate) {
-            common.add(CandidateGroup.fromPredicate(predicate));
-            return this;
-        }
-
-        @NotNull
         public Builder limited(@NotNull Supplier<BlockInfo[]> candidates,
                                int minGlobalCount,
                                int maxGlobalCount,
@@ -131,12 +111,6 @@ public final class StructureElementPreview {
         @NotNull
         public Builder limited(@NotNull CandidateGroup group) {
             limited.add(group);
-            return this;
-        }
-
-        @NotNull
-        public Builder limited(@NotNull TraceabilityPredicate.SimplePredicate predicate) {
-            limited.add(CandidateGroup.fromPredicate(predicate));
             return this;
         }
 
@@ -161,8 +135,6 @@ public final class StructureElementPreview {
         private final Supplier<? extends MetaTileEntity> defaultCandidate;
         @NotNull
         private final Supplier<List<String>> tooltip;
-        @Nullable
-        private final TraceabilityPredicate.SimplePredicate legacyPredicate;
 
         private CandidateGroup(@NotNull Supplier<BlockInfo[]> candidates,
                                int minGlobalCount,
@@ -172,8 +144,7 @@ public final class StructureElementPreview {
                                int previewCount,
                                @Nullable String channelName,
                                @Nullable Supplier<? extends MetaTileEntity> defaultCandidate,
-                               @NotNull Supplier<List<String>> tooltip,
-                               @Nullable TraceabilityPredicate.SimplePredicate legacyPredicate) {
+                               @NotNull Supplier<List<String>> tooltip) {
             this.candidates = candidates;
             this.minGlobalCount = minGlobalCount;
             this.maxGlobalCount = maxGlobalCount;
@@ -183,26 +154,6 @@ public final class StructureElementPreview {
             this.channelName = channelName;
             this.defaultCandidate = defaultCandidate;
             this.tooltip = tooltip;
-            this.legacyPredicate = legacyPredicate;
-        }
-
-        @NotNull
-        public static CandidateGroup fromPredicate(@NotNull TraceabilityPredicate.SimplePredicate predicate) {
-            return fromPredicate(predicate, null);
-        }
-
-        @NotNull
-        public static CandidateGroup fromPredicate(@NotNull TraceabilityPredicate.SimplePredicate predicate,
-                                                   @Nullable TraceabilityPredicate owner) {
-            return builder(predicate.candidates == null ? null : predicate.candidates)
-                    .global(predicate.minGlobalCount, predicate.maxGlobalCount)
-                    .layer(predicate.minLayerCount, predicate.maxLayerCount)
-                    .previewCount(predicate.previewCount)
-                    .channel(predicate.channelName)
-                    .defaultCandidate(predicate.defaultCandidate)
-                    .tooltip(() -> predicate.getToolTips(owner))
-                    .legacyPredicate(predicate)
-                    .build();
         }
 
         @NotNull
@@ -267,23 +218,18 @@ public final class StructureElementPreview {
             return result == null ? Collections.emptyList() : new ArrayList<>(result);
         }
 
-        @Nullable
-        public TraceabilityPredicate.SimplePredicate getLegacyPredicate() {
-            return legacyPredicate;
-        }
-
         @NotNull
         public CandidateGroup withChannel(@Nullable String channelName) {
             return new CandidateGroup(candidates, minGlobalCount, maxGlobalCount,
                     minLayerCount, maxLayerCount, previewCount, channelName,
-                    defaultCandidate, tooltip, legacyPredicate);
+                    defaultCandidate, tooltip);
         }
 
         @NotNull
         public CandidateGroup withDefaultCandidate(@Nullable Supplier<? extends MetaTileEntity> defaultCandidate) {
             return new CandidateGroup(candidates, minGlobalCount, maxGlobalCount,
                     minLayerCount, maxLayerCount, previewCount, channelName,
-                    defaultCandidate, tooltip, legacyPredicate);
+                    defaultCandidate, tooltip);
         }
 
         @NotNull
@@ -297,7 +243,7 @@ public final class StructureElementPreview {
                         List<String> merged = new ArrayList<>(getTooltip());
                         merged.addAll(additionalTooltip);
                         return merged;
-                    }, legacyPredicate);
+                    });
         }
 
         @Override
@@ -313,8 +259,7 @@ public final class StructureElementPreview {
                     && previewCount == other.previewCount
                     && Objects.equals(channelName, other.channelName)
                     && defaultCandidate == other.defaultCandidate
-                    && tooltip == other.tooltip
-                    && legacyPredicate == other.legacyPredicate;
+                    && tooltip == other.tooltip;
         }
 
         @Override
@@ -328,7 +273,6 @@ public final class StructureElementPreview {
             result = 31 * result + Objects.hashCode(channelName);
             result = 31 * result + System.identityHashCode(defaultCandidate);
             result = 31 * result + System.identityHashCode(tooltip);
-            result = 31 * result + System.identityHashCode(legacyPredicate);
             return result;
         }
 
@@ -347,8 +291,6 @@ public final class StructureElementPreview {
             private Supplier<? extends MetaTileEntity> defaultCandidate;
             @NotNull
             private Supplier<List<String>> tooltip = Collections::emptyList;
-            @Nullable
-            private TraceabilityPredicate.SimplePredicate legacyPredicate;
 
             private Builder(@Nullable Supplier<BlockInfo[]> candidates) {
                 this.candidates = candidates;
@@ -393,17 +335,11 @@ public final class StructureElementPreview {
             }
 
             @NotNull
-            private Builder legacyPredicate(@Nullable TraceabilityPredicate.SimplePredicate legacyPredicate) {
-                this.legacyPredicate = legacyPredicate;
-                return this;
-            }
-
-            @NotNull
             public CandidateGroup build() {
                 Supplier<BlockInfo[]> candidateSupplier = candidates == null ? () -> new BlockInfo[0] : candidates;
                 return new CandidateGroup(candidateSupplier, minGlobalCount, maxGlobalCount,
                         minLayerCount, maxLayerCount, previewCount, channelName,
-                        defaultCandidate, tooltip, legacyPredicate);
+                        defaultCandidate, tooltip);
             }
         }
     }

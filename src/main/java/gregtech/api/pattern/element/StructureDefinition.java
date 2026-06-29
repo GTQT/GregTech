@@ -1,7 +1,6 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.pattern.AbilityGroupLimit;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternMatchContext;
@@ -202,7 +201,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             if (piece.isConditional()) {
                 capabilities.remove(StructureElementCapability.SNAPSHOT_MATCH);
             }
-            for (IStructureElement<?>[][] layer : piece.getPieceTemplate().getElements()) {
+            for (IStructureElement<?>[][] layer : piece.getTemplate().getElements()) {
                 for (IStructureElement<?>[] row : layer) {
                     for (IStructureElement<?> element : row) {
                         if (element == null) {
@@ -240,7 +239,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
                     new HashMap<>(maxRepeats), Collections.emptyMap(), new HashMap<>(pieceCenters));
             BlockPos pieceCenter = piece.getCenterPos(center, orientation, prior);
-            PieceTemplate template = piece.getPieceTemplate();
+            PieceTemplate template = piece.getTemplate();
 
             if (piece instanceof RepeatGroupPiece repeatPiece) {
                 int[] axes = repeatPiece.getRepeatAxes();
@@ -330,7 +329,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      * Multi-piece callers should iterate {@link #getCompiledPattern()} instead.
      */
     @Nullable
-    public BlockPatternTemplate getPrimaryTemplate() {
+    public PieceTemplate getPrimaryTemplate() {
         if (delegate != null) {
             return delegate.get().getPrimaryTemplate();
         }
@@ -347,7 +346,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      * @return the compiled template, or {@code null} when the multi-piece runtime is required
      */
     @Nullable
-    public BlockPatternTemplate getPrimaryTemplate(@Nullable List<String> structureDescription) {
+    public PieceTemplate getPrimaryTemplate(@Nullable List<String> structureDescription) {
         if (delegate != null) {
             return delegate.get().getPrimaryTemplate(structureDescription);
         }
@@ -424,14 +423,14 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             MultiPiecePattern mpp = getCompiledPattern();
             List<PieceSize> sizes = new ArrayList<>(mpp.getPieceList().size());
             for (StructurePiece piece : mpp.getPieceList()) {
-                BlockPatternTemplate tpl = piece.getTemplate();
+                PieceTemplate tpl = piece.getTemplate();
                 int palmMin = tpl.getXLength();
                 int palmMax = palmMin;
                 int thumbMin = tpl.getYLength();
                 int thumbMax = thumbMin;
                 int fingerMin = 0;
                 int fingerMax = 0;
-                for (BlockPatternTemplate.AisleDef aisle : tpl.getAisles()) {
+                for (PieceTemplate.AisleDef aisle : tpl.getAisles()) {
                     fingerMin += aisle.minRepeat();
                     fingerMax += aisle.maxRepeat();
                 }
@@ -485,30 +484,16 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     }
 
     /**
-     * Adapt a legacy single-template structure into the canonical definition model.
+     * Adapt a canonical {@link PieceTemplate} into a single-piece {@link StructureDefinition}.
      */
     @NotNull
     public static <T extends MultiblockControllerBase> StructureDefinition<T> fromTemplate(
-            @NotNull BlockPatternTemplate template) {
+            @NotNull PieceTemplate template) {
         return fromTemplate("main", template);
     }
 
     /**
-     * Adapt a legacy single-template structure into the canonical definition model.
-     */
-    @NotNull
-    public static <T extends MultiblockControllerBase> StructureDefinition<T> fromTemplate(
-            @NotNull String pieceName,
-            @NotNull BlockPatternTemplate template) {
-        RelativeDirection[] dirs = template.getStructureDir();
-        return StructureDefinition.<T>builder(dirs[0], dirs[1], dirs[2])
-                .pieceFromTemplate(pieceName, template)
-                .build();
-    }
-
-    /**
      * Adapt a canonical {@link PieceTemplate} into a single-piece {@link StructureDefinition}.
-     * Preferred over {@link #fromTemplate(BlockPatternTemplate)} for new code.
      */
     @NotNull
     public static <T extends MultiblockControllerBase> StructureDefinition<T> fromTemplate(
@@ -669,35 +654,11 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
             return new PieceBuilder<>(this, mp);
         }
 
-        /** Add a piece from an existing BlockPatternTemplate (legacy adapter). */
-        @NotNull
-        public PieceBuilder<T> pieceFromTemplate(@NotNull String name,
-                                                 @NotNull BlockPatternTemplate template) {
-            return pieceFromTemplate(name, template, Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
-        }
-
         /** Add a piece from an existing canonical PieceTemplate. */
         @NotNull
         public PieceBuilder<T> pieceFromTemplate(@NotNull String name,
                                                  @NotNull PieceTemplate template) {
             return pieceFromTemplate(name, template, Vec3i.NULL_VECTOR, OffsetMode.RELATIVE, null);
-        }
-
-        /** Add a piece from an existing BlockPatternTemplate with explicit placement. */
-        @NotNull
-        public PieceBuilder<T> pieceFromTemplate(@NotNull String name,
-                                                 @NotNull BlockPatternTemplate template,
-                                                 @NotNull Vec3i offset,
-                                                 @NotNull OffsetMode offsetMode,
-                                                 @Nullable BooleanSupplier condition) {
-            MutablePiece mp = new MutablePiece(name, null, Vec3i.NULL_VECTOR,
-                    OffsetMode.RELATIVE, null, new int[0], new int[0][0], new int[0], null,
-                    new int[]{0, 0, 0});
-            mp.baseOffset = offset;
-            mp.offsetMode = offsetMode;
-            mp.condition = condition;
-            mp.legacyTemplate = template;
-            return new PieceBuilder<>(this, mp);
         }
 
         /** Add a piece from an existing canonical PieceTemplate with explicit placement. */
@@ -1147,9 +1108,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
 
         // For pieceFromTemplate(PieceTemplate): stores the canonical pre-built template.
         @Nullable PieceTemplate template;
-
-        // For pieceFromTemplate(BlockPatternTemplate): stores the legacy facade.
-        @Nullable BlockPatternTemplate legacyTemplate;
 
         // Dynamic-anchor fields: see PieceEntry.anchorPieceName for semantics.
         @Nullable String anchorPieceName;

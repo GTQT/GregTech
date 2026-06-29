@@ -2,7 +2,7 @@ package gregtech.client.renderer.handler;
 
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
@@ -307,7 +307,7 @@ public class GhostBlockRenderer {
                 multiPiece, pieceIndex, piecePreview.getPrior(),
                 controller.getPos(), StructureOrientation.fromController(controller), controller);
 
-        BlockPatternTemplate pieceTemplate = piece.getTemplate();
+        PieceTemplate pieceTemplate = piece.getTemplate();
         RelativeDirection[] structureDir = pieceTemplate.getStructureDir();
         BlockPos pieceCenterLocal = piecePreview.getCenter();
 

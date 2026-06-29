@@ -1,6 +1,6 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.PieceRuntimeState;
@@ -244,11 +244,11 @@ final class MultiblockStructureOperations {
     private static int[] resolveSinglePreviewRepetitions(
             @NotNull StructureDefinition<?> definition,
             @Nullable Map<String, Integer> channelValues) {
-        BlockPatternTemplate template = definition.getPrimaryTemplate();
-        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
+        PieceTemplate template = definition.getPrimaryTemplate();
+        PieceTemplate.AisleDef[] aisles = template.getAisles();
         int[] repetitions = new int[aisles.length];
         for (int i = 0; i < aisles.length; i++) {
-            BlockPatternTemplate.AisleDef aisle = aisles[i];
+            PieceTemplate.AisleDef aisle = aisles[i];
             Integer value = aisle.channelName() == null || channelValues == null
                     ? null
                     : channelValues.get(aisle.channelName());
@@ -309,7 +309,7 @@ final class MultiblockStructureOperations {
 
     @NotNull
     static StructureRuntime createDynamicStructureRuntime(@NotNull String pieceName,
-                                                         @NotNull BlockPatternTemplate template) {
+                                                         @NotNull PieceTemplate template) {
         return createDynamicStructureRuntime(StructureDefinition.fromTemplate(pieceName, template));
     }
 
@@ -317,7 +317,7 @@ final class MultiblockStructureOperations {
     static StructureCheckResult checkDynamicStructure(@NotNull MultiblockControllerBase controller,
                                                      @NotNull StructureOperationRequest request,
                                                      @NotNull String pieceName,
-                                                     @NotNull BlockPatternTemplate template) {
+                                                     @NotNull PieceTemplate template) {
         request.requireKind(StructureOperationRequest.Kind.CHECK);
         StructureRuntime dynamicRuntime = controller.createDynamicStructureRuntime(pieceName, template);
         StructureTrace.debug(controller, "dynamic-check",
@@ -338,7 +338,7 @@ final class MultiblockStructureOperations {
     static BlockInfo[][][] previewDynamicStructure(@NotNull MultiblockControllerBase controller,
                                                    @NotNull StructureOperationRequest request,
                                                    @NotNull String pieceName,
-                                                   @NotNull BlockPatternTemplate template) {
+                                                   @NotNull PieceTemplate template) {
         request.requireKind(StructureOperationRequest.Kind.PREVIEW);
         StructureRuntime dynamicRuntime = controller.createDynamicStructureRuntime(pieceName, template);
         StructureTrace.debug(controller, "dynamic-preview",
@@ -351,7 +351,7 @@ final class MultiblockStructureOperations {
     static boolean autoBuildDynamicStructure(@NotNull MultiblockControllerBase controller,
                                              @NotNull StructureOperationRequest request,
                                              @NotNull String pieceName,
-                                             @NotNull BlockPatternTemplate template) {
+                                             @NotNull PieceTemplate template) {
         request.requireBuildKind();
         StructureRuntime dynamicRuntime = controller.createDynamicStructureRuntime(pieceName, template);
         StructureTrace.debug(controller, "dynamic-build",
@@ -380,7 +380,7 @@ final class MultiblockStructureOperations {
     static void spawnDynamicStructureHints(@NotNull MultiblockControllerBase controller,
                                            @NotNull StructureOperationRequest request,
                                            @NotNull String pieceName,
-                                           @NotNull BlockPatternTemplate template) {
+                                           @NotNull PieceTemplate template) {
         hintDynamicStructure(controller, request, pieceName, template);
     }
 
@@ -388,7 +388,7 @@ final class MultiblockStructureOperations {
     static StructureHintResult hintDynamicStructure(@NotNull MultiblockControllerBase controller,
                                                    @NotNull StructureOperationRequest request,
                                                    @NotNull String pieceName,
-                                                   @NotNull BlockPatternTemplate template) {
+                                                   @NotNull PieceTemplate template) {
         request.requireKind(StructureOperationRequest.Kind.HINT);
         StructureRuntime dynamicRuntime = controller.createDynamicStructureRuntime(pieceName, template);
         StructureTrace.debug(controller, "dynamic-hint",

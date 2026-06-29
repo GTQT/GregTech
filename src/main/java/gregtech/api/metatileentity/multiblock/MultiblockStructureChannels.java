@@ -1,11 +1,10 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.casing.GTStructureChannels;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.casing.StructureChannelRegistry;
 import gregtech.api.pattern.element.IStructureElement;
@@ -19,14 +18,13 @@ import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Consumer;
 
 final class MultiblockStructureChannels {
 
     private MultiblockStructureChannels() {}
 
     @NotNull
-    static List<StructureChannel> collectChannelsFromTemplate(@NotNull BlockPatternTemplate template) {
+    static List<StructureChannel> collectChannelsFromTemplate(@NotNull PieceTemplate template) {
         Set<String> seen = new LinkedHashSet<>();
         collectChannelsFromTemplateInto(template, seen);
         List<StructureChannel> result = new ArrayList<>();
@@ -60,9 +58,9 @@ final class MultiblockStructureChannels {
 
     @NotNull
     static int[] getTemplateChannelRange(
-            @NotNull BlockPatternTemplate template,
+            @NotNull PieceTemplate template,
             @NotNull String channelName) {
-        for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
+        for (PieceTemplate.AisleDef aisle : template.getAisles()) {
             if (channelName.equals(aisle.channelName())) {
                 return new int[] { aisle.minRepeat(), aisle.maxRepeat() };
             }
@@ -101,8 +99,8 @@ final class MultiblockStructureChannels {
                 }
             }
 
-            BlockPatternTemplate template = piece.getTemplate();
-            for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
+            PieceTemplate template = piece.getTemplate();
+            for (PieceTemplate.AisleDef aisle : template.getAisles()) {
                 if (channelName.equals(aisle.channelName())) {
                     return new int[] { aisle.minRepeat(), aisle.maxRepeat() };
                 }
@@ -117,7 +115,7 @@ final class MultiblockStructureChannels {
     }
 
     private static void collectChannelsFromTemplateInto(
-            @NotNull BlockPatternTemplate template,
+            @NotNull PieceTemplate template,
             @NotNull Set<String> out) {
         forEachPreviewGroup(template, (element, group) -> {
             String channelName = group.getChannelName();
@@ -126,15 +124,7 @@ final class MultiblockStructureChannels {
             }
         });
 
-        forEachElementWithoutPreviewChannel(template, element -> {
-            TraceabilityPredicate predicate = element.toPredicate();
-            if (predicate != null) {
-                collectChannelNames(predicate.common, out);
-                collectChannelNames(predicate.limited, out);
-            }
-        });
-
-        for (BlockPatternTemplate.AisleDef aisle : template.getAisles()) {
+        for (PieceTemplate.AisleDef aisle : template.getAisles()) {
             String name = aisle.channelName();
             if (name != null && !name.isEmpty()) {
                 out.add(name);
@@ -153,59 +143,22 @@ final class MultiblockStructureChannels {
         }
     }
 
-    private static void collectChannelNames(
-            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
-            @NotNull Set<String> out) {
-        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
-            if (sp.channelName != null && !sp.channelName.isEmpty()) {
-                out.add(sp.channelName);
-            }
-        }
-    }
-
-    private static int countChannelCandidates(
-            @NotNull List<TraceabilityPredicate.SimplePredicate> predicates,
-            @NotNull String channelName) {
-        for (TraceabilityPredicate.SimplePredicate sp : predicates) {
-            if (channelName.equals(sp.channelName) && sp.candidates != null) {
-                return sp.candidates.get().length;
-            }
-        }
-        return 0;
-    }
-
     private static int getTemplateChannelCandidateCount(
-            @NotNull BlockPatternTemplate template,
+            @NotNull PieceTemplate template,
             @NotNull String channelName) {
-        int maxCandidates = 0;
-        final int[] typedMax = {0};
+        final int[] max = {0};
         forEachPreviewGroup(template, (element, group) -> {
             if (channelName.equals(group.getChannelName())) {
-                typedMax[0] = Math.max(typedMax[0], group.getCandidates().length);
+                max[0] = Math.max(max[0], group.getCandidates().length);
             }
         });
-        if (typedMax[0] > 0) {
-            return typedMax[0];
-        }
-
-        final int[] legacyMax = {0};
-        forEachElementWithoutPreviewChannel(template, element -> {
-            TraceabilityPredicate predicate = element.toPredicate();
-            if (predicate != null) {
-                legacyMax[0] = Math.max(legacyMax[0],
-                        countChannelCandidates(predicate.common, channelName));
-                legacyMax[0] = Math.max(legacyMax[0],
-                        countChannelCandidates(predicate.limited, channelName));
-            }
-        });
-        maxCandidates = Math.max(maxCandidates, legacyMax[0]);
-        return maxCandidates;
+        return max[0];
     }
 
     private static void forEachPreviewGroup(
-            @NotNull BlockPatternTemplate template,
+            @NotNull PieceTemplate template,
             @NotNull PreviewGroupConsumer consumer) {
-        for (IStructureElement<?>[][] layer : template.getDelegate().getElements()) {
+        for (IStructureElement<?>[][] layer : template.getElements()) {
             for (IStructureElement<?>[] row : layer) {
                 for (IStructureElement<?> element : row) {
                     if (element == null) continue;
@@ -219,34 +172,6 @@ final class MultiblockStructureChannels {
                 }
             }
         }
-    }
-
-    private static void forEachElementWithoutPreviewChannel(
-            @NotNull BlockPatternTemplate template,
-            @NotNull Consumer<IStructureElement<?>> consumer) {
-        for (IStructureElement<?>[][] layer : template.getDelegate().getElements()) {
-            for (IStructureElement<?>[] row : layer) {
-                for (IStructureElement<?> element : row) {
-                    if (element != null && !hasPreviewChannel(element.getPreview())) {
-                        consumer.accept(element);
-                    }
-                }
-            }
-        }
-    }
-
-    private static boolean hasPreviewChannel(@NotNull StructureElementPreview preview) {
-        for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
-            if (group.getChannelName() != null && !group.getChannelName().isEmpty()) {
-                return true;
-            }
-        }
-        for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
-            if (group.getChannelName() != null && !group.getChannelName().isEmpty()) {
-                return true;
-            }
-        }
-        return false;
     }
 
     @FunctionalInterface

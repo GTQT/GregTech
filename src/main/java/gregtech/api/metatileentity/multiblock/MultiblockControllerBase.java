@@ -6,7 +6,7 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
@@ -95,7 +95,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     /** Shared immutable structure template (new architecture) */
     @Nullable
-    protected BlockPatternTemplate patternTemplate;
+    protected PieceTemplate patternTemplate;
     /** Canonical single-template matcher/cache state. Null for multi-piece-only structures. */
     @Nullable
     protected PieceRuntimeState runtimeState;
@@ -150,7 +150,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     protected static List<StructureChannel> collectChannelsFromTemplate(
-            @NotNull BlockPatternTemplate template) {
+            @NotNull PieceTemplate template) {
         return MultiblockStructureChannels.collectChannelsFromTemplate(template);
     }
 
@@ -763,21 +763,21 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @NotNull
     protected StructureRuntime createDynamicStructureRuntime(@NotNull String pieceName,
-                                                             @NotNull BlockPatternTemplate template) {
+                                                             @NotNull PieceTemplate template) {
         return MultiblockStructureOperations.createDynamicStructureRuntime(pieceName, template);
     }
 
     @NotNull
     protected StructureCheckResult checkDynamicStructure(@NotNull StructureOperationRequest request,
                                                         @NotNull String pieceName,
-                                                        @NotNull BlockPatternTemplate template) {
+                                                        @NotNull PieceTemplate template) {
         return MultiblockStructureOperations.checkDynamicStructure(this, request, pieceName, template);
     }
 
     @NotNull
     protected BlockInfo[][][] previewDynamicStructure(@NotNull StructureOperationRequest request,
                                                       @NotNull String pieceName,
-                                                      @NotNull BlockPatternTemplate template) {
+                                                      @NotNull PieceTemplate template) {
         return MultiblockStructureOperations.previewDynamicStructure(this, request, pieceName, template);
     }
 
@@ -786,7 +786,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     protected boolean autoBuildDynamicStructure(@NotNull StructureOperationRequest request,
                                                 @NotNull String pieceName,
-                                                @NotNull BlockPatternTemplate template) {
+                                                @NotNull PieceTemplate template) {
         return MultiblockStructureOperations.autoBuildDynamicStructure(this, request, pieceName, template);
     }
 
@@ -795,7 +795,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     protected void spawnDynamicStructureHints(@NotNull StructureOperationRequest request,
                                               @NotNull String pieceName,
-                                              @NotNull BlockPatternTemplate template) {
+                                              @NotNull PieceTemplate template) {
         MultiblockStructureOperations.spawnDynamicStructureHints(this, request, pieceName, template);
     }
 
@@ -805,7 +805,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @NotNull
     protected StructureHintResult hintDynamicStructure(@NotNull StructureOperationRequest request,
                                                        @NotNull String pieceName,
-                                                       @NotNull BlockPatternTemplate template) {
+                                                       @NotNull PieceTemplate template) {
         return MultiblockStructureOperations.hintDynamicStructure(this, request, pieceName, template);
     }
 

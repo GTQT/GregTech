@@ -2,7 +2,7 @@ package gregtech.client.renderer.handler;
 
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
@@ -355,7 +355,7 @@ public class MultiblockPreviewRenderer {
         world.setRenderFilter(renderFilter);
 
         // Use the piece's own template for coordinate transformation
-        gregtech.api.pattern.BlockPatternTemplate pieceTemplate = piece.getTemplate();
+        gregtech.api.pattern.PieceTemplate pieceTemplate = piece.getTemplate();
         RelativeDirection[] structureDir = pieceTemplate.getStructureDir();
         BlockPos pieceCenterInLocal = piecePreview.getCenter();
         StructureOrientation orientation = StructureOrientation.fromController(controller);

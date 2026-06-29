@@ -2,7 +2,7 @@ package gregtech.api.pattern.element;
 
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.casing.ICasingGroup;
 import gregtech.api.pattern.element.impl.AirElement;
 import gregtech.api.pattern.element.impl.AnyElement;
@@ -159,7 +159,7 @@ public final class ElementUtility {
     }
 
     /** Create an element with a callback on match */
-    public static IStructureElement onElementPass(Consumer<PatternMatchContext> callback, IStructureElement e) {
+    public static IStructureElement onElementPass(Consumer<StructureEvaluationContext<?>> callback, IStructureElement e) {
         return new WrapperElement(e, null, callback, null);
     }
 

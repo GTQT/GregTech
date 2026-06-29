@@ -1,7 +1,6 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.StructureEvaluationContext;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.pattern.element.StructureElementPreview;
@@ -19,12 +18,10 @@ import java.util.Set;
 public class BlockElement implements ITypedStructureElement<Object> {
 
     private final IBlockState[] states;
-    private final TraceabilityPredicate cachedPredicate;
     private final StructureElementPreview preview;
 
     public BlockElement(IBlockState... states) {
         this.states = states;
-        this.cachedPredicate = buildPredicate();
         this.preview = StructureElementPreview.of(this::getCandidates);
     }
 
@@ -70,27 +67,5 @@ public class BlockElement implements ITypedStructureElement<Object> {
         }
         world.setBlockState(context.getPos(), states[0]);
         return true;
-    }
-
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        return cachedPredicate;
-    }
-
-    private TraceabilityPredicate buildPredicate() {
-        if (states.length == 1) {
-            return new TraceabilityPredicate(
-                    bws -> bws.getBlockState() == states[0],
-                    this::getCandidates);
-        }
-        return new TraceabilityPredicate(
-                bws -> {
-                    IBlockState ws = bws.getBlockState();
-                    for (IBlockState s : states) {
-                        if (ws == s) return true;
-                    }
-                    return false;
-                },
-                this::getCandidates);
     }
 }

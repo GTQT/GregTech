@@ -5,7 +5,6 @@ import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.Block;
@@ -34,9 +33,7 @@ import java.util.function.Predicate;
  * previewed, and auto-built.
  *
  * <p>This interface is the single canonical concept for cell-level matching
- * in the new (StructureDefinition) path. The legacy
- * {@link gregtech.api.pattern.TraceabilityPredicate} remains a public API
- * for the old path and as an optional compatibility view for old tooling.
+ * in the StructureDefinition path.
  */
 public interface IStructureElement<T> {
 
@@ -138,8 +135,7 @@ public interface IStructureElement<T> {
      * <p>New elements should override this when candidate selection needs
      * channel preferences, preview counts, default candidates, or count-limited
      * candidate groups. The default exposes {@link #getCandidates()} as one
-     * common group so V3 preview/build code does not need to inspect
-     * {@link TraceabilityPredicate} metadata.
+     * common group.
      */
     @NotNull
     default StructureElementPreview getPreview() {
@@ -288,14 +284,6 @@ public interface IStructureElement<T> {
      */
     @NotNull
     default CompiledStructureElement<T> compile() {
-        if (usesLegacyPredicateRuntime()) {
-            TraceabilityPredicate predicate = toPredicate();
-            if (predicate == null) {
-                throw new IllegalStateException(
-                        getClass().getName() + " requested legacy predicate runtime without a predicate");
-            }
-            return (CompiledStructureElement<T>) CompiledStructureElement.legacy(predicate);
-        }
         return CompiledStructureElement.compile(this);
     }
 
@@ -347,29 +335,6 @@ public interface IStructureElement<T> {
      */
     default void applyTo(@NotNull String symbol, @NotNull PieceTemplateCompiler compiler) {
         compiler.whereElement(symbol, this);
-    }
-
-    /**
-     * Whether this element still needs to execute through a
-     * {@link gregtech.api.pattern.element.impl.LegacyElement}. New elements
-     * should leave this false and implement {@link #check(StructureEvaluationContext)}
-     * directly. This hook exists only for migration cases whose matching still
-     * depends on legacy predicate side effects.
-     */
-    @ApiStatus.Internal
-    default boolean usesLegacyPredicateRuntime() {
-        return false;
-    }
-
-    /**
-     * Optional legacy predicate view for old callers and preview/diagnostic
-     * surfaces. It is not required for new elements and is not used by the
-     * element runtime unless {@link #usesLegacyPredicateRuntime()} opts in.
-     */
-    @Nullable
-    @ApiStatus.Obsolete
-    default TraceabilityPredicate toPredicate() {
-        return null;
     }
 
     default IStructureElementNoPlacement<T> noPlacement() {
@@ -448,17 +413,6 @@ public interface IStructureElement<T> {
             public Set<StructureElementCapability> getCapabilities() {
                 return StructureElementCapability.withoutPlacement(
                         IStructureElement.this.getCapabilities());
-            }
-
-            @Override
-            public boolean usesLegacyPredicateRuntime() {
-                return IStructureElement.this.usesLegacyPredicateRuntime();
-            }
-
-            @Nullable
-            @Override
-            public TraceabilityPredicate toPredicate() {
-                return IStructureElement.this.toPredicate();
             }
 
             @NotNull

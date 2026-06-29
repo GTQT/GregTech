@@ -1,12 +1,10 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.block.VariantActiveBlock;
-import gregtech.api.pattern.BlockWorldState;
-import gregtech.api.pattern.PatternMatchContext;
+import gregtech.api.pattern.CountLimitError;
 import gregtech.api.pattern.PatternStringError;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.pattern.casing.ICasingGroup;
 import gregtech.api.pattern.element.ITypedStructureElement;
@@ -16,13 +14,11 @@ import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Set;
 
@@ -39,8 +35,6 @@ public final class TieredCasingElement implements ITypedStructureElement<Object>
     private final boolean requiresUniformTier;
     private final int minGlobalCount;
     private final int maxGlobalCount;
-    private final TraceabilityPredicate legacyPredicate;
-    private final TraceabilityPredicate.SimplePredicate countPredicate;
     private final StructureElementPreview preview;
 
     public TieredCasingElement(@NotNull ICasingGroup group, @NotNull String channelName) {
@@ -56,21 +50,6 @@ public final class TieredCasingElement implements ITypedStructureElement<Object>
         this.requiresUniformTier = group.requiresUniformTier();
         this.minGlobalCount = Math.max(0, minGlobalCount);
         this.maxGlobalCount = maxGlobalCount;
-
-        TraceabilityPredicate predicate = new TraceabilityPredicate(
-                this::testLegacy,
-                this::getCandidates)
-                .addTooltips(TIER_MISMATCH_ERROR);
-        if (this.minGlobalCount > 0) {
-            predicate.setMinGlobalLimited(this.minGlobalCount);
-        }
-        if (this.maxGlobalCount >= 0) {
-            predicate.setMaxGlobalLimited(this.maxGlobalCount);
-        }
-        predicate.common.forEach(simple -> simple.channelName = channelName);
-        predicate.limited.forEach(simple -> simple.channelName = channelName);
-        this.legacyPredicate = predicate;
-        this.countPredicate = findCountPredicate(predicate);
         this.preview = StructureElementPreview.builder()
                 .limited(StructureElementPreview.CandidateGroup.builder(this::getCandidates)
                         .global(this.minGlobalCount, this.maxGlobalCount)
@@ -104,7 +83,7 @@ public final class TieredCasingElement implements ITypedStructureElement<Object>
                 collector.setValue(channelName + ".tier", matched.getTier());
             }
             if (!collector.recordCount(this)) {
-                transactionContext.setError(new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
+                transactionContext.setError(new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxGlobalCount));
                 return false;
             }
             return true;
@@ -152,47 +131,7 @@ public final class TieredCasingElement implements ITypedStructureElement<Object>
     public void collectRequirements(@NotNull StructureEvaluationContext<Object> context) {
         context.getCollector().declareCount(
                 this, minGlobalCount, maxGlobalCount,
-                () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 1),
-                () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
-    }
-
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        return legacyPredicate;
-    }
-
-    private boolean testLegacy(@NotNull BlockWorldState worldState) {
-        IBlockState state = worldState.getBlockState();
-        ICasing matched = casings.get(state);
-        if (matched == null) {
-            return false;
-        }
-        if (state.getBlock() instanceof VariantActiveBlock) {
-            worldState.getMatchContext().getOrPut("VABlock", new LinkedList<BlockPos>())
-                    .add(worldState.getPos());
-        }
-
-        PatternMatchContext context = worldState.getMatchContext();
-        Object existing = context.getOrPut(channelName, matched);
-        if (requiresUniformTier && !existing.equals(matched)) {
-            worldState.setError(new PatternStringError(TIER_MISMATCH_ERROR));
-            return false;
-        }
-        if (matched.isTiered()) {
-            context.set(channelName + ".tier", matched.getTier());
-        }
-        return true;
-    }
-
-    @NotNull
-    private static TraceabilityPredicate.SimplePredicate findCountPredicate(
-            @NotNull TraceabilityPredicate predicate) {
-        if (!predicate.limited.isEmpty()) {
-            return predicate.limited.get(0);
-        }
-        if (!predicate.common.isEmpty()) {
-            return predicate.common.get(0);
-        }
-        throw new IllegalStateException("Tiered casing predicate did not contain a matcher");
+                () -> new CountLimitError(CountLimitError.Kind.MIN_GLOBAL, minGlobalCount),
+                () -> new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxGlobalCount));
     }
 }

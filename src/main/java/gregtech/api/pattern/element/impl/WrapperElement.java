@@ -1,12 +1,10 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
@@ -40,7 +38,7 @@ public class WrapperElement implements IStructureElement<Object> {
     @Nullable
     private final Supplier<IStructureElement> lazySupplier;
     @Nullable
-    private final Consumer<PatternMatchContext> callback;
+    private final Consumer<StructureEvaluationContext<?>> callback;
     @Nullable
     private final String channelName;
     @NotNull
@@ -53,7 +51,7 @@ public class WrapperElement implements IStructureElement<Object> {
 
     public WrapperElement(IStructureElement delegate,
                           @Nullable Supplier<IStructureElement> lazySupplier,
-                          @Nullable Consumer<PatternMatchContext> callback,
+                          @Nullable Consumer<StructureEvaluationContext<?>> callback,
                           @Nullable String channelName) {
         this.delegate = delegate;
         this.lazySupplier = lazySupplier;
@@ -65,7 +63,7 @@ public class WrapperElement implements IStructureElement<Object> {
 
     private WrapperElement(IStructureElement delegate,
                            @Nullable Supplier<IStructureElement> lazySupplier,
-                           @Nullable Consumer<PatternMatchContext> callback,
+                           @Nullable Consumer<StructureEvaluationContext<?>> callback,
                            @Nullable String channelName,
                            @NotNull List<String> tooltips,
                            @Nullable Supplier<? extends MetaTileEntity> defaultCandidate) {
@@ -258,11 +256,6 @@ public class WrapperElement implements IStructureElement<Object> {
         getDelegate().collectRequirements(context);
     }
 
-    @Override
-    public boolean usesLegacyPredicateRuntime() {
-        return false;
-    }
-
     @NotNull
     @Override
     public StructureIncrementalSupport getIncrementalSupport() {
@@ -285,71 +278,6 @@ public class WrapperElement implements IStructureElement<Object> {
     public boolean hasExplicitIncrementalContract() {
         return callback != null || lazySupplier != null
                 || getDelegate().hasExplicitIncrementalContract();
-    }
-
-    @Nullable
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        // Defensive copy to avoid mutating the original predicate
-        TraceabilityPredicate delegatePredicate = getDelegate().toPredicate();
-        if (delegatePredicate == null) {
-            return null;
-        }
-        TraceabilityPredicate pred = new TraceabilityPredicate(delegatePredicate);
-
-        if (callback != null) {
-            // Wrap each SimplePredicate with the callback invocation
-            List<TraceabilityPredicate.SimplePredicate> oldCommon =
-                    new ArrayList<>(pred.common);
-            List<TraceabilityPredicate.SimplePredicate> oldLimited =
-                    new ArrayList<>(pred.limited);
-
-            pred.common.clear();
-            pred.limited.clear();
-
-            for (TraceabilityPredicate.SimplePredicate sp : oldCommon) {
-                pred.common.add(wrapWithCallback(sp));
-            }
-            for (TraceabilityPredicate.SimplePredicate sp : oldLimited) {
-                pred.limited.add(wrapWithCallback(sp));
-            }
-        }
-
-        if (channelName != null && !pred.common.isEmpty()) {
-            pred.common.get(0).channelName = channelName;
-        }
-        if (defaultCandidate != null) {
-            pred.setDefaultCandidate(defaultCandidate);
-        }
-
-        return pred;
-    }
-
-    /**
-     * Wrap a SimplePredicate so that the callback is invoked on successful match.
-     */
-    private TraceabilityPredicate.SimplePredicate wrapWithCallback(
-            TraceabilityPredicate.SimplePredicate sp) {
-        TraceabilityPredicate.SimplePredicate wrapped =
-                new TraceabilityPredicate.SimplePredicate(
-                        bws -> {
-                            boolean match = sp.test(bws);
-                            if (match && callback != null) {
-                                runCallback(bws.getMatchContext());
-                            }
-                            return match;
-                        },
-                        sp.candidates);
-        // Copy metadata from the original predicate
-        wrapped.channelName = sp.channelName;
-        wrapped.minGlobalCount = sp.minGlobalCount;
-        wrapped.maxGlobalCount = sp.maxGlobalCount;
-        wrapped.minLayerCount = sp.minLayerCount;
-        wrapped.maxLayerCount = sp.maxLayerCount;
-        wrapped.previewCount = sp.previewCount;
-        wrapped.ability = sp.ability;
-        wrapped.defaultCandidate = sp.defaultCandidate;
-        return wrapped;
     }
 
     @NotNull
@@ -383,18 +311,11 @@ public class WrapperElement implements IStructureElement<Object> {
         return result;
     }
 
-    private void runCallback(@NotNull PatternMatchContext context) {
-        if (callback == null) {
-            return;
-        }
-        context.transactionAction(callback);
-    }
-
     private void runCallback(@NotNull StructureEvaluationContext<Object> context) {
         if (callback == null) {
             return;
         }
         context.transactionAction(transactionContext ->
-                callback.accept(transactionContext.getLegacyContext()));
+                callback.accept(transactionContext));
     }
 }

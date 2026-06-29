@@ -4,7 +4,6 @@ import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
@@ -258,22 +257,5 @@ public class ChainElement implements IStructureElement<Object> {
         for (IStructureElement e : elements) {
             e.collectRequirements(context);
         }
-    }
-
-    @Nullable
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        TraceabilityPredicate result = elements[0].toPredicate();
-        if (result == null) {
-            return null;
-        }
-        for (int i = 1; i < elements.length; i++) {
-            TraceabilityPredicate predicate = elements[i].toPredicate();
-            if (predicate == null) {
-                return null;
-            }
-            result = result.or(predicate);
-        }
-        return result;
     }
 }
