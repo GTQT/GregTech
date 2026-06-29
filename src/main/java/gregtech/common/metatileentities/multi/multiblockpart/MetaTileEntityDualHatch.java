@@ -11,6 +11,7 @@ import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.NotifiableFluidTank;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
+import gregtech.api.items.itemhandlers.FilteredDualHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -23,6 +24,8 @@ import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
+import gregtech.common.covers.filter.FluidFilterContainer;
+import gregtech.common.covers.filter.ItemFilterContainer;
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
@@ -45,6 +48,7 @@ import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
@@ -55,6 +59,7 @@ import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
@@ -82,9 +87,21 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
     private boolean autoCollapse = false;
     private boolean disallowSameItemInsert = false;
 
+    @Nullable
+    private ItemFilterContainer itemFilterContainer;
+    @Nullable
+    private FluidFilterContainer fluidFilterContainer;
+
     public MetaTileEntityDualHatch(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
+        if (this.isExportHatch) {
+            this.itemFilterContainer = new ItemFilterContainer(this::markDirty);
+            this.fluidFilterContainer = new FluidFilterContainer(this::markDirty);
+        }
         initializeInventory();
+        if (this.isExportHatch) {
+            dualHandler = new FilteredDualHandler(dualHandler, itemFilterContainer, fluidFilterContainer);
+        }
     }
 
     @Override
@@ -240,7 +257,8 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         int backgroundWidth = Math.max(
                 9 * 18 + 18 + 14 + 5,   // Player Inv width
                 rowSize * 18 + 14 + 18); // Bus Inv width
-        int backgroundHeight = 18 + 18 * rowSize + 94;
+        int gridTop = 18;
+        int backgroundHeight = gridTop + 18 * rowSize + 94;
 
         List<List<IWidget>> widgets = new ArrayList<>();
         for (int i = 0; i < rowSize; i++) {
@@ -290,7 +308,6 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
                                                 IKey.lang("gregtech.gui.dual_auto_input.tooltip.enabled") :
                                                 IKey.lang("gregtech.gui.dual_auto_input.tooltip.disabled")))));
 
-        // 禁止相同物品 — 仅输入总线
         if (!isExportHatch) {
             BooleanSyncValue disallowSameItemValue = new BooleanSyncValue(
                     this::isDisallowSameItemInsert, this::setDisallowSameItemInsert);
@@ -300,6 +317,27 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
                     .overlay(GTGuiTextures.BUTTON_LOCK)
                     .addTooltip(true, IKey.lang("gregtech.machine.disallow_same_item.enabled"))
                     .addTooltip(false, IKey.lang("gregtech.machine.disallow_same_item.disabled")));
+        } else {
+            IPanelHandler filterPopup = guiSyncManager.syncedPanel("dual_filter_popup", true,
+                    (psm, handler) -> {
+                        Widget<?> itemRow = (Widget<?>) itemFilterContainer.initUI(guiData, psm);
+                        itemRow.pos(4, 12).width(168);
+                        Widget<?> fluidRow = (Widget<?>) fluidFilterContainer.initUI(guiData, psm);
+                        fluidRow.pos(4, 34).width(168);
+                        return GTGuis.createPopupPanel("dual_filter_popup", 176, 60, false)
+                                .child(itemRow)
+                                .child(fluidRow);
+                    });
+            column.child(new ButtonWidget<>()
+                    .top(18 * 2)
+                    .size(18)
+                    .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))
+                    .addTooltipLine(IKey.str("过滤覆盖版"))
+                    .onMousePressed(i -> {
+                        if (!filterPopup.isPanelOpen()) filterPopup.openPanel();
+                        else filterPopup.closePanel();
+                        return true;
+                    }));
         }
 
         column.child(new ToggleButton()
@@ -319,15 +357,19 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
                         .tooltip(t -> t.addLine(
                                 IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))));
 
-        return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
+        ModularPanel panel = GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7)).child(new Grid()
-                        .top(18).height(rowSize * 18)
+                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7));
+
+        panel.child(new Grid()
+                        .top(gridTop).height(rowSize * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
                         .alignX(0.5f)
                         .matrix(widgets))
                 .child(column);
+
+        return panel;
     }
 
     @Override
@@ -349,6 +391,12 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         buf.writeBoolean(workingEnabled);
         buf.writeBoolean(autoCollapse);
         buf.writeBoolean(disallowSameItemInsert);
+        boolean hasItemFilter = itemFilterContainer != null;
+        boolean hasFluidFilter = fluidFilterContainer != null;
+        buf.writeBoolean(hasItemFilter);
+        buf.writeBoolean(hasFluidFilter);
+        if (hasItemFilter) itemFilterContainer.writeInitialSyncData(buf);
+        if (hasFluidFilter) fluidFilterContainer.writeInitialSyncData(buf);
     }
 
     @Override
@@ -357,6 +405,12 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         workingEnabled = buf.readBoolean();
         autoCollapse = buf.readBoolean();
         disallowSameItemInsert = buf.readBoolean();
+        if (buf.readerIndex() < buf.writerIndex()) {
+            boolean hasItemFilter = buf.readBoolean();
+            boolean hasFluidFilter = buf.readBoolean();
+            if (hasItemFilter && itemFilterContainer != null) itemFilterContainer.readInitialSyncData(buf);
+            if (hasFluidFilter && fluidFilterContainer != null) fluidFilterContainer.readInitialSyncData(buf);
+        }
     }
 
     @Override
@@ -467,6 +521,12 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         if (circuitInventory != null) {
             circuitInventory.write(data);
         }
+        if (itemFilterContainer != null) {
+            data.setTag("OutputItemFilter", itemFilterContainer.serializeNBT());
+        }
+        if (fluidFilterContainer != null) {
+            data.setTag("OutputFluidFilter", fluidFilterContainer.serializeNBT());
+        }
 
         return data;
     }
@@ -495,6 +555,12 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
 
         if (circuitInventory != null) {
             circuitInventory.read(data);
+        }
+        if (data.hasKey("OutputItemFilter") && itemFilterContainer != null) {
+            itemFilterContainer.deserializeNBT(data.getCompoundTag("OutputItemFilter"));
+        }
+        if (data.hasKey("OutputFluidFilter") && fluidFilterContainer != null) {
+            fluidFilterContainer.deserializeNBT(data.getCompoundTag("OutputFluidFilter"));
         }
     }
 

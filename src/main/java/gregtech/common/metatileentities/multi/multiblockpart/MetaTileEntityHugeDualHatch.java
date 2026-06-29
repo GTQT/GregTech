@@ -11,6 +11,7 @@ import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.LargeSlotItemStackHandler;
 import gregtech.api.capability.impl.NotifiableFluidTank;
+import gregtech.api.items.itemhandlers.FilteredDualHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -24,6 +25,8 @@ import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
+import gregtech.common.covers.filter.FluidFilterContainer;
+import gregtech.common.covers.filter.ItemFilterContainer;
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
@@ -47,6 +50,7 @@ import codechicken.lib.raytracer.CuboidRayTraceResult;
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
@@ -56,6 +60,7 @@ import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
@@ -88,9 +93,21 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
     private boolean workingEnabled = true;
     private boolean autoCollapse = false;
 
+    @Nullable
+    private ItemFilterContainer itemFilterContainer;
+    @Nullable
+    private FluidFilterContainer fluidFilterContainer;
+
     public MetaTileEntityHugeDualHatch(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
+        if (this.isExportHatch) {
+            this.itemFilterContainer = new ItemFilterContainer(this::markDirty);
+            this.fluidFilterContainer = new FluidFilterContainer(this::markDirty);
+        }
         initializeInventory();
+        if (this.isExportHatch) {
+            dualHandler = new FilteredDualHandler(dualHandler, itemFilterContainer, fluidFilterContainer);
+        }
     }
 
     @Override
@@ -251,7 +268,8 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         int backgroundWidth = Math.max(
                 9 * 18 + 18 + 14 + 5,   // Player Inv width
                 rowSize * 18 + 14 + 18); // Bus Inv width
-        int backgroundHeight = 18 + 18 * rowSize + 94;
+        int gridTop = 18;
+        int backgroundHeight = gridTop + 18 * rowSize + 94;
 
         List<List<IWidget>> widgets = new ArrayList<>();
         for (int i = 0; i < rowSize; i++) {
@@ -292,47 +310,77 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
 
         boolean hasGhostCircuit = hasGhostCircuitInventory() && circuitInventory != null;
 
-        return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
+        Flow column = Flow.column()
+                .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 5 - 7 - 4)
+                .width(18).height(18 * 5 + 4)
+                .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 4 + 4))
+                .child(new ToggleButton()
+                        .top(18 * 3)
+                        .value(new BoolValue.Dynamic(workingStateValue::getBoolValue,
+                                workingStateValue::setBoolValue))
+                        .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
+                        .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                .addLine(isExportHatch ?
+                                        (workingStateValue.getBoolValue() ?
+                                                IKey.lang("gregtech.gui.dual_auto_output.tooltip.enabled") :
+                                                IKey.lang("gregtech.gui.dual_auto_output.tooltip.disabled")) :
+                                        (workingStateValue.getBoolValue() ?
+                                                IKey.lang("gregtech.gui.dual_auto_input.tooltip.enabled") :
+                                                IKey.lang("gregtech.gui.dual_auto_input.tooltip.disabled")))));
+
+        if (isExportHatch) {
+            IPanelHandler filterPopup = guiSyncManager.syncedPanel("dual_filter_popup", true,
+                    (psm, handler) -> {
+                        Widget<?> itemRow = (Widget<?>) itemFilterContainer.initUI(guiData, psm);
+                        itemRow.pos(4, 12).width(168);
+                        Widget<?> fluidRow = (Widget<?>) fluidFilterContainer.initUI(guiData, psm);
+                        fluidRow.pos(4, 34).width(168);
+                        return GTGuis.createPopupPanel("dual_filter_popup", 176, 60, false)
+                                .child(itemRow)
+                                .child(fluidRow);
+                    });
+            column.child(new ButtonWidget<>()
+                    .top(18 * 2)
+                    .size(18)
+                    .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))
+                    .addTooltipLine(IKey.str("过滤覆盖版"))
+                    .onMousePressed(i -> {
+                        if (!filterPopup.isPanelOpen()) filterPopup.openPanel();
+                        else filterPopup.closePanel();
+                        return true;
+                    }));
+        }
+
+        column.child(new ToggleButton()
+                        .top(18)
+                        .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
+                                collapseStateValue::setBoolValue))
+                        .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
+                        .tooltipBuilder(t -> t.setAutoUpdate(true)
+                                .addLine(collapseStateValue.getBoolValue() ?
+                                        IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
+                                        IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))))
+                .childIf(hasGhostCircuit, () -> new GhostCircuitSlotWidget()
+                        .slot(circuitInventory, 0)
+                        .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
+                .childIf(!hasGhostCircuit, () -> new Widget<>()
+                        .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
+                        .tooltip(t -> t.addLine(
+                                IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))));
+
+        ModularPanel panel = GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7)).child(new Grid()
-                        .top(18).height(rowSize * 18)
+                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7));
+
+        panel.child(new Grid()
+                        .top(gridTop).height(rowSize * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
                         .alignX(0.5f)
                         .matrix(widgets))
-                .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 4)
-                        .width(18).height(18 * 4 + 4)
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 4))
-                        .child(new ToggleButton()
-                                .top(18 * 2)
-                                .value(new BoolValue.Dynamic(workingStateValue::getBoolValue,
-                                        workingStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(isExportHatch ?
-                                                (workingStateValue.getBoolValue() ?
-                                                        IKey.lang("gregtech.gui.dual_auto_output.tooltip.enabled") :
-                                                        IKey.lang("gregtech.gui.dual_auto_output.tooltip.disabled")) :
-                                                (workingStateValue.getBoolValue() ?
-                                                        IKey.lang("gregtech.gui.dual_auto_input.tooltip.enabled") :
-                                                        IKey.lang("gregtech.gui.dual_auto_input.tooltip.disabled")))))
-                        .child(new ToggleButton()
-                                .top(18)
-                                .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
-                                        collapseStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(collapseStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))))
-                        .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
-                                .slot(circuitInventory, 0)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                        .childIf(!hasGhostCircuit, new Widget<>()
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                                .tooltip(t -> t.addLine(
-                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))));
+                .child(column);
+
+        return panel;
     }
 
     @Override
@@ -353,6 +401,12 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         super.writeInitialSyncData(buf);
         buf.writeBoolean(workingEnabled);
         buf.writeBoolean(autoCollapse);
+        boolean hasItemFilter = itemFilterContainer != null;
+        boolean hasFluidFilter = fluidFilterContainer != null;
+        buf.writeBoolean(hasItemFilter);
+        buf.writeBoolean(hasFluidFilter);
+        if (hasItemFilter) itemFilterContainer.writeInitialSyncData(buf);
+        if (hasFluidFilter) fluidFilterContainer.writeInitialSyncData(buf);
     }
 
     @Override
@@ -360,6 +414,12 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         super.receiveInitialSyncData(buf);
         workingEnabled = buf.readBoolean();
         autoCollapse = buf.readBoolean();
+        if (buf.readerIndex() < buf.writerIndex()) {
+            boolean hasItemFilter = buf.readBoolean();
+            boolean hasFluidFilter = buf.readBoolean();
+            if (hasItemFilter && itemFilterContainer != null) itemFilterContainer.readInitialSyncData(buf);
+            if (hasFluidFilter && fluidFilterContainer != null) fluidFilterContainer.readInitialSyncData(buf);
+        }
     }
 
     @Override
@@ -445,6 +505,12 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         if (circuitInventory != null) {
             circuitInventory.write(data);
         }
+        if (itemFilterContainer != null) {
+            data.setTag("OutputItemFilter", itemFilterContainer.serializeNBT());
+        }
+        if (fluidFilterContainer != null) {
+            data.setTag("OutputFluidFilter", fluidFilterContainer.serializeNBT());
+        }
 
         return data;
     }
@@ -459,6 +525,12 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
 
         if (circuitInventory != null) {
             circuitInventory.read(data);
+        }
+        if (data.hasKey("OutputItemFilter") && itemFilterContainer != null) {
+            itemFilterContainer.deserializeNBT(data.getCompoundTag("OutputItemFilter"));
+        }
+        if (data.hasKey("OutputFluidFilter") && fluidFilterContainer != null) {
+            fluidFilterContainer.deserializeNBT(data.getCompoundTag("OutputFluidFilter"));
         }
     }
 

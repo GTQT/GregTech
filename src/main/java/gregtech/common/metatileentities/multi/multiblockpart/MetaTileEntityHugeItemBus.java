@@ -8,6 +8,7 @@ import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.LargeSlotItemStackHandler;
+import gregtech.api.items.itemhandlers.FilteredExportItemHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -20,6 +21,7 @@ import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
+import gregtech.common.covers.filter.ItemFilterContainer;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -73,9 +75,16 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     private boolean workingEnabled;
     private boolean autoCollapse;
 
+    @Nullable
+    private ItemFilterContainer itemFilterContainer;
+    private IItemHandlerModifiable filteredExportHandler;
+
     public MetaTileEntityHugeItemBus(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
         this.workingEnabled = true;
+        if (this.isExportHatch) {
+            this.itemFilterContainer = new ItemFilterContainer(this::markDirty);
+        }
         initializeInventory();
     }
 
@@ -107,7 +116,15 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     public IItemHandlerModifiable getExportItems() {
-        return this.largeSlotItemStackHandler == null ? super.getExportItems() : this.largeSlotItemStackHandler;
+        IItemHandlerModifiable raw = this.largeSlotItemStackHandler != null ?
+                this.largeSlotItemStackHandler : super.getExportItems();
+        if (isExportHatch && itemFilterContainer != null) {
+            if (filteredExportHandler == null) {
+                filteredExportHandler = new FilteredExportItemHandler(raw, itemFilterContainer);
+            }
+            return filteredExportHandler;
+        }
+        return raw;
     }
 
     @Override
@@ -201,6 +218,11 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         super.writeInitialSyncData(buf);
         buf.writeBoolean(workingEnabled);
         buf.writeBoolean(autoCollapse);
+        boolean hasFilter = itemFilterContainer != null;
+        buf.writeBoolean(hasFilter);
+        if (hasFilter) {
+            itemFilterContainer.writeInitialSyncData(buf);
+        }
     }
 
     @Override
@@ -208,6 +230,11 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         super.receiveInitialSyncData(buf);
         this.workingEnabled = buf.readBoolean();
         this.autoCollapse = buf.readBoolean();
+        if (buf.readerIndex() < buf.writerIndex()) {
+            if (buf.readBoolean() && itemFilterContainer != null) {
+                itemFilterContainer.readInitialSyncData(buf);
+            }
+        }
     }
 
     @Override
@@ -218,6 +245,9 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         data.setBoolean("autoCollapse", autoCollapse);
         if (this.circuitInventory != null && !this.isExportHatch) {
             this.circuitInventory.write(data);
+        }
+        if (itemFilterContainer != null) {
+            data.setTag("OutputFilter", itemFilterContainer.serializeNBT());
         }
         return data;
     }
@@ -235,6 +265,9 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         if (this.circuitInventory != null && !this.isExportHatch) {
             this.circuitInventory.read(data);
         }
+        if (data.hasKey("OutputFilter") && itemFilterContainer != null) {
+            itemFilterContainer.deserializeNBT(data.getCompoundTag("OutputFilter"));
+        }
     }
 
     @Override
@@ -250,9 +283,9 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
-            abilityInstances.add(isExportHatch ? this.exportItems : this.actualImportItems);
+            abilityInstances.add(isExportHatch ? getExportItems() : this.actualImportItems);
         } else {
-            abilityInstances.add(isExportHatch ? this.exportItems : this.importItems);
+            abilityInstances.add(isExportHatch ? getExportItems() : this.importItems);
         }
     }
 
@@ -266,22 +299,63 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         int rowSize = getTankSize();
         panelSyncManager.registerSlotGroup("item_inv", rowSize);
 
-        int backgroundWidth = Math.max(
-                9 * 18 + 18 + 14 + 5,   // Player Inv width
-                rowSize * 18 + 14); // Bus Inv width
-        int backgroundHeight = 18 + 18 * rowSize + 94;
-
-        BooleanSyncValue workingStateValue = new BooleanSyncValue(this::isWorkingEnabled, this::setWorkingEnabled);
-        BooleanSyncValue collapseStateValue = new BooleanSyncValue(this::isAutoCollapse, this::setAutoCollapse);
-
-        IItemHandlerModifiable handler = largeSlotItemStackHandler;
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
 
-        return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
+        int backgroundWidth = Math.max(
+                9 * 18 + 18 + 14 + 5,   // Player Inv width
+                rowSize * 18 + 14);      // Bus Inv width
+        int gridTop = 18 + (isExportHatch ? 22 : 0);
+
+        int sidebarItems = 4;
+        int sidebarHeight = sidebarItems * 18 + 4;
+        int backgroundHeight = gridTop + rowSize * 18 + sidebarHeight + 22;
+
+        BooleanSyncValue workingValue = new BooleanSyncValue(this::isWorkingEnabled, this::setWorkingEnabled);
+        BooleanSyncValue collapseValue = new BooleanSyncValue(this::isAutoCollapse, this::setAutoCollapse);
+        String workKey = isExportHatch ?
+                "gregtech.gui.item_auto_output.tooltip" :
+                "gregtech.gui.item_auto_input.tooltip";
+
+        IItemHandlerModifiable handler = largeSlotItemStackHandler;
+
+        Flow sidebar = Flow.column()
+                .pos(backgroundWidth - 7 - 18, backgroundHeight - sidebarHeight - 7)
+                .width(18).height(sidebarHeight)
+                .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 4))
+                .childIf(hasGhostCircuit, () -> new GhostCircuitSlotWidget()
+                        .slot(circuitInventory, 0)
+                        .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
+                .childIf(!hasGhostCircuit, () -> new Widget<>()
+                        .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
+                        .tooltip(t -> t.addLine(
+                                IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))))
+                .child(new ToggleButton()                                       // 通用: 自动折叠
+                        .value(collapseValue)
+                        .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
+                        .tooltipAutoUpdate(true)
+                        .tooltipBuilder(tooltip -> tooltip.addLine(collapseValue.getBoolValue() ?
+                                IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
+                                IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))))
+                .child(new ToggleButton()
+                        .value(workingValue)
+                        .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
+                        .tooltipAutoUpdate(true)
+                        .tooltipBuilder(tooltip -> tooltip.addLine(workingValue.getBoolValue() ?
+                                IKey.lang(workKey + ".enabled") :
+                                IKey.lang(workKey + ".disabled"))));
+
+        ModularPanel panel = GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
-                .child(new Grid()
-                        .top(18).height(rowSize * 18)
+                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7));
+
+        if (isExportHatch && itemFilterContainer != null) {
+            Widget<?> filterRow = (Widget<?>) itemFilterContainer.initUI(guiData, panelSyncManager);
+            filterRow.left(7).top(18).right(7).height(18);
+            panel.child(filterRow);
+        }
+
+        panel.child(new Grid()
+                        .top(gridTop).height(rowSize * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
                         .alignX(0.5f)
@@ -302,37 +376,9 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
                                             }
                                         })
                                         .accessibility(!isExportHatch, true))))
-                .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 4)
-                        .width(18).height(18 * 4 + 4)
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 4))
-                        .child(new ToggleButton()
-                                .top(18 * 2)
-                                .value(workingStateValue)
-                                .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
-                                .tooltipAutoUpdate(true)
-                                .tooltipBuilder(t -> t.addLine(isExportHatch ?
-                                        (workingStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.item_auto_output.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.item_auto_output.tooltip.disabled")) :
-                                        (workingStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.item_auto_input.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.item_auto_input.tooltip.disabled")))))
-                        .child(new ToggleButton()
-                                .top(18)
-                                .value(collapseStateValue)
-                                .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
-                                .tooltipAutoUpdate(true)
-                                .tooltipBuilder(t -> t.addLine(collapseStateValue.getBoolValue() ?
-                                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
-                                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))))
-                        .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
-                                .slot(circuitInventory, 0)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                        .childIf(!hasGhostCircuit, new Widget<>()
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                                .tooltip(t -> t.addLine(
-                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))));
+                .child(sidebar);
+
+        return panel;
     }
 
     @Override
@@ -431,5 +477,4 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), largeSlotItemStackHandler);
     }
-
 }
