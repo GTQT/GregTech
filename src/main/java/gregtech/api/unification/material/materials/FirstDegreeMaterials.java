@@ -773,7 +773,7 @@ public class FirstDegreeMaterials {
         Graphene = Material.builder(342, gregtechId("graphene"))
                 .dust()
                 .color(0x808080).iconSet(SHINY)
-                .flags(DISABLE_DECOMPOSITION)
+                .flags(DISABLE_DECOMPOSITION, GENERATE_FOIL)
                 .components(Carbon, 1)
                 .cableProperties(V[IV], 1, 1)
                 .build();

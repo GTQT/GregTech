@@ -9,6 +9,7 @@ import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureElementPreviewEntry;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.util.math.BlockPos;
@@ -49,6 +50,12 @@ final class MultiblockStructurePreviews {
         if (multiPiecePattern == null) {
             return Collections.emptyList();
         }
+        int pieceIndex = resolveToolingPieceIndex(channelValues);
+        if (pieceIndex > 0) {
+            MultiblockShapeInfo shape = getMatchingShapeForPiece(controller, multiPiecePattern,
+                    pieceRuntimes, structureRuntime, pieceIndex, channelValues);
+            return shape == null ? Collections.emptyList() : Collections.singletonList(shape);
+        }
         MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,
                 multiPiecePattern, pieceRuntimes, structureRuntime, channelValues);
         return Collections.singletonList(preview.getShape());
@@ -75,7 +82,8 @@ final class MultiblockStructurePreviews {
             @Nullable Map<String, Integer> channelValues) {
         if (multiPiecePattern == null) return new HashMap<>();
         MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,
-                multiPiecePattern, pieceRuntimes, structureRuntime, channelValues);
+                multiPiecePattern, pieceRuntimes, structureRuntime, channelValues,
+                resolveToolingPieceIndex(channelValues));
         return new HashMap<>(preview.getPreviewEntries());
     }
 
@@ -106,7 +114,7 @@ final class MultiblockStructurePreviews {
             return null;
         }
         MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,
-                multiPiecePattern, pieceRuntimes, structureRuntime, channelValues);
+                multiPiecePattern, pieceRuntimes, structureRuntime, channelValues, pieceIndex);
         return preview.getPiece(pieceIndex);
     }
 
@@ -120,6 +128,26 @@ final class MultiblockStructurePreviews {
                 ? MultiPiecePreviewAssembler.assemble(multiPiecePattern, pieceRuntimes, channelValues, controller)
                 : structureRuntime.previewMultiPiece(
                         StructureOperationRequest.previewMultiPiece(channelValues, controller));
+    }
+
+    private static MultiPiecePreviewAssembler.Result assembleMultiPiecePreview(
+            @NotNull MultiblockControllerBase controller,
+            @NotNull MultiPiecePattern multiPiecePattern,
+            @Nullable PieceRuntimes pieceRuntimes,
+            @Nullable StructureRuntime structureRuntime,
+            @Nullable Map<String, Integer> channelValues,
+            int toolingPieceIndex) {
+        return structureRuntime == null
+                ? MultiPiecePreviewAssembler.assemble(multiPiecePattern, pieceRuntimes, channelValues,
+                        controller, false, toolingPieceIndex)
+                : structureRuntime.previewMultiPiece(
+                        StructureOperationRequest.previewMultiPiece(
+                                channelValues, controller, false, toolingPieceIndex));
+    }
+
+    private static int resolveToolingPieceIndex(@Nullable Map<String, Integer> channelValues) {
+        if (channelValues == null) return 0;
+        return channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0);
     }
 
     private static List<MultiblockShapeInfo> repetitionDFS(
