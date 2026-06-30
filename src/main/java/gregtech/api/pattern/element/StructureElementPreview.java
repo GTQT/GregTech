@@ -18,7 +18,7 @@ import java.util.function.Supplier;
  *
  * <p>This is the V3 typed view of an element's candidate blocks and limits.
  * Elements build instances directly via {@link #builder()} without going
- * through {@code TraceabilityPredicate.SimplePredicate}.
+ * through direct structure element preview metadata.
  */
 public final class StructureElementPreview {
 

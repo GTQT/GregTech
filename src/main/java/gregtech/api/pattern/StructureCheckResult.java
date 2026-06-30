@@ -20,8 +20,8 @@ import java.util.Map;
  * Immutable operation-level result for a synchronous structure check.
  *
  * <p>This normalizes typed V3 checks before controller assembly begins.
- * Mutable context/channel data is copied at the boundary so a later traversal
- * cannot change a result that is waiting to be committed.
+ * Mutable state is copied at the boundary so a later traversal cannot change a
+ * result that is waiting to be committed.
  */
 public final class StructureCheckResult {
 
@@ -44,8 +44,6 @@ public final class StructureCheckResult {
     @NotNull
     private final Source source;
     private final boolean matched;
-    @Nullable
-    private final PatternMatchContext context;
     @NotNull
     private final StructureOperationState operationState;
     @Nullable
@@ -81,12 +79,9 @@ public final class StructureCheckResult {
     private final CommittedStructureGraph graphPublication;
     @Nullable
     private final StructureIncrementalCheckResult incrementalCheckResult;
-    @Nullable
-    private final String adapterTrace;
 
     private StructureCheckResult(@NotNull Source source,
                                  boolean matched,
-                                 @Nullable PatternMatchContext context,
                                  @NotNull StructureOperationState operationState,
                                  @Nullable FormedStructureMetadata metadata,
                                   @Nullable PatternError error,
@@ -104,11 +99,9 @@ public final class StructureCheckResult {
                                   @Nullable StructureAggregateFolder.Result contributionAggregate,
                                   @Nullable StructureEligibilityPlan eligibilityPlan,
                                   @Nullable CommittedStructureGraph graphPublication,
-                                  @Nullable StructureIncrementalCheckResult incrementalCheckResult,
-                                  @Nullable String adapterTrace) {
+                                  @Nullable StructureIncrementalCheckResult incrementalCheckResult) {
         this.source = source;
         this.matched = matched;
-        this.context = context == null ? null : context.copy();
         this.operationState = operationState.copy();
         this.metadata = metadata;
         this.error = error;
@@ -127,16 +120,13 @@ public final class StructureCheckResult {
         this.eligibilityPlan = eligibilityPlan;
         this.graphPublication = graphPublication;
         this.incrementalCheckResult = incrementalCheckResult;
-        this.adapterTrace = adapterTrace;
     }
 
     @NotNull
     public static StructureCheckResult fromDefinition(@NotNull StructureCheckState.Result result) {
-        PatternMatchContext context = result.context;
         return new StructureCheckResult(
                 Source.DEFINITION,
                 result.success,
-                context,
                 result.operationState == null ? new StructureOperationState() : result.operationState,
                 result.metadata,
                 result.error,
@@ -147,12 +137,11 @@ public final class StructureCheckResult {
                 null,
                 result.missingAbilities,
                 result.abilityCounts,
-                context == null ? new StructureChannelValues() : StructureChannelValues.fromContext(context),
+                channelValues(result.metadata),
                 result.flipped,
                 result.runtimePublication,
                 result.resultTable,
                 result.contributionAggregate,
-                null,
                 null,
                 null,
                 null);
@@ -161,7 +150,6 @@ public final class StructureCheckResult {
     @NotNull
     public static StructureCheckResult fromActiveGraphDefinition(
             boolean matched,
-            @Nullable PatternMatchContext context,
             @Nullable StructureOperationState operationState,
             @Nullable FormedStructureMetadata metadata,
             @Nullable StructureFailureTrace failureTrace,
@@ -174,7 +162,6 @@ public final class StructureCheckResult {
         return new StructureCheckResult(
                 Source.DEFINITION,
                 matched,
-                context,
                 operationState == null ? new StructureOperationState() : operationState,
                 metadata,
                 failureTrace == null ? null : failureTrace.getError(),
@@ -185,12 +172,11 @@ public final class StructureCheckResult {
                 null,
                 missingAbilities,
                 abilityCounts,
-                context == null ? new StructureChannelValues() : StructureChannelValues.fromContext(context),
+                channelValues(metadata),
                 flipped,
                 runtimePublication,
                 resultTable,
                 contributionAggregate,
-                null,
                 null,
                 null,
                 null);
@@ -199,7 +185,6 @@ public final class StructureCheckResult {
     @NotNull
     static StructureCheckResult fromIncrementalDefinition(
             boolean matched,
-            @Nullable PatternMatchContext context,
             @Nullable StructureOperationState operationState,
             @Nullable FormedStructureMetadata metadata,
             @Nullable StructureFailureTrace failureTrace,
@@ -213,7 +198,6 @@ public final class StructureCheckResult {
         return new StructureCheckResult(
                 Source.DEFINITION,
                 matched,
-                context,
                 operationState == null ? new StructureOperationState() : operationState,
                 metadata,
                 failureTrace == null ? null : failureTrace.getError(),
@@ -224,12 +208,11 @@ public final class StructureCheckResult {
                 null,
                 missingAbilities,
                 abilityCounts,
-                context == null ? new StructureChannelValues() : StructureChannelValues.fromContext(context),
+                channelValues(metadata),
                 flipped,
                 runtimePublication,
                 resultTable,
                 contributionAggregate,
-                null,
                 null,
                 null,
                 null);
@@ -254,8 +237,7 @@ public final class StructureCheckResult {
                 StructureEvaluationContext.Operation.MATCH_WORLD.name(),
                 traceActualDetail,
                 pieceCount,
-                syntheticSinglePiece)
-                .withAdapterTrace(adapterTrace);
+                syntheticSinglePiece);
     }
 
     @NotNull
@@ -264,7 +246,6 @@ public final class StructureCheckResult {
         return new StructureCheckResult(
                 source,
                 matched,
-                context,
                 operationState,
                 metadata,
                 error,
@@ -282,8 +263,7 @@ public final class StructureCheckResult {
                 contributionAggregate,
                 eligibilityPlan,
                 graphPublication,
-                incrementalCheckResult,
-                adapterTrace);
+                incrementalCheckResult);
     }
 
     @NotNull
@@ -292,7 +272,6 @@ public final class StructureCheckResult {
         return new StructureCheckResult(
                 source,
                 matched,
-                context,
                 operationState,
                 metadata,
                 error,
@@ -310,8 +289,7 @@ public final class StructureCheckResult {
                 contributionAggregate,
                 eligibilityPlan,
                 graphPublication,
-                incrementalCheckResult,
-                adapterTrace);
+                incrementalCheckResult);
     }
 
     @NotNull
@@ -320,7 +298,6 @@ public final class StructureCheckResult {
         return new StructureCheckResult(
                 source,
                 matched,
-                context,
                 operationState,
                 metadata,
                 error,
@@ -338,8 +315,7 @@ public final class StructureCheckResult {
                 contributionAggregate,
                 eligibilityPlan,
                 graphPublication,
-                incrementalCheckResult,
-                adapterTrace);
+                incrementalCheckResult);
     }
 
     @NotNull
@@ -347,7 +323,6 @@ public final class StructureCheckResult {
         return new StructureCheckResult(
                 source,
                 matched,
-                context,
                 operationState,
                 metadata,
                 error,
@@ -365,42 +340,18 @@ public final class StructureCheckResult {
                 contributionAggregate,
                 eligibilityPlan,
                 graphPublication,
-                incrementalCheckResult,
-                adapterTrace);
-    }
-
-    @NotNull
-    public StructureCheckResult withAdapterTrace(@Nullable String adapterTrace) {
-        if (adapterTrace == null || adapterTrace.isEmpty()) {
-            return this;
-        }
-        return new StructureCheckResult(
-                source,
-                matched,
-                context,
-                operationState,
-                metadata,
-                error,
-                errorPos,
-                errorMessage,
-                failureTrace,
-                tracePathOverride,
-                traceActualDetail,
-                missingAbilities,
-                abilityCounts,
-                channelValues,
-                flipped,
-                runtimePublication,
-                resultTable,
-                contributionAggregate,
-                eligibilityPlan,
-                graphPublication,
-                incrementalCheckResult,
-                adapterTrace);
+                incrementalCheckResult);
     }
 
     public boolean isMatched() {
         return matched;
+    }
+
+    @NotNull
+    private static StructureChannelValues channelValues(@Nullable FormedStructureMetadata metadata) {
+        return metadata == null
+                ? new StructureChannelValues()
+                : StructureChannelValues.fromMap(metadata.getChannelValues());
     }
 
     @NotNull
@@ -580,15 +531,11 @@ public final class StructureCheckResult {
 
     @NotNull
     private static StructureFailureTrace.Kind classifyError(@Nullable PatternError error) {
-        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
-            TraceabilityPredicate.SinglePredicateError single =
-                    (TraceabilityPredicate.SinglePredicateError) error;
-            if (single.type == 0 || single.type == 2) {
-                return StructureFailureTrace.Kind.COUNT_LIMIT;
-            }
+        if (error instanceof CountLimitError) {
+            return StructureFailureTrace.Kind.COUNT_LIMIT;
         }
         if (error == null) {
-            return StructureFailureTrace.Kind.LEGACY_PATTERN;
+            return StructureFailureTrace.Kind.BLOCK_MISMATCH;
         }
         return StructureFailureTrace.Kind.BLOCK_MISMATCH;
     }

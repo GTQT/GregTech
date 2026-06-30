@@ -75,12 +75,12 @@ public final class TieredCasingElement implements ITypedStructureElement<Object>
             if (transactionContext.getBlockState().getBlock() instanceof VariantActiveBlock) {
                 collector.recordVariantActiveBlock(transactionContext.getPos());
             }
-            if (!collector.recordChannelValue(channelName, matched, requiresUniformTier)) {
+            if (!collector.recordChannelAggregate(channelName, matched, requiresUniformTier)) {
                 transactionContext.setError(new PatternStringError(TIER_MISMATCH_ERROR));
                 return false;
             }
             if (matched.isTiered()) {
-                collector.setValue(channelName + ".tier", matched.getTier());
+                collector.recordChannelValue(channelName, matched.getTier(), requiresUniformTier);
             }
             if (!collector.recordCount(this)) {
                 transactionContext.setError(new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxGlobalCount));

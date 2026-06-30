@@ -11,8 +11,6 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -26,38 +24,25 @@ public class BlockWorldState {
     protected IBlockState state;
     protected TileEntity tileEntity;
     protected boolean tileEntityInitialized;
-    protected PatternMatchContext matchContext;
-    protected Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
-    protected Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount;
-    @Nullable
-    protected TraceabilityPredicate predicate;
+    protected StructureMatchSession session;
     protected StructureElementPreviewEntry previewEntry;
     protected PatternError error;
 
-    public void update(World worldIn, BlockPos posIn, PatternMatchContext matchContext,
-                       Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
-                       Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount,
-                       @Nullable TraceabilityPredicate predicate) {
+    public void update(World worldIn, BlockPos posIn, @Nullable StructureMatchSession session) {
         this.world = worldIn;
         this.blockAccess = worldIn;
         this.pos = posIn;
         this.state = null;
         this.tileEntity = null;
         this.tileEntityInitialized = false;
-        this.matchContext = matchContext;
-        this.globalCount = globalCount;
-        this.layerCount = layerCount;
-        this.predicate = predicate;
+        this.session = session;
         this.previewEntry = null;
         this.error = null;
     }
 
-    public void update(World worldIn, BlockPos posIn, PatternMatchContext matchContext,
-                       Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
-                       Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount,
-                       @Nullable TraceabilityPredicate predicate,
+    public void update(World worldIn, BlockPos posIn, @Nullable StructureMatchSession session,
                        @NotNull StructureElementPreviewEntry previewEntry) {
-        update(worldIn, posIn, matchContext, globalCount, layerCount, predicate);
+        update(worldIn, posIn, session);
         this.previewEntry = previewEntry;
     }
 
@@ -65,30 +50,23 @@ public class BlockWorldState {
      * Update using an IBlockAccess (snapshot) instead of a live World.
      * Used for async pattern checking where World access is not thread-safe.
      */
-    public void updateFromBlockAccess(IBlockAccess blockAccessIn, BlockPos posIn, PatternMatchContext matchContext,
-                                      Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
-                                      Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount,
-                                      @Nullable TraceabilityPredicate predicate) {
+    public void updateFromBlockAccess(IBlockAccess blockAccessIn, BlockPos posIn,
+                                      @Nullable StructureMatchSession session) {
         this.world = null;
         this.blockAccess = blockAccessIn;
         this.pos = posIn;
         this.state = null;
         this.tileEntity = null;
         this.tileEntityInitialized = false;
-        this.matchContext = matchContext;
-        this.globalCount = globalCount;
-        this.layerCount = layerCount;
-        this.predicate = predicate;
+        this.session = session;
         this.previewEntry = null;
         this.error = null;
     }
 
-    public void updateFromBlockAccess(IBlockAccess blockAccessIn, BlockPos posIn, PatternMatchContext matchContext,
-                                      Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
-                                      Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount,
-                                      @Nullable TraceabilityPredicate predicate,
+    public void updateFromBlockAccess(IBlockAccess blockAccessIn, BlockPos posIn,
+                                      @Nullable StructureMatchSession session,
                                       @NotNull StructureElementPreviewEntry previewEntry) {
-        updateFromBlockAccess(blockAccessIn, posIn, matchContext, globalCount, layerCount, predicate);
+        updateFromBlockAccess(blockAccessIn, posIn, session);
         this.previewEntry = previewEntry;
     }
 
@@ -108,8 +86,9 @@ public class BlockWorldState {
         }
     }
 
-    public PatternMatchContext getMatchContext() {
-        return matchContext;
+    @Nullable
+    public StructureMatchSession getSession() {
+        return session;
     }
 
     @Nullable
@@ -175,11 +154,9 @@ public class BlockWorldState {
     }
 
     public void restoreTo(Checkpoint checkpoint) {
-        matchContext.restore(checkpoint.context);
-        globalCount.clear();
-        globalCount.putAll(checkpoint.globalCount);
-        layerCount.clear();
-        layerCount.putAll(checkpoint.layerCount);
+        if (session != null && checkpoint.sessionCheckpoint != null) {
+            session.restoreTo(checkpoint.sessionCheckpoint);
+        }
     }
 
     public IBlockState getBlockState() {
@@ -239,14 +216,12 @@ public class BlockWorldState {
 
     public static final class Checkpoint {
 
-        private final PatternMatchContext.Checkpoint context;
-        private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
-        private final Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount;
+        @Nullable
+        private final StructureMatchSession.Checkpoint sessionCheckpoint;
 
         private Checkpoint(BlockWorldState blockWorldState) {
-            this.context = blockWorldState.getMatchContext().checkpoint();
-            this.globalCount = new HashMap<>(blockWorldState.globalCount);
-            this.layerCount = new HashMap<>(blockWorldState.layerCount);
+            StructureMatchSession activeSession = blockWorldState.getSession();
+            this.sessionCheckpoint = activeSession == null ? null : activeSession.checkpoint();
         }
     }
 }

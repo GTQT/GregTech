@@ -21,6 +21,7 @@ import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
+import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructurePreviewResult;
 import gregtech.api.pattern.StructureRuntime;
@@ -110,20 +111,14 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
             CHARCOAL_LOG_POSITIONS_KEY = StructureContributionKey.setUnion(
                     "gregtech:charcoal_pile/log_positions");
     private static final StructureContributionKey<Integer, Integer> CHARCOAL_WIDTH_KEY =
-            StructureContributionKey.uniform(
-                    "gregtech:charcoal_pile/channel/width",
-                    (context, value) -> context.set(
-                            GTStructureChannels.STRUCTURE_WIDTH.getName(), value));
+            StructureMatchCollector.channelValueKey(
+                    GTStructureChannels.STRUCTURE_WIDTH.getName());
     private static final StructureContributionKey<Integer, Integer> CHARCOAL_HEIGHT_KEY =
-            StructureContributionKey.uniform(
-                    "gregtech:charcoal_pile/channel/height",
-                    (context, value) -> context.set(
-                            GTStructureChannels.STRUCTURE_HEIGHT.getName(), value));
+            StructureMatchCollector.channelValueKey(
+                    GTStructureChannels.STRUCTURE_HEIGHT.getName());
     private static final StructureContributionKey<Integer, Integer> CHARCOAL_LENGTH_KEY =
-            StructureContributionKey.uniform(
-                    "gregtech:charcoal_pile/channel/length",
-                    (context, value) -> context.set(
-                            GTStructureChannels.STRUCTURE_LENGTH.getName(), value));
+            StructureMatchCollector.channelValueKey(
+                    GTStructureChannels.STRUCTURE_LENGTH.getName());
     private static final CharcoalLogElement CHARCOAL_LOG_ELEMENT =
             new CharcoalLogElement();
     private static final CharcoalWallElement CHARCOAL_WALL_ELEMENT =

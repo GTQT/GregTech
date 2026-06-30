@@ -39,7 +39,7 @@ public interface IStructureElement<T> {
 
     /**
      * Operations this element can execute safely. Snapshot matching is opt-in
-     * because legacy predicates and tile-entity reads are not thread-safe by
+     * because tile-entity reads and opaque side effects are not thread-safe by
      * default.
      */
     @NotNull
@@ -54,8 +54,8 @@ public interface IStructureElement<T> {
     /**
      * Whether this element can participate in the contribution-eligible
      * evaluator path. New direct elements are typed by default; migration
-     * wrappers and legacy predicate adapters override this when they hide
-     * side effects from the dependency compiler.
+     * wrappers override this when they hide side effects from the dependency
+     * compiler.
      */
     @NotNull
     default StructureIncrementalSupport getIncrementalSupport() {
@@ -69,7 +69,7 @@ public interface IStructureElement<T> {
      * mode, configured channels, upgrades, or other non-block state should
      * declare those inputs here. The incremental eligibility compiler consumes
      * this metadata directly; callers should not route new runtime logic through
-     * legacy compatibility state just to make dependencies visible.
+     * untyped side channels just to make dependencies visible.
      */
     @NotNull
     default Set<StructureDependency> getDependencies() {
@@ -78,7 +78,7 @@ public interface IStructureElement<T> {
 
     /**
      * Whether this direct element explicitly declares its incremental support
-     * and typed dependencies instead of inheriting compatibility defaults.
+     * and typed dependencies instead of inheriting the default contract.
      *
      * <p>Existing addon elements remain source-compatible, but the dependency
      * compiler treats undeclared contracts as opaque until both methods are
@@ -318,9 +318,8 @@ public interface IStructureElement<T> {
     /**
      * Direct tooltip entry for preview/projector/tooling surfaces.
      *
-     * <p>This is the preferred replacement for attaching tooltip text through a
-     * legacy predicate view. The default delegates to the historical
-     * {@link #addTooltip(List)} hook for source compatibility.
+     * <p>This is the preferred entry for attaching tooltip text to preview
+     * metadata. The default delegates to {@link #addTooltip(List)}.
      */
     default void addPreviewTooltip(@NotNull List<String> tooltip) {
         addTooltip(tooltip);

@@ -16,7 +16,7 @@ public enum StructureIncrementalSupport {
     MATCH_ONLY,
 
     /**
-     * The element may use opaque legacy state or undeclared side effects.
+     * The element may use opaque mutable state or undeclared side effects.
      */
     OPAQUE
 }

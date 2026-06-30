@@ -170,7 +170,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
 
         applyAllElements(builder.piece("beam_shaft", ForgeOfGodsStructureString.BEAM_SHAFT, BEAM_SHAFT_OFFSET),
                 true, true).end();
-        applyAllElements(builder.conditionalPieceContextual(
+        applyAllElements(builder.conditionalPiece(
                 "first_ring",
                 ForgeOfGodsStructureString.FIRST_RING,
                 FIRST_RING_OFFSET,
@@ -178,7 +178,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 .offsetMode(OffsetMode.RELATIVE)
                 .centerOffset(FIRST_RING_CENTER[0], FIRST_RING_CENTER[1], FIRST_RING_CENTER[2])
                 .end();
-        applyAllElements(builder.conditionalPieceContextual(
+        applyAllElements(builder.conditionalPiece(
                 "first_ring_air",
                 ForgeOfGodsStructureString.FIRST_RING_AIR,
                 FIRST_RING_OFFSET,
@@ -187,7 +187,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 .centerOffset(FIRST_RING_CENTER[0], FIRST_RING_CENTER[1], FIRST_RING_CENTER[2])
                 .runtimeOnly()
                 .end();
-        applyAllElements(builder.conditionalPieceContextual(
+        applyAllElements(builder.conditionalPiece(
                 "second_ring",
                 ForgeOfGodsStructureString.SECOND_RING,
                 SECOND_RING_OFFSET,
@@ -195,7 +195,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 .offsetMode(OffsetMode.RELATIVE)
                 .centerOffset(SECOND_RING_CENTER[0], SECOND_RING_CENTER[1], SECOND_RING_CENTER[2])
                 .end();
-        applyAllElements(builder.conditionalPieceContextual(
+        applyAllElements(builder.conditionalPiece(
                 "second_ring_air",
                 ForgeOfGodsStructureString.SECOND_RING_AIR,
                 SECOND_RING_OFFSET,
@@ -204,7 +204,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 .centerOffset(SECOND_RING_CENTER[0], SECOND_RING_CENTER[1], SECOND_RING_CENTER[2])
                 .runtimeOnly()
                 .end();
-        applyAllElements(builder.conditionalPieceContextual(
+        applyAllElements(builder.conditionalPiece(
                 "third_ring",
                 ForgeOfGodsStructureString.THIRD_RING,
                 THIRD_RING_OFFSET,
@@ -212,7 +212,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 .offsetMode(OffsetMode.RELATIVE)
                 .centerOffset(THIRD_RING_CENTER[0], THIRD_RING_CENTER[1], THIRD_RING_CENTER[2])
                 .end();
-        applyAllElements(builder.conditionalPieceContextual(
+        applyAllElements(builder.conditionalPiece(
                 "third_ring_air",
                 ForgeOfGodsStructureString.THIRD_RING_AIR,
                 THIRD_RING_OFFSET,

@@ -36,7 +36,7 @@ public final class StructureRuntime {
     @Nullable
     private final StructureDefinition<?> definition;
     @Nullable
-    private BlockPatternTemplate template;
+    private PieceTemplate template;
     @Nullable
     private final PieceRuntimeState state;
     @Nullable
@@ -64,11 +64,9 @@ public final class StructureRuntime {
     private volatile long lifecycleGeneration;
     @Nullable
     private volatile CommittedStructureGraph committedGraph;
-    @Nullable
-    private String adapterTrace;
 
     public StructureRuntime(@Nullable StructureDefinition<?> definition,
-                            @Nullable BlockPatternTemplate template,
+                            @Nullable PieceTemplate template,
                             @Nullable PieceRuntimeState state,
                             @Nullable MultiPiecePattern multiPiecePattern,
                             @Nullable PieceRuntimes pieceRuntimes) {
@@ -100,7 +98,7 @@ public final class StructureRuntime {
     }
 
     @Nullable
-    public BlockPatternTemplate getTemplate() {
+    public PieceTemplate getTemplate() {
         if (template == null && state != null) {
             template = state.getTemplate();
         }
@@ -293,16 +291,6 @@ public final class StructureRuntime {
         recordSelectedFailure(failure);
     }
 
-    public void recordAdapterTrace(@NotNull String source, int pieces) {
-        this.adapterTrace = "source=" + source + ", pieces=" + Math.max(0, pieces);
-        this.evaluator.setAdapterTrace(this.adapterTrace);
-    }
-
-    @Nullable
-    public String getAdapterTrace() {
-        return adapterTrace;
-    }
-
     @NotNull
     public Map<String, Integer> getMissingAbilities() {
         return missingAbilities;
@@ -477,9 +465,8 @@ public final class StructureRuntime {
     }
 
     /**
-     * Publish the canonical formed lifecycle snapshot. Controller fields are a
-     * legacy projection of this state and must be updated by the server-thread
-     * committer in the same commit section.
+     * Publish the canonical formed lifecycle snapshot. Controller fields are
+     * updated by the server-thread committer in the same commit section.
      */
     public void publishLifecycleState(
             @NotNull List<IMultiblockPart> parts,
@@ -583,8 +570,7 @@ public final class StructureRuntime {
                 : template != null ? "v3-typed-single" : "v3-typed-pattern";
         int pieces = multiPiecePattern == null ? 0 : multiPiecePattern.getPieceList().size();
         boolean singleTemplate = template != null;
-        return "path=" + path + ", singleTemplate=" + singleTemplate + ", pieces=" + pieces
-                + (adapterTrace == null ? "" : ", adapterTrace={" + adapterTrace + "}");
+        return "path=" + path + ", singleTemplate=" + singleTemplate + ", pieces=" + pieces;
     }
 
     @NotNull

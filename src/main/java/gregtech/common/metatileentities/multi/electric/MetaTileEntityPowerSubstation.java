@@ -93,8 +93,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     private static final int MIN_CASINGS = 14;
     // NBT Keys
     private static final String NBT_ENERGY_BANK = "EnergyBank";
-    // Match Context Headers
-    private static final String PMC_BATTERY_HEADER = "PSSBattery_";
     private static final StructureContributionKey<IBatteryData, BatteryAggregate> BATTERY_KEY =
             StructureContributionKey.create(
                     "gregtech:power_substation/batteries",
@@ -105,15 +103,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
                         return current;
                     },
                     BatteryAggregate::validate,
-                    (legacyContext, aggregate) -> {
-                        if (aggregate == null) {
-                            return;
-                        }
-                        for (Map.Entry<IBatteryData, Integer> entry : aggregate.getCounts().entrySet()) {
-                            String key = PMC_BATTERY_HEADER + entry.getKey().getBatteryName();
-                            legacyContext.set(key, new BatteryMatchWrapper(entry.getKey(), entry.getValue()));
-                        }
-                    },
                     UnaryOperator.identity(),
                     BatteryAggregate::copy);
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
@@ -824,26 +813,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
         }
     }
 
-    private static class BatteryMatchWrapper {
-
-        private final IBatteryData partType;
-        private int amount;
-
-        public BatteryMatchWrapper(IBatteryData partType) {
-            this.partType = partType;
-        }
-
-        public BatteryMatchWrapper(IBatteryData partType, int amount) {
-            this.partType = partType;
-            this.amount = amount;
-        }
-
-        public BatteryMatchWrapper increment() {
-            amount++;
-            return this;
-        }
-    }
-
     private static final class BatteryAggregate {
 
         private final Map<IBatteryData, Integer> counts = new LinkedHashMap<>();
@@ -860,11 +829,6 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
             return counts.isEmpty()
                     ? StructureContributionKey.Validation.failure("Power substation battery blocks were not matched")
                     : StructureContributionKey.Validation.success();
-        }
-
-        @NotNull
-        private Map<IBatteryData, Integer> getCounts() {
-            return Collections.unmodifiableMap(counts);
         }
 
         @NotNull

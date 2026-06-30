@@ -41,7 +41,7 @@ import java.util.function.Supplier;
  * Provides automatic minimum casing count calculation, declarative hatch placement,
  * and tiered casing tracking.
  *
- * <p>Supports both single-piece (legacy) and multi-piece (named) structure definitions.
+ * <p>Supports both single-piece and multi-piece (named) structure definitions.
  * Use {@link #piece(String)} and {@link #repeatablePiece(String, int, int)} to define
  * named pieces. When no named pieces are declared, all aisles belong to a single piece "main".
  *
@@ -82,7 +82,7 @@ public class DeclarativePatternBuilder {
 
     private DeclarativePatternBuilder(RelativeDirection[] dirs) {
         this.structureDir = dirs;
-        // Default piece "main" for backward compat
+        // Default single-piece shorthand.
         this.currentPiece = new PieceDef("main", false, 0, 0);
         this.pieces.add(currentPiece);
         this.multiPieceMode = false;
@@ -289,7 +289,7 @@ public class DeclarativePatternBuilder {
     }
 
     /**
-     * Define a tiered casing slot. Automatically tracks tier uniformity through PatternMatchContext.
+     * Define a tiered casing slot. Automatically tracks tier uniformity through typed contributions.
      */
     public TieredCasingSlot tieredCasing(char symbol, @NotNull ICasingGroup group) {
         TieredSlotInfo info = new TieredSlotInfo(symbol, group);
@@ -616,7 +616,7 @@ public class DeclarativePatternBuilder {
     }
 
     /**
-     * Register a factory-style fixed piece without pre-building a legacy template.
+     * Register a factory-style fixed piece without pre-building a template.
      * This lets StructureCompiler use explicit center offsets for pieces without
      * a controller predicate.
      */

@@ -5,14 +5,14 @@ import net.minecraft.client.resources.I18n;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import org.jetbrains.annotations.NotNull;
+
 /**
- * Typed replacement for {@code TraceabilityPredicate.SinglePredicateError}.
- *
- * <p>Reports a count limit violation on a structure element. The candidate
+ * Reports a count limit violation on a structure element. The candidate
  * ItemStack preview is sourced from {@link PatternError#getCandidates()},
  * which already reads the {@code StructureElementPreviewEntry} attached to
  * the current {@link BlockWorldState}, so this error does not need to hold a
- * reference to any legacy predicate.
+ * reference to a predicate object.
  */
 public class CountLimitError extends PatternError {
 

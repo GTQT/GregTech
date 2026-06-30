@@ -58,10 +58,9 @@ final class StructureCheckOperationService {
             @NotNull BlockPos controllerPos,
             @NotNull StructureOrientation orientation,
             boolean doRandomCheck,
-            @Nullable PatternMatchContext context,
             @Nullable MultiblockControllerBase controller) {
         return check(StructureOperationRequest.check(
-                world, controllerPos, orientation, doRandomCheck, context, controller));
+                world, controllerPos, orientation, doRandomCheck, controller));
     }
 
     @NotNull
@@ -73,8 +72,7 @@ final class StructureCheckOperationService {
             if (definition.hasRuntimeDetector()) {
                 StructureCheckResult result = StructureRuntimeDetectionEvaluator.check(
                         definition, request)
-                        .withEligibilityPlan(plan)
-                        .withAdapterTrace(runtime.adapterTrace());
+                        .withEligibilityPlan(plan);
                 return attachGraphPublication(result, request, plan);
             }
             if (!plan.isEligible()) {
@@ -84,9 +82,8 @@ final class StructureCheckOperationService {
             }
             StructureCheckResult result = StructureCheckResult.fromDefinition(checkDefinition(
                     request.requireWorld(), request.requireControllerPos(), request.requireOrientation(),
-                    request.getMatchContext(), request.getController()))
-                    .withEligibilityPlan(plan)
-                    .withAdapterTrace(runtime.adapterTrace());
+                    request.getController()))
+                    .withEligibilityPlan(plan);
             return attachGraphPublication(result, request, plan);
         }
         return checkActiveGraph(request);
@@ -104,8 +101,7 @@ final class StructureCheckOperationService {
             StructureEligibilityPlan plan = definition.getEligibilityPlan();
             StructureCheckResult result = StructureRuntimeDetectionEvaluator.check(
                     definition, request)
-                    .withEligibilityPlan(plan)
-                    .withAdapterTrace(operationRuntime().adapterTrace());
+                    .withEligibilityPlan(plan);
             return attachGraphPublication(result, request, plan);
         }
         StructureOperationRuntime runtime = operationRuntime();
@@ -115,12 +111,11 @@ final class StructureCheckOperationService {
                 request.requireWorld(), request.requireControllerPos(), request.requireOrientation(),
                 candidates, request.getController());
         return StructureCheckResult.fromActiveGraphDefinition(
-                result.isMatched(), result.copyContext(), result.copyOperationState(), result.getMetadata(),
+                result.isMatched(), result.copyOperationState(), result.getMetadata(),
                 result.getFailureTrace(), result.getMissingAbilities(), result.getAbilityCounts(),
                 result.isFlipped(), result.isMatched() ? candidates.capturePublication() : null,
                 result.getResultTable(), result.getContributionAggregate())
-                .withTraceContext(runtime.checkTracePath, runtime.describe())
-                .withAdapterTrace(runtime.adapterTrace());
+                .withTraceContext(runtime.checkTracePath, runtime.describe());
     }
 
     @NotNull
@@ -204,13 +199,12 @@ final class StructureCheckOperationService {
             @NotNull World world,
             @NotNull BlockPos controllerPos,
             @NotNull StructureOrientation orientation,
-            @Nullable PatternMatchContext context,
             @Nullable MultiblockControllerBase controller) {
         if (definition == null) {
             throw new IllegalStateException("Definition check requested without a structure definition");
         }
         return definition.createState().check(
-                world, controllerPos, orientation, context, controller);
+                world, controllerPos, orientation, controller);
     }
 
     @NotNull
@@ -325,7 +319,7 @@ final class StructureCheckOperationService {
                 continue;
             }
 
-            StructureMatchSession pieceSession = pattern.createMatchSession(request.getMatchContext());
+            StructureMatchSession pieceSession = pattern.createMatchSession();
             pieceSession.setControllerContext(request.getController());
             pieceSession.beginPieceContribution(piece);
             lastActivePieceName = piece.getName();
@@ -349,12 +343,11 @@ final class StructureCheckOperationService {
                     if (formedReps != null && formedReps.length > 0) {
                         pieceRepeats.put(piece.getName(), formedReps.clone());
                     }
-                    runtime.setLastAggregatedContext(null);
                 }
             } else {
                 matched = pieceSession.tryFork(candidate ->
                         runtime.getState().checkPatternAtExact(
-                                request.requireWorld(), centerPos, orientation, 0, 0, 0, candidate) != null);
+                                request.requireWorld(), centerPos, orientation, 0, 0, 0, candidate));
                 if (matched) {
                     runtime.setValidated(true);
                     runtime.clearDirty();
@@ -393,13 +386,11 @@ final class StructureCheckOperationService {
                     ? runtime.getLastFormedReps()
                     : runtime.getState().formedRepetitionCount;
             StructureContribution contribution = pieceSession.finishPieceContribution(piece);
-            PatternMatchContext compatibilityContext =
-                    contribution.projectCompatibilityContext(pieceSession.getContext());
-            extractChannelValues(compatibilityContext, channelValues);
+            contribution.collectChannelValues(channelValues);
             PieceEvaluationResult newResult = PieceEvaluationResult.activeMatchedWithRuntime(
                     piece, centerPos, resultRepetitions,
                     runtime.getPositions(), runtime.getPositions(), runtime,
-                    contribution, compatibilityContext);
+                    contribution);
             resultTable.add(newResult);
             propagateChangedAspects(plan.getGraph(), baselineResult, newResult,
                     recheckPieces, prunedPieces);
@@ -413,8 +404,7 @@ final class StructureCheckOperationService {
 
         StructureResultTable completedTable = resultTable.build();
         StructureAggregateFolder.Result aggregate =
-                StructureAggregateFolder.fold(pattern, completedTable, request.getMatchContext(),
-                        request.getMatchContext() == null ? baseline : null);
+                StructureAggregateFolder.fold(pattern, completedTable, baseline);
         if (!aggregate.isMatched()) {
             StructureFailureTrace.Kind kind = aggregate.getMissingAbilities().isEmpty()
                     ? StructureFailureTrace.Kind.COUNT_LIMIT
@@ -434,13 +424,12 @@ final class StructureCheckOperationService {
 
         PieceRuntimes.Publication publication = candidateRuntimes.capturePublication();
         StructureCheckResult result = StructureCheckResult.fromIncrementalDefinition(
-                true, aggregate.copyCompatibilityContext(), aggregate.copyOperationState(),
+                true, aggregate.copyOperationState(),
                 aggregate.getMetadata(), null, null, Collections.emptyMap(),
                 aggregate.getAbilityCounts(), orientation.isFlipped(), publication,
                 completedTable, aggregate)
                 .withEligibilityPlan(plan)
-                .withIncrementalCheckResult(diagnostic)
-                .withAdapterTrace(operationRuntime().adapterTrace());
+                .withIncrementalCheckResult(diagnostic);
         result = attachGraphPublication(result, request, plan, orientation);
         return result;
     }
@@ -519,7 +508,7 @@ final class StructureCheckOperationService {
         if (!graph.getIncomingEdges(piece.getName()).isEmpty()) {
             return CacheProbeReuse.NOT_ATTEMPTED;
         }
-        if (request.getMatchContext() != null || !baselineResult.isActive()) {
+        if (!baselineResult.isActive()) {
             return CacheProbeReuse.NOT_ATTEMPTED;
         }
         BlockPos baselineCenter = baselineResult.getResolvedCenter();
@@ -623,11 +612,10 @@ final class StructureCheckOperationService {
             @Nullable StructureAggregateFolder.Result aggregate,
             @NotNull StructureIncrementalCheckResult diagnostic) {
         return StructureCheckResult.fromIncrementalDefinition(
-                false, null, null, null, failure, message,
+                false, null, null, failure, message,
                 missingAbilities, abilityCounts, orientation.isFlipped(),
                 null, resultTable, aggregate)
-                .withIncrementalCheckResult(diagnostic)
-                .withAdapterTrace(operationRuntime().adapterTrace());
+                .withIncrementalCheckResult(diagnostic);
     }
 
     @NotNull
@@ -688,16 +676,7 @@ final class StructureCheckOperationService {
         if (center != null) {
             pieceCenters.put(result.getPiece().getName(), center);
         }
-        extractChannelValues(result.copyCompatibilityContext(), channelValues);
-    }
-
-    private static void extractChannelValues(@NotNull PatternMatchContext context,
-                                             @NotNull Map<String, Integer> channelValues) {
-        for (Map.Entry<String, Object> entry : context.entrySet()) {
-            if (entry.getValue() instanceof Integer) {
-                channelValues.putIfAbsent(entry.getKey(), (Integer) entry.getValue());
-            }
-        }
+        result.getContribution().collectChannelValues(channelValues);
     }
 
     @NotNull
@@ -780,12 +759,8 @@ final class StructureCheckOperationService {
         if (!missingAbilities.isEmpty()) {
             return StructureFailureTrace.Kind.MISSING_ABILITY;
         }
-        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
-            TraceabilityPredicate.SinglePredicateError single =
-                    (TraceabilityPredicate.SinglePredicateError) error;
-            if (single.type == 0 || single.type == 2) {
-                return StructureFailureTrace.Kind.COUNT_LIMIT;
-            }
+        if (error instanceof CountLimitError) {
+            return StructureFailureTrace.Kind.COUNT_LIMIT;
         }
         return StructureFailureTrace.Kind.BLOCK_MISMATCH;
     }

@@ -34,7 +34,6 @@ public final class StructureFailureTrace {
         CAPABILITY_UNSUPPORTED(70, "capability-unsupported"),
         ASSEMBLY_REJECTION(75, "assembly-rejection"),
         COMMIT_REJECTION(35, "commit-rejection"),
-        LEGACY_PATTERN(20, "legacy-pattern"),
         UNKNOWN(0, "unknown");
 
         private final int priority;

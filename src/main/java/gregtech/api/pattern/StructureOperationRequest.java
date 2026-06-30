@@ -57,8 +57,6 @@ public final class StructureOperationRequest {
     @Nullable
     private final StructureOrientation orientation;
     @Nullable
-    private final PatternMatchContext matchContext;
-    @Nullable
     private final MultiblockControllerBase controller;
     @Nullable
     private final EntityPlayer player;
@@ -79,7 +77,6 @@ public final class StructureOperationRequest {
                                       @Nullable IBlockAccess snapshot,
                                       @Nullable BlockPos controllerPos,
                                       @Nullable StructureOrientation orientation,
-                                      @Nullable PatternMatchContext matchContext,
                                       @Nullable MultiblockControllerBase controller,
                                       @Nullable EntityPlayer player,
                                       @Nullable Map<String, Integer> channelValues,
@@ -94,7 +91,6 @@ public final class StructureOperationRequest {
         this.snapshot = snapshot;
         this.controllerPos = controllerPos;
         this.orientation = orientation;
-        this.matchContext = matchContext;
         this.controller = controller;
         this.player = player;
         this.channelValues = channelValues == null
@@ -113,10 +109,9 @@ public final class StructureOperationRequest {
                                                   @NotNull BlockPos controllerPos,
                                                   @NotNull StructureOrientation orientation,
                                                   boolean doRandomCheck,
-                                                  @Nullable PatternMatchContext matchContext,
                                                   @Nullable MultiblockControllerBase controller) {
         return new StructureOperationRequest(
-                Kind.CHECK, world, null, controllerPos, orientation, matchContext, controller,
+                Kind.CHECK, world, null, controllerPos, orientation, controller,
                 null, null, null, null, ItemStack.EMPTY, doRandomCheck, false, 0);
     }
 
@@ -128,7 +123,7 @@ public final class StructureOperationRequest {
             @Nullable MultiblockControllerBase controller) {
         return new StructureOperationRequest(
                 Kind.SNAPSHOT_CHECK, null, snapshot, controllerPos, orientation,
-                null, controller, null, null, null, null,
+                controller, null, null, null, null,
                 ItemStack.EMPTY, false, false, 0);
     }
 
@@ -151,7 +146,7 @@ public final class StructureOperationRequest {
                                                     @Nullable AbilityPlacementTracker abilityTracker,
                                                     boolean skipHatches) {
         return new StructureOperationRequest(
-                Kind.PREVIEW, null, null, null, null, null, null, null,
+                Kind.PREVIEW, null, null, null, null, null, null,
                 channelValues, repetitions, abilityTracker, ItemStack.EMPTY, false, skipHatches, 0);
     }
 
@@ -174,7 +169,7 @@ public final class StructureOperationRequest {
                                                               boolean skipHatches,
                                                               int toolingPieceIndex) {
         return new StructureOperationRequest(
-                Kind.PREVIEW, null, null, null, null, null, controller, null,
+                Kind.PREVIEW, null, null, null, null, controller, null,
                 channelValues, null, null, ItemStack.EMPTY, false, skipHatches, toolingPieceIndex);
     }
 
@@ -185,7 +180,7 @@ public final class StructureOperationRequest {
                                                  @Nullable Map<String, Integer> channelValues,
                                                  @NotNull ItemStack triggerStack) {
         return new StructureOperationRequest(
-                Kind.HINT, player.world, null, controller.getPos(), orientation, null,
+                Kind.HINT, player.world, null, controller.getPos(), orientation,
                 controller, player, channelValues, null, null, triggerStack, false, false, 0);
     }
 
@@ -196,7 +191,7 @@ public final class StructureOperationRequest {
                                                           @Nullable Map<String, Integer> channelValues,
                                                           boolean skipHatches) {
         return new StructureOperationRequest(
-                Kind.CREATIVE_BUILD, player.world, null, controller.getPos(), orientation, null,
+                Kind.CREATIVE_BUILD, player.world, null, controller.getPos(), orientation,
                 controller, player, channelValues, null, null, ItemStack.EMPTY, false, skipHatches, 0);
     }
 
@@ -220,7 +215,7 @@ public final class StructureOperationRequest {
                                                                @Nullable Map<String, Integer> channelValues,
                                                                boolean skipHatches) {
         return new StructureOperationRequest(
-                Kind.CREATIVE_BUILD, player.world, null, controller.getPos(), orientation, null,
+                Kind.CREATIVE_BUILD, player.world, null, controller.getPos(), orientation,
                 controller, player, channelValues, null, null, ItemStack.EMPTY,
                 false, skipHatches, pieceIndex);
     }
@@ -234,7 +229,7 @@ public final class StructureOperationRequest {
                                                                boolean skipHatches,
                                                                @NotNull AbilityPlacementTracker abilityTracker) {
         return new StructureOperationRequest(
-                Kind.CREATIVE_BUILD, player.world, null, controller.getPos(), orientation, null,
+                Kind.CREATIVE_BUILD, player.world, null, controller.getPos(), orientation,
                 controller, player, channelValues, null, abilityTracker, ItemStack.EMPTY,
                 false, skipHatches, pieceIndex);
     }
@@ -261,7 +256,7 @@ public final class StructureOperationRequest {
                                                           boolean skipHatches,
                                                           @NotNull ItemStack triggerStack) {
         return new StructureOperationRequest(
-                Kind.SURVIVAL_BUILD, player.world, null, controller.getPos(), orientation, null,
+                Kind.SURVIVAL_BUILD, player.world, null, controller.getPos(), orientation,
                 controller, player, channelValues, null, null, triggerStack, false, skipHatches, 0);
     }
 
@@ -274,7 +269,7 @@ public final class StructureOperationRequest {
                                                                boolean skipHatches,
                                                                @NotNull ItemStack triggerStack) {
         return new StructureOperationRequest(
-                Kind.SURVIVAL_BUILD, player.world, null, controller.getPos(), orientation, null,
+                Kind.SURVIVAL_BUILD, player.world, null, controller.getPos(), orientation,
                 controller, player, channelValues, null, null, triggerStack,
                 false, skipHatches, pieceIndex);
     }
@@ -289,7 +284,7 @@ public final class StructureOperationRequest {
                                                                @NotNull AbilityPlacementTracker abilityTracker,
                                                                @NotNull ItemStack triggerStack) {
         return new StructureOperationRequest(
-                Kind.SURVIVAL_BUILD, player.world, null, controller.getPos(), orientation, null,
+                Kind.SURVIVAL_BUILD, player.world, null, controller.getPos(), orientation,
                 controller, player, channelValues, null, abilityTracker, triggerStack,
                 false, skipHatches, pieceIndex);
     }
@@ -297,7 +292,7 @@ public final class StructureOperationRequest {
     @NotNull
     public StructureOperationRequest withChannelValues(@Nullable Map<String, Integer> channelValues) {
         return new StructureOperationRequest(
-                kind, world, snapshot, controllerPos, orientation, matchContext, controller, player,
+                kind, world, snapshot, controllerPos, orientation, controller, player,
                 channelValues, repetitions, abilityTracker, triggerStack, doRandomCheck, skipHatches, pieceIndex);
     }
 
@@ -314,7 +309,7 @@ public final class StructureOperationRequest {
                                                     @NotNull StructureOrientation orientation,
                                                     @Nullable MultiblockControllerBase controller) {
         return new StructureOperationRequest(
-                Kind.ITERATE, world, null, controllerPos, orientation, null, controller,
+                Kind.ITERATE, world, null, controllerPos, orientation, controller,
                 null, null, null, null, ItemStack.EMPTY, false, false, 0);
     }
 
@@ -374,11 +369,6 @@ public final class StructureOperationRequest {
             throw new IllegalStateException(kind + " request has no orientation");
         }
         return orientation;
-    }
-
-    @Nullable
-    public PatternMatchContext getMatchContext() {
-        return matchContext;
     }
 
     @Nullable

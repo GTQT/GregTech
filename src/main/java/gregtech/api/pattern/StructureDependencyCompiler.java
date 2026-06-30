@@ -12,7 +12,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BooleanSupplier;
 
 /**
  * Compiles static dependency and eligibility metadata for a multi-piece
@@ -80,7 +79,6 @@ public final class StructureDependencyCompiler {
                 "dynamic-anchor");
     }
 
-    @SuppressWarnings("unchecked")
     private static void compileCondition(
             @NotNull StructurePiece piece,
             @NotNull PieceDependencyGraph.Builder graph,
@@ -88,19 +86,14 @@ public final class StructureDependencyCompiler {
             @NotNull Map<StructureExternalDependencyKey<?>, Set<String>> externalDependencyRoots,
             @NotNull MutableFallback fallback,
             @NotNull List<String> diagnostics) {
-        BooleanSupplier condition = piece.getCondition();
+        StructureCondition<?> condition = piece.getCondition();
         if (condition == null) {
-            return;
-        }
-        if (!(condition instanceof StructureCondition)) {
-            fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_CONDITION,
-                    "Piece '" + piece.getName() + "' uses a legacy BooleanSupplier condition");
             return;
         }
 
         Set<StructureDependency> dependencies;
         try {
-            dependencies = ((StructureCondition<Object>) condition).dependencies();
+            dependencies = condition.dependencies();
         } catch (RuntimeException e) {
             fail(fallback, diagnostics, StructureIncrementalFallbackReason.OPAQUE_CONDITION,
                     "Piece '" + piece.getName()

@@ -21,8 +21,7 @@ import java.util.Set;
 /**
  * Typed structure-formation payload delivered to new controller callbacks.
  *
- * <p>The legacy {@link PatternMatchContext} callback projection has been
- * removed; controllers read typed state directly from this view.
+ * <p>Controllers read typed structure state directly from this view.
  */
 public final class FormedStructureView {
 
@@ -157,6 +156,6 @@ public final class FormedStructureView {
 
     @NotNull
     private static String channelAggregateId(@NotNull StructureChannel channel) {
-        return "gregtech:legacy/channel/" + channel.getName();
+        return StructureMatchCollector.channelAggregateId(channel.getName());
     }
 }

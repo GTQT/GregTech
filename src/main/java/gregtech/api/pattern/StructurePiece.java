@@ -9,8 +9,6 @@ import net.minecraft.world.IBlockAccess;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BooleanSupplier;
-
 /**
  * Represents a single piece (segment) of a multi-piece multiblock structure.
  * Each piece is a pure template reference: it carries an immutable
@@ -67,7 +65,7 @@ public class StructurePiece {
     private final Vec3i offset;
     private final OffsetMode offsetMode;
     @Nullable
-    private final BooleanSupplier condition;
+    private final StructureCondition<?> condition;
     private final boolean toolingVisible;
 
     /**
@@ -94,7 +92,7 @@ public class StructurePiece {
      */
     public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
                           @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                          @Nullable BooleanSupplier condition) {
+                          @Nullable StructureCondition<?> condition) {
         this(name, template, offset, offsetMode, condition, noopSnapshotChecker());
     }
 
@@ -104,14 +102,14 @@ public class StructurePiece {
      */
     public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
                           @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                          @Nullable BooleanSupplier condition,
+                          @Nullable StructureCondition<?> condition,
                           @NotNull SnapshotChecker snapshotChecker) {
         this(name, template, offset, offsetMode, condition, snapshotChecker, true);
     }
 
     public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
                           @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                          @Nullable BooleanSupplier condition,
+                          @Nullable StructureCondition<?> condition,
                           @NotNull SnapshotChecker snapshotChecker,
                           boolean toolingVisible) {
         this.name = name;
@@ -130,7 +128,7 @@ public class StructurePiece {
      * @param condition optional condition; if non-null, this piece is only checked when condition returns true
      */
     public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
-                          @NotNull Vec3i offset, @Nullable BooleanSupplier condition) {
+                          @NotNull Vec3i offset, @Nullable StructureCondition<?> condition) {
         this(name, template, offset, OffsetMode.RELATIVE, condition);
     }
 
@@ -195,10 +193,10 @@ public class StructurePiece {
     }
 
     /**
-     * @return the optional activation condition for legacy adapters.
+     * @return the optional typed activation condition.
      */
     @Nullable
-    public BooleanSupplier getCondition() {
+    public StructureCondition<?> getCondition() {
         return condition;
     }
 
@@ -206,7 +204,7 @@ public class StructurePiece {
      * @return true if this piece should be active (condition is null or returns true)
      */
     public boolean isActive() {
-        return condition == null || condition.getAsBoolean();
+        return condition == null || condition.test(StructureActivationContext.empty());
     }
 
     /**
@@ -215,11 +213,8 @@ public class StructurePiece {
     @SuppressWarnings("unchecked")
     public boolean isActive(@NotNull StructureActivationContext<?> context) {
         if (condition == null) return true;
-        if (condition instanceof StructureCondition) {
-            return ((StructureCondition<Object>) condition)
-                    .test((StructureActivationContext<Object>) context);
-        }
-        return condition.getAsBoolean();
+        return ((StructureCondition<Object>) condition)
+                .test((StructureActivationContext<Object>) context);
     }
 
     /**

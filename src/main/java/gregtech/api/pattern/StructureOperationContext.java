@@ -23,8 +23,6 @@ final class StructureOperationContext {
     @Nullable
     private final PieceRuntimes pieceRuntimes;
     @Nullable
-    private String adapterTrace;
-    @Nullable
     private StructureOperationRuntime syntheticSingleRuntime;
 
     StructureOperationContext(@Nullable StructureDefinition<?> definition,
@@ -42,19 +40,13 @@ final class StructureOperationContext {
         return definition;
     }
 
-    void setAdapterTrace(@Nullable String adapterTrace) {
-        this.adapterTrace = adapterTrace;
-        this.syntheticSingleRuntime = null;
-    }
-
     @NotNull
     StructureOperationRuntime runtime() {
         if (multiPiecePattern != null && pieceRuntimes != null) {
             return new StructureOperationRuntime(
                     multiPiecePattern, pieceRuntimes, false, false,
                     definition == null ? "v3-typed-pattern" : "definition",
-                    "pieces=" + multiPiecePattern.getPieceCount(),
-                    adapterTrace);
+                    "pieces=" + multiPiecePattern.getPieceCount());
         }
         if (state != null) {
             StructureOperationRuntime runtime = syntheticSingleRuntime;
@@ -68,14 +60,13 @@ final class StructureOperationContext {
                                 null,
                                 (snap, origin, orientation, prior, pieceRuntime, session) ->
                                         pieceRuntime.getState().checkPatternAtSnapshotExact(
-                                                snap, origin, orientation, 0, 0, 0, session) != null)));
+                                                snap, origin, orientation, 0, 0, 0, session))));
                 runtime = new StructureOperationRuntime(
                         syntheticPattern,
                         PieceRuntimes.singleWithState(syntheticPattern, state),
                         true, true,
                         "v3-typed-single",
-                        "pieces=1, source=single-template-state",
-                        adapterTrace);
+                        "pieces=1, source=single-template-state");
                 syntheticSingleRuntime = runtime;
             }
             return runtime;
@@ -84,8 +75,7 @@ final class StructureOperationContext {
             return new StructureOperationRuntime(
                     multiPiecePattern, new PieceRuntimes(multiPiecePattern), true, false,
                     definition == null ? "v3-typed-pattern" : "definition",
-                    "pieces=" + multiPiecePattern.getPieceCount() + ", source=transient",
-                    adapterTrace);
+                    "pieces=" + multiPiecePattern.getPieceCount() + ", source=transient");
         }
         throw new IllegalStateException("Structure operation requested without a compiled pattern");
     }

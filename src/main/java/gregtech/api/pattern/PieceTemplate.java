@@ -1,8 +1,7 @@
 package gregtech.api.pattern;
 
-import gregtech.api.util.RelativeDirection;
-import gregtech.api.pattern.element.CompiledStructureElement;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.util.RelativeDirection;
 
 import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.math.BlockPos;
@@ -12,20 +11,17 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 /**
  * Immutable structure intermediate representation (IR) for one structure piece.
  * Pure data carrier — no factory methods, no mutation, no I/O. The
  * {@link StructurePiece} owns one of these and exposes the same queries
- * (dimensions, predicates, AABB) that previously lived on
- * {@code BlockPatternTemplate}.
+ * (dimensions, elements, AABB) used by the structure runtime.
  *
  * <p>Design intent: the new compile path
  * {@link gregtech.api.pattern.element.IStructurePiece} → {@link StructurePiece}
  * produces a {@code StructurePiece} that holds a {@code PieceTemplate}
- * directly. The legacy {@code BlockPatternTemplate} is retained as a thin
- * facade for backward compatibility with public addons.
+ * directly.
  *
  * <p>Construction: the primary builder is
  * {@link PieceTemplateCompiler#buildTemplate()}.
@@ -44,8 +40,8 @@ public final class PieceTemplate {
     public record AisleDef(int minRepeat, int maxRepeat, @Nullable String channelName) {
 
         /**
-         * @return a copy of the legacy {@code [minRepeat, maxRepeat]} pair for callers
-         *         that still need the int[] shape (e.g. RepetitionDFS / preview builders).
+         * @return a copy of the {@code [minRepeat, maxRepeat]} pair for callers
+         *         that need the int[] shape (e.g. RepetitionDFS / preview builders).
          */
         public int[] toRangeArray() {
             return new int[] { minRepeat, maxRepeat };
@@ -76,7 +72,6 @@ public final class PieceTemplate {
     }
 
     private final IStructureElement<?>[][][] elements; // [z][y][x]
-    private final PieceTemplateLegacyView legacyView;
     private final AisleDef[] aisles;
     private final RelativeDirection[] structureDir;
     private final int xLength; // x size (char axis)
@@ -88,75 +83,13 @@ public final class PieceTemplate {
     @NotNull
     private final List<String> structureDescription;
 
-    public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
-                         @NotNull RelativeDirection[] structureDir,
-                         @NotNull int[][] aisleRepetitions) {
-        this(predicatesIn, compileLegacyElements(predicatesIn), structureDir,
-                aisleRepetitions, null, null, null);
-    }
-
-    public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
-                         @NotNull RelativeDirection[] structureDir,
-                         @NotNull int[][] aisleRepetitions,
-                         @Nullable String[] aisleChannelNames) {
-        this(predicatesIn, compileLegacyElements(predicatesIn), structureDir,
-                aisleRepetitions, aisleChannelNames, null, null);
-    }
-
-    /**
-     * Full constructor with optional external center offset and structure description.
-     *
-     * @param predicatesIn          the 3D predicate array [z][y][x]
-     * @param structureDir          the 3 relative directions
-     * @param aisleRepetitions      the repetition ranges per aisle
-     * @param aisleChannelNames     channel names per aisle (nullable entries)
-     * @param externalCenterOffset  optional externally-specified center offset;
-     *                              if {@code null}, auto-discovers from the {@code isCenter} predicate
-     * @param structureDescription  optional auto-generated description lines for tooltip display;
-     *                              if {@code null}, defaults to an empty list
-     */
-    public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
-                         @NotNull RelativeDirection[] structureDir,
-                         @NotNull int[][] aisleRepetitions,
-                         @Nullable String[] aisleChannelNames,
-                         @Nullable int[] externalCenterOffset,
-                         @Nullable List<String> structureDescription) {
-        this(predicatesIn, compileLegacyElements(predicatesIn), structureDir, aisleRepetitions,
-                aisleChannelNames, externalCenterOffset, structureDescription);
-    }
-
-    public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
-                         @NotNull IStructureElement<?>[][][] elements,
-                         @NotNull RelativeDirection[] structureDir,
-                         @NotNull int[][] aisleRepetitions,
-                         @Nullable String[] aisleChannelNames,
-                         @Nullable int[] externalCenterOffset,
-                         @Nullable List<String> structureDescription) {
-        this(elements, structureDir, aisleRepetitions, aisleChannelNames,
-                externalCenterOffset, structureDescription,
-                PieceTemplateLegacyView.fromLegacyPredicates(predicatesIn, elements, structureDir));
-    }
-
     public PieceTemplate(@NotNull IStructureElement<?>[][][] elements,
                          @NotNull RelativeDirection[] structureDir,
                          @NotNull int[][] aisleRepetitions,
                          @Nullable String[] aisleChannelNames,
                          @Nullable int[] externalCenterOffset,
                          @Nullable List<String> structureDescription) {
-        this(elements, structureDir, aisleRepetitions, aisleChannelNames,
-                externalCenterOffset, structureDescription,
-                PieceTemplateLegacyView.fromElements(elements, structureDir));
-    }
-
-    private PieceTemplate(@NotNull IStructureElement<?>[][][] elements,
-                          @NotNull RelativeDirection[] structureDir,
-                          @NotNull int[][] aisleRepetitions,
-                          @Nullable String[] aisleChannelNames,
-                          @Nullable int[] externalCenterOffset,
-                          @Nullable List<String> structureDescription,
-                          @NotNull PieceTemplateLegacyView legacyView) {
         this.elements = elements;
-        this.legacyView = legacyView;
         this.zLength = elements.length;
         this.structureDir = structureDir;
         this.aisles = buildAisles(aisleRepetitions, aisleChannelNames);
@@ -216,34 +149,9 @@ public final class PieceTemplate {
         throw new IllegalArgumentException("Didn't find center predicate");
     }
 
-    public TraceabilityPredicate[][][] getBlockMatches() {
-        return legacyView.getBlockMatches();
-    }
-
-    @NotNull
-    public PieceTemplateLegacyView getLegacyView() {
-        return legacyView;
-    }
-
     @NotNull
     public IStructureElement<?>[][][] getElements() {
         return elements;
-    }
-
-    @NotNull
-    private static IStructureElement<?>[][][] compileLegacyElements(
-            @NotNull TraceabilityPredicate[][][] predicates) {
-        IStructureElement<?>[][][] result = new IStructureElement<?>[predicates.length][][];
-        for (int z = 0; z < predicates.length; z++) {
-            result[z] = new IStructureElement<?>[predicates[z].length][];
-            for (int y = 0; y < predicates[z].length; y++) {
-                result[z][y] = new IStructureElement<?>[predicates[z][y].length];
-                for (int x = 0; x < predicates[z][y].length; x++) {
-                    result[z][y][x] = CompiledStructureElement.legacy(predicates[z][y][x]);
-                }
-            }
-        }
-        return result;
     }
 
     @NotNull
@@ -301,16 +209,6 @@ public final class PieceTemplate {
             total += aisle.maxRepeat();
         }
         return total;
-    }
-
-    /**
-     * Walk every non-null, non-{@link TraceabilityPredicate#ANY} cell of this template and
-     * invoke {@code consumer} with the pattern-local world position and the predicate
-     * occupying that cell.
-     */
-    public void forEachPredicate(@NotNull StructureOrientation orientation,
-                                 @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
-        legacyView.forEachPredicate(orientation, consumer);
     }
 
     /**

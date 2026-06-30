@@ -136,7 +136,7 @@ final class MultiblockStructureChannels {
             @NotNull Set<String> channelNames,
             @NotNull List<StructureChannel> out) {
         for (String name : channelNames) {
-            StructureChannel channel = StructureChannelRegistry.resolve(name);
+            StructureChannel channel = StructureChannelRegistry.getByName(name);
             if (channel != null) {
                 out.add(channel);
             }

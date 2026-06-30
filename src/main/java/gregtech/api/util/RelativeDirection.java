@@ -11,9 +11,7 @@ import java.util.function.Function;
  * Relative direction when facing horizontally.
  *
  * <p>Holds the canonical south/north/west/east/up/down iteration used by the multiblock
- * structure system. Previously this constant lived on {@code BlockPatternTemplate} as the
- * {@code FACINGS} static field; it has been hoisted here so that any code (including
- * {@code BlockPatternTemplate} callers) can reference a single source of truth.
+ * structure system so every caller can reference a single source of truth.
  */
 public enum RelativeDirection {
 

@@ -3,7 +3,6 @@ package gregtech.api.pattern.element;
 import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.OffsetMode;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.RepeatGroupPiece;
 import gregtech.api.pattern.SoftReferenceHolder;
@@ -36,7 +35,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
 /**
@@ -92,14 +90,9 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.runtimeDetector = b.runtimeDetector;
         this.primaryTemplateDescription = Collections.unmodifiableList(new ArrayList<>(b.primaryTemplateDescription));
         this.delegate = null;
-        this.compiledPattern = b.compiledPattern;
-        if (b.compiledPattern != null) {
-            this.supportsSingleTemplatePath = b.compiledPattern.getPieceCount() == 1
-                    && !(b.compiledPattern.getPrimaryPiece() instanceof RepeatGroupPiece);
-        } else {
-            this.supportsSingleTemplatePath =
-                    pieceEntries.size() == 1 && !pieceEntries.get(0).piece.isRepeatable();
-        }
+        this.compiledPattern = null;
+        this.supportsSingleTemplatePath =
+                pieceEntries.size() == 1 && !pieceEntries.get(0).piece.isRepeatable();
     }
 
     private StructureDefinition(@NotNull SoftReferenceHolder<StructureDefinition<T>> delegate) {
@@ -131,9 +124,8 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      * Convenience: synchronous check.
      */
     public boolean check(@NotNull World world, @NotNull BlockPos controllerPos,
-                         @NotNull StructureOrientation orientation,
-                         @Nullable PatternMatchContext context) {
-        return createState().check(world, controllerPos, orientation, context).success;
+                         @NotNull StructureOrientation orientation) {
+        return createState().check(world, controllerPos, orientation).success;
     }
 
     /** Get the compiled MultiPiecePattern. Computed lazily and cached. */
@@ -156,8 +148,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
 
     /**
      * Dependency graph and eligibility diagnostics for the contribution
-     * evaluator path. The plan is computed from the compiled pattern so legacy
-     * adapters and prebuilt multi-piece patterns receive the same diagnostics.
+     * evaluator path. The plan is computed from the compiled pattern.
      */
     @NotNull
     public StructureEligibilityPlan getEligibilityPlan() {
@@ -297,7 +288,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     }
 
     /**
-     * Whether this definition can use the legacy single-template runtime path.
+     * Whether this definition can use the single-template runtime path.
      *
      * <p>This is intentionally narrower than "contains one declared piece": a
      * single repeatable piece still requires the multi-piece runtime because it
@@ -323,9 +314,8 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
      * {@code MultiPiecePattern} allocation per call compared to going through
      * {@link #getCompiledPattern()}.
      *
-     * <p>Intended for callers that previously used the legacy
-     * {@code BlockPatternTemplate} output (e.g. {@code DeclarativePatternBuilder.buildTemplate()})
-     * and need a quick path to retrieve the equivalent template for a 1-piece structure.
+     * <p>Intended for callers that need a quick path to retrieve the equivalent
+     * template for a 1-piece structure.
      * Multi-piece callers should iterate {@link #getCompiledPattern()} instead.
      */
     @Nullable
@@ -505,60 +495,13 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                 .build();
     }
 
-    /**
-     * Adapt a legacy multi-piece pattern into the canonical definition model.
-     *
-     * <p>The supplied pattern is kept as the compiled product so legacy subclasses
-     * and contextual conditions keep their exact runtime behavior.
-     */
-    @NotNull
-    public static <T extends MultiblockControllerBase> StructureDefinition<T> fromMultiPiecePattern(
-            @NotNull MultiPiecePattern pattern) {
-        RelativeDirection[] dirs = pattern.getPrimaryPiece().getTemplate().getStructureDir();
-        return fromMultiPiecePattern(dirs, pattern);
-    }
-
-    /**
-     * Adapt a legacy multi-piece pattern into the canonical definition model with
-     * an explicit direction triple.
-     */
-    @NotNull
-    public static <T extends MultiblockControllerBase> StructureDefinition<T> fromMultiPiecePattern(
-            @NotNull RelativeDirection[] structureDir,
-            @NotNull MultiPiecePattern pattern) {
-        if (structureDir.length != 3) {
-            throw new IllegalArgumentException("structureDir must contain exactly 3 directions");
-        }
-        Builder<T> builder = StructureDefinition.<T>builder(
-                structureDir[0], structureDir[1], structureDir[2]);
-        for (StructurePiece piece : pattern.getPieceList()) {
-            PieceBuilder<T> pieceBuilder = builder.pieceFromTemplate(piece.getName(), piece.getTemplate(),
-                    piece.getOffset(), piece.getOffsetMode(), piece.getCondition());
-            if (!piece.isToolingVisible()) {
-                pieceBuilder.runtimeOnly();
-            }
-            pieceBuilder.end();
-        }
-        for (Map.Entry<MultiblockAbility<?>, int[]> entry : pattern.getAbilityLimits().entrySet()) {
-            int[] range = entry.getValue();
-            builder.globalAbilityLimit(entry.getKey(), range[0], range[1]);
-        }
-        for (AbilityGroupLimit groupLimit : pattern.getAbilityGroupLimits()) {
-            builder.globalAbilityGroupLimit(
-                    groupLimit.getDisplayAbility(), groupLimit.getMin(), groupLimit.getMax(),
-                    groupLimit.getAbilities().toArray(new MultiblockAbility<?>[0]));
-        }
-        builder.compiledPattern = pattern;
-        return builder.build();
-    }
-
     // --- PieceEntry (private static inner class) ---
 
     static final class PieceEntry {
         final IStructurePiece piece;
         final Vec3i baseOffset;
         final OffsetMode offsetMode;
-        @Nullable final BooleanSupplier condition;
+        @Nullable final StructureCondition<?> condition;
         /**
          * If non-null, this piece's center position is computed dynamically based
          * on the runtime repeat count of the named anchor piece. Used to place
@@ -574,12 +517,12 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         final int[] anchorStep;
 
         PieceEntry(@NotNull IStructurePiece piece, @NotNull Vec3i baseOffset,
-                   @NotNull OffsetMode offsetMode, @Nullable BooleanSupplier condition) {
+                   @NotNull OffsetMode offsetMode, @Nullable StructureCondition<?> condition) {
             this(piece, baseOffset, offsetMode, condition, null, new int[]{0, 0, 0});
         }
 
         PieceEntry(@NotNull IStructurePiece piece, @NotNull Vec3i baseOffset,
-                   @NotNull OffsetMode offsetMode, @Nullable BooleanSupplier condition,
+                   @NotNull OffsetMode offsetMode, @Nullable StructureCondition<?> condition,
                    @Nullable String anchorPieceName, @NotNull int[] anchorStep) {
             this.piece = piece;
             this.baseOffset = baseOffset;
@@ -616,8 +559,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         private final Map<MultiblockAbility<?>, AbilityLimit> abilityLimits = new HashMap<>();
         private final List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>();
         private final List<String> primaryTemplateDescription = new ArrayList<>();
-        @Nullable
-        private MultiPiecePattern compiledPattern;
         @Nullable
         private StructureRuntimeDetector<T> runtimeDetector;
 
@@ -667,7 +608,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                                                  @NotNull PieceTemplate template,
                                                  @NotNull Vec3i offset,
                                                  @NotNull OffsetMode offsetMode,
-                                                 @Nullable BooleanSupplier condition) {
+                                                 @Nullable StructureCondition<?> condition) {
             MutablePiece mp = new MutablePiece(name, null, Vec3i.NULL_VECTOR,
                     OffsetMode.RELATIVE, null, new int[0], new int[0][0], new int[0], null,
                     new int[]{0, 0, 0});
@@ -744,16 +685,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         @NotNull
         public PieceBuilder<T> conditionalPiece(@NotNull String name, @NotNull String[][] pattern,
                                                 @NotNull Vec3i offset,
-                                                @NotNull BooleanSupplier condition) {
-            MutablePiece mp = new MutablePiece(name, pattern, offset, OffsetMode.RELATIVE,
-                    condition, new int[0], new int[0][0], new int[0], null, new int[]{0, 0, 0});
-            return new PieceBuilder<>(this, mp);
-        }
-
-        @NotNull
-        public PieceBuilder<T> conditionalPieceContextual(
-                @NotNull String name, @NotNull String[][] pattern,
-                @NotNull Vec3i offset, @NotNull StructureCondition<T> condition) {
+                                                @NotNull StructureCondition<T> condition) {
             MutablePiece mp = new MutablePiece(name, pattern, offset, OffsetMode.RELATIVE,
                     condition, new int[0], new int[0][0], new int[0], null, new int[]{0, 0, 0});
             return new PieceBuilder<>(this, mp);
@@ -1097,7 +1029,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         @Nullable String[][] pattern;
         Vec3i baseOffset;
         OffsetMode offsetMode;
-        @Nullable BooleanSupplier condition;
+        @Nullable StructureCondition<?> condition;
         final Map<Character, IStructureElement> symbolMap = new HashMap<>();
         int[] repeatAxes;
         int[][] repeatRanges;
@@ -1114,7 +1046,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         int[] anchorStep = new int[]{0, 0, 0};
 
         MutablePiece(String name, @Nullable String[][] pattern, Vec3i baseOffset,
-                     OffsetMode offsetMode, @Nullable BooleanSupplier condition,
+                     OffsetMode offsetMode, @Nullable StructureCondition<?> condition,
                      int[] repeatAxes, int[][] repeatRanges, int[] stepSizes,
                      @Nullable String[] repeatChannelNames, int[] centerOffset) {
             this.name = name;

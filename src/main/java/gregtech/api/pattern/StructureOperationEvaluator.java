@@ -15,9 +15,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Compatibility facade for the split structure operation services.
+ * Coordinator for the split structure operation services.
  *
- * <p>The public runtime surface still exposes this evaluator while the actual
+ * <p>The public runtime surface exposes this evaluator while the actual
  * operation implementations live in small check, snapshot, build, hint,
  * preview, and iterate services.
  */
@@ -52,19 +52,14 @@ public final class StructureOperationEvaluator {
         this.iterateOperations = new StructureIterateOperationService(operationContext);
     }
 
-    public void setAdapterTrace(@Nullable String adapterTrace) {
-        operationContext.setAdapterTrace(adapterTrace);
-    }
-
     @NotNull
     public StructureCheckResult check(
             @NotNull World world,
             @NotNull BlockPos controllerPos,
             @NotNull StructureOrientation orientation,
             boolean doRandomCheck,
-            @Nullable PatternMatchContext context,
             @Nullable MultiblockControllerBase controller) {
-        return checkOperations.check(world, controllerPos, orientation, doRandomCheck, context, controller);
+        return checkOperations.check(world, controllerPos, orientation, doRandomCheck, controller);
     }
 
     @NotNull

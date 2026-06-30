@@ -35,7 +35,7 @@ public interface ICasingGroup {
     boolean requiresUniformTier();
 
     /**
-     * Get the tier channel name used in {@link gregtech.api.pattern.PatternMatchContext}.
+     * Get the tier channel name emitted into typed structure channel metadata.
      * This is the key used to store/retrieve the detected tier during pattern matching.
      *
      * @return the tier channel name (defaults to groupId)

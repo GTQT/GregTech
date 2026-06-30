@@ -33,6 +33,7 @@ import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
+import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructurePreviewResult;
 import gregtech.api.pattern.StructureRuntime;
@@ -95,7 +96,6 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
-import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -122,8 +122,6 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     private static final int MIN_STRUCTURE_SIZE = 5;
     private static final int MAX_STRUCTURE_SIZE = 15;
     private static final int MAX_CLEANROOM_DOORS = 4;
-    private static final String CLEANROOM_FILTER_LEGACY_KEY = "FilterType";
-    private static final String CLEANROOM_DOORS_LEGACY_KEY = "Doors";
     private static final String CLEANROOM_RUNTIME_PIECE = "runtime";
     private static final StructureContributionKey<ICleanroomFilter, CleanroomFilterAggregate> CLEANROOM_FILTER_KEY =
             StructureContributionKey.create(
@@ -135,11 +133,6 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
                         return current;
                     },
                     CleanroomFilterAggregate::validate,
-                    (legacyContext, aggregate) -> {
-                        if (aggregate != null && aggregate.getFilter() != null) {
-                            legacyContext.set(CLEANROOM_FILTER_LEGACY_KEY, aggregate.getFilter());
-                        }
-                    },
                     UnaryOperator.identity(),
                     CleanroomFilterAggregate::copy);
     private static final StructureContributionKey<BlockPos, Set<BlockPos>> CLEANROOM_DOORS_KEY =
@@ -162,8 +155,6 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
                         }
                         return StructureContributionKey.Validation.success();
                     },
-                    (legacyContext, aggregate) -> legacyContext.set(CLEANROOM_DOORS_LEGACY_KEY,
-                            aggregate == null ? new ObjectOpenHashSet<>() : new ObjectOpenHashSet<>(aggregate)),
                     BlockPos::toImmutable,
                     value -> Collections.unmodifiableSet(new LinkedHashSet<>(value)));
     private static final StructureContributionKey<CleanroomDimensions, CleanroomDimensions>
@@ -173,20 +164,14 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
             CLEANROOM_RECEIVERS_KEY = StructureContributionKey.setUnion(
                     "gregtech:cleanroom/receivers");
     private static final StructureContributionKey<Integer, Integer> CLEANROOM_WIDTH_KEY =
-            StructureContributionKey.uniform(
-                    "gregtech:cleanroom/channel/width",
-                    (context, value) -> context.set(
-                            GTStructureChannels.STRUCTURE_WIDTH.getName(), value));
+            StructureMatchCollector.channelValueKey(
+                    GTStructureChannels.STRUCTURE_WIDTH.getName());
     private static final StructureContributionKey<Integer, Integer> CLEANROOM_HEIGHT_KEY =
-            StructureContributionKey.uniform(
-                    "gregtech:cleanroom/channel/height",
-                    (context, value) -> context.set(
-                            GTStructureChannels.STRUCTURE_HEIGHT.getName(), value));
+            StructureMatchCollector.channelValueKey(
+                    GTStructureChannels.STRUCTURE_HEIGHT.getName());
     private static final StructureContributionKey<Integer, Integer> CLEANROOM_LENGTH_KEY =
-            StructureContributionKey.uniform(
-                    "gregtech:cleanroom/channel/length",
-                    (context, value) -> context.set(
-                            GTStructureChannels.STRUCTURE_LENGTH.getName(), value));
+            StructureMatchCollector.channelValueKey(
+                    GTStructureChannels.STRUCTURE_LENGTH.getName());
     private static final CleanroomDoorElement CLEANROOM_DOOR_ELEMENT = new CleanroomDoorElement();
     private static final CleanroomFilterElement CLEANROOM_FILTER_ELEMENT = new CleanroomFilterElement();
     private static final CleanroomInnerElement CLEANROOM_INNER_ELEMENT = new CleanroomInnerElement();

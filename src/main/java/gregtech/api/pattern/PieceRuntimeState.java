@@ -49,9 +49,8 @@ import java.util.stream.Collectors;
  *
  * This class holds:
  * - The block position cache (formed structure positions)
- * - Pattern match context (runtime matching results)
- * - Global/layer predicate counters
- * - The BlockWorldState used during pattern checking
+ * - Pattern matching diagnostics and typed operation state
+ * - The world state used during pattern checking
  * - Formed repetition counts
  * - A ReentrantLock for future async checking support (P2)
  *
@@ -77,9 +76,6 @@ public final class PieceRuntimeState {
 
     private final BlockWorldState worldState = new BlockWorldState();
     private final StructureEvaluationContext<Object> evaluationContext = new StructureEvaluationContext<>();
-    private final PatternMatchContext matchContext = new PatternMatchContext();
-    private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount = new HashMap<>();
-    private final Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount = new HashMap<>();
     @NotNull
     private Map<MultiblockAbility<?>, Integer> missingAbilities = Collections.emptyMap();
 
@@ -122,9 +118,6 @@ public final class PieceRuntimeState {
         return worldState.error;
     }
 
-    /**
-     * Returns ability deficits found after a complete legacy pattern scan.
-     */
     @NotNull
     public Map<MultiblockAbility<?>, Integer> getMissingAbilities() {
         return missingAbilities;
@@ -185,11 +178,6 @@ public final class PieceRuntimeState {
             System.arraycopy(checkpoint.formedRepetitionCount, 0,
                     formedRepetitionCount, 0, formedRepetitionCount.length);
         }
-        matchContext.replaceWith(checkpoint.matchContext);
-        globalCount.clear();
-        globalCount.putAll(checkpoint.globalCount);
-        layerCount.clear();
-        layerCount.putAll(checkpoint.layerCount);
         missingAbilities = checkpoint.missingAbilities;
     }
 
@@ -204,12 +192,6 @@ public final class PieceRuntimeState {
         @NotNull
         private final int[] formedRepetitionCount;
         @NotNull
-        private final PatternMatchContext matchContext;
-        @NotNull
-        private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
-        @NotNull
-        private final Map<TraceabilityPredicate.SimplePredicate, Integer> layerCount;
-        @NotNull
         private final Map<MultiblockAbility<?>, Integer> missingAbilities;
 
         private Checkpoint(@NotNull PieceRuntimeState state) {
@@ -219,9 +201,6 @@ public final class PieceRuntimeState {
             this.cachedZOffset = state.cachedZOffset;
             this.cacheOffsetsRecorded = state.cacheOffsetsRecorded;
             this.formedRepetitionCount = state.formedRepetitionCount.clone();
-            this.matchContext = state.matchContext.copy();
-            this.globalCount = new HashMap<>(state.globalCount);
-            this.layerCount = new HashMap<>(state.layerCount);
             this.missingAbilities = state.missingAbilities;
         }
 
@@ -231,23 +210,14 @@ public final class PieceRuntimeState {
         }
     }
 
-    /**
-     * Returns the current match context for this state. The context is refreshed
-     * whenever a full pattern check succeeds.
-     */
-    @NotNull
-    public PatternMatchContext getMatchContext() {
-        return matchContext;
-    }
-
-    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos,
-                                                  @NotNull StructureOrientation orientation) {
+    public boolean checkPatternFastAt(World world, BlockPos centerPos,
+                                      @NotNull StructureOrientation orientation) {
         return checkPatternFastAt(world, centerPos, orientation, true, 0, 0, 0);
     }
 
-    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos,
-                                                  @NotNull StructureOrientation orientation,
-                                                  boolean doRandomCheck) {
+    public boolean checkPatternFastAt(World world, BlockPos centerPos,
+                                      @NotNull StructureOrientation orientation,
+                                      boolean doRandomCheck) {
         return checkPatternFastAt(world, centerPos, orientation, doRandomCheck, 0, 0, 0);
     }
 
@@ -269,32 +239,32 @@ public final class PieceRuntimeState {
      * @param yOffset       template-local y offset added to every cell before transformation
      * @param zOffset       template-local z offset added to every cell before transformation
      */
-    public PatternMatchContext checkPatternFastAt(World world, BlockPos centerPos,
-                                                  @NotNull StructureOrientation orientation,
-                                                  boolean doRandomCheck,
-                                                  int xOffset, int yOffset, int zOffset) {
+    public boolean checkPatternFastAt(World world, BlockPos centerPos,
+                                      @NotNull StructureOrientation orientation,
+                                      boolean doRandomCheck,
+                                      int xOffset, int yOffset, int zOffset) {
         if (probeCacheAt(world, doRandomCheck, xOffset, yOffset, zOffset)) {
-            return worldState.hasError() ? null : matchContext;
+            return !worldState.hasError();
         }
 
-        PatternMatchContext pmc = checkPatternAt(world, centerPos, orientation.withFlipped(false),
+        boolean matched = checkPatternAt(world, centerPos, orientation.withFlipped(false),
                 xOffset, yOffset, zOffset, null);
         if (orientation.allowsFlip()) {
-            if (pmc != null) {
-                return pmc;
+            if (matched) {
+                return true;
             }
             Map<MultiblockAbility<?>, Integer> unflippedMissingAbilities = missingAbilities;
             PatternError unflippedError = worldState.error;
-            pmc = checkPatternAt(world, centerPos, orientation.withFlipped(true),
+            matched = checkPatternAt(world, centerPos, orientation.withFlipped(true),
                     xOffset, yOffset, zOffset, null);
-            if (pmc == null && shouldKeepUnflippedFailure(unflippedError, unflippedMissingAbilities,
+            if (!matched && shouldKeepUnflippedFailure(unflippedError, unflippedMissingAbilities,
                     worldState.error, missingAbilities)) {
                 missingAbilities = unflippedMissingAbilities;
                 worldState.setError(unflippedError);
             }
         }
-        if (pmc == null) clearCache();
-        return pmc;
+        if (!matched) clearCache();
+        return matched;
     }
 
     /**
@@ -396,10 +366,10 @@ public final class PieceRuntimeState {
         return current != null && ((CachedMetaTileEntityInfo) cachedInfo).matches(current);
     }
 
-    private PatternMatchContext checkPatternAt(World world, BlockPos centerPos,
-                                               @NotNull StructureOrientation orientation,
-                                               int xOffset, int yOffset, int zOffset,
-                                               @Nullable StructureMatchSession session) {
+    private boolean checkPatternAt(World world, BlockPos centerPos,
+                                   @NotNull StructureOrientation orientation,
+                                   int xOffset, int yOffset, int zOffset,
+                                   @Nullable StructureMatchSession session) {
         return checkFixedStructureCells(world, null, centerPos, orientation,
                 xOffset, yOffset, zOffset, session,
                 StructureEvaluationContext.Operation.MATCH_WORLD, true);
@@ -420,12 +390,12 @@ public final class PieceRuntimeState {
             boolean flipped,
             @Nullable PatternError error,
             @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
-        return new StructureFailureTrace.Builder("legacy", BlockPos.ORIGIN)
+        return new StructureFailureTrace.Builder("structure", BlockPos.ORIGIN)
                 .orientation(EnumFacing.NORTH, EnumFacing.NORTH, EnumFacing.UP, flipped)
-                .path("legacy-template")
+                .path("piece-template")
                 .operation("CHECK")
                 .result("failed")
-                .kind(classifyLegacyFailure(error, missingAbilities))
+                .kind(classifyFailure(error, missingAbilities))
                 .progressDepth(error == null ? 0 : 1)
                 .missingAbilities(missingAbilities)
                 .error(error)
@@ -433,31 +403,16 @@ public final class PieceRuntimeState {
     }
 
     @NotNull
-    private static StructureFailureTrace.Kind classifyLegacyFailure(
+    private static StructureFailureTrace.Kind classifyFailure(
             @Nullable PatternError error,
             @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities) {
         if (!missingAbilities.isEmpty()) {
             return StructureFailureTrace.Kind.MISSING_ABILITY;
         }
-        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
-            TraceabilityPredicate.SinglePredicateError single =
-                    (TraceabilityPredicate.SinglePredicateError) error;
-            if (single.type == 0 || single.type == 2) {
-                return StructureFailureTrace.Kind.COUNT_LIMIT;
-            }
+        if (error instanceof CountLimitError) {
+            return StructureFailureTrace.Kind.COUNT_LIMIT;
         }
-        return error == null ? StructureFailureTrace.Kind.LEGACY_PATTERN : StructureFailureTrace.Kind.BLOCK_MISMATCH;
-    }
-
-    private void recordMissingFixedAbility(@Nullable TraceabilityPredicate predicate) {
-        if (predicate == null) return;
-        if (!hasFixedAisleLayout()) return;
-        MultiblockAbility<?> ability = predicate.getSingleAbility();
-        if (ability == null) return;
-
-        Map<MultiblockAbility<?>, Integer> abilities = new HashMap<>(missingAbilities);
-        abilities.putIfAbsent(ability, 1);
-        missingAbilities = Collections.unmodifiableMap(abilities);
+        return error == null ? StructureFailureTrace.Kind.BLOCK_MISMATCH : StructureFailureTrace.Kind.BLOCK_MISMATCH;
     }
 
     @SuppressWarnings("unchecked")
@@ -480,8 +435,7 @@ public final class PieceRuntimeState {
     @FunctionalInterface
     private interface FixedStructureCellPredicate {
 
-        boolean visit(@NotNull FixedStructureCell cell,
-                      @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts);
+        boolean visit(@NotNull FixedStructureCell cell);
     }
 
     @FunctionalInterface
@@ -501,9 +455,6 @@ public final class PieceRuntimeState {
         private final BlockPos worldPos;
         @NotNull
         private final IStructureElement<?> element;
-        @Nullable
-        private TraceabilityPredicate predicate;
-        private boolean predicateResolved;
         @NotNull
         private final StructureElementPreviewEntry previewEntry;
 
@@ -511,8 +462,6 @@ public final class PieceRuntimeState {
                                    int localX, int localY, int localZ,
                                    @NotNull BlockPos worldPos,
                                    @NotNull IStructureElement<?> element,
-                                   @Nullable TraceabilityPredicate predicate,
-                                   boolean predicateResolved,
                                    @NotNull StructureElementPreviewEntry previewEntry) {
             this.aisleIndex = aisleIndex;
             this.repetitionIndex = repetitionIndex;
@@ -521,23 +470,7 @@ public final class PieceRuntimeState {
             this.localZ = localZ;
             this.worldPos = worldPos;
             this.element = element;
-            this.predicate = predicate;
-            this.predicateResolved = predicateResolved;
             this.previewEntry = previewEntry;
-        }
-
-        @Nullable
-        private TraceabilityPredicate legacyPredicate() {
-            if (!predicateResolved) {
-                predicate = element.toPredicate();
-                predicateResolved = true;
-            }
-            return predicate;
-        }
-
-        @Nullable
-        private TraceabilityPredicate runtimePredicate() {
-            return predicateResolved ? predicate : null;
         }
     }
 
@@ -553,10 +486,9 @@ public final class PieceRuntimeState {
         for (int c = 0; c < fingerLength; c++) {
             int repetitionCount = c < repetitions.length ? repetitions[c] : 0;
             for (int r = 0; r < repetitionCount; r++) {
-                Map<TraceabilityPredicate.SimplePredicate, Integer> legacyLayerCounts = new HashMap<>();
                 Map<StructureElementPreview.CandidateGroup, Integer> previewLayerCounts = new HashMap<>();
                 visitFixedStructureSlice(c, r, z, centerPos, orientation, xOffset, yOffset, zOffset,
-                        legacyLayerCounts, (cell, counts) -> {
+                        cell -> {
                             visitor.visit(cell, previewLayerCounts);
                             return true;
                         });
@@ -571,7 +503,6 @@ public final class PieceRuntimeState {
                                              @NotNull BlockPos centerPos,
                                              @NotNull StructureOrientation orientation,
                                              int xOffset, int yOffset, int zOffset,
-                                             @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts,
                                              @NotNull FixedStructureCellPredicate visitor) {
         PieceTemplate.CenterOffset centerOffset = template.getCenterOffset();
         int thumbLength = template.getYLength();
@@ -581,7 +512,7 @@ public final class PieceRuntimeState {
             for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
                 if (!visitor.visit(createFixedStructureCell(
                         aisleIndex, repetitionIndex, a, b, x, y, localZ,
-                        centerPos, orientation, xOffset, yOffset, zOffset), layerCounts)) {
+                        centerPos, orientation, xOffset, yOffset, zOffset))) {
                     return false;
                 }
             }
@@ -599,41 +530,37 @@ public final class PieceRuntimeState {
                                                        @NotNull StructureOrientation orientation,
                                                        int xOffset, int yOffset, int zOffset) {
         IStructureElement<?> element = template.getElements()[aisleIndex][elementYIndex][elementXIndex];
-        boolean legacyRuntime = element.usesLegacyPredicateRuntime();
-        TraceabilityPredicate predicate = legacyRuntime ? element.toPredicate() : null;
         BlockPos pos = RelativeDirection.setActualRelativeOffset(
                 localX + xOffset, localY + yOffset, localZ + zOffset,
                 orientation.getStructureFront(), orientation.getUp(),
                 orientation.isFlipped(), template.getStructureDir())
                 .add(centerPos);
         return new FixedStructureCell(
-                aisleIndex, repetitionIndex, localX, localY, localZ, pos, element, predicate,
-                legacyRuntime,
+                aisleIndex, repetitionIndex, localX, localY, localZ, pos, element,
                 StructureElementPreviewEntry.of(element.getPreview(), previewTooltip(element)));
     }
 
-    @Nullable
-    private PatternMatchContext checkFixedStructureCells(@Nullable World world,
-                                                         @Nullable net.minecraft.world.IBlockAccess blockAccess,
-                                                         @NotNull BlockPos centerPos,
-                                                         @NotNull StructureOrientation orientation,
-                                                         int xOffset, int yOffset, int zOffset,
-                                                         @Nullable StructureMatchSession session,
-                                                         @NotNull StructureEvaluationContext.Operation operation,
-                                                         boolean updateCache) {
+    private boolean checkFixedStructureCells(@Nullable World world,
+                                             @Nullable net.minecraft.world.IBlockAccess blockAccess,
+                                             @NotNull BlockPos centerPos,
+                                             @NotNull StructureOrientation orientation,
+                                             int xOffset, int yOffset, int zOffset,
+                                             @Nullable StructureMatchSession session,
+                                             @NotNull StructureEvaluationContext.Operation operation,
+                                             boolean updateCache) {
         if (session == null) {
             StructureMatchSession internalSession = new StructureMatchSession(
-                    Collections.emptyMap(), Collections.emptyList(), null);
-            PatternMatchContext result = checkFixedStructureCells(world, blockAccess, centerPos, orientation,
+                    Collections.emptyMap(), Collections.emptyList());
+            boolean result = checkFixedStructureCells(world, blockAccess, centerPos, orientation,
                     xOffset, yOffset, zOffset, internalSession, operation, updateCache);
-            if (result == null) {
-                return null;
+            if (!result) {
+                return false;
             }
             if (failForMissingInternalSessionRequirements(internalSession)) {
-                return null;
+                return false;
             }
-            commitInternalSession(internalSession, orientation);
-            return matchContext;
+            missingAbilities = Collections.emptyMap();
+            return true;
         }
 
         int[][] aisleRepetitions = template.getAisleRepetitions();
@@ -643,10 +570,7 @@ public final class PieceRuntimeState {
         boolean findFirstAisle = false;
         int minZ = -centerOffset.maxZ();
 
-        PatternMatchContext activeContext = session.getContext();
-        Map<TraceabilityPredicate.SimplePredicate, Integer> activeGlobalCount = session.getGlobalCount();
         StructureMatchSession.Checkpoint initialCheckpoint = session.checkpoint();
-        this.layerCount.clear();
         this.missingAbilities = Collections.emptyMap();
         if (updateCache) {
             cache.clear();
@@ -660,12 +584,10 @@ public final class PieceRuntimeState {
             int validRepetitions = 0;
             loop:
             for (r = 0; (findFirstAisle ? r < aisleRepetitions[c][1] : z <= -centerOffset.minZ()); r++) {
-                this.layerCount.clear();
-
                 if (!visitFixedStructureSlice(c, r, z, centerPos, orientation, xOffset, yOffset, zOffset,
-                        this.layerCount, (cell, counts) -> checkFixedStructureCell(
-                                cell, world, blockAccess, activeContext, activeGlobalCount,
-                                counts, session, operation, updateCache))) {
+                        cell -> checkFixedStructureCell(
+                                cell, world, blockAccess,
+                                session, operation, updateCache))) {
                     if (findFirstAisle) {
                         if (r < aisleRepetitions[c][0]) {
                             r = c = 0;
@@ -681,58 +603,33 @@ public final class PieceRuntimeState {
                 findFirstAisle = true;
                 z++;
 
-                if (!validateFixedStructureLayerCounts()) {
-                    return null;
-                }
                 validRepetitions++;
             }
             if (validRepetitions < aisleRepetitions[c][0]) {
                 if (!worldState.hasError()) {
                     worldState.setError(new PatternError());
                 }
-                return null;
+                return false;
             }
 
             formedRepetitionCount[c] = validRepetitions;
         }
 
         worldState.setError(null);
-        activeContext.setNeededFlip(orientation.isFlipped());
-        return activeContext;
+        return true;
     }
 
     private boolean failForMissingInternalSessionRequirements(@NotNull StructureMatchSession session) {
-        TraceabilityPredicate.SimplePredicate firstMissing = null;
         Map<MultiblockAbility<?>, Integer> abilities = new HashMap<>();
-
-        for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : session.getGlobalCount().entrySet()) {
-            TraceabilityPredicate.SimplePredicate predicate = entry.getKey();
-            int deficit = predicate.minGlobalCount - entry.getValue();
-            if (deficit <= 0) continue;
-
-            if (firstMissing == null) {
-                firstMissing = predicate;
-            }
-            if (predicate.ability != null) {
-                abilities.merge(predicate.ability, deficit, Integer::sum);
-            }
-        }
 
         StructureMatchCollector.Validation operationValidation =
                 StructureMatchCollector.validate(session.getOperationState());
-        StructureMatchCollector.Validation contextValidation =
-                StructureMatchCollector.validate(session.getContext());
         if (!operationValidation.missingAbilities.isEmpty()) {
             operationValidation.missingAbilities.forEach(
                     (ability, deficit) -> abilities.merge(ability, deficit, Integer::sum));
         }
-        if (!contextValidation.missingAbilities.isEmpty()) {
-            contextValidation.missingAbilities.forEach(
-                    (ability, deficit) -> abilities.merge(ability, deficit, Integer::sum));
-        }
 
-        boolean collectorSucceeded = operationValidation.success && contextValidation.success;
-        if (firstMissing == null && collectorSucceeded) {
+        if (operationValidation.success) {
             missingAbilities = Collections.emptyMap();
             return false;
         }
@@ -740,36 +637,18 @@ public final class PieceRuntimeState {
         missingAbilities = abilities.isEmpty()
                 ? Collections.emptyMap()
                 : Collections.unmodifiableMap(abilities);
-        if (firstMissing != null) {
-            worldState.setError(new TraceabilityPredicate.SinglePredicateError(firstMissing, 1));
-        } else {
-            StructureMatchCollector.Validation failure =
-                    operationValidation.success ? contextValidation : operationValidation;
-            worldState.setError(failure.error == null
-                    ? new PatternStringError(failure.errorMessage == null
-                            ? "gregtech.multiblock.pattern.error.requirements"
-                            : failure.errorMessage)
-                    : failure.error);
-        }
+        StructureMatchCollector.Validation failure = operationValidation;
+        worldState.setError(failure.error == null
+                ? new PatternStringError(failure.errorMessage == null
+                        ? "gregtech.multiblock.pattern.error.requirements"
+                        : failure.errorMessage)
+                : failure.error);
         return true;
-    }
-
-    private void commitInternalSession(@NotNull StructureMatchSession session,
-                                       @NotNull StructureOrientation orientation) {
-        matchContext.replaceWith(session.projectCompatibilityContext(session.getContext()));
-        session.copyOperationState().applyCompatibilityView(matchContext);
-        matchContext.setNeededFlip(orientation.isFlipped());
-        globalCount.clear();
-        globalCount.putAll(session.getGlobalCount());
-        missingAbilities = Collections.emptyMap();
     }
 
     private boolean checkFixedStructureCell(@NotNull FixedStructureCell cell,
                                             @Nullable World world,
                                             @Nullable net.minecraft.world.IBlockAccess blockAccess,
-                                            @NotNull PatternMatchContext activeContext,
-                                            @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> activeGlobalCount,
-                                            @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts,
                                             @Nullable StructureMatchSession session,
                                             @NotNull StructureEvaluationContext.Operation operation,
                                             boolean updateCache) {
@@ -777,19 +656,14 @@ public final class PieceRuntimeState {
             if (blockAccess == null) {
                 throw new IllegalArgumentException("Snapshot fixed-structure check requires an IBlockAccess");
             }
-            TraceabilityPredicate predicate = cell.runtimePredicate();
-            worldState.updateFromBlockAccess(blockAccess, cell.worldPos, activeContext, activeGlobalCount,
-                    layerCounts, predicate, cell.previewEntry);
+            worldState.updateFromBlockAccess(blockAccess, cell.worldPos, session, cell.previewEntry);
         } else {
             if (world == null) {
                 throw new IllegalArgumentException("Live fixed-structure check requires a World");
             }
-            TraceabilityPredicate predicate = cell.runtimePredicate();
-            worldState.update(world, cell.worldPos, activeContext, activeGlobalCount,
-                    layerCounts, predicate, cell.previewEntry);
+            worldState.update(world, cell.worldPos, session, cell.previewEntry);
         }
         if (!checkElement(cell.element, session, operation)) {
-            recordMissingFixedAbility(cell.runtimePredicate());
             return false;
         }
         if (updateCache && !operation.readsSnapshot()) {
@@ -808,7 +682,6 @@ public final class PieceRuntimeState {
         int thumbLength = template.getYLength();
         int palmLength = template.getXLength();
 
-        Map<TraceabilityPredicate.SimplePredicate, Integer> layerCounts = new HashMap<>();
         for (int c = 0, localZ = -centerOffset.maxZ(); c < fingerLength; c++, localZ++) {
             for (int b = 0, y = -centerOffset.y(); b < thumbLength; b++, y++) {
                 for (int a = 0, x = -centerOffset.x(); a < palmLength; a++, x++) {
@@ -817,7 +690,7 @@ public final class PieceRuntimeState {
                     }
                     if (!visitor.visit(createFixedStructureCell(
                             c, 0, a, b, x, y, localZ,
-                            centerPos, orientation, xOffset, yOffset, zOffset), layerCounts)) {
+                            centerPos, orientation, xOffset, yOffset, zOffset))) {
                         return false;
                     }
                 }
@@ -827,52 +700,37 @@ public final class PieceRuntimeState {
     }
 
     private void recordLiveCacheCell(@NotNull FixedStructureCell cell) {
-        TraceabilityPredicate predicate = cell.runtimePredicate();
-        if (predicate == TraceabilityPredicate.ANY) return;
-
         IBlockState blockState = worldState.getCachedBlockState();
         if (blockState == null) return;
         TileEntity tileEntity = blockState.getBlock().hasTileEntity(blockState)
                 ? worldState.getTileEntity()
                 : null;
         if (tileEntity instanceof IGregTechTileEntity && !((IGregTechTileEntity) tileEntity).isValid()) {
-            cache.put(cell.worldPos.toLong(), new BlockInfo(blockState, null, predicate));
+            cache.put(cell.worldPos.toLong(), new BlockInfo(blockState, null));
             return;
         }
         cache.put(cell.worldPos.toLong(), new BlockInfo(
-                blockState, tileEntity, createCacheInfo(tileEntity, predicate)));
+                blockState, tileEntity, createCacheInfo(tileEntity)));
     }
 
     @Nullable
-    private static Object createCacheInfo(@Nullable TileEntity tileEntity,
-                                          @NotNull TraceabilityPredicate predicate) {
+    private static Object createCacheInfo(@Nullable TileEntity tileEntity) {
         if (tileEntity instanceof IGregTechTileEntity) {
             MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
             if (metaTileEntity != null) {
-                return new CachedMetaTileEntityInfo(metaTileEntity, predicate);
+                return new CachedMetaTileEntityInfo(metaTileEntity);
             }
         }
-        return predicate;
-    }
-
-    private boolean validateFixedStructureLayerCounts() {
-        for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : layerCount.entrySet()) {
-            if (entry.getValue() < entry.getKey().minLayerCount) {
-                worldState.setError(new TraceabilityPredicate.SinglePredicateError(entry.getKey(), 3));
-                return false;
-            }
-        }
-        return true;
+        return null;
     }
 
     private void updateOperationCellContext(@NotNull StructureEvaluationContext<Object> evaluationContext,
                                             @NotNull BlockWorldState operationWorldState,
                                             @NotNull World world,
                                             @NotNull BlockPos pos,
-                                            @Nullable TraceabilityPredicate predicate,
                                             @NotNull MultiblockControllerBase controllerBase,
                                             @NotNull StructureEvaluationContext.Operation operation) {
-        operationWorldState.update(world, pos, matchContext, globalCount, layerCount, predicate);
+        operationWorldState.update(world, pos, null);
         evaluationContext.update(controllerBase, null, operationWorldState, operation);
     }
 
@@ -943,8 +801,6 @@ public final class PieceRuntimeState {
         @NotNull
         private final Map<BlockPos, BlockInfo> blocks = new HashMap<>();
         @NotNull
-        private final Map<BlockPos, TraceabilityPredicate> predicates = new HashMap<>();
-        @NotNull
         private final Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
         private int minX = Integer.MAX_VALUE;
         private int minY = Integer.MAX_VALUE;
@@ -954,12 +810,8 @@ public final class PieceRuntimeState {
         private int maxZ = Integer.MIN_VALUE;
 
         private void record(@NotNull BlockPos pos, @NotNull BlockInfo info,
-                            @Nullable TraceabilityPredicate predicate,
                             @NotNull StructureElementPreviewEntry previewEntry) {
             blocks.put(pos, info);
-            if (predicate != null && predicate != TraceabilityPredicate.ANY) {
-                predicates.put(pos, predicate);
-            }
             previewEntries.put(pos, previewEntry);
             minX = Math.min(pos.getX(), minX);
             minY = Math.min(pos.getY(), minY);
@@ -972,10 +824,10 @@ public final class PieceRuntimeState {
         @NotNull
         private PreviewCells toCells(@NotNull BlockPos center) {
             if (blocks.isEmpty()) {
-                return new PreviewCells(Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap(),
+                return new PreviewCells(Collections.emptyMap(), Collections.emptyMap(),
                         center, 0, 0, 0, 0, 0, 0);
             }
-            return new PreviewCells(blocks, predicates, previewEntries, center,
+            return new PreviewCells(blocks, previewEntries, center,
                     minX, minY, minZ, maxX, maxY, maxZ);
         }
     }
@@ -984,8 +836,6 @@ public final class PieceRuntimeState {
 
         @NotNull
         private final Map<BlockPos, BlockInfo> blocks;
-        @NotNull
-        private final Map<BlockPos, TraceabilityPredicate> predicates;
         @NotNull
         private final Map<BlockPos, StructureElementPreviewEntry> previewEntries;
         @NotNull
@@ -998,13 +848,11 @@ public final class PieceRuntimeState {
         private final int maxZ;
 
         protected PreviewCells(@NotNull Map<BlockPos, BlockInfo> blocks,
-                               @NotNull Map<BlockPos, TraceabilityPredicate> predicates,
                                @NotNull Map<BlockPos, StructureElementPreviewEntry> previewEntries,
                                @NotNull BlockPos center,
                                int minX, int minY, int minZ,
                                int maxX, int maxY, int maxZ) {
             this.blocks = Collections.unmodifiableMap(new HashMap<>(blocks));
-            this.predicates = Collections.unmodifiableMap(new HashMap<>(predicates));
             this.previewEntries = Collections.unmodifiableMap(new HashMap<>(previewEntries));
             this.center = center;
             this.minX = minX;
@@ -1018,11 +866,6 @@ public final class PieceRuntimeState {
         @NotNull
         public Map<BlockPos, BlockInfo> getBlocks() {
             return blocks;
-        }
-
-        @NotNull
-        public Map<BlockPos, TraceabilityPredicate> getPredicates() {
-            return predicates;
         }
 
         @NotNull
@@ -1101,22 +944,16 @@ public final class PieceRuntimeState {
                                 @NotNull BuildTraversalState buildState,
                                 @NotNull StructureEvaluationContext.Operation operation) {
         World world = player.world;
-        TraceabilityPredicate predicate = cell.runtimePredicate();
         BlockPos pos = cell.worldPos;
         buildState.result.recordVisitedCell();
 
         updateOperationCellContext(buildState.evaluationContext, buildState.worldState,
-                world, pos, predicate, controllerBase, operation);
+                world, pos, controllerBase, operation);
         if (buildState.evaluationContext.probe(evaluation -> elementMatches(cell.element, evaluation))) {
             buildState.result.recordExistingCell();
             buildState.blocks.put(pos, world.getBlockState(pos));
             if (abilityTracker != null) {
                 abilityTracker.recordWorldTile(pos, world.getTileEntity(pos));
-            }
-            if (predicate != null) {
-                for (TraceabilityPredicate.SimplePredicate limit : predicate.limited) {
-                    limit.testLimited(buildState.worldState);
-                }
             }
             return;
         }
@@ -1417,87 +1254,32 @@ public final class PieceRuntimeState {
         return true;
     }
 
-    private boolean failForMissingGlobalPredicates(
-            @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> counts) {
-        TraceabilityPredicate.SimplePredicate firstMissing = null;
-        Map<MultiblockAbility<?>, Integer> abilities = new HashMap<>();
-
-        for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : counts.entrySet()) {
-            TraceabilityPredicate.SimplePredicate predicate = entry.getKey();
-            int deficit = predicate.minGlobalCount - entry.getValue();
-            if (deficit <= 0) continue;
-
-            if (firstMissing == null) {
-                firstMissing = predicate;
-            }
-            if (predicate.ability != null) {
-                abilities.merge(predicate.ability, deficit, Integer::sum);
-            }
-        }
-
-        StructureMatchCollector.Validation collectorValidation = new StructureMatchCollector(matchContext).validate();
-        if (!collectorValidation.missingAbilities.isEmpty()) {
-            collectorValidation.missingAbilities.forEach(
-                    (ability, deficit) -> abilities.merge(ability, deficit, Integer::sum));
-        }
-
-        if (firstMissing == null) {
-            return failForMissingCollectorRequirements(collectorValidation);
-        }
-
-        missingAbilities = abilities.isEmpty()
-                ? Collections.emptyMap()
-                : Collections.unmodifiableMap(abilities);
-        worldState.setError(new TraceabilityPredicate.SinglePredicateError(firstMissing, 1));
-        return true;
-    }
-
-    private boolean failForMissingCollectorRequirements(
-            @NotNull StructureMatchCollector.Validation validation) {
-        if (validation.success) {
-            missingAbilities = Collections.emptyMap();
-            return false;
-        }
-
-        missingAbilities = validation.missingAbilities.isEmpty()
-                ? Collections.emptyMap()
-                : validation.missingAbilities;
-        worldState.setError(validation.error == null
-                ? new PatternStringError("gregtech.multiblock.pattern.error.requirements")
-                : validation.error);
-        return true;
-    }
-
-    @Nullable
-    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
-                                                   @NotNull StructureOrientation orientation) {
+    public boolean checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
+                                       @NotNull StructureOrientation orientation) {
         return checkPatternAtExact(world, centerPos, orientation, 0, 0, 0);
     }
 
-    @Nullable
-    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
-                                                   @NotNull StructureOrientation orientation,
-                                                   int xOffset, int yOffset, int zOffset) {
+    public boolean checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
+                                       @NotNull StructureOrientation orientation,
+                                       int xOffset, int yOffset, int zOffset) {
         return checkPatternAtExact(world, centerPos, orientation,
                 xOffset, yOffset, zOffset, null);
     }
 
-    @Nullable
-    public PatternMatchContext checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
-                                                   @NotNull StructureOrientation orientation,
-                                                   int xOffset, int yOffset, int zOffset,
-                                                   @Nullable StructureMatchSession session) {
+    public boolean checkPatternAtExact(@NotNull World world, @NotNull BlockPos centerPos,
+                                       @NotNull StructureOrientation orientation,
+                                       int xOffset, int yOffset, int zOffset,
+                                       @Nullable StructureMatchSession session) {
         return checkPatternAtExact(
                 world,
                 StructureCellTraversal.at(centerPos, orientation).withLocalOffset(xOffset, yOffset, zOffset),
                 session);
     }
 
-    @Nullable
-    public PatternMatchContext checkPatternAtExact(@NotNull World world,
-                                                   @NotNull StructureCellTraversal traversal,
-                                                   @Nullable StructureMatchSession session) {
-        PatternMatchContext result = checkPatternAt(
+    public boolean checkPatternAtExact(@NotNull World world,
+                                       @NotNull StructureCellTraversal traversal,
+                                       @Nullable StructureMatchSession session) {
+        boolean result = checkPatternAt(
                 world,
                 traversal.getCenterPos(),
                 traversal.getOrientation(),
@@ -1505,7 +1287,7 @@ public final class PieceRuntimeState {
                 traversal.getYOffset(),
                 traversal.getZOffset(),
                 session);
-        if (result == null) clearCache();
+        if (!result) clearCache();
         return result;
     }
 
@@ -1841,7 +1623,7 @@ public final class PieceRuntimeState {
                 traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(), (cell, layerCounts) -> {
             hintState.result.recordVisitedCell();
             updateOperationCellContext(hintState.evaluationContext, hintState.worldState,
-                    world, cell.worldPos, cell.runtimePredicate(), controllerBase,
+                    world, cell.worldPos, controllerBase,
                     StructureEvaluationContext.Operation.HINT);
             IStructureElement<Object> typedElement = (IStructureElement<Object>) cell.element;
             StructureHintRenderResult triggerResult =
@@ -2142,8 +1924,7 @@ public final class PieceRuntimeState {
             StructureElementPreview preview = cell.element.getPreview();
             BlockInfo info = selectPreviewBlockInfo(
                     preview, layerCounts, previewState, channelValues, abilityTracker, skipHatches);
-            TraceabilityPredicate predicate = cell.runtimePredicate();
-            previewState.record(cell.worldPos, info, predicate,
+            previewState.record(cell.worldPos, info,
                     StructureElementPreviewEntry.of(preview, previewTooltip(cell.element)));
         });
         orientPreviewControllers(previewState.blocks);
@@ -2198,41 +1979,40 @@ public final class PieceRuntimeState {
                 orientation.isFlipped(), template.getStructureDir());
     }
 
-    public PatternMatchContext checkPatternFastAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
-                                                          BlockPos centerPos,
-                                                          @NotNull StructureOrientation orientation) {
+    public boolean checkPatternFastAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
+                                              BlockPos centerPos,
+                                              @NotNull StructureOrientation orientation) {
         return checkPatternFastAtSnapshot(blockAccess, centerPos, orientation, 0, 0, 0);
     }
 
-    public PatternMatchContext checkPatternFastAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
-                                                          BlockPos centerPos,
-                                                          @NotNull StructureOrientation orientation,
-                                                          int xOffset, int yOffset, int zOffset) {
+    public boolean checkPatternFastAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
+                                              BlockPos centerPos,
+                                              @NotNull StructureOrientation orientation,
+                                              int xOffset, int yOffset, int zOffset) {
         // For snapshot checks, we skip the cache fast-path and do a full pattern check
-        PatternMatchContext pmc = checkPatternAtSnapshot(blockAccess, centerPos,
+        boolean matched = checkPatternAtSnapshot(blockAccess, centerPos,
                 orientation.withFlipped(false), xOffset, yOffset, zOffset, null);
         if (orientation.allowsFlip()) {
-            if (pmc != null) {
-                return pmc;
+            if (matched) {
+                return true;
             }
             Map<MultiblockAbility<?>, Integer> unflippedMissingAbilities = missingAbilities;
             PatternError unflippedError = worldState.error;
-            pmc = checkPatternAtSnapshot(blockAccess, centerPos,
+            matched = checkPatternAtSnapshot(blockAccess, centerPos,
                     orientation.withFlipped(true), xOffset, yOffset, zOffset, null);
-            if (pmc == null && shouldKeepUnflippedFailure(unflippedError, unflippedMissingAbilities,
+            if (!matched && shouldKeepUnflippedFailure(unflippedError, unflippedMissingAbilities,
                     worldState.error, missingAbilities)) {
                 missingAbilities = unflippedMissingAbilities;
                 worldState.setError(unflippedError);
             }
         }
-        return pmc;
+        return matched;
     }
 
-    @Nullable
-    public PatternMatchContext checkOnSnapshotWithPrior(@NotNull net.minecraft.world.IBlockAccess snap,
-                                                        @NotNull BlockPos centerPos,
-                                                        @NotNull StructureOrientation orientation,
-                                                        @Nullable FormedStructureMetadata prior) {
+    public boolean checkOnSnapshotWithPrior(@NotNull net.minecraft.world.IBlockAccess snap,
+                                            @NotNull BlockPos centerPos,
+                                            @NotNull StructureOrientation orientation,
+                                            @Nullable FormedStructureMetadata prior) {
         if (prior == null) {
             // No prior: delegate to standard snapshot check
             return checkPatternFastAtSnapshot(snap, centerPos, orientation);
@@ -2242,7 +2022,7 @@ public final class PieceRuntimeState {
         // If the cache is non-empty and all positions still match, we're done in O(cache_size)
         if (!cache.isEmpty()) {
             if (verifyCacheAgainstSnapshot(snap)) {
-                return matchContext;
+                return true;
             }
         }
 
@@ -2293,16 +2073,14 @@ public final class PieceRuntimeState {
         }
 
         StructureMatchSession session = new StructureMatchSession();
-        this.layerCount.clear();
         this.missingAbilities = Collections.emptyMap();
 
         boolean matched = visitFixedStructureCellsWhere(
                 traversal.getCenterPos(), traversal.getOrientation(),
                 traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(),
                 (x, y, z) -> coordinateForAxis(axis, x, y, z) == boundaryIndex,
-                (cell, layerCounts) -> {
-                    worldState.updateFromBlockAccess(snap, cell.worldPos, session.getContext(),
-                            session.getGlobalCount(), layerCounts, cell.runtimePredicate(), cell.previewEntry);
+                cell -> {
+                    worldState.updateFromBlockAccess(snap, cell.worldPos, session, cell.previewEntry);
                     return checkElement(cell.element, session, StructureEvaluationContext.Operation.MATCH_SNAPSHOT);
                 });
         if (!matched) {
@@ -2345,18 +2123,17 @@ public final class PieceRuntimeState {
      * Internal pattern check against a snapshot.
      * Simplified version that uses IBlockAccess instead of World.
      */
-    private PatternMatchContext checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
-                                                       BlockPos centerPos,
-                                                       @NotNull StructureOrientation orientation,
-                                                       int xOffset, int yOffset, int zOffset,
-                                                       @Nullable StructureMatchSession session) {
+    private boolean checkPatternAtSnapshot(net.minecraft.world.IBlockAccess blockAccess,
+                                           BlockPos centerPos,
+                                           @NotNull StructureOrientation orientation,
+                                           int xOffset, int yOffset, int zOffset,
+                                           @Nullable StructureMatchSession session) {
         return checkFixedStructureCells(null, blockAccess, centerPos, orientation,
                 xOffset, yOffset, zOffset, session,
                 StructureEvaluationContext.Operation.MATCH_SNAPSHOT, false);
     }
 
-    @Nullable
-    public PatternMatchContext checkPatternAtSnapshotExact(
+    public boolean checkPatternAtSnapshotExact(
             @NotNull net.minecraft.world.IBlockAccess blockAccess,
             @NotNull BlockPos centerPos,
             @NotNull StructureOrientation orientation,
@@ -2365,8 +2142,7 @@ public final class PieceRuntimeState {
                 xOffset, yOffset, zOffset, null);
     }
 
-    @Nullable
-    public PatternMatchContext checkPatternAtSnapshotExact(
+    public boolean checkPatternAtSnapshotExact(
             @NotNull net.minecraft.world.IBlockAccess blockAccess,
             @NotNull BlockPos centerPos,
             @NotNull StructureOrientation orientation,
@@ -2378,8 +2154,7 @@ public final class PieceRuntimeState {
                 session);
     }
 
-    @Nullable
-    public PatternMatchContext checkPatternAtSnapshotExact(
+    public boolean checkPatternAtSnapshotExact(
             @NotNull net.minecraft.world.IBlockAccess blockAccess,
             @NotNull StructureCellTraversal traversal,
             @Nullable StructureMatchSession session) {
@@ -2393,14 +2168,10 @@ public final class PieceRuntimeState {
         private final MetaTileEntity instance;
         @NotNull
         private final ResourceLocation id;
-        @NotNull
-        private final TraceabilityPredicate predicate;
 
-        private CachedMetaTileEntityInfo(@NotNull MetaTileEntity instance,
-                                         @NotNull TraceabilityPredicate predicate) {
+        private CachedMetaTileEntityInfo(@NotNull MetaTileEntity instance) {
             this.instance = instance;
             this.id = instance.metaTileEntityId;
-            this.predicate = predicate;
         }
 
         private boolean matches(@NotNull MetaTileEntity current) {
@@ -2409,7 +2180,7 @@ public final class PieceRuntimeState {
 
         @Override
         public String toString() {
-            return predicate.toString();
+            return id.toString();
         }
     }
 }

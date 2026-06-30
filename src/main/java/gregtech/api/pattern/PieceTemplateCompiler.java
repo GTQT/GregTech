@@ -104,9 +104,9 @@ public final class PieceTemplateCompiler {
      *
      * <p>Validates that the new aisle matches the previously recorded
      * height/width, and registers any previously-unseen characters as null
-     * predicates (which must be filled in by
-     * {@link #where(char, TraceabilityPredicate)} before
-     * {@link #buildTemplate()}).
+     * elements (which must be filled in by
+     * {@link #whereElement(char, IStructureElement)} before
+     * {@link #buildPieceTemplate()}).
      *
      * @param exactCount exact number of repetitions
      * @param aisle      the flat row strings for this aisle
@@ -220,8 +220,8 @@ public final class PieceTemplateCompiler {
 
     /**
      * Build the canonical {@link PieceTemplate} directly, without going through
-     * a facade. Use this from the StructureDefinition compile path: the
-     * resulting {@code PieceTemplate} can be wrapped directly in a
+     * an intermediate wrapper. Use this from the StructureDefinition compile
+     * path: the resulting {@code PieceTemplate} can be wrapped directly in a
      * {@link StructurePiece}.
      */
     @NotNull

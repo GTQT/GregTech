@@ -2,7 +2,6 @@ package gregtech.api.metatileentity.multiblock;
 
 import gregtech.api.pattern.CommittedStructureGraph;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOperationState;

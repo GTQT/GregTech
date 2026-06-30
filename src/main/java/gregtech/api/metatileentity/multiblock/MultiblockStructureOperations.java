@@ -15,7 +15,6 @@ import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePreviewResult;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureTrace;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
@@ -52,7 +51,6 @@ final class MultiblockStructureOperations {
                         controller.getPos(),
                         StructureOrientation.fromController(controller),
                         controller.isDelayCheck() && ConfigHolder.machines.enableStructureCheckSample,
-                        null,
                         controller));
         MultiblockStructureCommitter.applyCheckResult(controller, result, token);
     }
@@ -67,7 +65,6 @@ final class MultiblockStructureOperations {
                         controller.getPos(),
                         StructureOrientation.fromController(controller),
                         false,
-                        null,
                         controller));
         MultiblockStructureCommitter.applyCheckResult(controller, result, token);
         MultiblockStructureRegistration.refreshMultiPieceRegistrationFromRuntime(
@@ -105,7 +102,7 @@ final class MultiblockStructureOperations {
                         controller.getPos(),
                         StructureOrientation.fromController(controller),
                         false,
-                        null, controller),
+                        controller),
                 detachedPrecheck);
         MultiblockStructureCommitter.applyCheckResult(controller, result, token);
     }

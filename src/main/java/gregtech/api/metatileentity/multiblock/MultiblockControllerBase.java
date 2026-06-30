@@ -114,14 +114,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      */
     @Nullable
     protected PieceRuntimes pieceRuntimes;
-    /** Canonical structure definition. Legacy hooks are adapted into this model. */
+    /** Canonical structure definition. */
     @Nullable
     private StructureDefinition<?> structureDefinition;
     /** V3 per-controller structure runtime. */
     @Nullable
     private StructureRuntime structureRuntime;
-    @Nullable
-    private String structureAdapterTraceSource;
     /** Invalidates detached async work whenever compiled runtime objects are rebuilt. */
     private volatile long structureRuntimeGeneration;
     private volatile long structureControllerModeGeneration;
@@ -178,7 +176,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         this.multiPiecePattern = this.structureDefinition.getCompiledPattern();
         if (this.structureDefinition.supportsSingleTemplatePath()) {
             this.patternTemplate = this.multiPiecePattern.getPrimaryPiece().getTemplate();
-            this.runtimeState = new PieceRuntimeState(this.patternTemplate.getDelegate());
+            this.runtimeState = new PieceRuntimeState(this.patternTemplate);
         } else {
             this.patternTemplate = null;
             this.runtimeState = null;
@@ -190,11 +188,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
                 : PieceRuntimes.singleWithState(this.multiPiecePattern, this.runtimeState);
         this.structureRuntime = new StructureRuntime(this.structureDefinition, this.patternTemplate,
                 this.runtimeState, this.multiPiecePattern, this.pieceRuntimes);
-        if (this.structureAdapterTraceSource != null) {
-            this.structureRuntime.recordAdapterTrace(
-                    this.structureAdapterTraceSource,
-                    this.multiPiecePattern == null ? 0 : this.multiPiecePattern.getPieceList().size());
-        }
         this.structureRuntimeGeneration++;
         this.structureRuntime.copyFormedStateFrom(previousRuntime);
         StructureTrace.debug(this, "runtime-reinitialized", this.structureRuntime.describeShape());
@@ -208,7 +201,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
             throw new UnsupportedOperationException(
                     "Override createStructureDefinition() to provide a StructureDefinition");
         }
-        this.structureAdapterTraceSource = null;
         return definition;
     }
 
@@ -254,8 +246,8 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * shared between independent controllers. See {@link PieceRuntime} for
      * the underlying per-piece state holder.
      *
-     * @return the controller's per-piece state, or null if this controller
-     *         has no multi-piece pattern (legacy single-piece path)
+     * @return the controller's per-piece state, or null if this controller has
+     *         no multi-piece pattern.
      */
     @Nullable
     public PieceRuntimes getPieceRuntimes() {
@@ -656,8 +648,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
-     * Get the canonical structure definition. Legacy templates are adapted into
-     * this model during {@link #reinitializeStructurePattern()}.
+     * Get the canonical structure definition.
      */
     @NotNull
     public StructureDefinition<?> getStructureDefinition() {
@@ -1097,8 +1088,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      *
      * <p>This is the typed JEI/tooling surface: it reads
      * {@link gregtech.api.pattern.element.StructureElementPreview} and element
-     * preview tooltips first, carrying a legacy predicate only for fallback
-     * tooltip behavior during the addon migration window.
+     * preview tooltips directly.
      */
     @NotNull
     public Map<BlockPos, StructureElementPreviewEntry> buildMultiPiecePreviewEntries(
@@ -1110,8 +1100,7 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
      * Build typed preview metadata for JEI, preview renderers and client tools.
      *
      * <p>This is the tooling-facing canonical path for candidate blocks and
-     * preview tooltips. Legacy predicate maps remain available only through
-     * deprecated/fallback accessors during the addon migration window.
+     * preview tooltips.
      */
     @NotNull
     public Map<BlockPos, StructureElementPreviewEntry> buildStructurePreviewEntries(

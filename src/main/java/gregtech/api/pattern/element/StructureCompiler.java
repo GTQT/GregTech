@@ -2,7 +2,6 @@ package gregtech.api.pattern.element;
 
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.AbilityGroupLimit;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.DynamicOffsetPiece;
 import gregtech.api.pattern.DynamicRepeatGroupPiece;
 import gregtech.api.pattern.MultiPiecePattern;
@@ -109,29 +108,11 @@ public final class StructureCompiler {
                              entry.baseOffset, entry.offsetMode, entry.condition,
                              (snap, origin, orientation, prior, runtime, session) ->
                                      runtime.getState().checkPatternAtSnapshotExact(
-                                             snap, origin, orientation, 0, 0, 0, session) != null,
+                                             snap, origin, orientation, 0, 0, 0, session),
                              p.isToolingVisible());
                     pieces.add(piece);
                     if (referenceCenterOffset == null) {
-                        BlockPatternTemplate.CenterOffset co = mp.template.getCenterOffset();
-                        referenceCenterOffset = new int[]{co.x(), co.y(), co.z()};
-                    }
-                    continue;
-                }
-                if (mp.legacyTemplate != null) {
-                    // The snapshot checker receives the per-controller PieceRuntime as its
-                    // last argument; the template is final, so the captured reference to
-                    // `mp.legacyTemplate` is fine across controllers.
-                    StructurePiece piece = new StructurePiece(p.getName(), mp.legacyTemplate,
-                             entry.baseOffset, entry.offsetMode, entry.condition,
-                             (snap, origin, orientation, prior, runtime, session) ->
-                                     runtime.getState().checkPatternAtSnapshotExact(
-                                             snap, origin, orientation, 0, 0, 0, session) != null,
-                             p.isToolingVisible());
-                    pieces.add(piece);
-                    // Record centerOffset from legacy templates that have isCenter
-                    if (referenceCenterOffset == null) {
-                        BlockPatternTemplate.CenterOffset co = mp.legacyTemplate.getCenterOffset();
+                        PieceTemplate.CenterOffset co = mp.template.getCenterOffset();
                         referenceCenterOffset = new int[]{co.x(), co.y(), co.z()};
                     }
                     continue;
@@ -152,17 +133,9 @@ public final class StructureCompiler {
 
             // Update reference centerOffset from the first piece that has isCenter
             if (hasCenter && referenceCenterOffset == null) {
-                BlockPatternTemplate.CenterOffset co = tpl.getCenterOffset();
+                PieceTemplate.CenterOffset co = tpl.getCenterOffset();
                 referenceCenterOffset = new int[]{co.x(), co.y(), co.z()};
             }
-
-            // StructurePiece.template is typed as BlockPatternTemplate (the legacy facade)
-            // for backward compatibility with the public API. Wrap the canonical
-            // PieceTemplate as a BlockPatternTemplate facade so the existing
-            // StructurePiece constructor signature still accepts it.
-            // PieceTemplate is final and does not extend BlockPatternTemplate, so we
-            // always go through the BlockPatternTemplate(PieceTemplate) constructor.
-            BlockPatternTemplate tplFacade = new BlockPatternTemplate(tpl);
 
             // Resolve the effective centerOffset for RepeatGroupPiece constructor
             int[] pieceCenterOffset = p.getCenterOffset();
@@ -194,16 +167,16 @@ public final class StructureCompiler {
                 // fixed piece that follows a repeatable body whose extent is only
                 // known at runtime (e.g. a "top" piece after a "body" piece).
                 DynamicOffsetPiece piece = new DynamicOffsetPiece(
-                        p.getName(), tplFacade, entry.baseOffset, entry.offsetMode,
+                        p.getName(), tpl, entry.baseOffset, entry.offsetMode,
                         entry.condition, entry.anchorPieceName, entry.anchorStep, p.isToolingVisible());
                 pieces.add(piece);
             } else {
                 // Fixed piece: single StructurePiece holding the canonical PieceTemplate directly
-                StructurePiece piece = new StructurePiece(p.getName(), tplFacade,
+                StructurePiece piece = new StructurePiece(p.getName(), tpl,
                          entry.baseOffset, entry.offsetMode, entry.condition,
                          (snap, origin, orientation, prior, runtime, session) ->
                                  runtime.getState().checkPatternAtSnapshotExact(
-                                         snap, origin, orientation, 0, 0, 0, session) != null,
+                                         snap, origin, orientation, 0, 0, 0, session),
                          p.isToolingVisible());
                 pieces.add(piece);
             }
@@ -243,8 +216,7 @@ public final class StructureCompiler {
             int finger = tpl.getZLength();
             int thumb = tpl.getYLength();
             int palm = tpl.getXLength();
-            // [x, y, z, minZ, maxZ] — shared record with BlockPatternTemplate for back-compat
-            BlockPatternTemplate.CenterOffset center = tpl.getCenterOffset();
+            PieceTemplate.CenterOffset center = tpl.getCenterOffset();
 
             // Compute max expanded dimensions for repeatable pieces
             int maxPalm = palm;
@@ -652,10 +624,9 @@ public final class StructureCompiler {
     // --- Piece template compilation ---
 
     /**
-     * Compile an {@link IStructurePiece} into a canonical {@link PieceTemplate}
-     * (the new IR). This is the new-path entry point: the resulting
-     * {@code PieceTemplate} is wrapped directly in a {@link StructurePiece}
-     * without ever constructing a {@link BlockPatternTemplate} facade.
+     * Compile an {@link IStructurePiece} into a canonical {@link PieceTemplate}.
+     * The resulting {@code PieceTemplate} is passed directly to
+     * {@link StructurePiece}.
      *
      * <p>If any element in the symbol map is a center element ({@code isCenter() == true}),
      * the template will auto-discover the center offset. Otherwise, the piece's
@@ -712,14 +683,11 @@ public final class StructureCompiler {
                                                              @NotNull RelativeDirection[] structureDir,
                                                              @Nullable List<String> structureDescription,
                                                              @Nullable int[] referenceCenterOffset) {
-        // Handle legacy pieces with pre-built template
+        // Handle pieces with a pre-built canonical template.
         if (piece instanceof StructureDefinition.MutablePiece) {
             StructureDefinition.MutablePiece mp = (StructureDefinition.MutablePiece) piece;
             if (mp.template != null) {
                 return mp.template;
-            }
-            if (mp.legacyTemplate != null) {
-                return mp.legacyTemplate.getDelegate();
             }
         }
 

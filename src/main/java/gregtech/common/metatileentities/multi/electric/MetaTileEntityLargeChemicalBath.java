@@ -28,7 +28,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import static gregtech.api.pattern.FluidTraceability.*;
+import static gregtech.api.pattern.FluidStructureElements.*;
 import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeChemicalBath extends GCYMAdvanceRecipeMapMultiblockController {

@@ -8,8 +8,6 @@ import net.minecraft.util.math.Vec3i;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BooleanSupplier;
-
 /**
  * A {@link StructurePiece} whose center position is computed dynamically based
  * on the runtime repeat count of another (the "anchor") piece.
@@ -52,7 +50,7 @@ public final class DynamicOffsetPiece extends StructurePiece {
      */
     public DynamicOffsetPiece(@NotNull String name, @NotNull PieceTemplate template,
                               @NotNull Vec3i staticOffset, @NotNull OffsetMode offsetMode,
-                              @Nullable BooleanSupplier condition,
+                              @Nullable StructureCondition<?> condition,
                               @NotNull String anchorPieceName,
                               @NotNull int[] anchorStep) {
         this(name, template, staticOffset, offsetMode, condition, anchorPieceName, anchorStep, true);
@@ -60,7 +58,7 @@ public final class DynamicOffsetPiece extends StructurePiece {
 
     public DynamicOffsetPiece(@NotNull String name, @NotNull PieceTemplate template,
                               @NotNull Vec3i staticOffset, @NotNull OffsetMode offsetMode,
-                              @Nullable BooleanSupplier condition,
+                              @Nullable StructureCondition<?> condition,
                               @NotNull String anchorPieceName,
                               @NotNull int[] anchorStep,
                               boolean toolingVisible) {

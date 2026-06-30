@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BooleanSupplier;
 
 /**
  * A composite multi-piece pattern for super-large multiblock structures.
@@ -47,7 +46,8 @@ import java.util.function.BooleanSupplier;
  * MultiPiecePattern pattern = MultiPiecePattern.builder()
  *     .piece("core", coreTemplate, Vec3i.ZERO)
  *     .piece("ring1", ring1Template, new Vec3i(0, 0, -59))
- *     .conditionalPiece("ring2", ring2Template, new Vec3i(0, 0, -67), () -> isUpgradeActive())
+ *     .conditionalPiece("ring2", ring2Template, new Vec3i(0, 0, -67),
+ *         context -> isUpgradeActive(context))
  *     .build();
  *
  * PieceRuntimes runtimes = new PieceRuntimes(pattern);
@@ -120,16 +120,11 @@ public class MultiPiecePattern {
 
     @NotNull
     public StructureMatchSession createMatchSession() {
-        return new StructureMatchSession(abilityLimits, abilityGroupLimits, null);
-    }
-
-    @NotNull
-    public StructureMatchSession createMatchSession(@Nullable PatternMatchContext initialContext) {
-        return new StructureMatchSession(abilityLimits, abilityGroupLimits, initialContext);
+        return new StructureMatchSession(abilityLimits, abilityGroupLimits);
     }
 
     /**
-     * @return a defensive copy of the global ability limits for legacy adapters.
+     * @return a defensive copy of the global ability limits.
      */
     @NotNull
     public Map<MultiblockAbility<?>, int[]> getAbilityLimits() {
@@ -361,7 +356,7 @@ public class MultiPiecePattern {
             if (runtime == null) continue;
 
             FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
-                    new HashMap<>(priorRepeats), Collections.emptyMap(), new HashMap<>(priorCenters));
+                    new HashMap<>(priorRepeats), new HashMap<>(channelValues), new HashMap<>(priorCenters));
             StructureActivationContext<MultiblockControllerBase> activation =
                     new StructureActivationContext<>(controller, world, controllerPos, prior, session);
             if (!piece.isActive(activation)) {
@@ -380,12 +375,11 @@ public class MultiPiecePattern {
                 StructureCellTraversal traversal = StructureCellTraversal.at(pieceCenter, orientation);
                 boolean matched = session.tryFork(pieceSession ->
                         runtime.getState().checkPatternAtExact(
-                                world, traversal, pieceSession) != null);
+                                world, traversal, pieceSession));
                 if (matched) {
                     runtime.setValidated(true);
                     LongSet newPositions = new LongOpenHashSet(runtime.getState().cache.keySet());
                     runtime.swapPositions(newPositions);
-                    runtime.setLastAggregatedContext(session.getContext().copy());
                 } else {
                     runtime.setValidated(false);
                 }
@@ -426,14 +420,11 @@ public class MultiPiecePattern {
                     ? runtime.getLastFormedReps()
                     : runtime.getState().formedRepetitionCount;
             StructureContribution contribution = session.finishPieceContribution(piece);
-            PatternMatchContext compatibilityContext =
-                    contribution.projectCompatibilityContext(session.getContext());
-            extractChannelValues(compatibilityContext, channelValues);
+            contribution.collectChannelValues(channelValues);
             resultTable.add(PieceEvaluationResult.activeMatched(
                     piece, pieceCenter, resultRepetitions,
                     runtime.getPositions(), runtime.getPositions(),
-                    runtime.capturePublication(), contribution,
-                    compatibilityContext));
+                    runtime.capturePublication(), contribution));
         }
 
         StructureResultTable completedTable = resultTable.build();
@@ -459,18 +450,8 @@ public class MultiPiecePattern {
         FormedStructureMetadata metadata = FormedStructureMetadata.fromCheckResult(
                 priorRepeats, channelValues, priorCenters);
         return ActiveGraphCheckResult.success(
-                metadata, contributionAggregate.copyCompatibilityContext(),
-                contributionAggregate.copyOperationState(), orientation.isFlipped(),
+                metadata, contributionAggregate.copyOperationState(), orientation.isFlipped(),
                 completedTable, contributionAggregate);
-    }
-
-    private static void extractChannelValues(@NotNull PatternMatchContext context,
-                                             @NotNull Map<String, Integer> channelValues) {
-        for (Map.Entry<String, Object> entry : context.entrySet()) {
-            if (entry.getValue() instanceof Integer) {
-                channelValues.putIfAbsent(entry.getKey(), (Integer) entry.getValue());
-            }
-        }
     }
 
     @NotNull
@@ -556,12 +537,8 @@ public class MultiPiecePattern {
         if (!missingAbilities.isEmpty()) {
             return StructureFailureTrace.Kind.MISSING_ABILITY;
         }
-        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
-            TraceabilityPredicate.SinglePredicateError single =
-                    (TraceabilityPredicate.SinglePredicateError) error;
-            if (single.type == 0 || single.type == 2) {
-                return StructureFailureTrace.Kind.COUNT_LIMIT;
-            }
+        if (error instanceof CountLimitError) {
+            return StructureFailureTrace.Kind.COUNT_LIMIT;
         }
         return StructureFailureTrace.Kind.BLOCK_MISMATCH;
     }
@@ -590,8 +567,6 @@ public class MultiPiecePattern {
         @Nullable
         private final FormedStructureMetadata metadata;
         @Nullable
-        private final PatternMatchContext context;
-        @Nullable
         private final StructureOperationState operationState;
         @Nullable
         private final StructureFailureTrace failureTrace;
@@ -607,7 +582,6 @@ public class MultiPiecePattern {
 
         private ActiveGraphCheckResult(boolean matched,
                                        @Nullable FormedStructureMetadata metadata,
-                                       @Nullable PatternMatchContext context,
                                        @Nullable StructureOperationState operationState,
                                        @Nullable StructureFailureTrace failureTrace,
                                        @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
@@ -617,7 +591,6 @@ public class MultiPiecePattern {
                                        @Nullable StructureAggregateFolder.Result contributionAggregate) {
             this.matched = matched;
             this.metadata = metadata;
-            this.context = context == null ? null : context.copy();
             this.operationState = operationState == null ? null : operationState.copy();
             this.failureTrace = failureTrace;
             this.missingAbilities = Collections.unmodifiableMap(new LinkedHashMap<>(missingAbilities));
@@ -629,12 +602,11 @@ public class MultiPiecePattern {
 
         @NotNull
         static ActiveGraphCheckResult success(@NotNull FormedStructureMetadata metadata,
-                                              @NotNull PatternMatchContext context,
                                               @NotNull StructureOperationState operationState,
                                               boolean flipped,
                                               @NotNull StructureResultTable resultTable,
                                               @NotNull StructureAggregateFolder.Result contributionAggregate) {
-            return new ActiveGraphCheckResult(true, metadata, context, operationState, null,
+            return new ActiveGraphCheckResult(true, metadata, operationState, null,
                     Collections.emptyMap(), Collections.emptyMap(), flipped,
                     resultTable, contributionAggregate);
         }
@@ -656,7 +628,7 @@ public class MultiPiecePattern {
                 boolean flipped,
                 @Nullable StructureResultTable resultTable,
                 @Nullable StructureAggregateFolder.Result contributionAggregate) {
-            return new ActiveGraphCheckResult(false, null, null, null, failureTrace,
+            return new ActiveGraphCheckResult(false, null, null, failureTrace,
                     missingAbilities, abilityCounts, flipped, resultTable, contributionAggregate);
         }
 
@@ -667,11 +639,6 @@ public class MultiPiecePattern {
         @Nullable
         public FormedStructureMetadata getMetadata() {
             return metadata;
-        }
-
-        @Nullable
-        public PatternMatchContext copyContext() {
-            return context == null ? null : context.copy();
         }
 
         @Nullable
@@ -1096,7 +1063,7 @@ public class MultiPiecePattern {
          * @param offset   offset from the controller position
          * @return this builder
          */
-        public Builder piece(@NotNull String name, @NotNull BlockPatternTemplate template, @NotNull Vec3i offset) {
+        public Builder piece(@NotNull String name, @NotNull PieceTemplate template, @NotNull Vec3i offset) {
             return piece(name, template, offset, OffsetMode.RELATIVE);
         }
 
@@ -1109,7 +1076,7 @@ public class MultiPiecePattern {
          * @param offsetMode how the offset is interpreted relative to controller facing
          * @return this builder
          */
-        public Builder piece(@NotNull String name, @NotNull BlockPatternTemplate template,
+        public Builder piece(@NotNull String name, @NotNull PieceTemplate template,
                              @NotNull Vec3i offset, @NotNull OffsetMode offsetMode) {
             if (pieces.containsKey(name)) {
                 throw new IllegalArgumentException("Duplicate piece name: " + name);
@@ -1127,8 +1094,9 @@ public class MultiPiecePattern {
          * @param condition condition supplier; piece is only active when this returns true
          * @return this builder
          */
-        public Builder conditionalPiece(@NotNull String name, @NotNull BlockPatternTemplate template,
-                                        @NotNull Vec3i offset, @NotNull BooleanSupplier condition) {
+        public Builder conditionalPiece(@NotNull String name, @NotNull PieceTemplate template,
+                                        @NotNull Vec3i offset,
+                                        @NotNull StructureCondition<? extends MultiblockControllerBase> condition) {
             return conditionalPiece(name, template, offset, OffsetMode.RELATIVE, condition);
         }
 
@@ -1142,21 +1110,9 @@ public class MultiPiecePattern {
          * @param condition  condition supplier; piece is only active when this returns true
          * @return this builder
          */
-        public Builder conditionalPiece(@NotNull String name, @NotNull BlockPatternTemplate template,
+        public Builder conditionalPiece(@NotNull String name, @NotNull PieceTemplate template,
                                         @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                                        @NotNull BooleanSupplier condition) {
-            if (pieces.containsKey(name)) {
-                throw new IllegalArgumentException("Duplicate piece name: " + name);
-            }
-            pieces.put(name, new StructurePiece(name, template, offset, offsetMode, condition));
-            return this;
-        }
-
-        @NotNull
-        public <T extends MultiblockControllerBase> Builder conditionalPieceContextual(
-                @NotNull String name, @NotNull BlockPatternTemplate template,
-                @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                @NotNull StructureCondition<T> condition) {
+                                        @NotNull StructureCondition<? extends MultiblockControllerBase> condition) {
             if (pieces.containsKey(name)) {
                 throw new IllegalArgumentException("Duplicate piece name: " + name);
             }
