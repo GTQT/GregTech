@@ -121,20 +121,13 @@ public final class StructureEvaluationContext<T> {
     }
 
     @NotNull
-    public PatternMatchContext getLegacyContext() {
-        PatternMatchContext context = requireWorldState().getMatchContext();
-        return session == null ? context : context.copy();
-    }
-
-    @NotNull
     public StructureMatchCollector getCollector() {
         boolean collectFormationState = operation.collectsFormationState();
-        PatternMatchContext context = requireWorldState().getMatchContext();
         return session == null
-                ? new StructureMatchCollector(context, collectFormationState)
+                ? new StructureMatchCollector(new StructureOperationState(), collectFormationState)
                 : new StructureMatchCollector(
                         session.getOperationState(), session.getContributionBuilder(),
-                        context, collectFormationState);
+                        collectFormationState);
     }
 
     @NotNull
@@ -253,13 +246,6 @@ public final class StructureEvaluationContext<T> {
         } finally {
             restore(checkpoint);
         }
-    }
-
-    /**
-     * Compatibility boundary for predicates compiled by the legacy builder.
-     */
-    public boolean test(@NotNull TraceabilityPredicate predicate) {
-        return predicate.test(requireWorldState());
     }
 
     @NotNull

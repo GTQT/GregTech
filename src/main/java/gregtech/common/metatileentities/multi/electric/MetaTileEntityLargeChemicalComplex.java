@@ -36,26 +36,25 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_chemical_complex", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("X###X", "XXXXX", "X###X", "XXXXX", "X###X")
-                            .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
-                            .aisle("XXXXX", "XPPPX", "XCPCX", "XPPPX", "XXXXX")
-                            .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
-                            .aisle("X###X", "SXXXX", "X###X", "XXXXX", "X###X")
-                            .self('S', MetaTileEntityLargeChemicalComplex.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('P', states(getCasingState2()))
-                            .tieredCasing('C', GTCasingGroups.heatingCoils().group())
-                            .withChannel(GTCasingGroups.heatingCoils().channel())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_chemical_complex", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("X###X", "XXXXX", "X###X", "XXXXX", "X###X")
+                    .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
+                    .aisle("XXXXX", "XPPPX", "XCPCX", "XPPPX", "XXXXX")
+                    .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
+                    .aisle("X###X", "SXXXX", "X###X", "XXXXX", "X###X")
+                    .self('S', MetaTileEntityLargeChemicalComplex.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('P', getCasingState2())
+                    .tieredCasing('C', GTCasingGroups.heatingCoils().group())
+                    .withChannel(GTCasingGroups.heatingCoils().channel())
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeChemicalComplex(ResourceLocation metaTileEntityId) {

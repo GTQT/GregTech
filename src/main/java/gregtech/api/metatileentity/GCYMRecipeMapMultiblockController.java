@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.multiblock.MultiMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.tooltips.GGCYMMMultiblockInformation;
@@ -158,18 +157,6 @@ public abstract class GCYMRecipeMapMultiblockController extends MultiMapMultiblo
     }
     public boolean isTiered() {
         return ConfigHolder.globalMultiblocks.enableTieredCasings;
-    }
-
-    @Override
-    public TraceabilityPredicate autoAbilities(boolean checkEnergyIn, boolean checkMaintenance, boolean checkItemIn,
-                                               boolean checkItemOut, boolean checkFluidIn, boolean checkFluidOut,
-                                               boolean checkMuffler) {
-        TraceabilityPredicate predicate = super.autoAbilities(checkEnergyIn, checkMaintenance, checkItemIn,
-                checkItemOut, checkFluidIn, checkFluidOut, checkMuffler);
-        if (isParallel())
-            predicate = predicate
-                    .or(abilities(GCYMMultiblockAbility.PARALLEL_HATCH).setMaxGlobalLimited(1).setPreviewCount(1));
-        return predicate;
     }
 
 

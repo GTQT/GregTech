@@ -3,8 +3,8 @@ package gregtech.api.pattern.element;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.CountLimitError;
 import gregtech.api.pattern.PatternError;
-import gregtech.api.pattern.PatternMatchContext;
 import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.RepeatGroupPiece;
@@ -20,7 +20,6 @@ import gregtech.api.pattern.StructureContribution;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.StructureSnapshotResult;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
 
@@ -47,7 +46,7 @@ import java.util.Map;
  * <ul>
  *   <li>Success/failure status</li>
  *   <li>{@link FormedStructureMetadata} on success (actual repeat counts + channel values)</li>
- *   <li>Typed {@link StructureOperationState} plus a legacy context view on success</li>
+ *   <li>Typed {@link StructureOperationState} on success</li>
  *   <li>Error position and message on failure</li>
  * </ul>
  */
@@ -74,10 +73,6 @@ public final class StructureCheckState {
 
         @Nullable
         public final FormedStructureMetadata metadata;
-
-        /** Legacy context data from all pieces. Collector-owned data is stored separately. */
-        @Nullable
-        public final PatternMatchContext context;
 
         @Nullable
         public final StructureOperationState operationState;
@@ -112,7 +107,6 @@ public final class StructureCheckState {
         public final StructureAggregateFolder.Result contributionAggregate;
 
         private Result(boolean success, @Nullable FormedStructureMetadata metadata,
-                       @Nullable PatternMatchContext context,
                        @Nullable StructureOperationState operationState,
                        @Nullable BlockPos errorPos, @Nullable String errorMessage,
                        @Nullable PatternError error,
@@ -125,7 +119,6 @@ public final class StructureCheckState {
                        @Nullable StructureAggregateFolder.Result contributionAggregate) {
             this.success = success;
             this.metadata = metadata;
-            this.context = context;
             this.operationState = operationState;
             this.errorPos = errorPos;
             this.errorMessage = errorMessage;
@@ -142,14 +135,13 @@ public final class StructureCheckState {
         /** Create a success result with formed metadata and aggregated context */
         @NotNull
         public static Result success(@NotNull FormedStructureMetadata metadata,
-                                     @NotNull PatternMatchContext context,
                                      @NotNull StructureOperationState operationState,
                                      boolean flipped,
                                      @NotNull PieceRuntimes.Publication runtimePublication,
                                      @NotNull StructureResultTable resultTable,
                                      @NotNull StructureAggregateFolder.Result contributionAggregate) {
             return new Result(
-                    true, metadata, context, operationState,
+                    true, metadata, operationState,
                     null, null, null, null, Collections.emptyMap(),
                     contributionAggregate.getAbilityCounts(),
                     flipped, runtimePublication, resultTable, contributionAggregate);
@@ -165,7 +157,7 @@ public final class StructureCheckState {
         @NotNull
         public static Result failure(@NotNull BlockPos pos, @NotNull String msg, @Nullable PatternError error) {
             return new Result(
-                    false, null, null, null,
+                    false, null, null,
                     pos, msg, error, null, Collections.emptyMap(), Collections.emptyMap(),
                     false, null, null, null);
         }
@@ -180,7 +172,7 @@ public final class StructureCheckState {
         @NotNull
         public static Result failure(@NotNull String msg, @Nullable PatternError error) {
             return new Result(
-                    false, null, null, null,
+                    false, null, null,
                     null, msg, error, null, Collections.emptyMap(), Collections.emptyMap(),
                     false, null, null, null);
         }
@@ -204,7 +196,7 @@ public final class StructureCheckState {
                                      @Nullable StructureResultTable resultTable,
                                      @Nullable StructureAggregateFolder.Result contributionAggregate) {
             return new Result(
-                    false, null, null, null,
+                    false, null, null,
                     failureTrace == null ? null : failureTrace.getErrorPos(), msg,
                     failureTrace == null ? null : failureTrace.getError(),
                     failureTrace, missingAbilities, abilityCounts, flipped, null,
@@ -229,7 +221,7 @@ public final class StructureCheckState {
                 @Nullable StructureResultTable resultTable,
                 @Nullable StructureAggregateFolder.Result contributionAggregate) {
             return new Result(
-                    false, null, null, null,
+                    false, null, null,
                     null, "Missing required multiblock abilities",
                     failureTrace == null ? null : failureTrace.getError(),
                     failureTrace, missingAbilities, abilityCounts, flipped, null,
@@ -245,25 +237,22 @@ public final class StructureCheckState {
      * @param front         the front facing (into-structure direction)
      * @param up            the upward facing
      * @param flipped       whether the structure is flipped
-     * @param context       optional pattern match context (null = create new)
      * @return the check result
      */
     @NotNull
     public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
-                        @NotNull StructureOrientation orientation,
-                        @Nullable PatternMatchContext context) {
-        return check(world, controllerPos, orientation, context, null);
+                        @NotNull StructureOrientation orientation) {
+        return check(world, controllerPos, orientation, null);
     }
 
     @NotNull
     public Result check(@NotNull World world, @NotNull BlockPos controllerPos,
                         @NotNull StructureOrientation orientation,
-                        @Nullable PatternMatchContext context,
                         @Nullable MultiblockControllerBase controller) {
-        Result result = checkOrientation(world, controllerPos, orientation.withFlipped(false), context, controller);
+        Result result = checkOrientation(world, controllerPos, orientation.withFlipped(false), controller);
         if (!result.success && orientation.allowsFlip()) {
             Result flippedResult =
-                    checkOrientation(world, controllerPos, orientation.withFlipped(true), context, controller);
+                    checkOrientation(world, controllerPos, orientation.withFlipped(true), controller);
             if (!flippedResult.success) {
                 StructureFailureTrace selected = StructureFailureSelection.select(
                         result.failureTrace, flippedResult.failureTrace);
@@ -277,7 +266,6 @@ public final class StructureCheckState {
     @NotNull
     private Result checkOrientation(@NotNull World world, @NotNull BlockPos controllerPos,
                                     @NotNull StructureOrientation orientation,
-                                    @Nullable PatternMatchContext context,
                                     @Nullable MultiblockControllerBase controller) {
         MultiPiecePattern pattern = definition.getCompiledPattern();
 
@@ -315,7 +303,7 @@ public final class StructureCheckState {
                 continue;
             }
             BlockPos centerPos = piece.getCenterPos(controllerPos, orientation, prior);
-            StructureMatchSession pieceSession = pattern.createMatchSession(context);
+            StructureMatchSession pieceSession = pattern.createMatchSession();
             pieceSession.setControllerContext(controller);
             pieceSession.beginPieceContribution(piece);
             lastActivePieceName = piece.getName();
@@ -356,14 +344,13 @@ public final class StructureCheckState {
                     pieceRepeats.put(piece.getName(), formedReps.clone());
                 }
 
-                runtime.setLastAggregatedContext(null);
             } else {
                 // Fixed piece: standard single-template check
                 // Use the 4-arg getCenterPos so dynamic-anchor pieces can compute
                 // their position from the prior pieces' repeat counts.
                 boolean pieceMatched = pieceSession.tryFork(candidate ->
                         runtime.getState().checkPatternAtExact(
-                                world, centerPos, orientation, 0, 0, 0, candidate) != null);
+                                world, centerPos, orientation, 0, 0, 0, candidate));
                 if (!pieceMatched) {
                     pieceSession.discardPieceContribution(piece);
                     lastErrorPos = centerPos;
@@ -397,13 +384,11 @@ public final class StructureCheckState {
                     ? runtime.getLastFormedReps()
                     : runtime.getState().formedRepetitionCount;
             StructureContribution contribution = pieceSession.finishPieceContribution(piece);
-            PatternMatchContext compatibilityContext =
-                    contribution.projectCompatibilityContext(pieceSession.getContext());
-            extractChannelValues(compatibilityContext, channelValues);
+            contribution.collectChannelValues(channelValues);
             resultTable.add(PieceEvaluationResult.activeMatchedWithRuntime(
                     piece, centerPos, resultRepetitions,
                     runtime.getPositions(), runtime.getPositions(),
-                    runtime, contribution, compatibilityContext));
+                    runtime, contribution));
             if (ConfigHolder.machines.debugStructureCheck) {
                 int[] formedReps = pieceRepeats.get(piece.getName());
                 GTLog.logger.debug("[StructureDefinition] matched piece={} center={} repetitions={}",
@@ -414,7 +399,7 @@ public final class StructureCheckState {
 
         StructureResultTable completedTable = resultTable.build();
         StructureAggregateFolder.Result contributionAggregate =
-                StructureAggregateFolder.fold(pattern, completedTable, context);
+                StructureAggregateFolder.fold(pattern, completedTable);
         if (!contributionAggregate.isMatched()) {
             if (!contributionAggregate.getMissingAbilities().isEmpty()) {
                 StructureFailureTrace failure = createDeferredFailureTrace(
@@ -442,7 +427,7 @@ public final class StructureCheckState {
         }
 
         return Result.success(
-                contributionAggregate.getMetadata(), contributionAggregate.copyCompatibilityContext(),
+                contributionAggregate.getMetadata(),
                 contributionAggregate.copyOperationState(),
                 orientation.isFlipped(), transientRuntimes.capturePublication(),
                 completedTable, contributionAggregate);
@@ -517,19 +502,6 @@ public final class StructureCheckState {
                     orientation.isFlipped(), "requirements", progressDepth);
         }
         return StructureSnapshotResult.matched(orientation.isFlipped(), progressDepth);
-    }
-
-    /**
-     * Extract channel values from a pattern match context.
-     * Channel values are stored as Integer entries in the context by the predicate system.
-     */
-    private void extractChannelValues(@NotNull PatternMatchContext context,
-                                      @NotNull Map<String, Integer> channelValues) {
-        for (Map.Entry<String, Object> entry : context.entrySet()) {
-            if (entry.getValue() instanceof Integer) {
-                channelValues.putIfAbsent(entry.getKey(), (Integer) entry.getValue());
-            }
-        }
     }
 
     @NotNull
@@ -616,12 +588,8 @@ public final class StructureCheckState {
         if (!missingAbilities.isEmpty()) {
             return StructureFailureTrace.Kind.MISSING_ABILITY;
         }
-        if (error instanceof TraceabilityPredicate.SinglePredicateError) {
-            TraceabilityPredicate.SinglePredicateError single =
-                    (TraceabilityPredicate.SinglePredicateError) error;
-            if (single.type == 0 || single.type == 2) {
-                return StructureFailureTrace.Kind.COUNT_LIMIT;
-            }
+        if (error instanceof CountLimitError) {
+            return StructureFailureTrace.Kind.COUNT_LIMIT;
         }
         return StructureFailureTrace.Kind.BLOCK_MISMATCH;
     }

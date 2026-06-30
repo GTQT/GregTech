@@ -25,28 +25,27 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeBrewery extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_brewer", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#", "#####")
-                            .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
-                            .aisle("XXXXX", "XCPCX", "XAPAX", "XAPAX", "#XMX#")
-                            .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
-                            .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#####")
-                            .self('S', MetaTileEntityLargeBrewery.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .maintenance()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .where('C', states(getCasingState2()))
-                            .where('P', states(getCasingState3()))
-                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_brewer", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#", "#####")
+                    .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
+                    .aisle("XXXXX", "XCPCX", "XAPAX", "XAPAX", "#XMX#")
+                    .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
+                    .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#####")
+                    .self('S', MetaTileEntityLargeBrewery.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .maintenance()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .block('C', getCasingState2())
+                    .block('P', getCasingState3())
+                    .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeBrewery(ResourceLocation metaTileEntityId) {

@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.StructureEvaluationContext;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
@@ -25,12 +24,10 @@ import java.util.List;
 public class SelfElement implements ITypedStructureElement<Object> {
 
     private final Class<? extends MultiblockControllerBase> controllerClass;
-    private final TraceabilityPredicate cachedPredicate;
     private final StructureElementPreview preview;
 
     public SelfElement(Class<? extends MultiblockControllerBase> controllerClass) {
         this.controllerClass = controllerClass;
-        this.cachedPredicate = MultiblockControllerBase.selfPredicate(controllerClass);
         this.preview = StructureElementPreview.of(this::getCandidates);
     }
 
@@ -71,11 +68,6 @@ public class SelfElement implements ITypedStructureElement<Object> {
     @Override
     public boolean isCenter() {
         return true;
-    }
-
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        return cachedPredicate;
     }
 
     @NotNull

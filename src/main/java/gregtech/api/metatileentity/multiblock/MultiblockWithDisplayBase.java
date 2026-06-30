@@ -21,7 +21,6 @@ import gregtech.api.gui.widgets.ProgressWidget;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
@@ -327,30 +326,6 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
                 }
             });
         }
-    }
-
-    public TraceabilityPredicate autoAbilities() {
-        return autoAbilities(true, true);
-    }
-
-    public TraceabilityPredicate autoAbilities(boolean checkMaintenance, boolean checkMuffler) {
-        TraceabilityPredicate predicate = new TraceabilityPredicate();
-        if (checkMaintenance && hasMaintenanceMechanics()) {
-            predicate = predicate.or(maintenancePredicate());
-        }
-        if (checkMuffler && hasMufflerMechanics()) {
-            predicate = predicate
-                    .or(abilities(MultiblockAbility.MUFFLER_HATCH).setMinGlobalLimited(1).setMaxGlobalLimited(1));
-        }
-        return predicate;
-    }
-
-    protected TraceabilityPredicate maintenancePredicate() {
-        if (hasMaintenanceMechanics()) {
-            return abilities(MultiblockAbility.MAINTENANCE_HATCH)
-                    .setMinGlobalLimited(ConfigHolder.machines.enableMaintenance ? 1 : 0).setMaxGlobalLimited(1);
-        }
-        return new TraceabilityPredicate();
     }
 
     public boolean shouldShowVoidingModeButton() {

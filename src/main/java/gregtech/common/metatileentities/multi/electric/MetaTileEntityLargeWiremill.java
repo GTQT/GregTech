@@ -23,23 +23,22 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeWiremill extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_wiremill", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXX", "XXXXX", "XX###")
-                            .aisle("XXXXX", "XCCCX", "XXXXX")
-                            .aisle("XXXXX", "XSXXX", "XXX##")
-                            .self('S', MetaTileEntityLargeWiremill.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('C', states(getCasingState2()))
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_wiremill", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXX", "XXXXX", "XX###")
+                    .aisle("XXXXX", "XCCCX", "XXXXX")
+                    .aisle("XXXXX", "XSXXX", "XXX##")
+                    .self('S', MetaTileEntityLargeWiremill.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('C', getCasingState2())
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeWiremill(ResourceLocation metaTileEntityId) {

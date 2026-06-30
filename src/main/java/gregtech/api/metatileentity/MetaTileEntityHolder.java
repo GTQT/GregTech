@@ -135,7 +135,7 @@ public class MetaTileEntityHolder extends TickableTileEntityBase implements IGre
                 setRawMetaTileEntity(sampleMetaTileEntity.createMetaTileEntity(this));
                 /*
                  * Note: NBTs need to be read before onAttached is run, since NBTs may contain important information
-                 * about the composition of the BlockPattern that onAttached may generate.
+                 * about the structure definition that onAttached may generate.
                  */
                 this.metaTileEntity.readFromNBT(metaTileEntityData);
             } else {

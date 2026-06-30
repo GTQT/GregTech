@@ -9,64 +9,41 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import java.util.function.UnaryOperator;
 
 /**
  * Collector for V3 element-side match effects.
  *
- * <p>Direct element state lives in {@link StructureOperationState}. The
- * context-only constructor remains as a compatibility path for legacy
- * traversals that do not yet create a {@link StructureMatchSession}.
+ * <p>Direct element state lives in {@link StructureOperationState}. Structure
+ * checks route through {@link StructureMatchSession}; no string-keyed match
+ * context is maintained.
  */
 public final class StructureMatchCollector {
 
-    private static final String REQUIREMENTS_KEY = "__StructureRequirements";
-    private static final String COUNTS_KEY = "__StructureCounts";
+    static final String CHANNEL_VALUE_PREFIX = "gregtech:structure/channel/";
+    static final String CHANNEL_AGGREGATE_PREFIX = "gregtech:structure/channel_aggregate/";
 
-    @Nullable
+    @NotNull
     private final StructureOperationState operationState;
     @Nullable
     private final StructureContribution.Builder contributionBuilder;
-    private final PatternMatchContext context;
     private final boolean collectsFormationState;
 
-    public StructureMatchCollector(@NotNull PatternMatchContext context) {
-        this(context, true);
-    }
-
-    StructureMatchCollector(@NotNull PatternMatchContext context,
-                            boolean collectsFormationState) {
-        this.operationState = null;
-        this.contributionBuilder = null;
-        this.context = context;
-        this.collectsFormationState = collectsFormationState;
-    }
-
     StructureMatchCollector(@NotNull StructureOperationState operationState,
-                            @NotNull PatternMatchContext context) {
-        this(operationState, null, context, true);
-    }
-
-    StructureMatchCollector(@NotNull StructureOperationState operationState,
-                            @NotNull PatternMatchContext context,
                             boolean collectsFormationState) {
-        this(operationState, null, context, collectsFormationState);
+        this(operationState, null, collectsFormationState);
     }
 
     StructureMatchCollector(@NotNull StructureOperationState operationState,
                             @Nullable StructureContribution.Builder contributionBuilder,
-                            @NotNull PatternMatchContext context,
                             boolean collectsFormationState) {
         this.operationState = operationState;
         this.contributionBuilder = contributionBuilder;
-        this.context = context;
         this.collectsFormationState = collectsFormationState;
     }
 
@@ -103,10 +80,8 @@ public final class StructureMatchCollector {
     public boolean recordAbility(@NotNull Object key, @NotNull IMultiblockPart part) {
         if (!collectsFormationState) return true;
 
-        CountRequirement requirement = operationState == null
-                ? requirements().get(key)
-                : operationState.requirements.get(key);
-        if (operationState != null && requirement != null && requirement.ability != null) {
+        CountRequirement requirement = operationState.requirements.get(key);
+        if (requirement != null && requirement.ability != null) {
             Set<IMultiblockPart> countedParts = operationState.countedAbilityParts
                     .computeIfAbsent(key, ignored -> new HashSet<>());
             if (countedParts.contains(part)) {
@@ -136,43 +111,25 @@ public final class StructureMatchCollector {
     public boolean recordCount(@NotNull Object key) {
         if (!collectsFormationState) return true;
 
-        if (operationState != null) {
-            CountRequirement requirement = operationState.requirements.get(key);
-            int count = operationState.counts.getOrDefault(key, 0) + 1;
-            if (requirement != null && requirement.max >= 0 && count > requirement.max) {
-                return false;
-            }
-            operationState.counts.put(key, count);
-            if (contributionBuilder != null) {
-                contributionBuilder.increment(key);
-            }
-            return true;
-        }
-
-        Map<Object, int[]> legacyCounts = legacyCounts(context);
-        int[] count = legacyCounts.computeIfAbsent(key, ignored -> new int[]{0});
-        CountRequirement requirement = legacyRequirements(context).get(key);
-        int nextCount = count[0] + 1;
-        if (requirement != null && requirement.max >= 0 && nextCount > requirement.max) {
+        CountRequirement requirement = operationState.requirements.get(key);
+        int count = operationState.counts.getOrDefault(key, 0) + 1;
+        if (requirement != null && requirement.max >= 0 && count > requirement.max) {
             return false;
         }
-        count[0] = nextCount;
+        operationState.counts.put(key, count);
+        if (contributionBuilder != null) {
+            contributionBuilder.increment(key);
+        }
         return true;
     }
 
     public void addPart(@NotNull IMultiblockPart part) {
         if (!collectsFormationState) return;
 
-        if (operationState != null) {
-            operationState.parts.add(part);
-            if (contributionBuilder != null) {
-                contributionBuilder.addPart(part);
-            }
-            return;
+        operationState.parts.add(part);
+        if (contributionBuilder != null) {
+            contributionBuilder.addPart(part);
         }
-        Set<IMultiblockPart> parts =
-                context.getOrCreate(StructureOperationState.MULTIBLOCK_PARTS_KEY, HashSet::new);
-        parts.add(part);
     }
 
     public int getAbilityCount(@NotNull Object key) {
@@ -180,76 +137,57 @@ public final class StructureMatchCollector {
     }
 
     public int getCount(@NotNull Object key) {
-        if (operationState != null) {
-            return operationState.counts.getOrDefault(key, 0);
-        }
-        int[] count = legacyCounts(context).get(key);
-        return countValue(count);
+        return operationState.counts.getOrDefault(key, 0);
     }
 
     public void recordVariantActiveBlock(@NotNull BlockPos pos) {
         if (!collectsFormationState) return;
 
-        if (operationState != null) {
-            if (!operationState.variantActiveBlocks.contains(pos)) {
-                operationState.variantActiveBlocks.add(pos);
-            }
-            if (contributionBuilder != null) {
-                contributionBuilder.addVariantActiveBlock(pos);
-            }
-            return;
+        if (!operationState.variantActiveBlocks.contains(pos)) {
+            operationState.variantActiveBlocks.add(pos);
         }
-        List<BlockPos> positions =
-                context.getOrCreate(StructureOperationState.VARIANT_ACTIVE_BLOCKS_KEY, LinkedList::new);
-        positions.add(pos);
+        if (contributionBuilder != null) {
+            contributionBuilder.addVariantActiveBlock(pos);
+        }
     }
 
-    public boolean recordChannelValue(@NotNull String channelName,
-                                      @NotNull Object value,
-                                      boolean requiresUniformValue) {
+    public boolean recordChannelAggregate(@NotNull String channelName,
+                                          @NotNull Object value,
+                                          boolean requiresUniformValue) {
         if (!collectsFormationState) return true;
 
         StructureContributionKey<Object, Object> key = requiresUniformValue
                 ? StructureContributionKey.uniform(
-                        contributionId("channel", channelName),
-                        (legacyContext, aggregate) -> legacyContext.set(channelName, aggregate))
+                        channelAggregateId(channelName))
                 : StructureContributionKey.create(
-                        contributionId("channel", channelName),
+                        channelAggregateId(channelName),
                         "first-non-null",
                         () -> null,
                         (current, emitted) -> current == null ? emitted : current,
                         ignored -> StructureContributionKey.Validation.success(),
-                        (legacyContext, aggregate) -> legacyContext.set(channelName, aggregate),
-                        java.util.function.UnaryOperator.identity(),
-                        java.util.function.UnaryOperator.identity());
+                        UnaryOperator.identity(),
+                        UnaryOperator.identity());
         emit(key, value);
-        if (contributionBuilder != null) {
-            return true;
-        }
-        Object existing = context.get(channelName);
-        if (existing == null) {
-            context.set(channelName, value);
-            return true;
-        }
-        return !requiresUniformValue || existing.equals(value);
+        return true;
     }
 
-    public void setValue(@NotNull String key, @NotNull Object value) {
-        if (!collectsFormationState) return;
+    public boolean recordChannelValue(@NotNull String channelName,
+                                      int value,
+                                      boolean requiresUniformValue) {
+        if (!collectsFormationState) return true;
 
-        emit(StructureContributionKey.create(
-                contributionId("value", key),
-                "last-non-null",
-                () -> null,
-                (current, emitted) -> emitted == null ? current : emitted,
-                ignored -> StructureContributionKey.Validation.success(),
-                        (legacyContext, aggregate) -> legacyContext.set(key, aggregate),
-                        java.util.function.UnaryOperator.identity(),
-                        java.util.function.UnaryOperator.identity()), value);
-        if (contributionBuilder != null) {
-            return;
-        }
-        context.set(key, value);
+        StructureContributionKey<Integer, Integer> key = requiresUniformValue
+                ? channelValueKey(channelName)
+                : StructureContributionKey.create(
+                        channelValueId(channelName),
+                        "first-non-null",
+                        () -> null,
+                        (current, emitted) -> current == null ? emitted : current,
+                        ignored -> StructureContributionKey.Validation.success(),
+                        UnaryOperator.identity(),
+                        UnaryOperator.identity());
+        emit(key, value);
+        return true;
     }
 
     public <E, A> void emit(@NotNull StructureContributionKey<E, A> key,
@@ -262,12 +200,7 @@ public final class StructureMatchCollector {
 
     @NotNull
     public Validation validate() {
-        return operationState == null ? validate(context) : validate(operationState);
-    }
-
-    @NotNull
-    public static Validation validate(@NotNull PatternMatchContext context) {
-        return validate(legacyRequirements(context), legacyCounts(context));
+        return validate(operationState);
     }
 
     @NotNull
@@ -327,22 +260,8 @@ public final class StructureMatchCollector {
     }
 
     @NotNull
-    @SuppressWarnings("unchecked")
-    private static Map<Object, CountRequirement> legacyRequirements(@NotNull PatternMatchContext context) {
-        return context.getOrCreate(REQUIREMENTS_KEY, HashMap::new);
-    }
-
-    @NotNull
-    @SuppressWarnings("unchecked")
-    private static Map<Object, int[]> legacyCounts(@NotNull PatternMatchContext context) {
-        return context.getOrCreate(COUNTS_KEY, HashMap::new);
-    }
-
-    @NotNull
     private Map<Object, CountRequirement> requirements() {
-        return operationState == null
-                ? legacyRequirements(context)
-                : operationState.requirements;
+        return operationState.requirements;
     }
 
     private static int countValue(@Nullable Object count) {
@@ -364,14 +283,37 @@ public final class StructureMatchCollector {
 
         CountRequirement requirement =
                 new CountRequirement(ability, min, max, minErrorFactory, maxErrorFactory);
-        if (operationState != null) {
-            operationState.requirements.putIfAbsent(key, requirement);
-            if (contributionBuilder != null) {
-                contributionBuilder.declare(key, requirement);
-            }
-        } else {
-            legacyRequirements(context).putIfAbsent(key, requirement);
+        operationState.requirements.putIfAbsent(key, requirement);
+        if (contributionBuilder != null) {
+            contributionBuilder.declare(key, requirement);
         }
+    }
+
+    @NotNull
+    public static StructureContributionKey<Integer, Integer> channelValueKey(@NotNull String channelName) {
+        return StructureContributionKey.uniform(channelValueId(channelName));
+    }
+
+    @NotNull
+    static String channelValueId(@NotNull String channelName) {
+        return CHANNEL_VALUE_PREFIX + channelName;
+    }
+
+    @NotNull
+    static String channelAggregateId(@NotNull String channelName) {
+        return CHANNEL_AGGREGATE_PREFIX + channelName;
+    }
+
+    static boolean extractChannelValue(@NotNull String contributionId,
+                                       @Nullable Object value,
+                                       @NotNull Map<String, Integer> channelValues) {
+        if (!contributionId.startsWith(CHANNEL_VALUE_PREFIX) || !(value instanceof Integer)) {
+            return false;
+        }
+        channelValues.putIfAbsent(
+                contributionId.substring(CHANNEL_VALUE_PREFIX.length()),
+                (Integer) value);
+        return true;
     }
 
     static final class CountRequirement {
@@ -431,11 +373,6 @@ public final class StructureMatchCollector {
         boolean isCompatibleWith(@NotNull CountRequirement other) {
             return ability == other.ability && min == other.min && max == other.max;
         }
-    }
-
-    @NotNull
-    private static String contributionId(@NotNull String kind, @NotNull String legacyKey) {
-        return "gregtech:legacy/" + kind + "/" + legacyKey;
     }
 
     public static final class Validation {

@@ -24,23 +24,22 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeBender extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_bender", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX")
-                            .aisle("XXXXXXX", "XXXGGGX", "XXXXXXX")
-                            .aisle("XXXXXXX", "XSXCCCX", "XXXXXXX")
-                            .self('S', MetaTileEntityLargeBender.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('G', states(getCasingState2()))
-                            .where('C', states(getCasingState3()))
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_bender", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX")
+                    .aisle("XXXXXXX", "XXXGGGX", "XXXXXXX")
+                    .aisle("XXXXXXX", "XSXCCCX", "XXXXXXX")
+                    .self('S', MetaTileEntityLargeBender.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('G', getCasingState2())
+                    .block('C', getCasingState3())
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeBender(ResourceLocation metaTileEntityId) {

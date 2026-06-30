@@ -25,26 +25,25 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_sifter", () ->
-                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
-                            .aisle("#X#X#", "XXXXX", "#XXX#", "XXXXX", "#X#X#")
-                            .aisle("#X#X#", "XAXAX", "#XXX#", "XAXAX", "#X#X#")
-                            .aisle("#XXX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
-                            .aisle("#XSX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
-                            .aisle("#XXX#", "X###X", "X###X", "X###X", "#XXX#")
-                            .self('S', MetaTileEntityLargeSifter.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('C', states(getCasingState2()))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_sifter", () ->
+            DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                    .aisle("#X#X#", "XXXXX", "#XXX#", "XXXXX", "#X#X#")
+                    .aisle("#X#X#", "XAXAX", "#XXX#", "XAXAX", "#X#X#")
+                    .aisle("#XXX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
+                    .aisle("#XSX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
+                    .aisle("#XXX#", "X###X", "X###X", "X###X", "#XXX#")
+                    .self('S', MetaTileEntityLargeSifter.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('C', getCasingState2())
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeSifter(ResourceLocation metaTileEntityId) {

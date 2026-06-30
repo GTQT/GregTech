@@ -50,18 +50,7 @@ public class PatternError {
             }
         }
 
-        List<List<ItemStack>> candidates = new ArrayList<>();
-        TraceabilityPredicate predicate = worldState.predicate;
-        if (predicate == null) {
-            return candidates;
-        }
-        for (TraceabilityPredicate.SimplePredicate common : predicate.common) {
-            candidates.add(common.getCandidates());
-        }
-        for (TraceabilityPredicate.SimplePredicate limited : predicate.limited) {
-            candidates.add(limited.getCandidates());
-        }
-        return candidates;
+        return new ArrayList<>();
     }
 
     private static List<List<ItemStack>> candidatesFromPreview(@NotNull StructureElementPreview preview) {

@@ -23,27 +23,26 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_arc_furnace", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#")
-                            .aisle("XXXXX", "XCACX", "XCACX", "XXXXX")
-                            .aisle("XXXXX", "XAAAX", "XAAAX", "XXMXX")
-                            .aisle("XXXXX", "XACAX", "XACAX", "XXXXX")
-                            .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#")
-                            .self('S', MetaTileEntityLargeArcFurnace.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 4)
-                            .maintenance()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .where('C', states(getCasingState2()))
-                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_arc_furnace", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#")
+                    .aisle("XXXXX", "XCACX", "XCACX", "XXXXX")
+                    .aisle("XXXXX", "XAAAX", "XAAAX", "XXMXX")
+                    .aisle("XXXXX", "XACAX", "XACAX", "XXXXX")
+                    .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#")
+                    .self('S', MetaTileEntityLargeArcFurnace.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1,4)
+                    .maintenance()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .block('C', getCasingState2())
+                    .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeArcFurnace(ResourceLocation metaTileEntityId) {

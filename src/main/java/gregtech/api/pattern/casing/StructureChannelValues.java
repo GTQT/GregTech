@@ -1,7 +1,5 @@
 package gregtech.api.pattern.casing;
 
-import gregtech.api.pattern.PatternMatchContext;
-
 import net.minecraft.nbt.NBTTagCompound;
 
 import org.jetbrains.annotations.NotNull;
@@ -15,7 +13,7 @@ import java.util.Map;
 /**
  * A typed container for structure channel tier values.
  * Wraps a {@code Map<StructureChannel, Integer>} and provides conversion utilities
- * to/from raw string-keyed maps, NBT, and {@link PatternMatchContext}.
+ * to/from raw string-keyed maps and NBT.
  *
  * <p>This class is mutable — values can be set/removed at any time.
  * Use {@link #unmodifiableView()} if you need a read-only view.
@@ -24,7 +22,7 @@ import java.util.Map;
  * <ol>
  *   <li>JEI/builder creates a StructureChannelValues from user selections</li>
  *   <li>Values are passed to {@code getMatchingShapes(channelValues.toMap())}</li>
- *   <li>After structure formation, values can be read back from PatternMatchContext</li>
+ *   <li>After structure formation, values can be read back from FormedStructureView</li>
  * </ol>
  *
  * @see StructureChannelRegistry for resolving channel names
@@ -44,11 +42,10 @@ public final class StructureChannelValues {
 
     /**
      * Create from a raw string-keyed map (e.g. from JEI or builder GUI).
-     * Keys are resolved via {@link StructureChannelRegistry#resolve(String)},
-     * which handles both canonical names and legacy aliases.
+     * Keys are resolved as canonical channel names.
      * Unknown keys are silently skipped.
      *
-     * @param map the raw map (channel name/alias -> tier value)
+     * @param map the raw map (channel name -> tier value)
      * @return a new StructureChannelValues instance
      */
     @NotNull
@@ -57,7 +54,7 @@ public final class StructureChannelValues {
         if (map == null || map.isEmpty()) return result;
 
         for (Map.Entry<String, Integer> entry : map.entrySet()) {
-            StructureChannel channel = StructureChannelRegistry.resolve(entry.getKey());
+            StructureChannel channel = StructureChannelRegistry.getByName(entry.getKey());
             if (channel != null) {
                 result.values.put(channel, entry.getValue());
             }
@@ -92,7 +89,7 @@ public final class StructureChannelValues {
         if (nbt == null || nbt.isEmpty()) return result;
 
         for (String key : nbt.getKeySet()) {
-            StructureChannel channel = StructureChannelRegistry.resolve(key);
+            StructureChannel channel = StructureChannelRegistry.getByName(key);
             if (channel != null) {
                 result.values.put(channel, nbt.getInteger(key));
             }
@@ -112,37 +109,6 @@ public final class StructureChannelValues {
             nbt.setInteger(entry.getKey().getName(), entry.getValue());
         }
         return nbt;
-    }
-
-    /**
-     * Read channel values from a PatternMatchContext (after structure formation).
-     * Reads all registered channels and collects those with non-zero tier values.
-     *
-     * @param context the pattern match context
-     * @return a new StructureChannelValues with values from context
-     */
-    @NotNull
-    public static StructureChannelValues fromContext(@NotNull PatternMatchContext context) {
-        StructureChannelValues result = new StructureChannelValues();
-        for (StructureChannel channel : StructureChannelRegistry.getAll()) {
-            int value = channel.getValue(context);
-            if (value != 0) {
-                result.values.put(channel, value);
-            }
-        }
-        return result;
-    }
-
-    /**
-     * Write all channel values into a PatternMatchContext.
-     * Useful for setting up context before auto-build or preview generation.
-     *
-     * @param context the target context
-     */
-    public void applyToContext(@NotNull PatternMatchContext context) {
-        for (Map.Entry<StructureChannel, Integer> entry : values.entrySet()) {
-            entry.getKey().setValue(context, entry.getValue());
-        }
     }
 
     /**

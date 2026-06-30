@@ -195,13 +195,17 @@ public final class StructureContribution {
         return typedEmissions;
     }
 
+    public void collectChannelValues(@NotNull Map<String, Integer> channelValues) {
+        for (Map.Entry<String, Object> entry : aggregateValues().entrySet()) {
+            StructureMatchCollector.extractChannelValue(entry.getKey(), entry.getValue(), channelValues);
+        }
+    }
+
     @NotNull
-    public PatternMatchContext projectCompatibilityContext(@Nullable PatternMatchContext initialContext) {
-        PatternMatchContext context = initialContext == null
-                ? new PatternMatchContext()
-                : initialContext.copy();
+    public Map<String, Object> aggregateValues() {
+        Map<String, Object> values = new LinkedHashMap<>();
         for (Map.Entry<StructureContributionKey<?, ?>, List<?>> entry : typedEmissions.entrySet()) {
-            ProjectedAccumulator accumulator = new ProjectedAccumulator(entry.getKey());
+            AggregateAccumulator accumulator = new AggregateAccumulator(entry.getKey());
             try {
                 for (Object emission : entry.getValue()) {
                     accumulator.reduce(emission);
@@ -210,10 +214,10 @@ public final class StructureContribution {
                 continue;
             }
             if (accumulator.validate().isSuccess()) {
-                accumulator.project(context);
+                values.put(accumulator.key.getId(), accumulator.copyValue());
             }
         }
-        return context;
+        return Collections.unmodifiableMap(values);
     }
 
     @NotNull
@@ -232,14 +236,14 @@ public final class StructureContribution {
                 && typedEmissions.isEmpty();
     }
 
-    private static final class ProjectedAccumulator {
+    private static final class AggregateAccumulator {
 
         @NotNull
         private final StructureContributionKey key;
         @Nullable
         private Object value;
 
-        private ProjectedAccumulator(@NotNull StructureContributionKey<?, ?> key) {
+        private AggregateAccumulator(@NotNull StructureContributionKey<?, ?> key) {
             this.key = key;
             this.value = key.identity();
         }
@@ -255,9 +259,10 @@ public final class StructureContribution {
             return key.validate(value);
         }
 
+        @Nullable
         @SuppressWarnings("unchecked")
-        private void project(@NotNull PatternMatchContext context) {
-            key.project(context, value);
+        private Object copyValue() {
+            return key.copyAggregate(value);
         }
     }
 

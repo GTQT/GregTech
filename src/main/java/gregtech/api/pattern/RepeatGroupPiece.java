@@ -20,7 +20,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BooleanSupplier;
 
 /**
  * Compact representation of a multi-axis repeatable structure piece.
@@ -63,18 +62,31 @@ public class RepeatGroupPiece extends StructurePiece {
         boolean visit(@NotNull int[] localOffset);
     }
 
-    public RepeatGroupPiece(@NotNull String name, @NotNull BlockPatternTemplate tpl,
+    /**
+     * @param name        unique name for this piece
+     * @param tpl         the canonical piece template
+     * @param offset      offset from the controller position
+     * @param mode        how the offset is interpreted
+     * @param cond        optional activation condition
+     * @param axes        repeat axes (e.g. [0] for x-axis only, [0,1,2] for all)
+     * @param ranges      repeat ranges per axis (e.g. [[1,3],[1,3]])
+     * @param steps       step size per axis
+     * @param channelNames channel names per axis; null entries allowed
+     * @param centerOffset center offset [x, y, z, minZ, maxZ]
+     * @param strategy    search strategy for snapshot checking
+     */
+    public RepeatGroupPiece(@NotNull String name, @NotNull PieceTemplate tpl,
                             @NotNull Vec3i offset, @NotNull OffsetMode mode,
-                            @Nullable BooleanSupplier cond,
+                            @Nullable StructureCondition<?> cond,
                             int[] axes, int[][] ranges, int[] steps,
                             @Nullable String[] channelNames, int[] centerOffset,
                             @NotNull StructureCompiler.SearchStrategy strategy) {
         this(name, tpl, offset, mode, cond, axes, ranges, steps, channelNames, centerOffset, strategy, true);
     }
 
-    public RepeatGroupPiece(@NotNull String name, @NotNull BlockPatternTemplate tpl,
+    public RepeatGroupPiece(@NotNull String name, @NotNull PieceTemplate tpl,
                             @NotNull Vec3i offset, @NotNull OffsetMode mode,
-                            @Nullable BooleanSupplier cond,
+                            @Nullable StructureCondition<?> cond,
                             int[] axes, int[][] ranges, int[] steps,
                             @Nullable String[] channelNames, int[] centerOffset,
                             @NotNull StructureCompiler.SearchStrategy strategy,
@@ -83,38 +95,6 @@ public class RepeatGroupPiece extends StructurePiece {
         // receives the per-controller PieceRuntime as its last argument, so the
         // per-instance state (cache / lastSuccessReps / lastAggregatedContext) all
         // lives on the runtime and the piece itself stays stateless.
-        super(name, tpl, offset, mode, cond, RepeatGroupPiece::checkOnSnapshotDispatch, toolingVisible);
-        this.repeatAxes = axes;
-        this.repeatRanges = ranges;
-        this.stepSizes = steps;
-        this.repeatChannelNames = channelNames;
-        this.centerOffset = centerOffset;
-        this.strategy = strategy;
-    }
-
-    /**
-     * New-path constructor taking a canonical {@link PieceTemplate} directly.
-     * Uses the new {@link StructurePiece} constructor that holds the
-     * {@code PieceTemplate} as the canonical IR and lazily constructs a
-     * {@link BlockPatternTemplate} facade only if {@link #getTemplate()}
-     * is called.
-     */
-    public RepeatGroupPiece(@NotNull String name, @NotNull PieceTemplate tpl,
-                            @NotNull Vec3i offset, @NotNull OffsetMode mode,
-                            @Nullable BooleanSupplier cond,
-                            int[] axes, int[][] ranges, int[] steps,
-                            @Nullable String[] channelNames, int[] centerOffset,
-                            @NotNull StructureCompiler.SearchStrategy strategy) {
-        this(name, tpl, offset, mode, cond, axes, ranges, steps, channelNames, centerOffset, strategy, true);
-    }
-
-    public RepeatGroupPiece(@NotNull String name, @NotNull PieceTemplate tpl,
-                            @NotNull Vec3i offset, @NotNull OffsetMode mode,
-                            @Nullable BooleanSupplier cond,
-                            int[] axes, int[][] ranges, int[] steps,
-                            @Nullable String[] channelNames, int[] centerOffset,
-                            @NotNull StructureCompiler.SearchStrategy strategy,
-                            boolean toolingVisible) {
         super(name, tpl, offset, mode, cond, RepeatGroupPiece::checkOnSnapshotDispatch, toolingVisible);
         this.repeatAxes = axes;
         this.repeatRanges = ranges;
@@ -346,10 +326,8 @@ public class RepeatGroupPiece extends StructurePiece {
         LongSet allPositions = new LongOpenHashSet();
 
         if (!visitRepeatOffsets(reps, local -> {
-            PatternMatchContext ctx = state.checkPatternAtExact(
-                    world, traversal(pieceCenter, orientation, local), session);
-            if (ctx == null) {
-                runtime.setLastAggregatedContext(null);
+            if (!state.checkPatternAtExact(
+                    world, traversal(pieceCenter, orientation, local), session)) {
                 return false;
             }
 
@@ -364,7 +342,6 @@ public class RepeatGroupPiece extends StructurePiece {
             return false;
         }
 
-        runtime.setLastAggregatedContext(session.getContext().copy());
         runtime.publishPositionSet(allPositions);
         return true;
     }
@@ -387,10 +364,8 @@ public class RepeatGroupPiece extends StructurePiece {
         LongSet allPositions = new LongOpenHashSet();
 
         if (!visitRepeatOffsets(reps, local -> {
-            PatternMatchContext ctx = state.checkPatternAtExact(
-                    world, traversal(pieceCenter, orientation, local), session);
-            if (ctx == null) {
-                runtime.setLastAggregatedContext(null);
+            if (!state.checkPatternAtExact(
+                    world, traversal(pieceCenter, orientation, local), session)) {
                 return false;
             }
 
@@ -405,14 +380,13 @@ public class RepeatGroupPiece extends StructurePiece {
             return false;
         }
 
-        runtime.setLastAggregatedContext(session.getContext().copy());
         runtime.publishPositionSet(allPositions);
         return true;
     }
 
     /**
      * Single 1D sliding window search (single axis).
-     * Equivalent to the old aisleRepeatable sliding window algorithm.
+     * Equivalent to the per-aisle sliding window algorithm.
      */
     private boolean searchSliding1D(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                     @NotNull StructureOrientation orientation,
@@ -638,7 +612,6 @@ public class RepeatGroupPiece extends StructurePiece {
      * Check all slices of a multi-axis repeatable piece.
      * Enumerates the cartesian product of all repeat axes, checking the base piece
      * at each combination of offsets. All slices must pass for the check to succeed.
-     * Aggregates "MultiblockParts" from all slices into the runtime's lastAggregatedContext.
      */
     private boolean tryCheckAllMultiAxisSlices(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                                   @NotNull StructureOrientation orientation,
@@ -653,10 +626,8 @@ public class RepeatGroupPiece extends StructurePiece {
         LongSet allPositions = new LongOpenHashSet();
 
         if (!visitRepeatOffsets(reps, local -> {
-            PatternMatchContext ctx = state.checkPatternAtSnapshotExact(
-                    snap, traversal(pieceCenter, orientation, local), session);
-            if (ctx == null) {
-                runtime.setLastAggregatedContext(null);
+            if (!state.checkPatternAtSnapshotExact(
+                    snap, traversal(pieceCenter, orientation, local), session)) {
                 return false;
             }
 
@@ -671,7 +642,6 @@ public class RepeatGroupPiece extends StructurePiece {
             return false;
         }
 
-        runtime.setLastAggregatedContext(session.getContext().copy());
         runtime.publishPositionSet(allPositions);
         return true;
     }
@@ -680,7 +650,6 @@ public class RepeatGroupPiece extends StructurePiece {
      * Check each slice of a single-axis repeatable piece individually.
      * Each slice is checked at its own offset along the repeat axis.
      * All slices must pass for the check to succeed.
-     * Aggregates "MultiblockParts" from all slices into the runtime's lastAggregatedContext.
      */
     private boolean tryCheckAllSlices(@NotNull IBlockAccess snap, @NotNull BlockPos origin,
                                         @NotNull StructureOrientation orientation,
@@ -696,10 +665,8 @@ public class RepeatGroupPiece extends StructurePiece {
         LongSet allPositions = new LongOpenHashSet();
 
         if (!visitRepeatOffsets(reps, local -> {
-            PatternMatchContext ctx = state.checkPatternAtSnapshotExact(
-                    snap, traversal(pieceCenter, orientation, local), session);
-            if (ctx == null) {
-                runtime.setLastAggregatedContext(null);
+            if (!state.checkPatternAtSnapshotExact(
+                    snap, traversal(pieceCenter, orientation, local), session)) {
                 return false;
             }
 
@@ -714,7 +681,6 @@ public class RepeatGroupPiece extends StructurePiece {
             return false;
         }
 
-        runtime.setLastAggregatedContext(session.getContext().copy());
         runtime.publishPositionSet(allPositions);
         return true;
     }

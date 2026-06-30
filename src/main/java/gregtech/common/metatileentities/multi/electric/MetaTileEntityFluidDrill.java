@@ -18,7 +18,6 @@ import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.pattern.BlockPatternTemplate;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.SoftReferenceHolder;
 import gregtech.api.pattern.TemplatePool;
@@ -63,7 +62,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
@@ -96,21 +94,6 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         this.minerLogic = new FluidDrillLogic(this);
     }
 
-    public static void registerFluidDrillType(String key, Supplier<BlockPatternTemplate> templateSupplier) {
-        STRUCTURE_DEFINITIONS.put(key, TemplatePool.getInstance()
-                .registerStructure(key, () -> StructureDefinition.fromTemplate(templateSupplier.get())));
-    }
-
-    public static BlockPatternTemplate buildTemplate(IFluidDrillType type) {
-        return primaryTemplate(pooledStructureDefinition(type), type.getName());
-    }
-
-    private static StructureDefinition<?> pooledStructureDefinition(IFluidDrillType type) {
-        SoftReferenceHolder<? extends StructureDefinition<?>> definition = TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(type), () -> buildStructureDefinition(type));
-        return definition.get();
-    }
-
     private static String structurePoolKey(IFluidDrillType type) {
         return "gregtech:fluid_drilling_rig." + type.getName();
     }
@@ -128,14 +111,6 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
                 .energyInput(1, 3)
                 .fluidOutput(1)
                 .buildStructureDefinition();
-    }
-
-    private static BlockPatternTemplate primaryTemplate(StructureDefinition<?> definition, String key) {
-        BlockPatternTemplate template = definition.getPrimaryTemplate();
-        if (template == null) {
-            throw new IllegalStateException("Fluid drill type '" + key + "' is not a single-piece structure");
-        }
-        return template;
     }
 
     private static @NotNull String getDepletionLang(IntSyncValue operationsValue) {

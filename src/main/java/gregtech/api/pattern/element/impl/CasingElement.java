@@ -1,10 +1,9 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.block.VariantActiveBlock;
-import gregtech.api.pattern.BlockWorldState;
+import gregtech.api.pattern.CountLimitError;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
@@ -13,12 +12,10 @@ import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
 
-import java.util.LinkedList;
 import java.util.Set;
 
 /**
@@ -28,18 +25,11 @@ public final class CasingElement implements ITypedStructureElement<Object> {
 
     private final IBlockState blockState;
     private final int minGlobalCount;
-    private final TraceabilityPredicate legacyPredicate;
-    private final TraceabilityPredicate.SimplePredicate countPredicate;
     private final StructureElementPreview preview;
 
     public CasingElement(@NotNull ICasing casing, int minGlobalCount) {
         this.blockState = casing.getBlockState();
         this.minGlobalCount = Math.max(0, minGlobalCount);
-        this.legacyPredicate = new TraceabilityPredicate(
-                this::testLegacy,
-                this::getCandidates)
-                .setMinGlobalLimited(this.minGlobalCount);
-        this.countPredicate = legacyPredicate.limited.get(0);
         this.preview = StructureElementPreview.builder()
                 .limited(this::getCandidates, this.minGlobalCount, -1, -1, -1, -1)
                 .build();
@@ -95,23 +85,7 @@ public final class CasingElement implements ITypedStructureElement<Object> {
     public void collectRequirements(@NotNull StructureEvaluationContext<Object> context) {
         context.getCollector().declareCount(
                 this, minGlobalCount, -1,
-                () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 1),
+                () -> new CountLimitError(CountLimitError.Kind.MIN_GLOBAL, minGlobalCount),
                 null);
-    }
-
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        return legacyPredicate;
-    }
-
-    private boolean testLegacy(@NotNull BlockWorldState worldState) {
-        if (!blockState.equals(worldState.getBlockState())) {
-            return false;
-        }
-        if (blockState.getBlock() instanceof VariantActiveBlock) {
-            worldState.getMatchContext().getOrPut("VABlock", new LinkedList<BlockPos>())
-                    .add(worldState.getPos());
-        }
-        return true;
     }
 }

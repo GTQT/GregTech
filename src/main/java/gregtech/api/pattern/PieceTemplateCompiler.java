@@ -17,38 +17,28 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 /**
  * Core algorithm for compiling a single structure piece (flat-string aisles +
- * symbol mappings) into a {@link BlockPatternTemplate}.
+ * symbol mappings) into a {@link PieceTemplate}.
  *
- * <p>This class owns the canonical piece-compilation logic that was previously
- * embedded directly inside {@link FactoryBlockPattern}. Splitting it out has two
- * benefits:
- * <ul>
- *   <li>The new structure system ({@link gregtech.api.pattern.element.StructureCompiler})
- *       can compile an {@link gregtech.api.pattern.element.IStructurePiece} into a
- *       template <b>without</b> going through the public
- *       {@link FactoryBlockPattern} facade.</li>
- *   <li>{@link FactoryBlockPattern} is reduced to a thin fluent facade that
- *       delegates here, so the 100+ existing legacy multiblocks continue to
- *       compile through the same algorithm.</li>
- * </ul>
+ * <p>This class owns the canonical piece-compilation logic. The new structure
+ * system ({@link gregtech.api.pattern.element.StructureCompiler}) can compile
+ * an {@link gregtech.api.pattern.element.IStructurePiece} into a template
+ * directly through this compiler.
  *
- * <p>Typical usage (mirrors the legacy factory workflow):
+ * <p>Typical usage:
  * <pre>{@code
  * PieceTemplateCompiler c = new PieceTemplateCompiler(RIGHT, UP, BACK);
  * c.aisle("XXX", "X#X", "XXX")
- *  .aisleRepeatable(1, 7, "YEY", "Y#Y", "YEY")
- *  .where('X', somePredicate)
- *  .where('#', airPredicate);
- * BlockPatternTemplate tpl = c.buildTemplate();
+ *  .aisleRepeated(7, "YEY", "Y#Y", "YEY")
+ *  .whereElement('X', someElement)
+ *  .whereElement('#', Elements.air());
+ * PieceTemplate tpl = c.buildPieceTemplate();
  * }</pre>
  *
  * <p>Thread safety: instances are <b>not</b> thread-safe; each piece compilation
- * should use its own instance, matching the original {@link FactoryBlockPattern}
- * behavior.
+ * should use its own instance.
  */
 public final class PieceTemplateCompiler {
 
@@ -58,7 +48,6 @@ public final class PieceTemplateCompiler {
     private final List<String[]> depth = new ArrayList<>();
     private final List<int[]> aisleRepetitions = new ArrayList<>();
     private final List<String> aisleChannelNames = new ArrayList<>();
-    private final Map<Character, TraceabilityPredicate> symbolMap = new HashMap<>();
     private final Map<Character, CompiledStructureElement<?>> elementMap = new HashMap<>();
     private int aisleHeight;
     private int rowWidth;
@@ -94,38 +83,45 @@ public final class PieceTemplateCompiler {
             }
         }
         if (flags != 0x7) throw new IllegalArgumentException("Must have 3 different axes!");
-        this.symbolMap.put(' ', TraceabilityPredicate.ANY);
         this.elementMap.put(' ', AnyElement.INSTANCE.compile());
     }
 
     /**
      * Adds a single aisle to this piece. Equivalent to
-     * {@code aisleRepeatable(1, 1, aisle)}.
+     * {@code aisleRepeated(1, aisle)}.
      */
     @NotNull
     public PieceTemplateCompiler aisle(@NotNull String... aisle) {
-        return aisleRepeatable(1, 1, aisle);
+        return addAisle(1, 1, aisle);
     }
 
     /**
-     * Adds a repeatable aisle to this piece.
+     * Adds an aisle that is repeated an exact number of times.
+     *
+     * <p>Use a repeatable piece for variable min/max repetition. This method is
+     * for fixed-size structures that would otherwise duplicate identical aisle
+     * slices in the declaration.
      *
      * <p>Validates that the new aisle matches the previously recorded
      * height/width, and registers any previously-unseen characters as null
-     * predicates (which must be filled in by
-     * {@link #where(char, TraceabilityPredicate)} before
-     * {@link #buildTemplate()}).
+     * elements (which must be filled in by
+     * {@link #whereElement(char, IStructureElement)} before
+     * {@link #buildPieceTemplate()}).
      *
-     * @param minRepeat minimum number of repetitions
-     * @param maxRepeat maximum number of repetitions
-     * @param aisle     the flat row strings for this aisle
+     * @param exactCount exact number of repetitions
+     * @param aisle      the flat row strings for this aisle
      * @return this compiler
      * @throws IllegalArgumentException if aisle is empty, or its dimensions do
      *                                  not match previously added aisles, or
-     *                                  minRepeat &gt; maxRepeat
+     *                                  exactCount is less than 1
      */
     @NotNull
-    public PieceTemplateCompiler aisleRepeatable(int minRepeat, int maxRepeat, @NotNull String... aisle) {
+    public PieceTemplateCompiler aisleRepeated(int exactCount, @NotNull String... aisle) {
+        validateExactRepeatCount(exactCount);
+        return addAisle(exactCount, exactCount, aisle);
+    }
+
+    private PieceTemplateCompiler addAisle(int minRepeat, int maxRepeat, @NotNull String... aisle) {
         if (!ArrayUtils.isEmpty(aisle) && !StringUtils.isEmpty(aisle[0])) {
             if (this.depth.isEmpty()) {
                 this.aisleHeight = aisle.length;
@@ -144,8 +140,7 @@ public final class PieceTemplateCompiler {
                     }
 
                     for (char c0 : s.toCharArray()) {
-                        if (!this.symbolMap.containsKey(c0)) {
-                            this.symbolMap.put(c0, null);
+                        if (!this.elementMap.containsKey(c0)) {
                             this.elementMap.put(c0, null);
                         }
                     }
@@ -164,8 +159,7 @@ public final class PieceTemplateCompiler {
     }
 
     /**
-     * Set the last added aisle's repeat range (overrides the value passed to
-     * {@link #aisleRepeatable(int, int, String...)}).
+     * Set the last added aisle's repeat range.
      */
     @NotNull
     public PieceTemplateCompiler setRepeatable(int minRepeat, int maxRepeat) {
@@ -193,32 +187,24 @@ public final class PieceTemplateCompiler {
      */
     @NotNull
     public PieceTemplateCompiler setRepeatable(int repeatCount) {
+        validateExactRepeatCount(repeatCount);
         return setRepeatable(repeatCount, repeatCount);
     }
 
-    /**
-     * Map a character symbol to a block matcher. Any character that appears in
-     * an aisle but is not mapped will cause {@link #buildTemplate()} to throw
-     * {@link IllegalStateException}.
-     */
-    @NotNull
-    public PieceTemplateCompiler where(char symbol, @NotNull TraceabilityPredicate blockMatcher) {
-        TraceabilityPredicate predicate = new TraceabilityPredicate(blockMatcher).sort();
-        this.symbolMap.put(symbol, predicate);
-        this.elementMap.put(symbol, CompiledStructureElement.legacy(predicate));
-        return this;
+    private static void validateExactRepeatCount(int exactCount) {
+        if (exactCount < 1) {
+            throw new IllegalArgumentException("Exact repeat count must be at least 1!");
+        }
     }
 
     /**
      * Map a symbol to the canonical element contract. The element is compiled
-     * once and legacy predicate views are materialized only by explicit
-     * compatibility adapters.
+     * once and stored as a {@link CompiledStructureElement} for runtime use.
      */
     @NotNull
     public PieceTemplateCompiler whereElement(char symbol, @NotNull IStructureElement<?> element) {
         CompiledStructureElement<?> compiled = element.compile();
         this.elementMap.put(symbol, compiled);
-        this.symbolMap.put(symbol, PieceTemplateLegacyView.previewPredicateViewFor(compiled));
         return this;
     }
 
@@ -233,41 +219,10 @@ public final class PieceTemplateCompiler {
     }
 
     /**
-     * String overload of {@link #where(char, TraceabilityPredicate)}; the
-     * string must be exactly one character long.
-     *
-     * @throws IllegalArgumentException if {@code symbol} is not exactly one
-     *                                  character
-     */
-    @NotNull
-    public PieceTemplateCompiler where(@NotNull String symbol, @NotNull TraceabilityPredicate blockMatcher) {
-        if (symbol.length() == 1) {
-            return where(symbol.charAt(0), blockMatcher);
-        }
-        throw new IllegalArgumentException(
-                String.format("Symbol \"%s\" is invalid! It must be exactly one character!", symbol));
-    }
-
-    /**
-     * Build the immutable template. If any aisle contains a character that has
-     * not been mapped via {@link #where(char, TraceabilityPredicate)}, this
-     * throws {@link IllegalStateException} listing the missing characters.
-     *
-     * <p>This overload returns a {@link BlockPatternTemplate} facade for
-     * backward compatibility. The new compile path should prefer
-     * {@link #buildPieceTemplate()} which returns the canonical
-     * {@link PieceTemplate} directly without the facade wrapping.
-     */
-    @NotNull
-    public BlockPatternTemplate buildTemplate() {
-        return new BlockPatternTemplate(buildPieceTemplate());
-    }
-
-    /**
      * Build the canonical {@link PieceTemplate} directly, without going through
-     * the {@link BlockPatternTemplate} facade. Use this from the new
-     * (StructureDefinition) compile path: the resulting {@code PieceTemplate}
-     * can be wrapped directly in a {@link StructurePiece}.
+     * an intermediate wrapper. Use this from the StructureDefinition compile
+     * path: the resulting {@code PieceTemplate} can be wrapped directly in a
+     * {@link StructurePiece}.
      */
     @NotNull
     public PieceTemplate buildPieceTemplate() {
@@ -278,22 +233,9 @@ public final class PieceTemplateCompiler {
     }
 
     /**
-     * Build the immutable template with an externally-specified center offset.
-     * Use this for multi-piece sub-patterns that don't have a self-predicate
-     * center marker.
-     *
-     * @param centerOffset the center offset [x, y, z, minZ, maxZ]
-     * @return the immutable template
-     */
-    @NotNull
-    public BlockPatternTemplate buildTemplate(@NotNull int[] centerOffset) {
-        return new BlockPatternTemplate(buildPieceTemplate(centerOffset));
-    }
-
-    /**
      * Build the canonical {@link PieceTemplate} directly with an externally-specified
-     * center offset. New code should prefer this over {@link #buildTemplate(int[])}
-     * to skip the {@link BlockPatternTemplate} facade.
+     * center offset. Use this for multi-piece sub-patterns that don't have a
+     * self-predicate center marker.
      *
      * @param centerOffset the center offset [x, y, z, minZ, maxZ]
      * @return the canonical piece IR
@@ -307,25 +249,8 @@ public final class PieceTemplateCompiler {
     }
 
     /**
-     * Build the immutable template with an externally-specified center offset and an
-     * auto-generated structure description. Used by {@code DeclarativePatternBuilder} to
-     * produce templates that carry the description in their constructor (no setter).
-     *
-     * @param centerOffset      the center offset [x, y, z, minZ, maxZ]
-     * @param structureDescription  auto-generated description lines; may be {@code null} or empty
-     * @return the immutable template
-     */
-    @NotNull
-    public BlockPatternTemplate buildTemplate(@NotNull int[] centerOffset,
-                                              @Nullable List<String> structureDescription) {
-        return new BlockPatternTemplate(buildPieceTemplate(centerOffset, structureDescription));
-    }
-
-    /**
      * Build the canonical {@link PieceTemplate} directly with an externally-specified
-     * center offset and an auto-generated structure description. New code should
-     * prefer this over {@link #buildTemplate(int[], List)} to skip the
-     * {@link BlockPatternTemplate} facade.
+     * center offset and an auto-generated structure description.
      */
     @NotNull
     public PieceTemplate buildPieceTemplate(@NotNull int[] centerOffset,
@@ -339,26 +264,9 @@ public final class PieceTemplateCompiler {
     }
 
     /**
-     * Materialize the 3D predicate array from the recorded aisles and symbol
+     * Materialize the 3D element array from the recorded aisles and symbol
      * map.
      */
-    @NotNull
-    public TraceabilityPredicate[][][] makePredicateArray() {
-        this.checkMissingPredicates();
-        TraceabilityPredicate[][][] predicate = (TraceabilityPredicate[][][]) Array
-                .newInstance(TraceabilityPredicate.class, this.depth.size(), this.aisleHeight, this.rowWidth);
-
-        for (int i = 0; i < this.depth.size(); ++i) {
-            for (int j = 0; j < this.aisleHeight; ++j) {
-                for (int k = 0; k < this.rowWidth; ++k) {
-                    predicate[i][j][k] = this.symbolMap.get(this.depth.get(i)[j].charAt(k));
-                }
-            }
-        }
-
-        return predicate;
-    }
-
     @NotNull
     public IStructureElement<?>[][][] makeElementArray() {
         this.checkMissingPredicates();
@@ -377,12 +285,12 @@ public final class PieceTemplateCompiler {
 
     /**
      * Throw {@link IllegalStateException} if any character in the recorded
-     * aisles has not been mapped via {@link #where(char, TraceabilityPredicate)}.
+     * aisles has not been mapped via {@link #whereElement(char, IStructureElement)}.
      */
     public void checkMissingPredicates() {
         List<Character> list = new ArrayList<>();
 
-        for (Entry<Character, TraceabilityPredicate> entry : this.symbolMap.entrySet()) {
+        for (Map.Entry<Character, CompiledStructureElement<?>> entry : this.elementMap.entrySet()) {
             if (entry.getValue() == null) {
                 list.add(entry.getKey());
             }
@@ -401,11 +309,11 @@ public final class PieceTemplateCompiler {
         return structureDir;
     }
 
-    // --- Read-only views for the FactoryBlockPattern facade ---
+    // --- Read-only views for migration code ---
     //
-    // These expose the underlying lists/maps without copying, so the
-    // facade can forward reads cheaply. They are intended only for
-    // internal migration code and should not be used by new callers.
+    // These expose the underlying lists/maps without copying, so callers
+    // can forward reads cheaply. They are intended only for internal
+    // migration code and should not be used by new callers.
 
     /** @return the aisle repetition ranges. Each entry is {@code [minRepeat, maxRepeat]}. */
     @NotNull
@@ -425,9 +333,9 @@ public final class PieceTemplateCompiler {
         return Collections.unmodifiableList(depth);
     }
 
-    /** @return the symbol-to-predicate mapping. */
+    /** @return the symbol-to-element mapping. */
     @NotNull
-    public Map<Character, TraceabilityPredicate> symbolMapView() {
-        return Collections.unmodifiableMap(symbolMap);
+    public Map<Character, CompiledStructureElement<?>> elementMapView() {
+        return Collections.unmodifiableMap(elementMap);
     }
 }

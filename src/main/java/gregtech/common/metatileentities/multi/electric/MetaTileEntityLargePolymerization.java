@@ -23,23 +23,22 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargePolymerization extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_polymerization", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("F   F", "XXXXX", "XXXXX", "XXXXX")
-                            .aisle("     ", "XXXXX", "XPPPX", "XXXXX")
-                            .aisle("F   F", "XXXXX", "XSXXX", "XXXXX")
-                            .self('S', MetaTileEntityLargePolymerization.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('P', states(getCasingState2()))
-                            .where('F', states(getFrameState()))
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_polymerization", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("F   F", "XXXXX", "XXXXX", "XXXXX")
+                    .aisle("     ", "XXXXX", "XPPPX", "XXXXX")
+                    .aisle("F   F", "XXXXX", "XSXXX", "XXXXX")
+                    .self('S', MetaTileEntityLargePolymerization.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('P', getCasingState2())
+                    .block('F', getFrameState())
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargePolymerization(ResourceLocation metaTileEntityId) {

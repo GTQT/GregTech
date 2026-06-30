@@ -36,7 +36,7 @@ final class StructureRuntimeDetectionEvaluator {
         StructurePiece piece = pattern.getPrimaryPiece();
         PieceRuntimes transientRuntimes = new PieceRuntimes(pattern);
         PieceRuntime pieceRuntime = transientRuntimes.getPrimary();
-        StructureMatchSession session = pattern.createMatchSession(request.getMatchContext());
+        StructureMatchSession session = pattern.createMatchSession();
         StructureRuntimeDetectionContext context = new StructureRuntimeDetectionContext(
                 request.requireWorld(), request.requireControllerPos(),
                 request.requireOrientation(), rawController, piece, session);
@@ -54,22 +54,20 @@ final class StructureRuntimeDetectionEvaluator {
         pieceRuntime.setValidated(true);
         pieceRuntime.clearDirty();
 
-        PatternMatchContext compatibilityContext =
-                contribution.projectCompatibilityContext(request.getMatchContext());
         StructureResultTable table = StructureResultTable.builder(pattern)
                 .add(PieceEvaluationResult.activeMatchedWithRuntime(
                         piece, request.requireControllerPos(), null,
                         context.copyFormedPositions(), context.copyWatchedPositions(),
-                        pieceRuntime, contribution, compatibilityContext))
+                        pieceRuntime, contribution))
                 .build();
         StructureAggregateFolder.Result aggregate =
-                StructureAggregateFolder.fold(pattern, table, request.getMatchContext());
+                StructureAggregateFolder.fold(pattern, table);
         if (!aggregate.isMatched()) {
             return aggregateFailure(request, table, aggregate);
         }
 
         StructureCheckState.Result stateResult = StructureCheckState.Result.success(
-                aggregate.getMetadata(), aggregate.copyCompatibilityContext(),
+                aggregate.getMetadata(),
                 aggregate.copyOperationState(), request.requireOrientation().isFlipped(),
                 transientRuntimes.capturePublication(), table, aggregate);
         return StructureCheckResult.fromDefinition(stateResult)

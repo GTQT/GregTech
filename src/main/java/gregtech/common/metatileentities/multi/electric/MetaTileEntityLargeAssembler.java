@@ -30,26 +30,27 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
+import static gregtech.api.util.RelativeDirection.*;
+
 public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_assembler", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXXXXXX", "XXXXXXXXX", "XXXXXXXXX")
-                            .aisle("XXXXXXXXX", "XAAAXAXAX", "XCCCXXXXX")
-                            .aisle("XXXXXXXXX", "XCCCXXSXX", "XCCCX###X")
-                            .self('S', MetaTileEntityLargeAssembler.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('C', states(getCasingState2()))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_assembler", () ->
+            DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
+                    .aisle("XXXXXXXXX", "XXXXXXXXX", "XXXXXXXXX")
+                    .aisle("XXXXXXXXX", "XAAAXAXAX", "XCCCXXXXX")
+                    .aisle("XXXXXXXXX", "XCCCXXSXX", "XCCCX###X")
+                    .self('S',MetaTileEntityLargeAssembler.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('C', getCasingState2())
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeAssembler(ResourceLocation metaTileEntityId) {

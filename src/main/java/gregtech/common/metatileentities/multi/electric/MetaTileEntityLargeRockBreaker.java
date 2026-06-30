@@ -24,23 +24,22 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeRockBreaker extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_rock_breaker", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("CCC", "CCC", "CCC", "CCC")
-                            .aisle("CCC", "C#C", "C#C", "CMC")
-                            .aisle("CSC", "CCC", "CCC", "CCC")
-                            .self('S', MetaTileEntityLargeRockBreaker.class)
-                            .casing('C', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .maintenance()
-                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                            .where('#', air())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_rock_breaker", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("CCC", "CCC", "CCC", "CCC")
+                    .aisle("CCC", "C#C", "C#C", "CMC")
+                    .aisle("CSC", "CCC", "CCC", "CCC")
+                    .self('S', MetaTileEntityLargeRockBreaker.class)
+                    .casing('C', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .maintenance()
+                    .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                    .air('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeRockBreaker(ResourceLocation metaTileEntityId) {

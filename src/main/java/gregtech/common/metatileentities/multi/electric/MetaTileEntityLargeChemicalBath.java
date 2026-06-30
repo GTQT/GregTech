@@ -27,32 +27,28 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-import static gregtech.api.pattern.FluidTraceability.*;
+import static gregtech.api.pattern.FluidStructureElements.*;
+import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeChemicalBath extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_chemical_bath", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXX", "XXXXX", "XXXXX")
-                            .aisle("XXXXX", "XCCCX", "XAAAX")
-                            .aisle("XXXXX", "XAAAX", "XAAAX")
-                            .aisle("XXXXX", "XAAAX", "XAAAX")
-                            .aisle("XXXXX", "XAAAX", "XAAAX")
-                            .aisle("XXXXX", "XCCCX", "XAAAX")
-                            .aisle("XXXXX", "XXSXX", "XXXXX")
-                            .self('S', MetaTileEntityLargeChemicalBath.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('C', states(getCasingState2()))
-                            .where('A', fluidElement(FluidRegistry.WATER))
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_chemical_bath", () ->
+            DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                    .aisle("XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX", "XXXXX")
+                    .aisle("XXSXX", "XCCCX", "XAAAX", "XAAAX", "XAAAX", "XCCCX", "XXXXX")
+                    .aisle("XXXXX", "XAAAX", "XAAAX", "XAAAX", "XAAAX", "XAAAX", "XXXXX")
+                    .self('S', MetaTileEntityLargeChemicalBath.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('C', getCasingState2())
+                    .where('A', fluidElement(FluidRegistry.WATER))
+                    .any('#')
+                    .buildStructureDefinition()
     );
     private boolean waterFilled;
     private List<BlockPos> waterPositions;

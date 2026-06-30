@@ -4,7 +4,6 @@ import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.AutoPlaceEnvironment;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
@@ -138,8 +137,8 @@ public class ChainElement implements IStructureElement<Object> {
     public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
                               @NotNull EntityPlayer player, boolean skipHatches) {
         for (IStructureElement e : elements) {
-            if (context.transaction(legacyContext ->
-                    e.placeBlock(legacyContext, player, skipHatches))) {
+            if (context.transaction(childContext ->
+                    e.placeBlock(childContext, player, skipHatches))) {
                 return true;
             }
         }
@@ -155,7 +154,7 @@ public class ChainElement implements IStructureElement<Object> {
         boolean allContinue = true;
         for (IStructureElement e : elements) {
             PlaceResult result = context.transactionValue(
-                    legacyContext -> e.survivalPlaceBlock(legacyContext, trigger, env, skipHatches),
+                    childContext -> e.survivalPlaceBlock(childContext, trigger, env, skipHatches),
                     ChainElement::isCommittedSurvivalResult);
             switch (result) {
                 case REJECT_CONTINUE:
@@ -258,22 +257,5 @@ public class ChainElement implements IStructureElement<Object> {
         for (IStructureElement e : elements) {
             e.collectRequirements(context);
         }
-    }
-
-    @Nullable
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        TraceabilityPredicate result = elements[0].toPredicate();
-        if (result == null) {
-            return null;
-        }
-        for (int i = 1; i < elements.length; i++) {
-            TraceabilityPredicate predicate = elements[i].toPredicate();
-            if (predicate == null) {
-                return null;
-            }
-            result = result.or(predicate);
-        }
-        return result;
     }
 }

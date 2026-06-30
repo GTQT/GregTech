@@ -128,7 +128,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
         // Determine layer count from the body piece repeat count. The structure
         // is always multi-piece (top / body / bottom), so the multiblockState
         // single-piece path has been removed — it was dead code after the
-        // aisleRepeatable → repeatablePiece migration.
+        // per-aisle repeat → repeatablePiece migration.
         handler.determineLayerCountFromReps(formed.getPieceRepeat(BODY_PIECE, 0));
         handler.determineOrderedFluidOutputs();
     }

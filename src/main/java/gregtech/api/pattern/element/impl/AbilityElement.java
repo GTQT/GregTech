@@ -6,10 +6,9 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.CountLimitError;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
@@ -34,8 +33,7 @@ public class AbilityElement implements ITypedStructureElement<Object> {
     private final int maxCount;
     private final int minLayerCount;
     private final int maxLayerCount;
-    private final TraceabilityPredicate legacyPredicate;
-    private final TraceabilityPredicate.SimplePredicate countPredicate;
+    private final int previewCount;
     private final StructureElementPreview preview;
 
     public AbilityElement(MultiblockAbility<?>... abilities) {
@@ -60,9 +58,8 @@ public class AbilityElement implements ITypedStructureElement<Object> {
         this.maxCount = maxCount;
         this.minLayerCount = minLayerCount;
         this.maxLayerCount = maxLayerCount;
-        this.legacyPredicate = buildLegacyPredicate(previewCount);
-        this.countPredicate = findCountPredicate(legacyPredicate);
-        this.preview = StructureElementPreview.fromPredicate(legacyPredicate);
+        this.previewCount = previewCount;
+        this.preview = buildPreview();
     }
 
     public static AbilityElement perLayer(int minLayerCount, int maxLayerCount, int previewCount,
@@ -82,7 +79,7 @@ public class AbilityElement implements ITypedStructureElement<Object> {
         return context.transaction(transactionContext -> {
             StructureMatchCollector collector = transactionContext.getCollector();
             if (hasCountConstraint() && !collector.recordAbility(this, (IMultiblockPart) abilityPart)) {
-                transactionContext.setError(new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
+                transactionContext.setError(new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxCount));
                 return false;
             }
             if (!hasCountConstraint()) {
@@ -136,24 +133,14 @@ public class AbilityElement implements ITypedStructureElement<Object> {
         if (abilities.length == 1) {
             context.getCollector().declareAbility(
                     this, abilities[0], minCount, maxCount,
-                    () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 1),
-                    () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
+                    () -> new CountLimitError(CountLimitError.Kind.MIN_GLOBAL, minCount),
+                    () -> new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxCount));
         } else {
             context.getCollector().declareCount(
                     this, minCount, maxCount,
-                    () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 1),
-                    () -> new TraceabilityPredicate.SinglePredicateError(countPredicate, 0));
+                    () -> new CountLimitError(CountLimitError.Kind.MIN_GLOBAL, minCount),
+                    () -> new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxCount));
         }
-    }
-
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        return legacyPredicate;
-    }
-
-    @Override
-    public boolean usesLegacyPredicateRuntime() {
-        return minLayerCount > 0 || maxLayerCount >= 0;
     }
 
     private boolean hasCountConstraint() {
@@ -172,34 +159,28 @@ public class AbilityElement implements ITypedStructureElement<Object> {
         return null;
     }
 
-    private TraceabilityPredicate buildLegacyPredicate(int previewCount) {
-        TraceabilityPredicate predicate = MultiblockControllerBase.abilities(abilities);
-        if (minCount > 0) {
-            predicate.setMinGlobalLimited(minCount);
+    @NotNull
+    private StructureElementPreview buildPreview() {
+        StructureElementPreview.Builder builder = StructureElementPreview.builder();
+        StructureElementPreview.CandidateGroup.Builder groupBuilder =
+                StructureElementPreview.CandidateGroup.builder(this::getCandidates);
+        boolean isLimited = hasCountConstraint() || minLayerCount > 0 || maxLayerCount >= 0;
+        if (hasCountConstraint()) {
+            groupBuilder.global(minCount, maxCount);
         }
-        if (maxCount >= 0) {
-            predicate.setMaxGlobalLimited(maxCount);
-        }
-        if (minLayerCount > 0) {
-            predicate.setMinLayerLimited(minLayerCount);
-        }
-        if (maxLayerCount >= 0) {
-            predicate.setMaxLayerLimited(maxLayerCount);
+        if (minLayerCount > 0 || maxLayerCount >= 0) {
+            groupBuilder.layer(minLayerCount, maxLayerCount);
         }
         if (previewCount >= 0) {
-            predicate.setPreviewCount(previewCount);
+            groupBuilder.previewCount(previewCount);
         }
-        return predicate;
-    }
-
-    private static TraceabilityPredicate.SimplePredicate findCountPredicate(TraceabilityPredicate predicate) {
-        if (!predicate.limited.isEmpty()) {
-            return predicate.limited.get(0);
+        StructureElementPreview.CandidateGroup group = groupBuilder.build();
+        if (isLimited) {
+            builder.limited(group);
+        } else {
+            builder.common(group);
         }
-        if (!predicate.common.isEmpty()) {
-            return predicate.common.get(0);
-        }
-        throw new IllegalStateException("Ability predicate did not contain a matcher");
+        return builder.build();
     }
 
     private static MetaTileEntity getMetaTileEntity(TileEntity tileEntity) {

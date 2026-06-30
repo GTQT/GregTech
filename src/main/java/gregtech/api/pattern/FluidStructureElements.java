@@ -18,54 +18,16 @@ import net.minecraft.world.World;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidStack;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-public class FluidTraceability {
-    public static final String FLUID_BLOCKS_KEY = "FluidBlocks";
+public final class FluidStructureElements {
+
     public static final StructureContributionKey<BlockPos, List<BlockPos>> FLUID_BLOCK_POSITIONS =
             StructureContributionKey.orderedList("gregtech:fluid_block_positions");
 
-    public static TraceabilityPredicate fluid(FluidStack fluidStack) {
-        return fluid(fluidStack.getFluid());
-    }
+    private FluidStructureElements() {}
 
-    public static TraceabilityPredicate fluid(net.minecraftforge.fluids.Fluid fluid) {
-        Block fluidBlock = fluid.getBlock();
-        String fluidName = fluid.getName();
-        if (fluidBlock == null) {
-            throw new IllegalArgumentException("Fluid \"" + fluidName + "\" has no associated block!");
-        }
-        IBlockState stillState = fluidBlock.getDefaultState();
-
-        return new TraceabilityPredicate(
-                bws -> {
-                    IBlockState blockState = bws.getBlockState();
-                    if (blockState == stillState) return true;
-                    if (bws.getWorld().isAirBlock(bws.getPos()) || blockState.getBlock() == fluidBlock) {
-                        bws.getMatchContext()
-                                /// This can be a [Map] for multiple types of fluids,
-                                /// but this should be enough for now.
-                                /// Using an [ArrayList] here since we need to sort this later.
-                                /// [LinkedList] would be horrible for that
-                                .getOrPut(FLUID_BLOCKS_KEY, new ArrayList<>())
-                                .add(bws.getPos());
-                        return true;
-                    }
-                    return false;
-                },
-                () -> new BlockInfo[]{
-                        ConfigHolder.misc.showFluidsForAutoFillingMultiblocks ?
-                                new BlockInfo(stillState) : new BlockInfo(Blocks.AIR)
-                });
-    }
-
-    /**
-     * Typed V3 structure element for fluid-filled cells. Air and matching fluid
-     * blocks are accepted; cells that still need filling are emitted as a typed
-     * aggregate for the controller formation callback.
-     */
     public static IStructureElement<Object> fluidElement(net.minecraftforge.fluids.Fluid fluid) {
         Block fluidBlock = fluid.getBlock();
         String fluidName = fluid.getName();
@@ -116,10 +78,10 @@ public class FluidTraceability {
         fillFluid(multi, toFill, fluidStack.getFluid());
     }
 
-    public static void fillFluid(MultiblockControllerBase multi, List<BlockPos> toFill, net.minecraftforge.fluids.Fluid fluid) {
+    public static void fillFluid(MultiblockControllerBase multi, List<BlockPos> toFill,
+                                 net.minecraftforge.fluids.Fluid fluid) {
         if (toFill.isEmpty()) return;
 
-        // TODO: is it necessary for a multi to have a recipe logic for this?
         AbstractRecipeLogic recipeLogic = multi.getRecipeLogic();
         if (recipeLogic == null) return;
 

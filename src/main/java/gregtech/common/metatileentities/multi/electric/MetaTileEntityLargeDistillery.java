@@ -76,11 +76,11 @@ public class MetaTileEntityLargeDistillery extends GCYMRecipeMapMultiblockContro
                             .maintenance()
                             .casing('X', getCasingState())
                             .custom(Elements.abilitiesPerLayer(0, 1, 1, MultiblockAbility.EXPORT_FLUIDS), 12)
-                            .where('Z', states(getCasingState()))
-                            .where('P', states(getCasingState2()))
-                            .where('C', abilities(MultiblockAbility.MUFFLER_HATCH))
-                            .where('A', air())
-                            .where('#', any())
+                            .block('Z', getCasingState())
+                            .block('P', getCasingState2())
+                            .hatch('C', MultiblockAbility.MUFFLER_HATCH)
+                            .air('A')
+                            .any('#')
                             .buildStructureDefinition()
     );
     protected final DistillationTowerLogicHandler handler;

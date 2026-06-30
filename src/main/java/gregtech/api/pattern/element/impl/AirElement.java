@@ -1,7 +1,6 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.StructureEvaluationContext;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
@@ -18,8 +17,6 @@ import java.util.Set;
 public class AirElement implements ITypedStructureElement<Object> {
 
     public static final AirElement INSTANCE = new AirElement();
-
-    private final TraceabilityPredicate cachedPredicate = TraceabilityPredicate.AIR;
 
     private AirElement() {}
 
@@ -48,10 +45,5 @@ public class AirElement implements ITypedStructureElement<Object> {
         }
         world.setBlockToAir(context.getPos());
         return true;
-    }
-
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        return cachedPredicate;
     }
 }

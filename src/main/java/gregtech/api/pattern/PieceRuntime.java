@@ -18,7 +18,7 @@ import java.util.Map;
  * <p>Previously this state lived directly on {@link StructurePiece} as the
  * {@code state} / {@code positions} / {@code validated} / {@code dirty} fields
  * (and on {@link RepeatGroupPiece} as {@code lastFormedReps} /
- * {@code lastAggregatedContext}).
+ * repeat metadata).
  * That created an ownership bug: {@link MultiPiecePattern} instances are shared
  * across controllers via {@link gregtech.api.pattern.element.StructureDefinition}'s
  * compiled-pattern cache, so per-instance state was silently shared between
@@ -61,10 +61,6 @@ public final class PieceRuntime {
     @Nullable
     private int[] lastFormedReps;
 
-    /** Aggregated PatternMatchContext from the last successful check (for parts aggregation) */
-    @Nullable
-    private PatternMatchContext lastAggregatedContext;
-
     public PieceRuntime(@NotNull StructurePiece piece) {
         this(piece, null);
     }
@@ -72,7 +68,7 @@ public final class PieceRuntime {
     PieceRuntime(@NotNull StructurePiece piece,
                  @Nullable PieceRuntimeState stateOverride) {
         this.piece = piece;
-        this.state = stateOverride == null ? new PieceRuntimeState(piece.getPieceTemplate()) : stateOverride;
+        this.state = stateOverride == null ? new PieceRuntimeState(piece.getTemplate()) : stateOverride;
     }
 
     // --- PieceRuntimeState access ---
@@ -142,9 +138,6 @@ public final class PieceRuntime {
         validated = checkpoint.validated;
         dirty = checkpoint.dirty;
         lastFormedReps = checkpoint.lastFormedReps == null ? null : checkpoint.lastFormedReps.clone();
-        lastAggregatedContext = checkpoint.lastAggregatedContext == null
-                ? null
-                : checkpoint.lastAggregatedContext.copy();
     }
 
     @NotNull
@@ -171,16 +164,6 @@ public final class PieceRuntime {
         return lastFormedReps;
     }
 
-    /** @return the aggregated PatternMatchContext from the last successful check */
-    @Nullable
-    public PatternMatchContext getLastAggregatedContext() {
-        return lastAggregatedContext;
-    }
-
-    public void setLastAggregatedContext(@Nullable PatternMatchContext ctx) {
-        this.lastAggregatedContext = ctx;
-    }
-
     public void publishPositionSet(@NotNull LongSet set) {
         this.positions = set;
     }
@@ -193,7 +176,6 @@ public final class PieceRuntime {
         this.dirty = true;
         this.positions = new LongOpenHashSet();
         this.state.clearCache();
-        this.lastAggregatedContext = null;
         this.lastFormedReps = null;
     }
 
@@ -206,7 +188,6 @@ public final class PieceRuntime {
         this.positions = new LongOpenHashSet();
         this.state.clearCache();
         this.state.clearFormedRepetitionCount();
-        this.lastAggregatedContext = null;
         this.lastFormedReps = null;
     }
 
@@ -220,18 +201,12 @@ public final class PieceRuntime {
         private final boolean dirty;
         @Nullable
         private final int[] lastFormedReps;
-        @Nullable
-        private final PatternMatchContext lastAggregatedContext;
-
         private Checkpoint(@NotNull PieceRuntime runtime) {
             this.stateCheckpoint = runtime.state.checkpoint();
             this.positions = new LongOpenHashSet(runtime.positions);
             this.validated = runtime.validated;
             this.dirty = runtime.dirty;
             this.lastFormedReps = runtime.lastFormedReps == null ? null : runtime.lastFormedReps.clone();
-            this.lastAggregatedContext = runtime.lastAggregatedContext == null
-                    ? null
-                    : runtime.lastAggregatedContext.copy();
         }
     }
 

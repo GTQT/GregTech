@@ -5,7 +5,6 @@ import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.Block;
@@ -34,16 +33,13 @@ import java.util.function.Predicate;
  * previewed, and auto-built.
  *
  * <p>This interface is the single canonical concept for cell-level matching
- * in the new (StructureDefinition) path. The legacy
- * {@link gregtech.api.pattern.TraceabilityPredicate} remains a public API
- * for the old (FactoryBlockPattern) path and as an optional compatibility
- * view for old tooling.
+ * in the StructureDefinition path.
  */
 public interface IStructureElement<T> {
 
     /**
      * Operations this element can execute safely. Snapshot matching is opt-in
-     * because legacy predicates and tile-entity reads are not thread-safe by
+     * because tile-entity reads and opaque side effects are not thread-safe by
      * default.
      */
     @NotNull
@@ -56,49 +52,28 @@ public interface IStructureElement<T> {
     }
 
     /**
-     * Whether this element can participate in the contribution-eligible
-     * evaluator path. New direct elements are typed by default; migration
-     * wrappers and legacy predicate adapters override this when they hide
-     * side effects from the dependency compiler.
+     * Whether this element can participate in contribution-aware evaluation.
+     * Elements with side effects or hidden inputs should report opaque support.
      */
     @NotNull
-    default StructureIncrementalSupport getIncrementalSupport() {
-        return StructureIncrementalSupport.TYPED_CONTRIBUTION;
-    }
+    StructureIncrementalSupport getIncrementalSupport();
 
     /**
      * Typed inputs that can affect this element's match or contribution result.
      *
      * <p>Direct elements that read previously formed piece metadata, controller
-     * mode, configured channels, upgrades, or other non-block state should
-     * declare those inputs here. The incremental eligibility compiler consumes
-     * this metadata directly; callers should not route new runtime logic through
-     * legacy compatibility state just to make dependencies visible.
+     * mode, configured channels, upgrades, or other non-block state must declare
+     * those inputs here.
      */
     @NotNull
-    default Set<StructureDependency> getDependencies() {
-        return Collections.emptySet();
-    }
+    Set<StructureDependency> getDependencies();
 
     /**
      * Whether this direct element explicitly declares its incremental support
-     * and typed dependencies instead of inheriting compatibility defaults.
-     *
-     * <p>Existing addon elements remain source-compatible, but the dependency
-     * compiler treats undeclared contracts as opaque until both methods are
-     * implemented.
+     * and typed dependencies. Every direct element must provide this contract.
      */
     @ApiStatus.Internal
-    default boolean hasExplicitIncrementalContract() {
-        try {
-            return getClass().getMethod("getIncrementalSupport").getDeclaringClass()
-                    != IStructureElement.class
-                    && getClass().getMethod("getDependencies").getDeclaringClass()
-                    != IStructureElement.class;
-        } catch (NoSuchMethodException ignored) {
-            return false;
-        }
-    }
+    boolean hasExplicitIncrementalContract();
 
     /**
      * Low-level runtime check entry. Compiled templates call
@@ -139,8 +114,7 @@ public interface IStructureElement<T> {
      * <p>New elements should override this when candidate selection needs
      * channel preferences, preview counts, default candidates, or count-limited
      * candidate groups. The default exposes {@link #getCandidates()} as one
-     * common group so V3 preview/build code does not need to inspect
-     * {@link TraceabilityPredicate} metadata.
+     * common group.
      */
     @NotNull
     default StructureElementPreview getPreview() {
@@ -289,14 +263,6 @@ public interface IStructureElement<T> {
      */
     @NotNull
     default CompiledStructureElement<T> compile() {
-        if (usesLegacyPredicateRuntime()) {
-            TraceabilityPredicate predicate = toPredicate();
-            if (predicate == null) {
-                throw new IllegalStateException(
-                        getClass().getName() + " requested legacy predicate runtime without a predicate");
-            }
-            return (CompiledStructureElement<T>) CompiledStructureElement.legacy(predicate);
-        }
         return CompiledStructureElement.compile(this);
     }
 
@@ -331,9 +297,8 @@ public interface IStructureElement<T> {
     /**
      * Direct tooltip entry for preview/projector/tooling surfaces.
      *
-     * <p>This is the preferred replacement for attaching tooltip text through a
-     * legacy predicate view. The default delegates to the historical
-     * {@link #addTooltip(List)} hook for source compatibility.
+     * <p>This is the preferred entry for attaching tooltip text to preview
+     * metadata. The default delegates to {@link #addTooltip(List)}.
      */
     default void addPreviewTooltip(@NotNull List<String> tooltip) {
         addTooltip(tooltip);
@@ -348,29 +313,6 @@ public interface IStructureElement<T> {
      */
     default void applyTo(@NotNull String symbol, @NotNull PieceTemplateCompiler compiler) {
         compiler.whereElement(symbol, this);
-    }
-
-    /**
-     * Whether this element still needs to execute through a
-     * {@link gregtech.api.pattern.element.impl.LegacyElement}. New elements
-     * should leave this false and implement {@link #check(StructureEvaluationContext)}
-     * directly. This hook exists only for migration cases whose matching still
-     * depends on legacy predicate side effects.
-     */
-    @ApiStatus.Internal
-    default boolean usesLegacyPredicateRuntime() {
-        return false;
-    }
-
-    /**
-     * Optional legacy predicate view for old callers and preview/diagnostic
-     * surfaces. It is not required for new elements and is not used by the
-     * element runtime unless {@link #usesLegacyPredicateRuntime()} opts in.
-     */
-    @Nullable
-    @ApiStatus.Obsolete
-    default TraceabilityPredicate toPredicate() {
-        return null;
     }
 
     default IStructureElementNoPlacement<T> noPlacement() {
@@ -451,17 +393,6 @@ public interface IStructureElement<T> {
                         IStructureElement.this.getCapabilities());
             }
 
-            @Override
-            public boolean usesLegacyPredicateRuntime() {
-                return IStructureElement.this.usesLegacyPredicateRuntime();
-            }
-
-            @Nullable
-            @Override
-            public TraceabilityPredicate toPredicate() {
-                return IStructureElement.this.toPredicate();
-            }
-
             @NotNull
             @Override
             public StructureIncrementalSupport getIncrementalSupport() {
@@ -476,6 +407,11 @@ public interface IStructureElement<T> {
                     return Collections.emptySet();
                 }
                 return Collections.unmodifiableSet(new LinkedHashSet<>(dependencies));
+            }
+
+            @Override
+            public boolean hasExplicitIncrementalContract() {
+                return IStructureElement.this.hasExplicitIncrementalContract();
             }
         };
     }

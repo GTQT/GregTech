@@ -24,27 +24,26 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeEngraver extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_engraver", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXX", "XXGXX", "XXGXX", "XXXXX")
-                            .aisle("XXXXX", "XAAAX", "XAAAX", "XCCCX")
-                            .aisle("XXXXX", "GAAAG", "GAPAG", "XCXCX")
-                            .aisle("XXXXX", "XAAAX", "XAAAX", "XCCCX")
-                            .aisle("XXSXX", "XXGXX", "XXGXX", "XXXXX")
-                            .self('S', MetaTileEntityLargeEngraver.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .maintenance()
-                            .where('P', states(getCasingState2()))
-                            .where('G', states(getCasingState3()))
-                            .where('C', states(getCasingState4()))
-                            .where('A', air())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_engraver", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXX", "XXGXX", "XXGXX", "XXXXX")
+                    .aisle("XXXXX", "XAAAX", "XAAAX", "XCCCX")
+                    .aisle("XXXXX", "GAAAG", "GAPAG", "XCXCX")
+                    .aisle("XXXXX", "XAAAX", "XAAAX", "XCCCX")
+                    .aisle("XXSXX", "XXGXX", "XXGXX", "XXXXX")
+                    .self('S', MetaTileEntityLargeEngraver.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .maintenance()
+                    .block('P', getCasingState2())
+                    .block('G', getCasingState3())
+                    .block('C', getCasingState4())
+                    .air('A')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeEngraver(ResourceLocation metaTileEntityId) {

@@ -24,27 +24,26 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeMassFabricator extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_mass_fabricator", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXX", "XGGGX", "XGVGX", "XGGGX", "XXXXX")
-                            .aisle("XXXXX", "GAAAG", "GAKAG", "GAAAG", "XXXXX")
-                            .aisle("XXVXX", "GAKAG", "VKKKV", "GAKAG", "XXVXX")
-                            .aisle("XXXXX", "GAAAG", "GAKAG", "GAAAG", "XXXXX")
-                            .aisle("XXXXX", "XGGGX", "XGSGX", "XGGGX", "XXXXX")
-                            .self('S', MetaTileEntityLargeMassFabricator.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('G', states(getCasingState2()))
-                            .where('V', states(getCasingState3()))
-                            .where('K', states(getCasingState4()))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_mass_fabricator", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXX", "XGGGX", "XGVGX", "XGGGX", "XXXXX")
+                    .aisle("XXXXX", "GAAAG", "GAKAG", "GAAAG", "XXXXX")
+                    .aisle("XXVXX", "GAKAG", "VKKKV", "GAKAG", "XXVXX")
+                    .aisle("XXXXX", "GAAAG", "GAKAG", "GAAAG", "XXXXX")
+                    .aisle("XXXXX", "XGGGX", "XGSGX", "XGGGX", "XXXXX")
+                    .self('S', MetaTileEntityLargeMassFabricator.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('G', getCasingState2())
+                    .block('V', getCasingState3())
+                    .block('K', getCasingState4())
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeMassFabricator(ResourceLocation metaTileEntityId) {

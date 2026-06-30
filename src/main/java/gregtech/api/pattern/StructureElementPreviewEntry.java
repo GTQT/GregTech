@@ -1,10 +1,9 @@
 package gregtech.api.pattern;
 
-import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.StructureElementPreview;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -13,10 +12,7 @@ import java.util.List;
 /**
  * Per-cell preview metadata consumed by JEI/projector tooling.
  *
- * <p>The canonical data is the direct element preview plus its preview tooltip.
- * Legacy predicates are adapted into {@link StructureElementPreview} at the
- * compatibility boundary, so normal preview/tooltip/diagnostic tooling does
- * not need to carry a predicate-shaped view.
+ * <p>Carries the direct element preview plus its preview tooltip.
  */
 public final class StructureElementPreviewEntry {
 
@@ -38,16 +34,10 @@ public final class StructureElementPreviewEntry {
     }
 
     @NotNull
-    public static StructureElementPreviewEntry fromElement(@NotNull IStructureElement<?> element,
-                                                           @NotNull TraceabilityPredicate legacyPredicate) {
+    public static StructureElementPreviewEntry fromElement(@NotNull IStructureElement<?> element) {
         List<String> tooltip = new ArrayList<>();
         element.addPreviewTooltip(tooltip);
         return of(element.getPreview(), tooltip);
-    }
-
-    @NotNull
-    public static StructureElementPreviewEntry fromPredicate(@NotNull TraceabilityPredicate predicate) {
-        return of(StructureElementPreview.fromPredicate(predicate), Collections.emptyList());
     }
 
     @NotNull

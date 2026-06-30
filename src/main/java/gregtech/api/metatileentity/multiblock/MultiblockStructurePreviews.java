@@ -1,6 +1,6 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
@@ -9,7 +9,6 @@ import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.StructureElementPreviewEntry;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.util.math.BlockPos;
@@ -31,7 +30,7 @@ final class MultiblockStructurePreviews {
     @NotNull
     static List<MultiblockShapeInfo> getMatchingShapes(
             @NotNull MultiblockControllerBase controller,
-            @NotNull BlockPatternTemplate patternTemplate,
+            @NotNull PieceTemplate patternTemplate,
             @Nullable PieceRuntimeState runtimeState,
             @Nullable StructureRuntime structureRuntime,
             @Nullable Map<String, Integer> channelValues) {
@@ -65,18 +64,6 @@ final class MultiblockStructurePreviews {
         if (multiPiecePattern == null) return null;
         return assembleMultiPiecePreview(
                 controller, multiPiecePattern, pieceRuntimes, structureRuntime, channelValues);
-    }
-
-    @NotNull
-    static Map<BlockPos, TraceabilityPredicate> buildMultiPiecePredicateMap(
-            @NotNull MultiblockControllerBase controller,
-            @Nullable MultiPiecePattern multiPiecePattern,
-            @Nullable PieceRuntimes pieceRuntimes,
-            @Nullable StructureRuntime structureRuntime) {
-        if (multiPiecePattern == null) return new HashMap<>();
-        MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,
-                multiPiecePattern, pieceRuntimes, structureRuntime, null);
-        return new HashMap<>(preview.getPredicates());
     }
 
     @NotNull
@@ -137,7 +124,7 @@ final class MultiblockStructurePreviews {
 
     private static List<MultiblockShapeInfo> repetitionDFS(
             @NotNull MultiblockControllerBase controller,
-            @NotNull BlockPatternTemplate patternTemplate,
+            @NotNull PieceTemplate patternTemplate,
             @Nullable PieceRuntimeState runtimeState,
             @Nullable StructureRuntime structureRuntime,
             @NotNull List<MultiblockShapeInfo> pages,
@@ -163,7 +150,7 @@ final class MultiblockStructurePreviews {
         } else {
             int aisleIdx = repetitionStack.size();
             String channelName = null;
-            BlockPatternTemplate.AisleDef[] aisles = patternTemplate.getAisles();
+            PieceTemplate.AisleDef[] aisles = patternTemplate.getAisles();
             if (aisleIdx < aisles.length) {
                 channelName = aisles[aisleIdx].channelName();
             }

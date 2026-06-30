@@ -22,26 +22,25 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeAutoclave extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_autoclave", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXX", "XXX", "XXX")
-                            .aisle("XXX", "XCX", "XXX")
-                            .aisle("XXX", "XCX", "XXX")
-                            .aisle("XXX", "XCX", "XXX")
-                            .aisle("XXX", "XSX", "XXX")
-                            .self('S', MetaTileEntityLargeAutoclave.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('C', states(getCasingState2()))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_autoclave", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXX", "XXX", "XXX")
+                    .aisle("XXX", "XCX", "XXX")
+                    .aisle("XXX", "XCX", "XXX")
+                    .aisle("XXX", "XCX", "XXX")
+                    .aisle("XXX", "XSX", "XXX")
+                    .self('S', MetaTileEntityLargeAutoclave.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1,2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('C', getCasingState2())
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeAutoclave(ResourceLocation metaTileEntityId) {

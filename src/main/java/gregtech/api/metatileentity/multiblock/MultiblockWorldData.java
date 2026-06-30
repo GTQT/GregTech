@@ -65,7 +65,7 @@ public class MultiblockWorldData {
     /**
      * Register a formed multiblock with a position owner index. Watched
      * positions drive event dirty roots; formed positions remain available for
-     * compatibility queries.
+     * formed-position lookups.
      */
     public void registerMultiblock(MultiblockControllerBase controller,
                                    StructurePositionIndex positionIndex,
@@ -128,15 +128,6 @@ public class MultiblockWorldData {
     @NotNull
     DirtyCheckLease consumeDirtyCheck(MultiblockControllerBase controller, long currentTick) {
         return new DirtyCheckLease(structureIndex.consumeDirtyCheck(controller, currentTick));
-    }
-
-    /**
-     * @deprecated Use {@link #consumeDirtyCheck(MultiblockControllerBase, long)}
-     *             so the scheduler can choose between active-graph and full checks.
-     */
-    @Deprecated
-    public boolean hasPendingRecheck(MultiblockControllerBase controller, long currentTick) {
-        return consumeDirtyCheck(controller, currentTick).shouldCheck();
     }
 
     /**

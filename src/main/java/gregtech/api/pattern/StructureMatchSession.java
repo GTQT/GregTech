@@ -34,9 +34,7 @@ public final class StructureMatchSession {
     private final StructureMatchSession parent;
     private final Map<MultiblockAbility<?>, int[]> abilityLimits;
     private final List<AbilityGroupLimit> abilityGroupLimits;
-    private final PatternMatchContext context;
     private final StructureOperationState operationState;
-    private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
     private final Map<StructureSessionKey<?>, Object> typedData;
     private final StructureContribution.Builder contributionBuilder;
     @Nullable
@@ -47,18 +45,15 @@ public final class StructureMatchSession {
     private Object controllerContext;
 
     public StructureMatchSession() {
-        this(Collections.emptyMap(), Collections.emptyList(), null);
+        this(Collections.emptyMap(), Collections.emptyList());
     }
 
     public StructureMatchSession(@NotNull Map<MultiblockAbility<?>, int[]> abilityLimits,
-                                 @NotNull List<AbilityGroupLimit> abilityGroupLimits,
-                                 @Nullable PatternMatchContext initialContext) {
+                                 @NotNull List<AbilityGroupLimit> abilityGroupLimits) {
         this.parent = null;
         this.abilityLimits = copyLimits(abilityLimits);
         this.abilityGroupLimits = Collections.unmodifiableList(new ArrayList<>(abilityGroupLimits));
-        this.context = initialContext == null ? new PatternMatchContext() : initialContext.copy();
         this.operationState = new StructureOperationState();
-        this.globalCount = new HashMap<>();
         this.typedData = new HashMap<>();
         this.contributionBuilder = StructureContribution.builder();
         this.contributionPiece = null;
@@ -70,9 +65,7 @@ public final class StructureMatchSession {
         this.parent = parent;
         this.abilityLimits = parent.abilityLimits;
         this.abilityGroupLimits = parent.abilityGroupLimits;
-        this.context = parent.context.copy();
         this.operationState = parent.operationState.copy();
-        this.globalCount = new HashMap<>(parent.globalCount);
         this.typedData = copyTypedData(parent.typedData);
         this.contributionBuilder = parent.contributionBuilder.copy();
         this.contributionPiece = parent.contributionPiece;
@@ -154,10 +147,7 @@ public final class StructureMatchSession {
         if (parent == null) {
             throw new IllegalStateException("Root structure match session cannot be committed");
         }
-        parent.context.replaceWith(context);
         parent.operationState.replaceWith(operationState);
-        parent.globalCount.clear();
-        parent.globalCount.putAll(globalCount);
         parent.typedData.clear();
         parent.typedData.putAll(copyTypedData(typedData));
         parent.contributionBuilder.replaceWith(contributionBuilder);
@@ -170,17 +160,13 @@ public final class StructureMatchSession {
     @NotNull
     public Checkpoint checkpoint() {
         return new Checkpoint(
-                context.copy(), operationState.copy(),
-                new HashMap<>(globalCount), copyTypedData(typedData),
+                operationState.copy(), copyTypedData(typedData),
                 contributionBuilder.copy(), contributionPiece,
                 contributionBaseline == null ? null : contributionBaseline.copy());
     }
 
     void restore(@NotNull Checkpoint checkpoint) {
-        context.replaceWith(checkpoint.context);
         operationState.replaceWith(checkpoint.operationState);
-        globalCount.clear();
-        globalCount.putAll(checkpoint.globalCount);
         typedData.clear();
         typedData.putAll(copyTypedData(checkpoint.typedData));
         contributionBuilder.replaceWith(checkpoint.contributionBuilder);
@@ -192,11 +178,6 @@ public final class StructureMatchSession {
 
     public void restoreTo(@NotNull Checkpoint checkpoint) {
         restore(checkpoint);
-    }
-
-    @NotNull
-    public PatternMatchContext getContext() {
-        return context;
     }
 
     @NotNull
@@ -217,9 +198,6 @@ public final class StructureMatchSession {
         contributionBuilder.replaceWith(StructureContribution.builder());
         contributionPiece = piece;
         contributionBaseline = operationState.copy();
-        // Rebuild collector-owned compatibility state so identity-stable parts are captured on incremental checks.
-        context.remove(StructureOperationState.MULTIBLOCK_PARTS_KEY);
-        context.remove(StructureOperationState.VARIANT_ACTIVE_BLOCKS_KEY);
     }
 
     @NotNull
@@ -258,23 +236,9 @@ public final class StructureMatchSession {
         }
     }
 
-    /**
-     * Snapshot collector-owned state and merge any compatibility data produced
-     * by legacy predicates during the same operation.
-     */
     @NotNull
     public StructureOperationState copyOperationState() {
-        return operationState.copyIncludingLegacy(context);
-    }
-
-    @NotNull
-    PatternMatchContext projectCompatibilityContext(@Nullable PatternMatchContext initialContext) {
-        return contributionBuilder.build().projectCompatibilityContext(initialContext);
-    }
-
-    @NotNull
-    Map<TraceabilityPredicate.SimplePredicate, Integer> getGlobalCount() {
-        return globalCount;
+        return operationState.copy();
     }
 
     @Nullable
@@ -325,27 +289,10 @@ public final class StructureMatchSession {
     public Validation validate(boolean includeAbilityLimits) {
         Map<MultiblockAbility<?>, Integer> missingAbilities = new LinkedHashMap<>();
         Map<MultiblockAbility<?>, Integer> abilityCounts = new LinkedHashMap<>();
-        TraceabilityPredicate.SimplePredicate firstMissingPredicate = null;
-
-        for (Map.Entry<TraceabilityPredicate.SimplePredicate, Integer> entry : globalCount.entrySet()) {
-            TraceabilityPredicate.SimplePredicate predicate = entry.getKey();
-            int deficit = predicate.minGlobalCount - entry.getValue();
-            if (deficit <= 0) continue;
-            if (firstMissingPredicate == null) {
-                firstMissingPredicate = predicate;
-            }
-            if (predicate.ability != null) {
-                missingAbilities.merge(predicate.ability, deficit, Integer::sum);
-            }
-        }
         abilityCounts.putAll(operationStateAbilityCounts());
 
         String collectorFailure = mergeCollectorValidation(
                 StructureMatchCollector.validate(operationState), missingAbilities);
-        if (collectorFailure == null) {
-            collectorFailure = mergeCollectorValidation(
-                    StructureMatchCollector.validate(context), missingAbilities);
-        }
         if (collectorFailure != null) {
             return Validation.failure(collectorFailure, abilityCounts);
         }
@@ -386,10 +333,6 @@ public final class StructureMatchSession {
 
         if (!missingAbilities.isEmpty()) {
             return Validation.missingAbilities(missingAbilities, abilityCounts);
-        }
-        if (firstMissingPredicate != null) {
-            return Validation.failure("A global structure predicate did not reach its minimum count",
-                    abilityCounts);
         }
         return Validation.success(abilityCounts);
     }
@@ -511,9 +454,7 @@ public final class StructureMatchSession {
 
     public static final class Checkpoint {
 
-        private final PatternMatchContext context;
         private final StructureOperationState operationState;
-        private final Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount;
         private final Map<StructureSessionKey<?>, Object> typedData;
         private final StructureContribution.Builder contributionBuilder;
         @Nullable
@@ -521,16 +462,12 @@ public final class StructureMatchSession {
         @Nullable
         private final StructureOperationState contributionBaseline;
 
-        private Checkpoint(@NotNull PatternMatchContext context,
-                           @NotNull StructureOperationState operationState,
-                           @NotNull Map<TraceabilityPredicate.SimplePredicate, Integer> globalCount,
+        private Checkpoint(@NotNull StructureOperationState operationState,
                            @NotNull Map<StructureSessionKey<?>, Object> typedData,
                            @NotNull StructureContribution.Builder contributionBuilder,
                            @Nullable StructurePiece contributionPiece,
                            @Nullable StructureOperationState contributionBaseline) {
-            this.context = context;
             this.operationState = operationState;
-            this.globalCount = globalCount;
             this.typedData = typedData;
             this.contributionBuilder = contributionBuilder;
             this.contributionPiece = contributionPiece;

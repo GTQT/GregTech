@@ -9,12 +9,10 @@ import net.minecraft.world.IBlockAccess;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BooleanSupplier;
-
 /**
  * Represents a single piece (segment) of a multi-piece multiblock structure.
  * Each piece is a pure template reference: it carries an immutable
- * {@link BlockPatternTemplate}, an offset from the controller, an offset mode,
+ * {@link PieceTemplate}, an offset from the controller, an offset mode,
  * and an optional activation condition. It carries no per-instance state.
  *
  * <p>Per-instance mutable state (the {@link PieceRuntimeState} / dirty flag /
@@ -26,11 +24,11 @@ import java.util.function.BooleanSupplier;
  * across controllers of the same multiblock type.
  *
  * <h2>Why state moved out</h2>
- * Previously this class held a {@code final MultiblockState} plus
+ * Previously this class held a final mutable state plus
  * {@code volatile positions / validated / dirty} fields, initialized in the
  * constructor. Because {@link MultiPiecePattern} instances are cached in
  * the structure-definition pool, two independent controllers of the same
- * multiblock type ended up sharing the same deprecated state facade and
+ * multiblock type ended up sharing the same mutable state and
  * positions set — a silent cross-controller state leak. Moving the state
  * to {@link PieceRuntime} (owned by the controller) makes the bug
  * structurally impossible.
@@ -61,26 +59,13 @@ public class StructurePiece {
 
     private final String name;
     /**
-     * The canonical piece IR. The new compile path
-     * ({@link gregtech.api.pattern.element.StructureCompiler}) constructs
-     * this directly; the legacy compile path
-     * ({@link MultiPiecePattern.Builder#piece(String, BlockPatternTemplate, Vec3i)})
-     * supplies a {@link BlockPatternTemplate} facade whose
-     * {@link BlockPatternTemplate#getDelegate()} is stored here.
+     * The canonical piece IR.
      */
     private final PieceTemplate pieceTemplate;
-    /**
-     * Backward-compatibility view of {@link #pieceTemplate} as a
-     * {@link BlockPatternTemplate} facade. Lazily constructed on first
-     * {@link #getTemplate()} call. May be null if no legacy accessor is ever
-     * invoked, saving memory for the new path.
-     */
-    @Nullable
-    private BlockPatternTemplate templateView;
     private final Vec3i offset;
     private final OffsetMode offsetMode;
     @Nullable
-    private final BooleanSupplier condition;
+    private final StructureCondition<?> condition;
     private final boolean toolingVisible;
 
     /**
@@ -99,11 +84,6 @@ public class StructurePiece {
     private final SnapshotChecker snapshotChecker;
 
     /**
-     * New-path constructor taking a canonical {@link PieceTemplate} directly.
-     * The new compile path
-     * ({@link gregtech.api.pattern.element.StructureCompiler}) uses this to
-     * skip the {@link BlockPatternTemplate} facade entirely.
-     *
      * @param name       unique name for this piece (e.g. "core", "ring1")
      * @param template   the canonical piece IR
      * @param offset     offset from the controller position (Vec3i.ZERO for the core piece)
@@ -112,24 +92,24 @@ public class StructurePiece {
      */
     public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
                           @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                          @Nullable BooleanSupplier condition) {
+                          @Nullable StructureCondition<?> condition) {
         this(name, template, offset, offsetMode, condition, noopSnapshotChecker());
     }
 
     /**
-     * New-path full constructor taking a canonical {@link PieceTemplate} directly
+     * Full constructor taking a canonical {@link PieceTemplate} directly
      * with an explicit {@link SnapshotChecker}.
      */
     public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
                           @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                          @Nullable BooleanSupplier condition,
+                          @Nullable StructureCondition<?> condition,
                           @NotNull SnapshotChecker snapshotChecker) {
         this(name, template, offset, offsetMode, condition, snapshotChecker, true);
     }
 
     public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
                           @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                          @Nullable BooleanSupplier condition,
+                          @Nullable StructureCondition<?> condition,
                           @NotNull SnapshotChecker snapshotChecker,
                           boolean toolingVisible) {
         this.name = name;
@@ -142,59 +122,27 @@ public class StructurePiece {
     }
 
     /**
-     * Legacy-path constructor accepting a {@link BlockPatternTemplate} facade.
-     * The facade's {@link BlockPatternTemplate#getDelegate() delegate}
-     * (the canonical {@link PieceTemplate}) is stored; the facade itself is
-     * retained for the {@link #getTemplate()} accessor.
-     */
-    public StructurePiece(@NotNull String name, @NotNull BlockPatternTemplate template,
-                          @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                          @Nullable BooleanSupplier condition) {
-        this(name, template, offset, offsetMode, condition, noopSnapshotChecker());
-    }
-
-    /**
-     * Legacy-path full constructor accepting a {@link BlockPatternTemplate} facade
-     * with an explicit {@link SnapshotChecker}.
-     */
-    public StructurePiece(@NotNull String name, @NotNull BlockPatternTemplate template,
-                          @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                          @Nullable BooleanSupplier condition,
-                          @NotNull SnapshotChecker snapshotChecker) {
-        this(name, template, offset, offsetMode, condition, snapshotChecker, true);
-    }
-
-    public StructurePiece(@NotNull String name, @NotNull BlockPatternTemplate template,
-                          @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
-                          @Nullable BooleanSupplier condition,
-                          @NotNull SnapshotChecker snapshotChecker,
-                          boolean toolingVisible) {
-        this(name, template.getDelegate(), offset, offsetMode, condition, snapshotChecker, toolingVisible);
-        this.templateView = template;
-    }
-
-    /**
      * @param name      unique name for this piece (e.g. "core", "ring1")
      * @param template  the immutable pattern template for this piece
      * @param offset    offset from the controller position (Vec3i.ZERO for the core piece)
      * @param condition optional condition; if non-null, this piece is only checked when condition returns true
      */
-    public StructurePiece(@NotNull String name, @NotNull BlockPatternTemplate template,
-                          @NotNull Vec3i offset, @Nullable BooleanSupplier condition) {
+    public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
+                          @NotNull Vec3i offset, @Nullable StructureCondition<?> condition) {
         this(name, template, offset, OffsetMode.RELATIVE, condition);
     }
 
     /**
      * Create an unconditional piece with RELATIVE offset mode.
      */
-    public StructurePiece(@NotNull String name, @NotNull BlockPatternTemplate template, @NotNull Vec3i offset) {
+    public StructurePiece(@NotNull String name, @NotNull PieceTemplate template, @NotNull Vec3i offset) {
         this(name, template, offset, OffsetMode.RELATIVE, null);
     }
 
     /**
      * Create an unconditional piece with explicit offset mode.
      */
-    public StructurePiece(@NotNull String name, @NotNull BlockPatternTemplate template,
+    public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
                           @NotNull Vec3i offset, @NotNull OffsetMode offsetMode) {
         this(name, template, offset, offsetMode, null);
     }
@@ -211,22 +159,11 @@ public class StructurePiece {
     }
 
     /**
-     * @return the canonical piece IR (the new canonical data class)
+     * @return the canonical piece IR
      */
     @NotNull
-    public PieceTemplate getPieceTemplate() {
+    public PieceTemplate getTemplate() {
         return pieceTemplate;
-    }
-
-    /**
-     * @return the legacy facade view of the piece IR. Lazily constructed on
-     *         first call; for new code, prefer {@link #getPieceTemplate()}.
-     */
-    public BlockPatternTemplate getTemplate() {
-        if (templateView == null) {
-            templateView = new BlockPatternTemplate(pieceTemplate);
-        }
-        return templateView;
     }
 
     /**
@@ -256,10 +193,10 @@ public class StructurePiece {
     }
 
     /**
-     * @return the optional activation condition for legacy adapters.
+     * @return the optional typed activation condition.
      */
     @Nullable
-    public BooleanSupplier getCondition() {
+    public StructureCondition<?> getCondition() {
         return condition;
     }
 
@@ -267,7 +204,7 @@ public class StructurePiece {
      * @return true if this piece should be active (condition is null or returns true)
      */
     public boolean isActive() {
-        return condition == null || condition.getAsBoolean();
+        return condition == null || condition.test(StructureActivationContext.empty());
     }
 
     /**
@@ -276,11 +213,8 @@ public class StructurePiece {
     @SuppressWarnings("unchecked")
     public boolean isActive(@NotNull StructureActivationContext<?> context) {
         if (condition == null) return true;
-        if (condition instanceof StructureCondition) {
-            return ((StructureCondition<Object>) condition)
-                    .test((StructureActivationContext<Object>) context);
-        }
-        return condition.getAsBoolean();
+        return ((StructureCondition<Object>) condition)
+                .test((StructureActivationContext<Object>) context);
     }
 
     /**
