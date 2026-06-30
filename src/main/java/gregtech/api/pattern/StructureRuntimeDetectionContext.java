@@ -12,7 +12,6 @@ import it.unimi.dsi.fastutil.longs.LongSet;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 
 /**
  * Transactional world-match context for a {@link StructureRuntimeDetector}.
@@ -113,9 +112,7 @@ public final class StructureRuntimeDetectionContext<T extends MultiblockControll
         watchedPositions.add(immutablePos.toLong());
         IStructureElement<Object> typedElement =
                 (IStructureElement<Object>) element.compile();
-        worldState.update(
-                world, immutablePos, session.getContext(), session.getGlobalCount(),
-                new HashMap<>(), typedElement.toPredicate());
+        worldState.update(world, immutablePos, session);
         evaluationContext.update(
                 controller, session, worldState,
                 StructureEvaluationContext.Operation.MATCH_WORLD);

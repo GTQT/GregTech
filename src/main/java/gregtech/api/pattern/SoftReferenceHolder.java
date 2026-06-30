@@ -8,8 +8,7 @@ import java.util.function.Supplier;
 
 /**
  * Generic soft-reference holder with anti-thrash pinning.
- * This is the generic equivalent of {@link SoftTemplate}, usable for any type
- * (not just {@link BlockPatternTemplate}).
+ * This is the generic equivalent of {@link SoftTemplate}, usable for any type.
  *
  * <p>Uses {@link PooledReference} internally for the same GC-reclaimable caching
  * with anti-thrashing protection as {@link SoftTemplate}.

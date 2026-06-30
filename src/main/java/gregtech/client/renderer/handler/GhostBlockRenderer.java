@@ -2,7 +2,7 @@ package gregtech.client.renderer.handler;
 
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
@@ -281,7 +281,7 @@ public class GhostBlockRenderer {
      * manageable for large multi-piece multiblocks like the Forge of the Gods.
      */
     private static boolean buildPieceVBO(MultiblockControllerBase controller, int pieceIndex) {
-        MultiPiecePattern multiPiece = controller.getMultiPiecePattern();
+        MultiPiecePattern multiPiece = controller.getStructureDefinition().getCompiledPattern();
         if (multiPiece == null) {
             GTLog.logger.warn("[StructureProjector] multi-piece pattern missing controller={} piece={}",
                     controller.getMetaName(), pieceIndex);
@@ -307,7 +307,7 @@ public class GhostBlockRenderer {
                 multiPiece, pieceIndex, piecePreview.getPrior(),
                 controller.getPos(), StructureOrientation.fromController(controller), controller);
 
-        BlockPatternTemplate pieceTemplate = piece.getTemplate();
+        PieceTemplate pieceTemplate = piece.getTemplate();
         RelativeDirection[] structureDir = pieceTemplate.getStructureDir();
         BlockPos pieceCenterLocal = piecePreview.getCenter();
 
@@ -317,13 +317,12 @@ public class GhostBlockRenderer {
 
     /**
      * Build VBO for the full merged structure (all active pieces combined).
-     * This is the backward-compatible path used when no STRUCTURE_PIECE channel
-     * value is set.
+     * Used when no STRUCTURE_PIECE channel value is set.
      */
     private static boolean buildFullVBO(MultiblockControllerBase controller) {
         MultiblockShapeInfo shapeInfo;
         BlockPos controllerLocalPos;
-        MultiPiecePattern multiPiece = controller.getMultiPiecePattern();
+        MultiPiecePattern multiPiece = controller.getStructureDefinition().getCompiledPattern();
         if (multiPiece != null) {
             MultiPiecePreviewAssembler.Result preview = getMultiPiecePreview(
                     controller, MultiPiecePreviewAssembler.DEFAULT_TOOLING_PIECES);

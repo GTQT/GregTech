@@ -34,36 +34,29 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityMegaVacuumFreezer extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:mega_vacuum_freezer", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXXXX#KKK", "XXXXXXX#KVK", "XXXXXXX#KVK", "XXXXXXX#KVK", "XXXXXXX#KKK",
-                                    "XXXXXXX####", "XXXXXXX####")
-                            .aisle("XXXXXXX#KVK", "XPPPPPPPPPV", "XPAPAPX#VPV", "XPPPPPPPPPV", "XPAPAPX#KVK",
-                                    "XPPPPPX####", "XXXXXXX####")
-                            .aisle("XXXXXXX#KVK", "XPAPAPX#VPV", "XAAAAAX#VPV", "XPAAAPX#VPV", "XAAAAAX#KVK",
-                                    "XPAPAPX####", "XXXXXXX####")
-                            .aisle("XXXXXXX#KVK", "XPAPAPPPPPV", "XAAAAAX#VPV", "XPAAAPPPPPV", "XAAAAAX#KVK",
-                                    "XPAPAPX####", "XXXXXXX####")
-                            .aisle("XXXXXXX#KKK", "XPPPPPX#KVK", "XPAAAPX#KVK", "XPAAAPX#KVK", "XPAAAPX#KKK",
-                                    "XPPPPPX####", "XXXXXXX####")
-                            .aisle("#XXXXX#####", "#XXSXX#####", "#XGGGX#####", "#XGGGX#####", "#XGGGX#####",
-                                    "#XXXXX#####", "###########")
-                            .self('S', MetaTileEntityMegaVacuumFreezer.class)
-                            .casing('X', getCasingState())
-                            .optionalEnergyInput(8)
-                            .optionalLaserInput(1)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .preset(HatchPresets.STANDARD_IO)
-                            .where('G', states(getCasingState2()))
-                            .where('K', states(getCasingState3()))
-                            .where('V', states(getCasingState4()))
-                            .where('P', states(getCasingState5()))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:mega_vacuum_freezer", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXXXX#KKK", "XXXXXXX#KVK", "XXXXXXX#KVK", "XXXXXXX#KVK", "XXXXXXX#KKK", "XXXXXXX####", "XXXXXXX####")
+                    .aisle("XXXXXXX#KVK", "XPPPPPPPPPV", "XPAPAPX#VPV", "XPPPPPPPPPV", "XPAPAPX#KVK", "XPPPPPX####", "XXXXXXX####")
+                    .aisle("XXXXXXX#KVK", "XPAPAPX#VPV", "XAAAAAX#VPV", "XPAAAPX#VPV", "XAAAAAX#KVK", "XPAPAPX####", "XXXXXXX####")
+                    .aisle("XXXXXXX#KVK", "XPAPAPPPPPV", "XAAAAAX#VPV", "XPAAAPPPPPV", "XAAAAAX#KVK", "XPAPAPX####", "XXXXXXX####")
+                    .aisle("XXXXXXX#KKK", "XPPPPPX#KVK", "XPAAAPX#KVK", "XPAAAPX#KVK", "XPAAAPX#KKK", "XPPPPPX####", "XXXXXXX####")
+                    .aisle("#XXXXX#####", "#XXSXX#####", "#XGGGX#####", "#XGGGX#####", "#XGGGX#####", "#XXXXX#####", "###########")
+                    .self('S', MetaTileEntityMegaVacuumFreezer.class)
+                    .casing('X', getCasingState())
+                    .optionalEnergyInput(8)
+                    .optionalLaserInput(1)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .preset(HatchPresets.STANDARD_IO)
+                    .block('G', getCasingState2())
+                    .block('K', getCasingState3())
+                    .block('V', getCasingState4())
+                    .block('P', getCasingState5())
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityMegaVacuumFreezer(ResourceLocation metaTileEntityId) {

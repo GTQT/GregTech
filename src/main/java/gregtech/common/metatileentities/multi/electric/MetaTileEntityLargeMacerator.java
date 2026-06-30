@@ -23,25 +23,24 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeMacerator extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_macerator", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXX", "XXXXX", "XXXXX", "XXXXX")
-                            .aisle("XXXXX", "XCCCX", "XCCCX", "X###X")
-                            .aisle("XXXXX", "XCCCX", "XCCCX", "X###X")
-                            .aisle("XXXXX", "XCCCX", "XCCCX", "X###X")
-                            .aisle("XXXXX", "XXSXX", "XXXXX", "XXXXX")
-                            .self('S', MetaTileEntityLargeMacerator.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('C', states(getCasingState2()))
-                            .where('#', air())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_macerator", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXX", "XXXXX", "XXXXX", "XXXXX")
+                    .aisle("XXXXX", "XCCCX", "XCCCX", "X###X")
+                    .aisle("XXXXX", "XCCCX", "XCCCX", "X###X")
+                    .aisle("XXXXX", "XCCCX", "XCCCX", "X###X")
+                    .aisle("XXXXX", "XXSXX", "XXXXX", "XXXXX")
+                    .self('S', MetaTileEntityLargeMacerator.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('C', getCasingState2())
+                    .air('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeMacerator(ResourceLocation metaTileEntityId) {

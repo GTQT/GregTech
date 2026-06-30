@@ -9,7 +9,6 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -144,41 +143,6 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
                 .mapToInt(IHeatable::getTemperature)
                 .max()
                 .orElse(293);
-    }
-
-    public TraceabilityPredicate autoAbilities(
-            boolean checkMaintenance,
-            boolean checkItemIn,
-            boolean checkItemOut,
-            boolean checkFluidIn,
-            boolean checkFluidOut,
-            boolean checkMuffler) {
-        TraceabilityPredicate predicate = super.autoAbilities(checkMaintenance, checkMuffler);
-
-        predicate = predicate.or(abilities(MultiblockAbility.INPUT_HEAT).setPreviewCount(1).setMaxGlobalLimited(2));
-        predicate = predicate.or(abilities(MultiblockAbility.HEAT_SENSOR).setMaxGlobalLimited(1));
-
-        if (checkItemIn) {
-            if (recipeMap.getMaxInputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1));
-            }
-        }
-        if (checkItemOut) {
-            if (recipeMap.getMaxOutputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1));
-            }
-        }
-        if (checkFluidIn) {
-            if (recipeMap.getMaxFluidInputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1));
-            }
-        }
-        if (checkFluidOut) {
-            if (recipeMap.getMaxFluidOutputs() > 0) {
-                predicate = predicate.or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1));
-            }
-        }
-        return predicate;
     }
 
     @Override

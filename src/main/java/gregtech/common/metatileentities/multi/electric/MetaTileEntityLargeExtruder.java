@@ -23,26 +23,24 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeExtruder extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_extruder", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("##XXX", "##XXX", "##XXX")
-                            .aisleRepeatable(2, 2, "##XXX", "##XPX", "##XGX")
-                            .aisle("XXXXX", "XXXPX", "XXXGX")
-                            .aisle("XXXXX", "XXXPX", "XXXGX")
-                            .aisle("XXXXX", "XSXXX", "XXXXX")
-                            .self('S', MetaTileEntityLargeExtruder.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('P', states(getCasingState2()))
-                            .where('G', states(getCasingState3()))
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_extruder", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("##XXX", "##XXX", "##XXX")
+                    .aisleRepeated(2, "##XXX", "##XPX", "##XGX")
+                    .aisleRepeated(2, "XXXXX", "XXXPX", "XXXGX")
+                    .aisle("XXXXX", "XSXXX", "XXXXX")
+                    .self('S', MetaTileEntityLargeExtruder.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('P', getCasingState2())
+                    .block('G', getCasingState3())
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeExtruder(ResourceLocation metaTileEntityId) {

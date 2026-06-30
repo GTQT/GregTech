@@ -26,26 +26,25 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeCutter extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_cutter", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX", "##XXXXX")
-                            .aisle("XXXXXXX", "XAXCCCX", "XXXAAAX", "##XXXXX")
-                            .aisle("XXXXXXX", "XXXCCCX", "XXXAAAX", "##XXXXX")
-                            .aisle("XXXXXXX", "CSCGGGX", "XXXGGGX", "##XXXXX")
-                            .self('S', MetaTileEntityLargeCutter.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('G', states(getCasingState2()))
-                            .where('C', states(getCasingState3()))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_cutter", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXXXX", "XXXXXXX", "XXXXXXX", "##XXXXX")
+                    .aisle("XXXXXXX", "XAXCCCX", "XXXAAAX", "##XXXXX")
+                    .aisle("XXXXXXX", "XXXCCCX", "XXXAAAX", "##XXXXX")
+                    .aisle("XXXXXXX", "CSCGGGX", "XXXGGGX", "##XXXXX")
+                    .self('S', MetaTileEntityLargeCutter.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('G', getCasingState2())
+                    .block('C', getCasingState3())
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeCutter(ResourceLocation metaTileEntityId) {

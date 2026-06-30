@@ -1,7 +1,6 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.pattern.StructureEvaluationContext;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
@@ -50,24 +49,5 @@ public class TieredElement implements ITypedStructureElement<Object> {
     @Override
     public StructureElementPreview getPreview() {
         return preview;
-    }
-
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        TraceabilityPredicate pred = new TraceabilityPredicate(
-                bws -> {
-                    IBlockState worldState = bws.getBlockState();
-                    BlockInfo[] cand = candidates.get();
-                    for (BlockInfo info : cand) {
-                        if (info.getBlockState() == worldState) return true;
-                    }
-                    return false;
-                },
-                candidates);
-        // Set channel name on the first common predicate for tier selection
-        if (!pred.common.isEmpty()) {
-            pred.common.get(0).channelName = channelName;
-        }
-        return pred;
     }
 }

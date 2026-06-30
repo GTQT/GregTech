@@ -1,9 +1,9 @@
 package gregtech.api.pattern;
 
-import gregtech.api.util.RelativeDirection;
-import gregtech.api.pattern.element.CompiledStructureElement;
 import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.util.RelativeDirection;
 
+import com.github.bsideup.jabel.Desugar;
 import net.minecraft.util.math.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
@@ -11,89 +11,77 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.function.BiConsumer;
 
 /**
  * Immutable structure intermediate representation (IR) for one structure piece.
  * Pure data carrier — no factory methods, no mutation, no I/O. The
  * {@link StructurePiece} owns one of these and exposes the same queries
- * (dimensions, predicates, AABB) that previously lived on
- * {@code BlockPatternTemplate}.
+ * (dimensions, elements, AABB) used by the structure runtime.
  *
  * <p>Design intent: the new compile path
  * {@link gregtech.api.pattern.element.IStructurePiece} → {@link StructurePiece}
  * produces a {@code StructurePiece} that holds a {@code PieceTemplate}
- * directly. The legacy {@code BlockPatternTemplate} is retained as a thin
- * facade for backward compatibility with public addons.
+ * directly.
  *
  * <p>Construction: the primary builder is
- * {@link PieceTemplateCompiler#buildTemplate()}; the legacy builder
- * {@link FactoryBlockPattern#buildTemplate()} constructs a
- * {@code BlockPatternTemplate} facade over a {@code PieceTemplate}.
+ * {@link PieceTemplateCompiler#buildTemplate()}.
  */
 public final class PieceTemplate {
 
+    /**
+     * Aisle definition record. Describes the repetition range and optional
+     * channel name for one aisle of the pattern.
+     *
+     * @param minRepeat    minimum number of repetitions for this aisle
+     * @param maxRepeat    maximum number of repetitions for this aisle
+     * @param channelName  optional channel name; {@code null} means the aisle is not channel-controlled
+     */
+    @Desugar
+    public record AisleDef(int minRepeat, int maxRepeat, @Nullable String channelName) {
+
+        /**
+         * @return a copy of the {@code [minRepeat, maxRepeat]} pair for callers
+         *         that need the int[] shape (e.g. RepetitionDFS / preview builders).
+         */
+        public int[] toRangeArray() {
+            return new int[] { minRepeat, maxRepeat };
+        }
+    }
+
+    /**
+     * Center offset for a template.
+     *
+     * @param x    controller x offset within the pattern
+     * @param y    controller y offset within the pattern
+     * @param z    controller z offset within the pattern
+     * @param minZ cumulative min aisle count before the center aisle
+     * @param maxZ cumulative max aisle count before the center aisle
+     */
+    @Desugar
+    public record CenterOffset(int x, int y, int z, int minZ, int maxZ) {
+
+        // Empty records occasionally confuse older javac + Jabel combinations
+        // that walk the body looking for the @Desugar anchor. The no-op getter
+        // below makes the body non-empty and avoids the "Must be annotated with
+        // @Desugar" error reported against this record when it sits below
+        // another @Desugar-annotated record in the same file.
+        @SuppressWarnings("unused")
+        public boolean isSynthetic() {
+            return true;
+        }
+    }
+
     private final IStructureElement<?>[][][] elements; // [z][y][x]
-    private final PieceTemplateLegacyView legacyView;
-    private final BlockPatternTemplate.AisleDef[] aisles;
+    private final AisleDef[] aisles;
     private final RelativeDirection[] structureDir;
     private final int xLength; // x size (char axis)
     private final int yLength; // y size (row/string axis)
     private final int zLength; // z size (aisle axis)
-    private final BlockPatternTemplate.CenterOffset centerOffset;
+    private final CenterOffset centerOffset;
 
     // Auto-generated structure description lines (from DeclarativePatternBuilder)
     @NotNull
     private final List<String> structureDescription;
-
-    public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
-                         @NotNull RelativeDirection[] structureDir,
-                         @NotNull int[][] aisleRepetitions) {
-        this(predicatesIn, compileLegacyElements(predicatesIn), structureDir,
-                aisleRepetitions, null, null, null);
-    }
-
-    public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
-                         @NotNull RelativeDirection[] structureDir,
-                         @NotNull int[][] aisleRepetitions,
-                         @Nullable String[] aisleChannelNames) {
-        this(predicatesIn, compileLegacyElements(predicatesIn), structureDir,
-                aisleRepetitions, aisleChannelNames, null, null);
-    }
-
-    /**
-     * Full constructor with optional external center offset and structure description.
-     *
-     * @param predicatesIn          the 3D predicate array [z][y][x]
-     * @param structureDir          the 3 relative directions
-     * @param aisleRepetitions      the repetition ranges per aisle
-     * @param aisleChannelNames     channel names per aisle (nullable entries)
-     * @param externalCenterOffset  optional externally-specified center offset;
-     *                              if {@code null}, auto-discovers from the {@code isCenter} predicate
-     * @param structureDescription  optional auto-generated description lines for tooltip display;
-     *                              if {@code null}, defaults to an empty list
-     */
-    public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
-                         @NotNull RelativeDirection[] structureDir,
-                         @NotNull int[][] aisleRepetitions,
-                         @Nullable String[] aisleChannelNames,
-                         @Nullable int[] externalCenterOffset,
-                         @Nullable List<String> structureDescription) {
-        this(predicatesIn, compileLegacyElements(predicatesIn), structureDir, aisleRepetitions,
-                aisleChannelNames, externalCenterOffset, structureDescription);
-    }
-
-    public PieceTemplate(@NotNull TraceabilityPredicate[][][] predicatesIn,
-                         @NotNull IStructureElement<?>[][][] elements,
-                         @NotNull RelativeDirection[] structureDir,
-                         @NotNull int[][] aisleRepetitions,
-                         @Nullable String[] aisleChannelNames,
-                         @Nullable int[] externalCenterOffset,
-                         @Nullable List<String> structureDescription) {
-        this(elements, structureDir, aisleRepetitions, aisleChannelNames,
-                externalCenterOffset, structureDescription,
-                PieceTemplateLegacyView.fromLegacyPredicates(predicatesIn, elements, structureDir));
-    }
 
     public PieceTemplate(@NotNull IStructureElement<?>[][][] elements,
                          @NotNull RelativeDirection[] structureDir,
@@ -101,20 +89,7 @@ public final class PieceTemplate {
                          @Nullable String[] aisleChannelNames,
                          @Nullable int[] externalCenterOffset,
                          @Nullable List<String> structureDescription) {
-        this(elements, structureDir, aisleRepetitions, aisleChannelNames,
-                externalCenterOffset, structureDescription,
-                PieceTemplateLegacyView.fromElements(elements, structureDir));
-    }
-
-    private PieceTemplate(@NotNull IStructureElement<?>[][][] elements,
-                          @NotNull RelativeDirection[] structureDir,
-                          @NotNull int[][] aisleRepetitions,
-                          @Nullable String[] aisleChannelNames,
-                          @Nullable int[] externalCenterOffset,
-                          @Nullable List<String> structureDescription,
-                          @NotNull PieceTemplateLegacyView legacyView) {
         this.elements = elements;
-        this.legacyView = legacyView;
         this.zLength = elements.length;
         this.structureDir = structureDir;
         this.aisles = buildAisles(aisleRepetitions, aisleChannelNames);
@@ -142,45 +117,36 @@ public final class PieceTemplate {
                 : Collections.unmodifiableList(structureDescription);
     }
 
-    private static BlockPatternTemplate.AisleDef[] buildAisles(@NotNull int[][] aisleRepetitions, @Nullable String[] aisleChannelNames) {
-        BlockPatternTemplate.AisleDef[] result = new BlockPatternTemplate.AisleDef[aisleRepetitions.length];
+    private static AisleDef[] buildAisles(@NotNull int[][] aisleRepetitions, @Nullable String[] aisleChannelNames) {
+        AisleDef[] result = new AisleDef[aisleRepetitions.length];
         for (int i = 0; i < aisleRepetitions.length; i++) {
             String name = (aisleChannelNames != null && i < aisleChannelNames.length) ? aisleChannelNames[i] : null;
-            result[i] = new BlockPatternTemplate.AisleDef(aisleRepetitions[i][0], aisleRepetitions[i][1], name);
+            result[i] = new AisleDef(aisleRepetitions[i][0], aisleRepetitions[i][1], name);
         }
         return result;
     }
 
-    private static BlockPatternTemplate.CenterOffset unpackCenterOffset(@NotNull int[] external) {
+    private static CenterOffset unpackCenterOffset(@NotNull int[] external) {
         if (external.length != 5) {
             throw new IllegalArgumentException(
                     "externalCenterOffset must have length 5, got " + external.length);
         }
-        return new BlockPatternTemplate.CenterOffset(external[0], external[1], external[2], external[3], external[4]);
+        return new CenterOffset(external[0], external[1], external[2], external[3], external[4]);
     }
 
-    private BlockPatternTemplate.CenterOffset initializeCenterOffsets() {
+    private CenterOffset initializeCenterOffsets() {
         for (int x = 0; x < this.xLength; x++) {
             for (int y = 0; y < this.yLength; y++) {
                 for (int z = 0, minZ = 0, maxZ = 0; z <
                         this.zLength; minZ += aisles[z].minRepeat(), maxZ += aisles[z].maxRepeat(), z++) {
                     IStructureElement<?> element = this.elements[z][y][x];
                     if (element != null && element.isCenter()) {
-                        return new BlockPatternTemplate.CenterOffset(x, y, z, minZ, maxZ);
+                        return new CenterOffset(x, y, z, minZ, maxZ);
                     }
                 }
             }
         }
         throw new IllegalArgumentException("Didn't find center predicate");
-    }
-
-    public TraceabilityPredicate[][][] getBlockMatches() {
-        return legacyView.getBlockMatches();
-    }
-
-    @NotNull
-    public PieceTemplateLegacyView getLegacyView() {
-        return legacyView;
     }
 
     @NotNull
@@ -189,23 +155,7 @@ public final class PieceTemplate {
     }
 
     @NotNull
-    private static IStructureElement<?>[][][] compileLegacyElements(
-            @NotNull TraceabilityPredicate[][][] predicates) {
-        IStructureElement<?>[][][] result = new IStructureElement<?>[predicates.length][][];
-        for (int z = 0; z < predicates.length; z++) {
-            result[z] = new IStructureElement<?>[predicates[z].length][];
-            for (int y = 0; y < predicates[z].length; y++) {
-                result[z][y] = new IStructureElement<?>[predicates[z][y].length];
-                for (int x = 0; x < predicates[z][y].length; x++) {
-                    result[z][y][x] = CompiledStructureElement.legacy(predicates[z][y][x]);
-                }
-            }
-        }
-        return result;
-    }
-
-    @NotNull
-    public BlockPatternTemplate.AisleDef[] getAisles() {
+    public AisleDef[] getAisles() {
         return aisles;
     }
 
@@ -244,7 +194,7 @@ public final class PieceTemplate {
         return zLength;
     }
 
-    public BlockPatternTemplate.CenterOffset getCenterOffset() {
+    public CenterOffset getCenterOffset() {
         return centerOffset;
     }
 
@@ -255,20 +205,10 @@ public final class PieceTemplate {
      */
     public int getMaxExpandedFingerLength() {
         int total = 0;
-        for (BlockPatternTemplate.AisleDef aisle : aisles) {
+        for (AisleDef aisle : aisles) {
             total += aisle.maxRepeat();
         }
         return total;
-    }
-
-    /**
-     * Walk every non-null, non-{@link TraceabilityPredicate#ANY} cell of this template and
-     * invoke {@code consumer} with the pattern-local world position and the predicate
-     * occupying that cell.
-     */
-    public void forEachPredicate(@NotNull StructureOrientation orientation,
-                                 @NotNull BiConsumer<BlockPos, TraceabilityPredicate> consumer) {
-        legacyView.forEachPredicate(orientation, consumer);
     }
 
     /**
@@ -280,7 +220,7 @@ public final class PieceTemplate {
                                        @NotNull StructureOrientation orientation,
                                        int margin) {
         int maxFingerLen = getMaxExpandedFingerLength();
-        BlockPatternTemplate.CenterOffset co = this.centerOffset;
+        CenterOffset co = this.centerOffset;
 
         int xMin = -co.x();
         int xMax = xLength - 1 - co.x();

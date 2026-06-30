@@ -10,11 +10,6 @@ import java.util.Objects;
 
 /**
  * Complete orientation state used by structure operations.
- *
- * <p>This is intentionally a small value object for now. Existing matchers
- * still receive the legacy {@code structureFront/up/flipped} arguments, but
- * callers can capture and compare the whole orientation consistently before the
- * traversal engine is migrated to accept this type directly.
  */
 public final class StructureOrientation {
 
@@ -46,14 +41,6 @@ public final class StructureOrientation {
                                           boolean flipped,
                                           boolean allowsFlip) {
         return new StructureOrientation(front, structureFront, up, flipped, allowsFlip);
-    }
-
-    @NotNull
-    public static StructureOrientation legacy(@NotNull EnumFacing front,
-                                              @NotNull EnumFacing up,
-                                              boolean flipped,
-                                              boolean allowsFlip) {
-        return of(front, front, up, flipped, allowsFlip);
     }
 
     @NotNull

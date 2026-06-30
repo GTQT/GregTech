@@ -25,24 +25,23 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_gas_collector", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("F   F", "F   F", "CCCCC", "CCCCC", "CCCCC")
-                            .aisle("     ", "     ", "CCCCC", "GACAG", "CCCCC")
-                            .aisle("F   F", "F   F", "CCCCC", "CCSCC", "CCCCC")
-                            .self('S', MetaTileEntityLargeGasCollector.class)
-                            .casing('C', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('A', states(getBoilerCasingState()))
-                            .where('G', states(getGlassState()))
-                            .where('F', states(getFrameState()))
-                            .where(' ', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_gas_collector", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("F   F", "F   F", "CCCCC", "CCCCC", "CCCCC")
+                    .aisle("     ", "     ", "CCCCC", "GACAG", "CCCCC")
+                    .aisle("F   F", "F   F", "CCCCC", "CCSCC", "CCCCC")
+                    .self('S', MetaTileEntityLargeGasCollector.class)
+                    .casing('C', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('A', getBoilerCasingState())
+                    .block('G', getGlassState())
+                    .block('F', getFrameState())
+                    .any(' ')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeGasCollector(ResourceLocation metaTileEntityId) {

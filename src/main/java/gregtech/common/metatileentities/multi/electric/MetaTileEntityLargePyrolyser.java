@@ -43,27 +43,26 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_pyrolyser", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXX", "XXXXX", "XXMXX", "XXXXX", "XXXXX")
-                            .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
-                            .aisle("CCCCC", "CCCCC", "CCCCC", "CCCCC", "CCCCC")
-                            .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
-                            .aisle("XXXXX", "XXXXX", "XXSXX", "XXXXX", "XXXXX")
-                            .self('S', MetaTileEntityLargePyrolyser.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .maintenance()
-                            .tieredCasing('C', GTCasingGroups.heatingCoils().group())
-                            .withChannel(GTCasingGroups.heatingCoils().channel())
-                            .where('P', states(getCasingState3()))
-                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                            .where('A', air())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_pyrolyser", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXX", "XXXXX", "XXMXX", "XXXXX", "XXXXX")
+                    .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
+                    .aisle("CCCCC", "CCCCC", "CCCCC", "CCCCC", "CCCCC")
+                    .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
+                    .aisle("XXXXX", "XXXXX", "XXSXX", "XXXXX", "XXXXX")
+                    .self('S', MetaTileEntityLargePyrolyser.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .maintenance()
+                    .tieredCasing('C', GTCasingGroups.heatingCoils().group())
+                    .withChannel(GTCasingGroups.heatingCoils().channel())
+                    .block('P', getCasingState3())
+                    .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                    .air('A')
+                    .buildStructureDefinition()
     );
     private int coilTier;
 

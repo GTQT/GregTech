@@ -25,25 +25,24 @@ import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeSolidifier extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_solidifier", () ->
-                    DeclarativePatternBuilder.start(RIGHT, BACK, UP)
-                            .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
-                            .aisle("#XSX#", "XCCCX", "XAAAX", "XCACX", "#XXX#")
-                            .aisle("#XXX#", "XCACX", "XAAAX", "XCACX", "#XXX#")
-                            .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
-                            .self('S', MetaTileEntityLargeSolidifier.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('C', states(getCasingState2()))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_solidifier", () ->
+            DeclarativePatternBuilder.start(RIGHT, BACK, UP)
+                    .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
+                    .aisle("#XSX#", "XCCCX", "XAAAX", "XCACX", "#XXX#")
+                    .aisle("#XXX#", "XCACX", "XAAAX", "XCACX", "#XXX#")
+                    .aisle("#XXX#", "XXXXX", "XXXXX", "XXXXX", "#XXX#")
+                    .self('S', MetaTileEntityLargeSolidifier.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('C', getCasingState2())
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeSolidifier(ResourceLocation metaTileEntityId) {

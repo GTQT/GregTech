@@ -23,23 +23,22 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeElectrolyzer extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_electrolyzer", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXX", "XXXXX", "XXXXX")
-                            .aisle("XXXXX", "XCCCX", "XCCCX")
-                            .aisle("XXXXX", "XCCCX", "XCCCX")
-                            .aisle("XXXXX", "XXSXX", "XXXXX")
-                            .self('S', MetaTileEntityLargeElectrolyzer.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('C', states(getCasingState2()))
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_electrolyzer", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXX", "XXXXX", "XXXXX")
+                    .aisle("XXXXX", "XCCCX", "XCCCX")
+                    .aisle("XXXXX", "XCCCX", "XCCCX")
+                    .aisle("XXXXX", "XXSXX", "XXXXX")
+                    .self('S', MetaTileEntityLargeElectrolyzer.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('C', getCasingState2())
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeElectrolyzer(ResourceLocation metaTileEntityId) {

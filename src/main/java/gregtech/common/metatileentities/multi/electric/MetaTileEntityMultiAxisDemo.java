@@ -87,11 +87,11 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
                                     GTStructureChannels.STRUCTURE_HEIGHT.getName(),
                                     GTStructureChannels.STRUCTURE_LENGTH.getName())
                             .centerOffset(1, 0, 1)
-                            .where('S', self(MetaTileEntityMultiAxisDemo.class))
-                            .where('W', block(getCasingState()))
-                            .where('C', block(getCornerState()))
-                            .where(' ', air())
-                            .buildStructureDefinition()
+                    .where('S', self(MetaTileEntityMultiAxisDemo.class))
+                    .where('W', block(getCasingState()))
+                    .where('C', block(getCornerState()))
+                    .air(' ')
+                    .buildStructureDefinition()
     );
 
     private EnergyContainerList energyContainer;

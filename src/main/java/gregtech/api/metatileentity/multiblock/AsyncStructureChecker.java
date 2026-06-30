@@ -638,8 +638,8 @@ public class AsyncStructureChecker {
      * Perform pattern matching against a snapshot (runs on async thread).
      * Only returns whether the pattern matched; the main thread will do a confirmatory check.
      *
-     * <p>All controllers expose a {@link StructureDefinition}; legacy templates
-     * are adapted before this checker sees them.
+     * <p>All controllers expose a {@link StructureDefinition}; this checker
+     * consumes that canonical definition directly.
      */
     private boolean performAsyncCheck(@NotNull SnapshotTask task) {
         StructureRuntime runtime = StructureRuntime.fromDefinition(task.token.definition);

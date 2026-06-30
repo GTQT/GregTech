@@ -1,25 +1,26 @@
 package gregtech.api.pattern.element.impl;
 
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.CountLimitError;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureMatchCollector;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.EnumFacing;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
@@ -30,8 +31,9 @@ public class HatchElement implements ITypedStructureElement<Object> {
     private final MultiblockAbility<?> ability;
     private final int minCount;
     private final int maxCount;
-    private final TraceabilityPredicate legacyPredicate;
-    private final TraceabilityPredicate.SimplePredicate limitPredicate;
+    private final int previewCount;
+    @Nullable
+    private final Supplier<? extends MetaTileEntity> defaultCandidate;
     private final StructureElementPreview preview;
 
     public HatchElement(MultiblockAbility<?> ability) {
@@ -51,22 +53,9 @@ public class HatchElement implements ITypedStructureElement<Object> {
         this.ability = ability;
         this.minCount = minCount;
         this.maxCount = maxCount;
-        TraceabilityPredicate predicate = MultiblockControllerBase.abilities(ability);
-        if (defaultCandidate != null) {
-            predicate.setDefaultCandidate(defaultCandidate);
-        }
-        if (minCount > 0) {
-            predicate.setMinGlobalLimited(minCount);
-        }
-        if (maxCount > 0) {
-            predicate.setMaxGlobalLimited(maxCount);
-        }
-        if (previewCount >= 0) {
-            predicate.setPreviewCount(previewCount);
-        }
-        this.legacyPredicate = predicate;
-        this.limitPredicate = findLimitPredicate(predicate);
-        this.preview = StructureElementPreview.fromPredicate(predicate);
+        this.previewCount = previewCount;
+        this.defaultCandidate = defaultCandidate;
+        this.preview = buildPreview();
     }
 
     @Override
@@ -81,7 +70,7 @@ public class HatchElement implements ITypedStructureElement<Object> {
             StructureMatchCollector collector = transactionContext.getCollector();
             boolean recorded = collector.recordAbility(this, (IMultiblockPart) abilityPart);
             if (!recorded) {
-                transactionContext.setError(new TraceabilityPredicate.SinglePredicateError(limitPredicate(), 0));
+                transactionContext.setError(new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxCount));
             }
             return recorded;
         });
@@ -89,10 +78,14 @@ public class HatchElement implements ITypedStructureElement<Object> {
 
     @Override
     public BlockInfo[] getCandidates() {
-        List<BlockInfo> candidates = new ArrayList<>();
-        collectCandidates(legacyPredicate.common, candidates);
-        collectCandidates(legacyPredicate.limited, candidates);
-        return candidates.toArray(new BlockInfo[0]);
+        List<MetaTileEntity> tiles = MultiblockAbility.REGISTRY.getOrDefault(ability, java.util.Collections.emptyList());
+        if (tiles == null || tiles.isEmpty()) {
+            return new BlockInfo[0];
+        }
+        return tiles.stream()
+                .filter(Objects::nonNull)
+                .map(HatchElement::candidateInfo)
+                .toArray(BlockInfo[]::new);
     }
 
     @Override
@@ -114,13 +107,35 @@ public class HatchElement implements ITypedStructureElement<Object> {
     public void collectRequirements(StructureEvaluationContext<Object> context) {
         context.getCollector().declareAbility(
                 this, ability, minCount, maxCount,
-                () -> new TraceabilityPredicate.SinglePredicateError(limitPredicate(), 1),
-                () -> new TraceabilityPredicate.SinglePredicateError(limitPredicate(), 0));
+                () -> new CountLimitError(CountLimitError.Kind.MIN_GLOBAL, minCount),
+                () -> new CountLimitError(CountLimitError.Kind.MAX_GLOBAL, maxCount));
     }
 
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        return legacyPredicate;
+    @NotNull
+    private StructureElementPreview buildPreview() {
+        StructureElementPreview.Builder builder = StructureElementPreview.builder();
+        StructureElementPreview.CandidateGroup.Builder groupBuilder =
+                StructureElementPreview.CandidateGroup.builder(this::getCandidates);
+        if (hasCountConstraint()) {
+            groupBuilder.global(minCount, maxCount);
+        }
+        if (previewCount >= 0) {
+            groupBuilder.previewCount(previewCount);
+        }
+        if (defaultCandidate != null) {
+            groupBuilder.defaultCandidate(defaultCandidate);
+        }
+        StructureElementPreview.CandidateGroup group = groupBuilder.build();
+        if (hasCountConstraint()) {
+            builder.limited(group);
+        } else {
+            builder.common(group);
+        }
+        return builder.build();
+    }
+
+    private boolean hasCountConstraint() {
+        return minCount > 0 || maxCount >= 0;
     }
 
     private static MetaTileEntity getMetaTileEntity(TileEntity tileEntity) {
@@ -148,30 +163,11 @@ public class HatchElement implements ITypedStructureElement<Object> {
         return false;
     }
 
-    private TraceabilityPredicate.SimplePredicate limitPredicate() {
-        return limitPredicate;
-    }
-
-    private static TraceabilityPredicate.SimplePredicate findLimitPredicate(
-            TraceabilityPredicate predicate) {
-        if (!predicate.limited.isEmpty()) {
-            return predicate.limited.get(0);
-        }
-        if (!predicate.common.isEmpty()) {
-            return predicate.common.get(0);
-        }
-        throw new IllegalStateException("Ability predicate did not contain a matcher");
-    }
-
-    private static void collectCandidates(
-            List<TraceabilityPredicate.SimplePredicate> predicates,
-            List<BlockInfo> candidates) {
-        for (TraceabilityPredicate.SimplePredicate predicate : predicates) {
-            if (predicate.candidates == null) continue;
-            BlockInfo[] values = predicate.candidates.get();
-            if (values != null) {
-                candidates.addAll(Arrays.asList(values));
-            }
-        }
+    private static BlockInfo candidateInfo(MetaTileEntity tile) {
+        MetaTileEntityHolder holder = new MetaTileEntityHolder();
+        holder.setMetaTileEntity(tile);
+        holder.getMetaTileEntity().onPlacement();
+        holder.getMetaTileEntity().setFrontFacing(EnumFacing.SOUTH);
+        return new BlockInfo(tile.getBlock().getDefaultState(), holder);
     }
 }

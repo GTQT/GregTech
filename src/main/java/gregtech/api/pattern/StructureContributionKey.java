@@ -22,12 +22,6 @@ import java.util.function.UnaryOperator;
  */
 public final class StructureContributionKey<E, A> {
 
-    @FunctionalInterface
-    public interface LegacyProjection<A> {
-
-        void project(@NotNull PatternMatchContext context, @Nullable A value);
-    }
-
     public static final class Validation {
 
         private static final Validation SUCCESS = new Validation(true, null);
@@ -78,8 +72,6 @@ public final class StructureContributionKey<E, A> {
     private final BiFunction<A, E, A> reducer;
     @NotNull
     private final Function<A, Validation> validator;
-    @Nullable
-    private final LegacyProjection<A> legacyProjection;
     @NotNull
     private final UnaryOperator<E> emissionCopier;
     @NotNull
@@ -91,7 +83,7 @@ public final class StructureContributionKey<E, A> {
             @NotNull Supplier<A> identity,
             @NotNull BiFunction<A, E, A> reducer) {
         return new StructureContributionKey<>(
-                id, new Object(), identity, reducer, ignored -> Validation.success(), null,
+                id, new Object(), identity, reducer, ignored -> Validation.success(),
                 UnaryOperator.identity(), UnaryOperator.identity());
     }
 
@@ -102,11 +94,10 @@ public final class StructureContributionKey<E, A> {
             @NotNull Supplier<A> identity,
             @NotNull BiFunction<A, E, A> reducer,
             @NotNull Function<A, Validation> validator,
-            @Nullable LegacyProjection<A> legacyProjection,
             @NotNull UnaryOperator<E> emissionCopier,
             @NotNull UnaryOperator<A> aggregateCopier) {
         return new StructureContributionKey<>(
-                id, schemaId, identity, reducer, validator, legacyProjection,
+                id, schemaId, identity, reducer, validator,
                 emissionCopier, aggregateCopier);
     }
 
@@ -115,7 +106,6 @@ public final class StructureContributionKey<E, A> {
                                      @NotNull Supplier<A> identity,
                                      @NotNull BiFunction<A, E, A> reducer,
                                      @NotNull Function<A, Validation> validator,
-                                     @Nullable LegacyProjection<A> legacyProjection,
                                      @NotNull UnaryOperator<E> emissionCopier,
                                      @NotNull UnaryOperator<A> aggregateCopier) {
         if (id.isEmpty() || id.indexOf(':') <= 0 || id.endsWith(":")) {
@@ -126,7 +116,6 @@ public final class StructureContributionKey<E, A> {
         this.identity = identity;
         this.reducer = reducer;
         this.validator = validator;
-        this.legacyProjection = legacyProjection;
         this.emissionCopier = emissionCopier;
         this.aggregateCopier = aggregateCopier;
     }
@@ -134,7 +123,7 @@ public final class StructureContributionKey<E, A> {
     @NotNull
     public static StructureContributionKey<Integer, Integer> sum(@NotNull String id) {
         return create(id, "sum", () -> 0, Integer::sum,
-                ignored -> Validation.success(), null,
+                ignored -> Validation.success(),
                 UnaryOperator.identity(), UnaryOperator.identity());
     }
 
@@ -142,7 +131,7 @@ public final class StructureContributionKey<E, A> {
     public static <T extends Comparable<T>> StructureContributionKey<T, T> min(@NotNull String id) {
         return create(id, "min", () -> null,
                 (current, emitted) -> current == null || emitted.compareTo(current) < 0 ? emitted : current,
-                ignored -> Validation.success(), null,
+                ignored -> Validation.success(),
                 UnaryOperator.identity(), UnaryOperator.identity());
     }
 
@@ -150,26 +139,19 @@ public final class StructureContributionKey<E, A> {
     public static <T extends Comparable<T>> StructureContributionKey<T, T> max(@NotNull String id) {
         return create(id, "max", () -> null,
                 (current, emitted) -> current == null || emitted.compareTo(current) > 0 ? emitted : current,
-                ignored -> Validation.success(), null,
+                ignored -> Validation.success(),
                 UnaryOperator.identity(), UnaryOperator.identity());
     }
 
     @NotNull
     public static <T> StructureContributionKey<T, T> uniform(@NotNull String id) {
-        return uniform(id, null);
-    }
-
-    @NotNull
-    public static <T> StructureContributionKey<T, T> uniform(
-            @NotNull String id,
-            @Nullable LegacyProjection<T> legacyProjection) {
         return create(id, "uniform", () -> null, (current, emitted) -> {
             if (current == null || Objects.equals(current, emitted)) {
                 return emitted;
             }
             throw new ReductionException(
                     "Contribution key '" + id + "' requires a uniform value");
-        }, ignored -> Validation.success(), legacyProjection,
+        }, ignored -> Validation.success(),
                 UnaryOperator.identity(), UnaryOperator.identity());
     }
 
@@ -179,7 +161,7 @@ public final class StructureContributionKey<E, A> {
             Set<T> result = new LinkedHashSet<>(current);
             result.add(emitted);
             return result;
-        }, ignored -> Validation.success(), null,
+        }, ignored -> Validation.success(),
                 UnaryOperator.identity(), value -> Collections.unmodifiableSet(new LinkedHashSet<>(value)));
     }
 
@@ -189,7 +171,7 @@ public final class StructureContributionKey<E, A> {
             List<T> result = new ArrayList<>(current);
             result.add(emitted);
             return result;
-        }, ignored -> Validation.success(), null,
+        }, ignored -> Validation.success(),
                 UnaryOperator.identity(), value -> Collections.unmodifiableList(new ArrayList<>(value)));
     }
 
@@ -197,7 +179,7 @@ public final class StructureContributionKey<E, A> {
     public static <T> StructureContributionKey<T, T> firstNonNull(@NotNull String id) {
         return create(id, "first-non-null", () -> null,
                 (current, emitted) -> current == null ? emitted : current,
-                ignored -> Validation.success(), null,
+                ignored -> Validation.success(),
                 UnaryOperator.identity(), UnaryOperator.identity());
     }
 
@@ -205,7 +187,7 @@ public final class StructureContributionKey<E, A> {
     public static <T> StructureContributionKey<T, T> lastNonNull(@NotNull String id) {
         return create(id, "last-non-null", () -> null,
                 (current, emitted) -> emitted == null ? current : emitted,
-                ignored -> Validation.success(), null,
+                ignored -> Validation.success(),
                 UnaryOperator.identity(), UnaryOperator.identity());
     }
 
@@ -242,12 +224,6 @@ public final class StructureContributionKey<E, A> {
     @Nullable
     A copyAggregate(@Nullable A aggregate) {
         return aggregate == null ? null : aggregateCopier.apply(aggregate);
-    }
-
-    void project(@NotNull PatternMatchContext context, @Nullable A aggregate) {
-        if (legacyProjection != null) {
-            legacyProjection.project(context, copyAggregate(aggregate));
-        }
     }
 
     @Override

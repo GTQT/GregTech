@@ -2,7 +2,7 @@ package gregtech.client.renderer.handler;
 
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.BlockPatternTemplate;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
@@ -201,7 +201,7 @@ public class MultiblockPreviewRenderer {
             // Build VBO for a specific piece from the MultiPiecePattern
             buildPieceVBO(controller, pieceIndex);
         } else {
-            // Default: build VBO for the main pattern (backward compatible)
+            // Build the main pattern when no piece channel is selected.
             List<MultiblockShapeInfo> shapes = channelValues != null
                     ? controller.getMatchingShapes(channelValues)
                     : controller.getMatchingShapes();
@@ -293,7 +293,7 @@ public class MultiblockPreviewRenderer {
      * Compute comparison data by comparing expected structure against real world blocks.
      * <p>
      * Delegates to {@link PreviewRenderUtils#computeComparisonData} with this renderer's
-     * comparison lists. Retained for backward compatibility with external callers.
+     * comparison lists.
      *
      * @param expectedBlocks map of world positions -> expected block states
      * @param world          the real world to compare against
@@ -319,7 +319,7 @@ public class MultiblockPreviewRenderer {
         if (piecePreview == null) return;
         MultiblockShapeInfo shapeInfo = piecePreview.getShape();
 
-        MultiPiecePattern multiPiece = controller.getMultiPiecePattern();
+        MultiPiecePattern multiPiece = controller.getStructureDefinition().getCompiledPattern();
         if (multiPiece == null) return;
 
         StructurePiece piece = multiPiece.getToolingPiece(pieceIndex);
@@ -355,7 +355,7 @@ public class MultiblockPreviewRenderer {
         world.setRenderFilter(renderFilter);
 
         // Use the piece's own template for coordinate transformation
-        gregtech.api.pattern.BlockPatternTemplate pieceTemplate = piece.getTemplate();
+        gregtech.api.pattern.PieceTemplate pieceTemplate = piece.getTemplate();
         RelativeDirection[] structureDir = pieceTemplate.getStructureDir();
         BlockPos pieceCenterInLocal = piecePreview.getCenter();
         StructureOrientation orientation = StructureOrientation.fromController(controller);

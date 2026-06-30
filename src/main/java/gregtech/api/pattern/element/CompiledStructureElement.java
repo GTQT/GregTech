@@ -4,7 +4,6 @@ import gregtech.api.pattern.StructureDependency;
 import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.StructureHintRenderResult;
 import gregtech.api.pattern.StructureIncrementalSupport;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.util.BlockInfo;
 
 import net.minecraft.entity.player.EntityPlayer;
@@ -19,24 +18,17 @@ import java.util.Set;
 /**
  * Immutable execution form of one structure element.
  *
- * <p>Both new elements and legacy predicates are normalized to this type while
- * compiling a piece. Runtime code therefore executes one element contract for
- * matching, candidates, hints and placement.
+ * <p>All elements are normalized to this type while compiling a piece.
+ * Runtime code therefore executes one element contract for matching,
+ * candidates, hints and placement.
  */
 public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     private final IStructureElement<T> source;
-    @Nullable
-    private TraceabilityPredicate predicateView;
-    private boolean predicateViewResolved;
     private final Set<StructureElementCapability> capabilities;
 
-    private CompiledStructureElement(@NotNull IStructureElement<T> source,
-                                     @Nullable TraceabilityPredicate predicateView,
-                                     boolean predicateViewResolved) {
+    private CompiledStructureElement(@NotNull IStructureElement<T> source) {
         this.source = source;
-        this.predicateView = predicateView;
-        this.predicateViewResolved = predicateViewResolved;
         this.capabilities = StructureElementCapability.copyOf(source.getCapabilities());
     }
 
@@ -45,24 +37,7 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
         if (source instanceof CompiledStructureElement) {
             return (CompiledStructureElement<T>) source;
         }
-        if (source.usesLegacyPredicateRuntime()) {
-            TraceabilityPredicate predicate = source.toPredicate();
-            if (predicate == null) {
-                throw new IllegalStateException(
-                        source.getClass().getName() + " requested legacy predicate runtime without a predicate");
-            }
-            return (CompiledStructureElement<T>) legacy(predicate);
-        }
-        return new CompiledStructureElement<>(source, null, false);
-    }
-
-    @NotNull
-    public static CompiledStructureElement<Object> legacy(@NotNull TraceabilityPredicate predicate) {
-        TraceabilityPredicate sorted = new TraceabilityPredicate(predicate).sort();
-        return new CompiledStructureElement<>(
-                new gregtech.api.pattern.element.impl.LegacyElement(sorted),
-                sorted,
-                true);
+        return new CompiledStructureElement<>(source);
     }
 
     @Override
@@ -214,34 +189,5 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
     @Override
     public CompiledStructureElement<T> compile() {
         return this;
-    }
-
-    @Override
-    public boolean usesLegacyPredicateRuntime() {
-        return source.usesLegacyPredicateRuntime();
-    }
-
-    @Nullable
-    @Override
-    public TraceabilityPredicate toPredicate() {
-        if (!predicateViewResolved) {
-            TraceabilityPredicate predicate = source.toPredicate();
-            predicateView = predicate == null ? null : copyPredicateView(predicate, source.isCenter());
-            predicateViewResolved = true;
-        }
-        return predicateView;
-    }
-
-    @NotNull
-    private static TraceabilityPredicate copyPredicateView(@NotNull TraceabilityPredicate predicate,
-                                                           boolean center) {
-        if (predicate == TraceabilityPredicate.ANY && !center) {
-            return TraceabilityPredicate.ANY;
-        }
-        TraceabilityPredicate result = new TraceabilityPredicate(predicate);
-        if (center) {
-            result.setCenter();
-        }
-        return result.sort();
     }
 }

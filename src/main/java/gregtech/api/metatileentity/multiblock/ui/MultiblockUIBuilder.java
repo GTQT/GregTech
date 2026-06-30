@@ -9,9 +9,9 @@ import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
 import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.mui.GTByteBufAdapters;
+import gregtech.api.pattern.CountLimitError;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternStringError;
-import gregtech.api.pattern.TraceabilityPredicate;
 import gregtech.api.mui.drawable.GTObjectDrawable;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
@@ -197,12 +197,9 @@ public class MultiblockUIBuilder {
 
             if (error instanceof PatternStringError stringError) {
                 detailKey = stringError.translateKey;
-            } else if (error instanceof TraceabilityPredicate.SinglePredicateError predicateError) {
-                detailKey = "gregtech.multiblock.pattern.error.limited." + predicateError.type;
-                if (predicateError.type == 0) detailNumber = predicateError.predicate.maxGlobalCount;
-                if (predicateError.type == 1) detailNumber = predicateError.predicate.minGlobalCount;
-                if (predicateError.type == 2) detailNumber = predicateError.predicate.maxLayerCount;
-                if (predicateError.type == 3) detailNumber = predicateError.predicate.minLayerCount;
+            } else if (error instanceof CountLimitError countError) {
+                detailKey = "gregtech.multiblock.pattern.error.limited." + countError.getKind().getIndex();
+                detailNumber = countError.getLimit();
             }
         }
 

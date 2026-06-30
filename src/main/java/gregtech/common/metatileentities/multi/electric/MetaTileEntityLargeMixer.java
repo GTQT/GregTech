@@ -25,28 +25,27 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargeMixer extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_mixer", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#", "#XXX#", "##F##")
-                            .aisle("XXXXX", "XACAX", "XAAAX", "XACAX", "XAAAX", "##F##")
-                            .aisle("XXXXX", "XCPCX", "XAPAX", "XCPCX", "XAPAX", "FFFFF")
-                            .aisle("XXXXX", "XACAX", "XAAAX", "XACAX", "XAAAX", "##F##")
-                            .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#XXX#", "##F##")
-                            .self('S', MetaTileEntityLargeMixer.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('P', states(getCasingState2()))
-                            .where('C', states(getCasingState3()))
-                            .where('F', frames(Materials.HastelloyX))
-                            .where('A', air())
-                            .where('#', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_mixer", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("#XXX#", "#XXX#", "#XXX#", "#XXX#", "#XXX#", "##F##")
+                    .aisle("XXXXX", "XACAX", "XAAAX", "XACAX", "XAAAX", "##F##")
+                    .aisle("XXXXX", "XCPCX", "XAPAX", "XCPCX", "XAPAX", "FFFFF")
+                    .aisle("XXXXX", "XACAX", "XAAAX", "XACAX", "XAAAX", "##F##")
+                    .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#XXX#", "##F##")
+                    .self('S', MetaTileEntityLargeMixer.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('P', getCasingState2())
+                    .block('C', getCasingState3())
+                    .frames('F', Materials.HastelloyX)
+                    .air('A')
+                    .any('#')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargeMixer(ResourceLocation metaTileEntityId) {

@@ -34,17 +34,8 @@ public final class StructureAggregateFolder {
     @NotNull
     public static Result fold(@NotNull MultiPiecePattern pattern,
                               @NotNull StructureResultTable table,
-                              @Nullable PatternMatchContext initialCompatibilityContext) {
-        return fold(pattern, table, initialCompatibilityContext, null);
-    }
-
-    @NotNull
-    public static Result fold(@NotNull MultiPiecePattern pattern,
-                              @NotNull StructureResultTable table,
-                              @Nullable PatternMatchContext initialCompatibilityContext,
                               @Nullable CommittedStructureGraph foldCache) {
         if (foldCache != null
-                && initialCompatibilityContext == null
                 && foldCache.getResultTableFingerprint() == table.getSemanticFingerprint()) {
             return foldCache.getAggregate();
         }
@@ -146,9 +137,6 @@ public final class StructureAggregateFolder {
             operationState.abilityCounts.put(entry.getKey(), entry.getValue().size());
         }
         operationState.variantActiveBlocks.addAll(variantActiveBlocks);
-        PatternMatchContext compatibilityContext = initialCompatibilityContext == null
-                ? new PatternMatchContext()
-                : initialCompatibilityContext.copy();
         Map<String, Object> aggregateValues = new LinkedHashMap<>();
         for (KeyAccumulator accumulator : accumulators.values()) {
             StructureContributionKey.Validation validation = accumulator.validate();
@@ -160,19 +148,15 @@ public final class StructureAggregateFolder {
             }
             Object value = accumulator.copyValue();
             aggregateValues.put(accumulator.key.getId(), value);
-            accumulator.project(compatibilityContext);
         }
-        operationState.applyCompatibilityView(compatibilityContext);
 
-        StructureMatchSession aggregateSession = pattern.createMatchSession(compatibilityContext);
+        StructureMatchSession aggregateSession = pattern.createMatchSession();
         aggregateSession.getOperationState().replaceWith(operationState);
         StructureMatchSession.Validation validation = aggregateSession.validate(true);
 
         Map<String, Integer> channelValues = new HashMap<>();
-        for (Map.Entry<String, Object> entry : compatibilityContext.entrySet()) {
-            if (entry.getValue() instanceof Integer) {
-                channelValues.put(entry.getKey(), (Integer) entry.getValue());
-            }
+        for (Map.Entry<String, Object> entry : aggregateValues.entrySet()) {
+            StructureMatchCollector.extractChannelValue(entry.getKey(), entry.getValue(), channelValues);
         }
         FormedStructureMetadata metadata =
                 FormedStructureMetadata.fromCheckResult(repetitions, channelValues, centers);
@@ -181,11 +165,11 @@ public final class StructureAggregateFolder {
                     validation.errorMessage == null
                             ? "Contribution aggregate validation failed"
                             : validation.errorMessage,
-                    operationState, compatibilityContext, metadata, aggregateValues,
+                    operationState, metadata, aggregateValues,
                     validation.missingAbilities, validation.abilityCounts);
         }
         return Result.success(
-                operationState, compatibilityContext, metadata, aggregateValues,
+                operationState, metadata, aggregateValues,
                 validation.abilityCounts);
     }
 
@@ -218,10 +202,6 @@ public final class StructureAggregateFolder {
             return key.copyAggregate(value);
         }
 
-        @SuppressWarnings("unchecked")
-        private void project(@NotNull PatternMatchContext context) {
-            key.project(context, value);
-        }
     }
 
     public static final class Result {
@@ -231,8 +211,6 @@ public final class StructureAggregateFolder {
         private final String errorMessage;
         @NotNull
         private final StructureOperationState operationState;
-        @NotNull
-        private final PatternMatchContext compatibilityContext;
         @Nullable
         private final FormedStructureMetadata metadata;
         @NotNull
@@ -245,7 +223,6 @@ public final class StructureAggregateFolder {
         private Result(boolean matched,
                        @Nullable String errorMessage,
                        @NotNull StructureOperationState operationState,
-                       @NotNull PatternMatchContext compatibilityContext,
                        @Nullable FormedStructureMetadata metadata,
                        @NotNull Map<String, Object> aggregateValues,
                        @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
@@ -253,7 +230,6 @@ public final class StructureAggregateFolder {
             this.matched = matched;
             this.errorMessage = errorMessage;
             this.operationState = operationState.copy();
-            this.compatibilityContext = compatibilityContext.copy();
             this.metadata = metadata;
             this.aggregateValues =
                     Collections.unmodifiableMap(new LinkedHashMap<>(aggregateValues));
@@ -266,12 +242,11 @@ public final class StructureAggregateFolder {
         @NotNull
         private static Result success(
                 @NotNull StructureOperationState operationState,
-                @NotNull PatternMatchContext compatibilityContext,
                 @NotNull FormedStructureMetadata metadata,
                 @NotNull Map<String, Object> aggregateValues,
                 @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts) {
             return new Result(
-                    true, null, operationState, compatibilityContext, metadata,
+                    true, null, operationState, metadata,
                     aggregateValues, Collections.emptyMap(), abilityCounts);
         }
 
@@ -279,20 +254,19 @@ public final class StructureAggregateFolder {
         private static Result validationFailure(
                 @NotNull String errorMessage,
                 @NotNull StructureOperationState operationState,
-                @NotNull PatternMatchContext compatibilityContext,
                 @NotNull FormedStructureMetadata metadata,
                 @NotNull Map<String, Object> aggregateValues,
                 @NotNull Map<MultiblockAbility<?>, Integer> missingAbilities,
                 @NotNull Map<MultiblockAbility<?>, Integer> abilityCounts) {
             return new Result(
-                    false, errorMessage, operationState, compatibilityContext, metadata,
+                    false, errorMessage, operationState, metadata,
                     aggregateValues, missingAbilities, abilityCounts);
         }
 
         @NotNull
         private static Result failure(@NotNull String errorMessage) {
             return new Result(
-                    false, errorMessage, new StructureOperationState(), new PatternMatchContext(),
+                    false, errorMessage, new StructureOperationState(),
                     null, Collections.emptyMap(), Collections.emptyMap(), Collections.emptyMap());
         }
 
@@ -308,11 +282,6 @@ public final class StructureAggregateFolder {
         @NotNull
         public StructureOperationState copyOperationState() {
             return operationState.copy();
-        }
-
-        @NotNull
-        public PatternMatchContext copyCompatibilityContext() {
-            return compatibilityContext.copy();
         }
 
         @Nullable

@@ -6,36 +6,23 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.function.BooleanSupplier;
 
 /**
  * Typed activation rule for a conditional structure piece.
- *
- * <p>It extends {@link BooleanSupplier} only as a compatibility bridge for the
- * existing piece constructors. New runtime paths call {@link #test} with an
- * explicit context.
  */
 @FunctionalInterface
-public interface StructureCondition<T> extends BooleanSupplier {
+public interface StructureCondition<T> {
 
     boolean test(@NotNull StructureActivationContext<T> context);
 
     /**
      * Typed dependencies consumed by this activation rule.
-     *
-     * <p>The default is intentionally empty for source compatibility with
-     * existing lambdas. A conditional piece with an empty dependency set is
-     * treated as opaque by the dependency compiler and falls back to the
-     * active-graph evaluator.
+     * A conditional piece with an empty dependency set is treated as opaque by
+     * the dependency compiler and falls back to the active-graph evaluator.
      */
     @NotNull
     default Set<StructureDependency> dependencies() {
         return Collections.emptySet();
-    }
-
-    @Override
-    default boolean getAsBoolean() {
-        return test(StructureActivationContext.empty());
     }
 
     @SafeVarargs

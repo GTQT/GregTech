@@ -18,7 +18,7 @@ import java.util.Map;
 /**
  * Runtime-owned snapshot of the controller lifecycle projection.
  *
- * <p>The Minecraft controller still keeps legacy fields for networking and old
+ * <p>The Minecraft controller still mirrors fields for networking and
  * addon-facing accessors, but this value is the canonical committed structure
  * state published by the server-thread committer.
  */

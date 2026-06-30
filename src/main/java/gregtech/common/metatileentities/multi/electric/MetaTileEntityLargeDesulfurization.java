@@ -43,29 +43,28 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_desulfurizer", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("CCCCC", "CCCCC", "CCCCC", " CCC ", " CCC ")
-                            .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
-                            .aisle("CCCCC", "CPFPC", "CPFPC", " CFC ", " CCC ")
-                            .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
-                            .aisle("CCCCC", "CPFPC", "CPFPC", " CFC ", " CCC ")
-                            .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
-                            .aisle("CCCCC", "CCSCC", "CCCCC", " CCC ", " CCC ")
-                            .self('S', MetaTileEntityLargeDesulfurization.class)
-                            .casing('C', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('P', states(getCasingState2()))
-                            .tieredCasing('U', GTCasingGroups.heatingCoils().group())
-                            .withChannel(GTCasingGroups.heatingCoils().channel())
-                            .where('F', states(getFrameState()))
-                            .where(' ', any())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_desulfurizer", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("CCCCC", "CCCCC", "CCCCC", " CCC ", " CCC ")
+                    .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
+                    .aisle("CCCCC", "CPFPC", "CPFPC", " CFC ", " CCC ")
+                    .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
+                    .aisle("CCCCC", "CPFPC", "CPFPC", " CFC ", " CCC ")
+                    .aisle("CCCCC", "UPFPU", "UUFUU", " UFU ", " CCC ")
+                    .aisle("CCCCC", "CCSCC", "CCCCC", " CCC ", " CCC ")
+                    .self('S', MetaTileEntityLargeDesulfurization.class)
+                    .casing('C', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('P', getCasingState2())
+                    .tieredCasing('U', GTCasingGroups.heatingCoils().group())
+                    .withChannel(GTCasingGroups.heatingCoils().channel())
+                    .block('F', getFrameState())
+                    .any(' ')
+                    .buildStructureDefinition()
     );
     private int coilTier;
 

@@ -48,48 +48,36 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:mega_cracking_unit", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("CCCCCCCCCCCCC", " C         C ", " C         C ", " C         C ", " C         C ",
-                                    " C         C ", " C         C ")
-                            .aisle("CCCCCCCCCCCCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC",
-                                    "CCGGGGGGGGGCC", "CCGGGGGGGGGCC")
-                            .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ",
-                                    " GALALALALAG ", " CGGGGGGGGGC ")
-                            .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " EAAAAAAAAAD ", " EALALALALAD ", " EAAAAAAAAAD ",
-                                    " GALALALALAG ", " CGGGEEEGGGC ")
-                            .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " EALALALALAD ", " EALALALALAD ", " EALALALALAD ",
-                                    " GALALALALAG ", " CGGGEEEGGGC ")
-                            .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " EAAAAAAAAAD ", " EALALALALAD ", " EAAAAAAAAAD ",
-                                    " GALALALALAG ", " CGGGEEEGGGC ")
-                            .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ",
-                                    " GALALALALAG ", " CGGGGGGGGGC ")
-                            .aisle("CCCCCCCCCCCCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC",
-                                    "CCGGGGGGGGGCC", "CCGGGGGGGGGCC")
-                            .aisle("CCCCCCSCCCCCC", " C         C ", " C         C ", " C         C ", " C         C ",
-                                    " C         C ", " C         C ")
-                            .self('S', MetaTileEntityMegaCrackingUnit.class)
-                            .casing('C', getCasingState())
-                            .optionalEnergyInput(8)
-                            .optionalLaserInput(1)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .where('G', states(getGlassState()))
-                            .tieredCasing('L', GTCasingGroups.heatingCoils().group())
-                            .withChannel(GTCasingGroups.heatingCoils().channel())
-                            .where('D', states(getCasingState())
-                                    .or(abilities(MultiblockAbility.IMPORT_ITEMS).setPreviewCount(1))
-                                    .or(abilities(MultiblockAbility.IMPORT_FLUIDS).setPreviewCount(1))
-                            )
-                            .where('E', states(getCasingState())
-                                    .or(abilities(MultiblockAbility.EXPORT_ITEMS).setPreviewCount(1))
-                                    .or(abilities(MultiblockAbility.EXPORT_FLUIDS).setPreviewCount(1))
-                            )
-                            .where(' ', any())
-                            .where('A', air())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:mega_cracking_unit", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("CCCCCCCCCCCCC", " C         C ", " C         C ", " C         C ", " C         C ", " C         C ", " C         C ")
+                    .aisle("CCCCCCCCCCCCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC")
+                    .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ", " CGGGGGGGGGC ")
+                    .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " EAAAAAAAAAD ", " EALALALALAD ", " EAAAAAAAAAD ", " GALALALALAG ", " CGGGEEEGGGC ")
+                    .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " EALALALALAD ", " EALALALALAD ", " EALALALALAD ", " GALALALALAG ", " CGGGEEEGGGC ")
+                    .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " EAAAAAAAAAD ", " EALALALALAD ", " EAAAAAAAAAD ", " GALALALALAG ", " CGGGEEEGGGC ")
+                    .aisle("CCCCCCCCCCCCC", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ", " GALALALALAG ", " CGGGGGGGGGC ")
+                    .aisle("CCCCCCCCCCCCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC")
+                    .aisle("CCCCCCSCCCCCC", " C         C ", " C         C ", " C         C ", " C         C ", " C         C ", " C         C ")
+                    .self('S', MetaTileEntityMegaCrackingUnit.class)
+                    .casing('C', getCasingState())
+                    .optionalEnergyInput(8)
+                    .optionalLaserInput(1)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .block('G', getGlassState())
+                    .tieredCasing('L', GTCasingGroups.heatingCoils().group())
+                    .withChannel(GTCasingGroups.heatingCoils().channel())
+                    .casing('D', getCasingState())
+                    .optionalHatch(MultiblockAbility.IMPORT_ITEMS, 1)
+                    .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 1)
+                    .casing('E', getCasingState())
+                    .optionalHatch(MultiblockAbility.EXPORT_ITEMS, 1)
+                    .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 1)
+                    .any(' ')
+                    .air('A')
+                    .buildStructureDefinition()
     );
 
     private int coilTier;

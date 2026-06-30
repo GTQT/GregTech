@@ -36,7 +36,7 @@ public final class StructureRuntime {
     @Nullable
     private final StructureDefinition<?> definition;
     @Nullable
-    private BlockPatternTemplate template;
+    private PieceTemplate template;
     @Nullable
     private final PieceRuntimeState state;
     @Nullable
@@ -64,11 +64,9 @@ public final class StructureRuntime {
     private volatile long lifecycleGeneration;
     @Nullable
     private volatile CommittedStructureGraph committedGraph;
-    @Nullable
-    private String adapterTrace;
 
     public StructureRuntime(@Nullable StructureDefinition<?> definition,
-                            @Nullable BlockPatternTemplate template,
+                            @Nullable PieceTemplate template,
                             @Nullable PieceRuntimeState state,
                             @Nullable MultiPiecePattern multiPiecePattern,
                             @Nullable PieceRuntimes pieceRuntimes) {
@@ -87,7 +85,7 @@ public final class StructureRuntime {
         StructurePiece primaryPiece = definition.supportsSingleTemplatePath()
                 ? multiPiecePattern.getPrimaryPiece()
                 : null;
-        PieceRuntimeState state = primaryPiece == null ? null : new PieceRuntimeState(primaryPiece.getPieceTemplate());
+        PieceRuntimeState state = primaryPiece == null ? null : new PieceRuntimeState(primaryPiece.getTemplate());
         return new StructureRuntime(definition, null, state, multiPiecePattern,
                 state == null
                         ? new PieceRuntimes(multiPiecePattern)
@@ -100,7 +98,7 @@ public final class StructureRuntime {
     }
 
     @Nullable
-    public BlockPatternTemplate getTemplate() {
+    public PieceTemplate getTemplate() {
         if (template == null && state != null) {
             template = state.getTemplate();
         }
@@ -112,17 +110,6 @@ public final class StructureRuntime {
         return state;
     }
 
-    /**
-     * @deprecated Compatibility accessor for legacy code that received a
-     *             {@link MultiblockState}. Runtime internals should use
-     *             {@link #getRuntimeState()}.
-     */
-    @Deprecated
-    @Nullable
-    public MultiblockState getState() {
-        return state == null ? null : state.createCompatibilityProjection();
-    }
-
     @Nullable
     public MultiPiecePattern getMultiPiecePattern() {
         return multiPiecePattern;
@@ -131,17 +118,6 @@ public final class StructureRuntime {
     @Nullable
     public PieceRuntimes getPieceRuntimes() {
         return pieceRuntimes;
-    }
-
-    /**
-     * @deprecated Runtime-owned operations should call the request methods on
-     *             this runtime. This accessor remains for legacy adapters while
-     *             the evaluator is still a separate delegating implementation.
-     */
-    @Deprecated
-    @NotNull
-    public StructureOperationEvaluator getEvaluator() {
-        return evaluator;
     }
 
     @NotNull
@@ -180,15 +156,6 @@ public final class StructureRuntime {
         return evaluator.checkIncremental(
                 request, getCommittedGraph(), dirtyRoots, definition.getEligibilityPlan(),
                 detachedPrecheck);
-    }
-
-    /**
-     * @deprecated The operation checks the complete active graph, not only dirty pieces.
-     */
-    @Deprecated
-    @NotNull
-    public StructureCheckResult checkDirtyPieces(@NotNull StructureOperationRequest request) {
-        return checkActiveGraph(request);
     }
 
     @NotNull
@@ -322,16 +289,6 @@ public final class StructureRuntime {
 
     public void recordLifecycleFailure(@NotNull StructureFailureTrace failure) {
         recordSelectedFailure(failure);
-    }
-
-    public void recordAdapterTrace(@NotNull String source, int pieces) {
-        this.adapterTrace = "source=" + source + ", pieces=" + Math.max(0, pieces);
-        this.evaluator.setAdapterTrace(this.adapterTrace);
-    }
-
-    @Nullable
-    public String getAdapterTrace() {
-        return adapterTrace;
     }
 
     @NotNull
@@ -508,9 +465,8 @@ public final class StructureRuntime {
     }
 
     /**
-     * Publish the canonical formed lifecycle snapshot. Controller fields are a
-     * legacy projection of this state and must be updated by the server-thread
-     * committer in the same commit section.
+     * Publish the canonical formed lifecycle snapshot. Controller fields are
+     * updated by the server-thread committer in the same commit section.
      */
     public void publishLifecycleState(
             @NotNull List<IMultiblockPart> parts,
@@ -614,8 +570,7 @@ public final class StructureRuntime {
                 : template != null ? "v3-typed-single" : "v3-typed-pattern";
         int pieces = multiPiecePattern == null ? 0 : multiPiecePattern.getPieceList().size();
         boolean singleTemplate = template != null;
-        return "path=" + path + ", singleTemplate=" + singleTemplate + ", pieces=" + pieces
-                + (adapterTrace == null ? "" : ", adapterTrace={" + adapterTrace + "}");
+        return "path=" + path + ", singleTemplate=" + singleTemplate + ", pieces=" + pieces;
     }
 
     @NotNull

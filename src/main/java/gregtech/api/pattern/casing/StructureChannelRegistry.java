@@ -12,23 +12,17 @@ import java.util.Map;
 
 /**
  * Central registry for all {@link StructureChannel} instances.
- * Supports lookup by canonical name or legacy alias, and manages indicator items
- * that represent specific channel tiers in GUIs and tooltips.
+ * Supports lookup by canonical name and manages indicator items that represent
+ * specific channel tiers in GUIs and tooltips.
  *
  * <p>All built-in channels from {@link GTStructureChannels} are auto-registered at class load time.
  * Addons should register their custom channels during FML preInit or init phase via
  * {@link #register(StructureChannel)}.
- *
- * <p>Legacy aliases can be registered via {@link #registerAlias(String, StructureChannel)}
- * for backward compatibility with external mods that use different channel key names.
  */
 public final class StructureChannelRegistry {
 
     // Canonical name -> channel
     private static final Map<String, StructureChannel> BY_NAME = new HashMap<>();
-
-    // Legacy alias -> channel (for GT5 compat)
-    private static final Map<String, StructureChannel> BY_ALIAS = new HashMap<>();
 
     // (channelName + ":" + tier) -> indicator ItemStack
     private static final Map<String, ItemStack> INDICATORS = new HashMap<>();
@@ -57,18 +51,6 @@ public final class StructureChannelRegistry {
     }
 
     /**
-     * Register a legacy alias that maps to an existing channel.
-     * When resolving by alias, the alias is checked only if the canonical name lookup fails.
-     * Addons can use this to support alternative key names for their channels.
-     *
-     * @param alias   the alternative key name
-     * @param channel the target channel
-     */
-    public static void registerAlias(@NotNull String alias, @NotNull StructureChannel channel) {
-        BY_ALIAS.put(alias, channel);
-    }
-
-    /**
      * Look up a channel by its canonical name.
      *
      * @param name the channel name
@@ -77,31 +59,6 @@ public final class StructureChannelRegistry {
     @Nullable
     public static StructureChannel getByName(@NotNull String name) {
         return BY_NAME.get(name);
-    }
-
-    /**
-     * Look up a channel by a legacy alias.
-     *
-     * @param alias the legacy alias
-     * @return the channel, or null if no alias matches
-     */
-    @Nullable
-    public static StructureChannel getByAlias(@NotNull String alias) {
-        return BY_ALIAS.get(alias);
-    }
-
-    /**
-     * Resolve a channel by trying canonical name first, then legacy alias.
-     * This is the recommended lookup method for user-facing code.
-     *
-     * @param key the canonical name or legacy alias
-     * @return the channel, or null if not found
-     */
-    @Nullable
-    public static StructureChannel resolve(@NotNull String key) {
-        StructureChannel channel = BY_NAME.get(key);
-        if (channel != null) return channel;
-        return BY_ALIAS.get(key);
     }
 
     /**

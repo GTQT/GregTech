@@ -1,8 +1,7 @@
 package gregtech.api.pattern.element;
 
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.PatternMatchContext;
-import gregtech.api.pattern.TraceabilityPredicate;
+import gregtech.api.pattern.StructureEvaluationContext;
 import gregtech.api.pattern.casing.ICasingGroup;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.unification.material.Material;
@@ -152,7 +151,7 @@ public final class Elements {
     }
 
     /** Element with match callback */
-    public static IStructureElement onPass(Consumer<PatternMatchContext> callback, IStructureElement e) {
+    public static IStructureElement onPass(Consumer<StructureEvaluationContext<?>> callback, IStructureElement e) {
         return ElementUtility.onElementPass(callback, e);
     }
 
@@ -175,14 +174,5 @@ public final class Elements {
     /** Chain of elements */
     public static IStructureElement chain(IStructureElement... elements) {
         return ElementUtility.ofChain(elements);
-    }
-
-    /**
-     * Compatibility wrapper for old {@link TraceabilityPredicate} declarations.
-     * New elements should implement the direct {@link IStructureElement} runtime,
-     * preview and hint methods instead of routing through this adapter.
-     */
-    public static IStructureElement legacy(TraceabilityPredicate predicate) {
-        return ElementUtility.ofLegacy(predicate);
     }
 }

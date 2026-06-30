@@ -79,7 +79,7 @@ final class StructureBuildOperationService {
             int tier) {
         creativeBuildSingle(StructureOperationRequest.creativeBuild(
                 player, controller, StructureOrientation.fromController(controller),
-                tierChannelValues(context.runtime().pattern.getPrimaryPiece().getPieceTemplate(), tier),
+                tierChannelValues(context.runtime().pattern.getPrimaryPiece().getTemplate(), tier),
                 false));
     }
 
@@ -263,8 +263,8 @@ final class StructureBuildOperationService {
         if (tier <= 0) {
             return channels;
         }
-        BlockPatternTemplate.AisleDef[] aisles = template.getAisles();
-        for (BlockPatternTemplate.AisleDef aisle : aisles) {
+        PieceTemplate.AisleDef[] aisles = template.getAisles();
+        for (PieceTemplate.AisleDef aisle : aisles) {
             if (aisle.minRepeat() == aisle.maxRepeat()) continue;
             String name = aisle.channelName();
             if (name != null) {

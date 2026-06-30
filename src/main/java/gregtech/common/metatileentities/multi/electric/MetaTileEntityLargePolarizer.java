@@ -23,24 +23,23 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityLargePolarizer extends GCYMAdvanceRecipeMapMultiblockController {
 
-    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
-            "gcym:large_polarizer", () ->
-                    DeclarativePatternBuilder.start()
-                            .aisle("XXXXX", "XXXXX", "XXXXX")
-                            .aisle("XXXXX", "XCACX", "XCXCX")
-                            .aisle("XXXXX", "XCCCX", "XCXCX")
-                            .aisle("XXXXX", "XXSXX", "XXXXX")
-                            .self('S', MetaTileEntityLargePolarizer.class)
-                            .casing('X', getCasingState())
-                            .energyInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .threadHatch()
-                            .preset(HatchPresets.STANDARD_IO)
-                            .preset(HatchPresets.MUFFLER_IO)
-                            .where('C', states(getCasingState2()))
-                            .where('A', air())
-                            .buildStructureDefinition()
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_polarizer", () ->
+            DeclarativePatternBuilder.start()
+                    .aisle("XXXXX", "XXXXX", "XXXXX")
+                    .aisle("XXXXX", "XCACX", "XCXCX")
+                    .aisle("XXXXX", "XCCCX", "XCXCX")
+                    .aisle("XXXXX", "XXSXX", "XXXXX")
+                    .self('S', MetaTileEntityLargePolarizer.class)
+                    .casing('X', getCasingState())
+                    .energyInput(1, 2)
+                    .tieredHatch()
+                    .parallelHatch()
+                    .threadHatch()
+                    .preset(HatchPresets.STANDARD_IO)
+                    .preset(HatchPresets.MUFFLER_IO)
+                    .block('C', getCasingState2())
+                    .air('A')
+                    .buildStructureDefinition()
     );
 
     public MetaTileEntityLargePolarizer(ResourceLocation metaTileEntityId) {

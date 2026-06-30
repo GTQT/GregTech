@@ -38,8 +38,6 @@ public final class PieceEvaluationResult {
     private final PieceRuntime.Publication matcherPublication;
     @NotNull
     private final StructureContribution contribution;
-    @NotNull
-    private final PatternMatchContext compatibilityContext;
     private final long semanticFingerprint;
     @NotNull
     private final Map<PieceDependencyAspect, Long> aspectFingerprints;
@@ -51,8 +49,7 @@ public final class PieceEvaluationResult {
                                   @NotNull LongSet formedPositions,
                                   @NotNull LongSet watchedPositions,
                                   @Nullable PieceRuntime.Publication matcherPublication,
-                                  @NotNull StructureContribution contribution,
-                                  @Nullable PatternMatchContext compatibilityContext) {
+                                  @NotNull StructureContribution contribution) {
         this.piece = piece;
         this.status = status;
         this.resolvedCenter = resolvedCenter == null ? null : resolvedCenter.toImmutable();
@@ -61,9 +58,6 @@ public final class PieceEvaluationResult {
         this.watchedPositions = immutableLongSet(watchedPositions);
         this.matcherPublication = matcherPublication;
         this.contribution = contribution;
-        this.compatibilityContext = compatibilityContext == null
-                ? new PatternMatchContext()
-                : compatibilityContext.copy();
         this.aspectFingerprints = computeAspectFingerprints();
         this.semanticFingerprint = aspectFingerprints.get(PieceDependencyAspect.ANY_RESULT);
     }
@@ -90,24 +84,9 @@ public final class PieceEvaluationResult {
             @NotNull LongSet watchedPositions,
             @NotNull PieceRuntime runtime,
             @NotNull StructureContribution contribution) {
-        return activeMatchedWithRuntime(
-                piece, resolvedCenter, repetitions, formedPositions, watchedPositions,
-                runtime, contribution, new PatternMatchContext());
-    }
-
-    @NotNull
-    public static PieceEvaluationResult activeMatchedWithRuntime(
-            @NotNull StructurePiece piece,
-            @NotNull BlockPos resolvedCenter,
-            @Nullable int[] repetitions,
-            @NotNull LongSet formedPositions,
-            @NotNull LongSet watchedPositions,
-            @NotNull PieceRuntime runtime,
-            @NotNull StructureContribution contribution,
-            @NotNull PatternMatchContext compatibilityContext) {
         return activeMatched(
                 piece, resolvedCenter, repetitions, formedPositions, watchedPositions,
-                runtime.capturePublication(), contribution, compatibilityContext);
+                runtime.capturePublication(), contribution);
     }
 
     @NotNull
@@ -122,31 +101,14 @@ public final class PieceEvaluationResult {
         return new PieceEvaluationResult(
                 piece, Status.ACTIVE_MATCHED, resolvedCenter,
                 repetitions == null ? new int[0] : repetitions,
-                formedPositions, watchedPositions, matcherPublication, contribution, null);
-    }
-
-    @NotNull
-    static PieceEvaluationResult activeMatched(
-            @NotNull StructurePiece piece,
-            @NotNull BlockPos resolvedCenter,
-            @Nullable int[] repetitions,
-            @NotNull LongSet formedPositions,
-            @NotNull LongSet watchedPositions,
-            @Nullable PieceRuntime.Publication matcherPublication,
-            @NotNull StructureContribution contribution,
-            @NotNull PatternMatchContext compatibilityContext) {
-        return new PieceEvaluationResult(
-                piece, Status.ACTIVE_MATCHED, resolvedCenter,
-                repetitions == null ? new int[0] : repetitions,
-                formedPositions, watchedPositions, matcherPublication, contribution,
-                compatibilityContext);
+                formedPositions, watchedPositions, matcherPublication, contribution);
     }
 
     @NotNull
     public static PieceEvaluationResult inactive(@NotNull StructurePiece piece) {
         return new PieceEvaluationResult(
                 piece, Status.INACTIVE, null, new int[0],
-                LongSets.EMPTY_SET, LongSets.EMPTY_SET, null, StructureContribution.empty(), null);
+                LongSets.EMPTY_SET, LongSets.EMPTY_SET, null, StructureContribution.empty());
     }
 
     @NotNull
@@ -188,11 +150,6 @@ public final class PieceEvaluationResult {
         return contribution;
     }
 
-    @NotNull
-    public PatternMatchContext copyCompatibilityContext() {
-        return compatibilityContext.copy();
-    }
-
     public long getSemanticFingerprint() {
         return semanticFingerprint;
     }
@@ -216,8 +173,7 @@ public final class PieceEvaluationResult {
                 contribution.getAbilityParts().hashCode(),
                 contribution.getCountedAbilityParts().hashCode(),
                 contribution.getVariantActiveBlocks().hashCode(),
-                contribution.getTypedEmissions().hashCode(),
-                compatibilityContext.entrySet().hashCode());
+                contribution.getTypedEmissions().hashCode());
         long any = fingerprint(
                 activation, center, repetitionsFingerprint,
                 formedPositions.hashCode(), watchedPositions.hashCode(), contributionFingerprint);

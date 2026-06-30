@@ -9,8 +9,6 @@ import net.minecraft.util.math.Vec3i;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.function.BooleanSupplier;
-
 /**
  * Repeatable piece positioned relative to a previously resolved piece center.
  */
@@ -21,7 +19,7 @@ public final class DynamicRepeatGroupPiece extends RepeatGroupPiece {
 
     public DynamicRepeatGroupPiece(@NotNull String name, @NotNull PieceTemplate template,
                                    @NotNull Vec3i staticOffset, @NotNull OffsetMode offsetMode,
-                                   @Nullable BooleanSupplier condition,
+                                   @Nullable StructureCondition<?> condition,
                                    int[] axes, int[][] ranges, int[] steps,
                                    @Nullable String[] channelNames, int[] centerOffset,
                                    @NotNull StructureCompiler.SearchStrategy strategy,
@@ -32,7 +30,7 @@ public final class DynamicRepeatGroupPiece extends RepeatGroupPiece {
 
     public DynamicRepeatGroupPiece(@NotNull String name, @NotNull PieceTemplate template,
                                    @NotNull Vec3i staticOffset, @NotNull OffsetMode offsetMode,
-                                   @Nullable BooleanSupplier condition,
+                                   @Nullable StructureCondition<?> condition,
                                    int[] axes, int[][] ranges, int[] steps,
                                    @Nullable String[] channelNames, int[] centerOffset,
                                    @NotNull StructureCompiler.SearchStrategy strategy,

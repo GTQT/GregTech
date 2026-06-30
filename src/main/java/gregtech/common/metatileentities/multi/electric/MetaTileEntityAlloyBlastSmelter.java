@@ -61,10 +61,10 @@ public class MetaTileEntityAlloyBlastSmelter extends RecipeMapMultiblockControll
                             .preset(HatchPresets.STANDARD_IO)
                             .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                             .withChannel(GTCasingGroups.heatingCoils().channel())
-                            .where('G', states(getCasingState2()))
-                            .where('M', abilities(MultiblockAbility.MUFFLER_HATCH))
-                            .where('A', air())
-                            .where('#', any())
+                            .block('G', getCasingState2())
+                            .hatch('M', MultiblockAbility.MUFFLER_HATCH)
+                            .air('A')
+                            .any('#')
                             .buildStructureDefinition()
     );
     private int blastFurnaceTemperature;
@@ -142,6 +142,8 @@ public class MetaTileEntityAlloyBlastSmelter extends RecipeMapMultiblockControll
         recipeMapWorkable.setWhyFailed("线圈温度过低，配方需求至少 " + recipeTemp + " K温度");
         return false;
     }
+
+
 
     @Override
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
