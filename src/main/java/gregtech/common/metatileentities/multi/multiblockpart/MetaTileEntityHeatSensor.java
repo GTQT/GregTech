@@ -1,4 +1,4 @@
-package gregtech.common.metatileentities.heat;
+package gregtech.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.IHeat;
@@ -10,7 +10,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;

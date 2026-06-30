@@ -12,7 +12,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -74,7 +73,7 @@ public class MetaTileEntityMegaAlloyBlastSmelter extends GCYMRecipeMapMultiblock
                     .block('V', getVentState())
                     .tieredCasing('W', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .casing('C', CasingDefinition.simple(getCasingState()))
+                    .casing('C', getCasingState())
                     .optionalEnergyInput(8)
                     .optionalLaserInput(1)
                     .maintenance()
@@ -89,15 +88,16 @@ public class MetaTileEntityMegaAlloyBlastSmelter extends GCYMRecipeMapMultiblock
     private int blastFurnaceTemperature;
 
     public MetaTileEntityMegaAlloyBlastSmelter(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 GCYMRecipeMaps.ALLOY_BLAST_RECIPES,
                 RecipeMaps.ALLOY_SMELTER_RECIPES
         });
         this.recipeMapWorkable = new GCYMHeatCoilRecipeLogic(this);
     }
 
-    private static IBlockState getCasingState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.HIGH_TEMPERATURE_CASING);
+    public static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
+                BlockLargeMultiblockCasing.CasingType.HIGH_TEMPERATURE_CASING);
     }
 
     private static IBlockState getVentState() {
@@ -128,7 +128,8 @@ public class MetaTileEntityMegaAlloyBlastSmelter extends GCYMRecipeMapMultiblock
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         InformationHandler.topTooltips("最强合金王", tooltip);
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addBlast().addLaser().build(this, tooltip);

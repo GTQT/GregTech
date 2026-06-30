@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -36,7 +35,7 @@ public class MetaTileEntityLargeSonicator extends GCYMAdvanceRecipeMapMultiblock
                     .aisle(" XXX ", " XPX ", " XPX ", "  P  ")
                     .aisle(" XXX ", " XSX ", " XXX ", "     ")
                     .self('S', MetaTileEntityLargeSonicator.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -54,8 +53,9 @@ public class MetaTileEntityLargeSonicator extends GCYMAdvanceRecipeMapMultiblock
         super(metaTileEntityId, RecipeMaps.SONICATION_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
+    public static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
+                BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
     }
 
     private static IBlockState getBoilerCasingState() {

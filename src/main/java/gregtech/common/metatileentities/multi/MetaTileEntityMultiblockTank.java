@@ -10,15 +10,13 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
+import gregtech.api.pattern.SoftReferenceHolder;
+import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.blocks.BlockMetalCasing;
-import gregtech.common.blocks.BlockSteamCasing;
-import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.block.SoundType;
@@ -44,10 +42,15 @@ import com.cleanroommc.modularui.utils.Alignment;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
+    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
+            new HashMap<>();
+    private final String tankTypeName;
     private final boolean isWood;
     private final int capacity;
     private final IBlockState casingState;
@@ -55,20 +58,11 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
     private final ICubeRenderer baseTexture;
     private final SoundType soundType;
 
-    public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId, boolean isMetal, int capacity) {
-        this(metaTileEntityId, !isMetal, capacity,
-                isMetal ?
-                        MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID) :
-                        MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL),
-                isMetal ? MetaTileEntities.STEEL_TANK_VALVE : MetaTileEntities.WOODEN_TANK_VALVE,
-                isMetal ? Textures.SOLID_STEEL_CASING : Textures.WOOD_WALL,
-                isMetal ? SoundType.METAL : SoundType.WOOD);
-    }
-
-    public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId, boolean isWood, int capacity,
-                                        IBlockState casingState, MetaTileEntity valve, ICubeRenderer baseTexture,
-                                        SoundType soundType) {
+    public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId, String tankTypeName, boolean isWood,
+                                        int capacity, IBlockState casingState, MetaTileEntity valve,
+                                        ICubeRenderer baseTexture, SoundType soundType) {
         super(metaTileEntityId);
+        this.tankTypeName = tankTypeName;
         this.isWood = isWood;
         this.capacity = capacity;
         this.casingState = casingState;
@@ -76,6 +70,38 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
         this.baseTexture = baseTexture;
         this.soundType = soundType;
         initializeInventory();
+    }
+
+    /**
+     * Register a tank variant structure definition in the global template pool. Called from
+     * {@code MultiblockRegistration} during initialization.
+     *
+     * @param name        tank variant name (e.g. "wood", "bronze", "steel")
+     * @param casingState the casing block state for this variant
+     * @param valve       the valve meta tile entity for this variant
+     */
+    public static void registerTankStructure(@NotNull String name, @NotNull IBlockState casingState,
+                                             @NotNull MetaTileEntity valve) {
+        STRUCTURE_DEFINITIONS.put(name, TemplatePool.getInstance()
+                .registerStructure("gregtech:tank." + name, () -> buildStructureDefinition(casingState, valve)));
+    }
+
+    private static StructureDefinition<?> buildStructureDefinition(@NotNull IBlockState casingState,
+                                                                   @NotNull MetaTileEntity valve) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "XXX", "XXX")
+                .aisle("XXX", "X X", "XXX")
+                .aisle("XXX", "XSX", "XXX")
+                .self('S', MetaTileEntityMultiblockTank.class)
+                .air(' ')
+                .casing('X', casingState)
+                .custom(Elements.metaTileEntities(0, 2, 2, valve), 2)
+                .buildStructureDefinition();
+    }
+
+    @Override
+    public IBlockState getCasingBlock() {
+        return casingState;
     }
 
     @Override
@@ -93,8 +119,8 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMultiblockTank(metaTileEntityId, isWood, capacity, casingState, valve, baseTexture,
-                soundType);
+        return new MetaTileEntityMultiblockTank(metaTileEntityId, tankTypeName, isWood, capacity, casingState, valve,
+                baseTexture, soundType);
     }
 
     @Override
@@ -103,16 +129,11 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
     @Override
     @NotNull
     protected StructureDefinition<?> createStructureDefinition() {
-        return StructureDefinition.getOrBuild(metaTileEntityId + "/structure", () -> DeclarativePatternBuilder.start()
-                .aisle("XXX", "XXX", "XXX")
-                .aisle("XXX", "X X", "XXX")
-                .aisle("XXX", "XSX", "XXX")
-                .self('S', MetaTileEntityMultiblockTank.class)
-                .air(' ')
-                .casing('X', casingState)
-                .custom(
-                        Elements.metaTileEntities(0, 2, 2, valve), 2)
-                .buildStructureDefinition());
+        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(tankTypeName);
+        if (definition == null) {
+            throw new IllegalStateException("Unknown tank type: " + tankTypeName);
+        }
+        return definition.get();
     }
 
     @SideOnly(Side.CLIENT)
@@ -201,7 +222,6 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
         }
         return super.getCapability(capability, side);
     }
-
 
     @NotNull
     @Override

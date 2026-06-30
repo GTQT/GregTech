@@ -1,9 +1,8 @@
 package gregtech.common.metatileentities.multi.electric.godforge.data;
 
-import com.cleanroommc.modularui.utils.Color;
-
-import gregtech.common.metatileentities.multi.electric.godforge.color.ForgeOfGodsStarColor;
 import gregtech.common.metatileentities.multi.electric.godforge.color.StarColorSetting;
+
+import com.cleanroommc.modularui.utils.Color;
 
 public class ColorData {
 
@@ -139,10 +138,10 @@ public class ColorData {
     public String getHexString() {
         String hexString = Color.toFullHexString(r, g, b);
         return "#" + StarColors.RGB.RED.getColor()
-            + hexString.substring(0, 2)
-            + StarColors.RGB.GREEN.getColor()
-            + hexString.substring(2, 4)
-            + StarColors.RGB.BLUE.getColor()
-            + hexString.substring(4, 6);
+                + hexString.substring(0, 2)
+                + StarColors.RGB.GREEN.getColor()
+                + hexString.substring(2, 4)
+                + StarColors.RGB.BLUE.getColor()
+                + hexString.substring(4, 6);
     }
 }

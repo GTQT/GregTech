@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -51,14 +50,14 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
                     .aisle("HPXPH", "#GGG#", "#GFG#", "#GGG#", "HPXPH")
                     .aisle("XXXXX", "XGGGX", "XGSGX", "XGGGX", "XXXXX")
                     .self('S', MetaTileEntityMegaChemicalReactor.class)
-                    .casing('E', CasingDefinition.simple(getCasingState()))
+                    .casing('E', getCasingState())
                     .optionalEnergyInput(8)
                     .optionalLaserInput(1)
                     .block('P', getPipeCasingState())
                     .air('#')
                     .block('G', getGlassState())
                     .block('F', getCoilState())
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .tieredHatch()
@@ -68,7 +67,7 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
     );
 
     public MetaTileEntityMegaChemicalReactor(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.LARGE_CHEMICAL_RECIPES,
                 RecipeMaps.POLYMERIZATION_RECIPES,
                 RecipeMaps.DESULFURIZATION_RECIPES
@@ -76,7 +75,7 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
         this.recipeMapWorkable = new GCYMMultiblockRecipeLogic(this, true);
     }
 
-    protected static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PTFE_INERT_CASING);
     }
 
@@ -105,7 +104,8 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
 
     @SideOnly(Side.CLIENT)
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         InformationHandler.topTooltips("最强反应釜", tooltip);
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addPerfectOC().addLaser().build(this, tooltip);

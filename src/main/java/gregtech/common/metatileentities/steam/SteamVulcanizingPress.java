@@ -22,7 +22,8 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 public class SteamVulcanizingPress extends SteamMetaTileEntity {
 
     public SteamVulcanizingPress(ResourceLocation metaTileEntityId, boolean isHighPressure) {
-        super(metaTileEntityId, RecipeMaps.VULCANIZING_PRESS_RECIPES, Textures.VULCANIZING_PRESS_OVERLAY, isHighPressure);
+        super(metaTileEntityId, RecipeMaps.VULCANIZING_PRESS_RECIPES, Textures.VULCANIZING_PRESS_OVERLAY,
+                isHighPressure);
     }
 
     @Override

@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -34,7 +33,7 @@ public class MetaTileEntityLargeBrewery extends GCYMAdvanceRecipeMapMultiblockCo
                     .aisle("XXXXX", "XCCCX", "XAAAX", "XXAXX", "##X##")
                     .aisle("#XXX#", "#XSX#", "#XXX#", "#XXX#", "#####")
                     .self('S', MetaTileEntityLargeBrewery.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -50,20 +49,20 @@ public class MetaTileEntityLargeBrewery extends GCYMAdvanceRecipeMapMultiblockCo
     );
 
     public MetaTileEntityLargeBrewery(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{RecipeMaps.BREWING_RECIPES, RecipeMaps.FERMENTING_RECIPES,
-                RecipeMaps.FLUID_HEATER_RECIPES});
+        super(metaTileEntityId, new RecipeMap[] { RecipeMaps.BREWING_RECIPES, RecipeMaps.FERMENTING_RECIPES,
+                RecipeMaps.FLUID_HEATER_RECIPES });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.MOLYBDENUM_DISILICIDE_COIL);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 

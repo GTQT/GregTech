@@ -55,6 +55,11 @@ public class SteamLavaBoiler extends SteamBoiler {
             return IFilter.whitelistPriority(getBoilerFuelToConsumption().size());
         }
     };
+    private FluidTank fuelFluidTank;
+
+    public SteamLavaBoiler(ResourceLocation metaTileEntityId, boolean isHighPressure) {
+        super(metaTileEntityId, isHighPressure, Textures.LAVA_BOILER_OVERLAY);
+    }
 
     private static void init() {
         setBoilerFuelToConsumption(Materials.Lava.getFluid(), 100);
@@ -76,12 +81,6 @@ public class SteamLavaBoiler extends SteamBoiler {
         Objects.requireNonNull(fluid, "fluid == null");
         if (amount <= 0) throw new IllegalArgumentException("amount <= 0");
         BOILER_FUEL_TO_CONSUMPTION.put(fluid, amount);
-    }
-
-    private FluidTank fuelFluidTank;
-
-    public SteamLavaBoiler(ResourceLocation metaTileEntityId, boolean isHighPressure) {
-        super(metaTileEntityId, isHighPressure, Textures.LAVA_BOILER_OVERLAY);
     }
 
     @Override

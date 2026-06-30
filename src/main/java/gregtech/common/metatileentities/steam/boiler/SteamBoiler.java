@@ -85,19 +85,16 @@ public abstract class SteamBoiler extends MetaTileEntity implements IDataInfoPro
 
     protected final boolean isHighPressure;
     private final ICubeRenderer renderer;
-
+    private final ItemStackHandler containerInventory;
     protected FluidTank waterFluidTank;
     protected FluidTank steamFluidTank;
-
     private int fuelBurnTimeLeft;
     private int fuelMaxBurnTime;
     private int currentTemperature;
     private boolean hasNoWater;
     private int timeBeforeCoolingDown;
-
     private boolean isBurning;
     private boolean wasBurningAndNeedsUpdate;
-    private final ItemStackHandler containerInventory;
 
     public SteamBoiler(ResourceLocation metaTileEntityId, boolean isHighPressure, ICubeRenderer renderer) {
         super(metaTileEntityId);
@@ -114,6 +111,14 @@ public abstract class SteamBoiler extends MetaTileEntity implements IDataInfoPro
 
     public boolean isBurning() {
         return isBurning;
+    }
+
+    public void setBurning(boolean burning) {
+        this.isBurning = burning;
+        if (!getWorld().isRemote) {
+            markDirty();
+            writeCustomData(IS_WORKING, buf -> buf.writeBoolean(burning));
+        }
     }
 
     @Override
@@ -251,7 +256,7 @@ public abstract class SteamBoiler extends MetaTileEntity implements IDataInfoPro
                 currentTemperature -= getCoolDownRate();
                 timeBeforeCoolingDown = getCooldownInterval();
             }
-        } else--timeBeforeCoolingDown;
+        } else --timeBeforeCoolingDown;
     }
 
     protected abstract int getBaseSteamOutput();
@@ -300,14 +305,6 @@ public abstract class SteamBoiler extends MetaTileEntity implements IDataInfoPro
             }
         } else {
             this.hasNoWater = waterFluidTank.getFluidAmount() == 0;
-        }
-    }
-
-    public void setBurning(boolean burning) {
-        this.isBurning = burning;
-        if (!getWorld().isRemote) {
-            markDirty();
-            writeCustomData(IS_WORKING, buf -> buf.writeBoolean(burning));
         }
     }
 

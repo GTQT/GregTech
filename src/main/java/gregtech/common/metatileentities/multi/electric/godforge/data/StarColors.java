@@ -1,25 +1,12 @@
 package gregtech.common.metatileentities.multi.electric.godforge.data;
 
-import static net.minecraft.util.text.translation.I18n.translateToLocal;
+import gregtech.common.metatileentities.multi.electric.godforge.color.ForgeOfGodsStarColor;
 
 import net.minecraft.util.text.TextFormatting;
 
-import gregtech.common.metatileentities.multi.electric.godforge.color.ForgeOfGodsStarColor;
+import static net.minecraft.util.text.translation.I18n.translateToLocal;
 
 public final class StarColors {
-
-    public interface IStarColor {
-
-        String getTitle();
-
-        TextFormatting getColor();
-
-        int getHexColor();
-
-        float getDefaultValue();
-
-        String getTooltip(float value);
-    }
 
     public enum RGB implements IStarColor {
 
@@ -152,5 +139,18 @@ public final class StarColors {
         public String getTooltip(float value) {
             return String.format("%s: %.2f", getTitle(), value);
         }
+    }
+
+    public interface IStarColor {
+
+        String getTitle();
+
+        TextFormatting getColor();
+
+        int getHexColor();
+
+        float getDefaultValue();
+
+        String getTooltip(float value);
     }
 }

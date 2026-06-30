@@ -60,7 +60,7 @@ import static gregtech.api.recipes.logic.OverclockingLogic.subTickNonParallelOC;
 public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         implements IMachineHatchMultiblock {
 
-    private static final StructureDefinition[] STRUCTURE_DEFINITIONS = new StructureDefinition[] {
+    private static final StructureDefinition<?>[] STRUCTURE_DEFINITIONS = new StructureDefinition[] {
             StructureDefinition.getOrBuild("gregtech:processing_array/normal", () -> buildStructureDefinition(
                     MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST))),
             StructureDefinition.getOrBuild("gregtech:processing_array/advanced", () -> buildStructureDefinition(
@@ -69,13 +69,14 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
 
     private final int tier;
     private boolean machineChanged;
+
     public MetaTileEntityProcessingArray(ResourceLocation metaTileEntityId, int tier) {
         super(metaTileEntityId, null);
         this.tier = tier;
         this.recipeMapWorkable = new ProcessingArrayWorkable(this);
     }
 
-    private static StructureDefinition buildStructureDefinition(IBlockState casingState) {
+    private static StructureDefinition<?> buildStructureDefinition(IBlockState casingState) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X#X", "XXX")
@@ -113,7 +114,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         return STRUCTURE_DEFINITIONS[tier];
     }
 
-    public IBlockState getCasingState() {
+    @Override
+    public IBlockState getCasingBlock() {
         return tier == 0 ? MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST) :
                 MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.HSSE_STURDY);
     }

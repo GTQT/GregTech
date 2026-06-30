@@ -1,13 +1,12 @@
-package gregtech.common.metatileentities.heat;
+package gregtech.common.metatileentities.electric;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IHeatable;
 import gregtech.api.capability.impl.HeatContainerHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.TieredMetaTileEntity;
+import gregtech.api.metatileentity.TieredMetaTileEntityWithControl;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -27,7 +26,7 @@ import java.util.List;
 import static gregtech.api.GTValues.V;
 import static gregtech.api.capability.GregtechCapabilities.CAPABILITY_HEAT_CONTAINER;
 
-public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
+public class MetaTileEntityElectricHeater extends TieredMetaTileEntityWithControl {
 
     protected final IHeatable heatable;
 
@@ -45,9 +44,23 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
 
     public void update() {
         super.update();
+        if (getWorld().isRemote) return;
+
+        if (energyContainer.getEnergyStored() > 0) {
+            if (!isWorkingEnabled()) setWorkingEnabled(true);
+        } else {
+            if (isWorkingEnabled()) setWorkingEnabled(false);
+        }
+        if (heatable.getHeatStored() > 0) {
+            if (!isActive()) setActive(true);
+        } else {
+            if (isActive()) setActive(false);
+        }
+
         if (energyContainer.getEnergyStored() > V[getTier()] && heatable.getHeatStored() < heatable.getHeatCapacity()) {
             energyContainer.changeEnergy(-V[getTier()]);
             heatable.changeHeat(V[getTier()]);
+            if (!isWorkingEnabled()) setWorkingEnabled(true);
         }
         if (getOffsetTimer() % 20 == 0) {
             if (heatable.getHeatStored() > 0) {
@@ -65,12 +78,8 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
-        getOverlay().renderSided(getFrontFacing(), renderState, translation, pipeline);
-    }
-
-    @NotNull
-    private SimpleOverlayRenderer getOverlay() {
-        return Textures.HEAT_OUT;
+        Textures.HEATER_OVERLAY.renderOrientedState(renderState, translation, pipeline, getFrontFacing(),
+                isActive(), isWorkingEnabled());
     }
 
     @Override
@@ -91,4 +100,5 @@ public class MetaTileEntityElectricHeater extends TieredMetaTileEntity {
         tooltip.add(I18n.format("gregtech.universal.tooltip.heat_storage_capacity", heatable.getHeatCapacity()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
     }
+
 }

@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -34,7 +33,7 @@ public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockCon
                     .aisle("#XSX#", "XCCCX", "XCCCX", "XCCCX", "#XXX#")
                     .aisle("#XXX#", "X###X", "X###X", "X###X", "#XXX#")
                     .self('S', MetaTileEntityLargeSifter.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -51,21 +50,21 @@ public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockCon
         super(metaTileEntityId, determineRecipeMaps());
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.VIBRATION_SAFE_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.MULTIBLOCK_CASING.getState(BlockMultiblockCasing.MultiblockCasingType.GRATE_CASING);
     }
 
     private static @NotNull RecipeMap<?> @NotNull [] determineRecipeMaps() {
         RecipeMap<?> sieveMap = RecipeMap.getByName("electric_sieve");
         if (sieveMap != null) {
-            return new RecipeMap<?>[]{RecipeMaps.SIFTER_RECIPES, sieveMap};
+            return new RecipeMap<?>[] { RecipeMaps.SIFTER_RECIPES, sieveMap };
         }
-        return new RecipeMap<?>[]{RecipeMaps.SIFTER_RECIPES};
+        return new RecipeMap<?>[] { RecipeMaps.SIFTER_RECIPES };
     }
 
     @Override

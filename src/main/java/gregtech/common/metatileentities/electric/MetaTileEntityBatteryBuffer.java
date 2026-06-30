@@ -96,14 +96,14 @@ public class MetaTileEntityBatteryBuffer extends TieredMetaTileEntity implements
     }
 
     @Override
-    protected boolean shouldUpdate(MTETrait trait) {
-        return !(trait instanceof EnergyContainerBatteryBuffer) || allowEnergyOutput;
-    }
-
-    @Override
     public void setWorkingEnabled(boolean isActivationAllowed) {
         this.allowEnergyOutput = isActivationAllowed;
         notifyBlockUpdate();
+    }
+
+    @Override
+    protected boolean shouldUpdate(MTETrait trait) {
+        return !(trait instanceof EnergyContainerBatteryBuffer) || allowEnergyOutput;
     }
 
     @Override
@@ -168,7 +168,7 @@ public class MetaTileEntityBatteryBuffer extends TieredMetaTileEntity implements
             widgets.add(new ArrayList<>());
             for (int x = 0; x < rowSize; x++) {
                 widgets.get(y).add(new ItemSlot().slot(SyncHandlers.itemSlot(this.importItems, index++)
-                        .slotGroup("item_inv"))
+                                .slotGroup("item_inv"))
                         .background(GTGuiTextures.SLOT, GTGuiTextures.BATTERY_OVERLAY));
             }
         }

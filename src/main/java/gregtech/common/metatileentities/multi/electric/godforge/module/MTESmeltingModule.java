@@ -1,13 +1,5 @@
 package gregtech.common.metatileentities.multi.electric.godforge.module;
 
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
-
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
-
-import org.jetbrains.annotations.NotNull;
-
 import gregtech.api.capability.IMultipleRecipeMaps;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -21,12 +13,18 @@ import gregtech.common.blocks.BlockGodforgeCasing;
 import gregtech.common.mui.multiblock.godforge.MTEBaseModuleGui;
 import gregtech.common.mui.multiblock.godforge.MTESmeltingModuleGui;
 
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ResourceLocation;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
+
+import org.jetbrains.annotations.NotNull;
+
 /**
- * Godforge Smelting Module.
- * Normal mode: runs Electric Blast Furnace recipes (temperature check applies).
- * Furnace mode: runs Furnace recipes (no temperature requirement).
- * The module's heat value is set by {@code GodforgeMath.calculateMaxHeatForModules()},
- * allowing access to recipes that require extreme temperatures unreachable by normal EBFs.
+ * Godforge Smelting Module. Normal mode: runs Electric Blast Furnace recipes (temperature check applies). Furnace mode:
+ * runs Furnace recipes (no temperature requirement). The module's heat value is set by
+ * {@code GodforgeMath.calculateMaxHeatForModules()}, allowing access to recipes that require extreme temperatures
+ * unreachable by normal EBFs.
  */
 public class MTESmeltingModule extends MTEBaseModule implements IMultipleRecipeMaps {
 

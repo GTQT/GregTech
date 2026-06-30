@@ -1,5 +1,6 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
+import gregtech.api.capability.IControllable;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
 import gregtech.api.metatileentity.IMachineHatchMultiblock;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -8,7 +9,6 @@ import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.capability.IControllable;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.ItemStackHashStrategy;
@@ -40,7 +40,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MetaTileEntityMachineHatch extends MetaTileEntityMultiblockNotifiablePart
-                                        implements IMultiblockAbilityPart<IItemHandlerModifiable> {
+        implements IMultiblockAbilityPart<IItemHandlerModifiable> {
 
     private final IItemHandlerModifiable machineHandler;
 

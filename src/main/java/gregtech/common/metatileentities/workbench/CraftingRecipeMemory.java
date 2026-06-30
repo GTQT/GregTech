@@ -63,6 +63,20 @@ public class CraftingRecipeMemory extends SyncHandler {
         this.craftingMatrix = craftingMatrix;
     }
 
+    private static void copyInventoryItems(IItemHandler src, IItemHandlerModifiable dest) {
+        for (int i = 0; i < src.getSlots(); i++) {
+            ItemStack itemStack = src.getStackInSlot(i);
+            dest.setStackInSlot(i, itemStack.isEmpty() ? ItemStack.EMPTY : itemStack.copy());
+        }
+    }
+
+    private static void copyInventoryItems(IInventory src, IItemHandlerModifiable dest) {
+        for (int i = 0; i < Math.min(src.getSizeInventory(), dest.getSlots()); i++) {
+            ItemStack itemStack = src.getStackInSlot(i);
+            dest.setStackInSlot(i, itemStack.isEmpty() ? ItemStack.EMPTY : itemStack.copy());
+        }
+    }
+
     public void loadRecipe(int index) {
         if (index < 0 || index >= memorizedRecipes.length) return;
         MemorizedRecipe recipe = memorizedRecipes[index];
@@ -126,12 +140,6 @@ public class CraftingRecipeMemory extends SyncHandler {
     /** 获取配方变化版本号，供外部检测变化使用 */
     public int getRecipeVersion() {
         return recipeVersion;
-    }
-
-    private static final class RecipeBuckets {
-
-        private final List<MemorizedRecipe> temporary = new ArrayList<>();
-        private final List<MemorizedRecipe> locked = new ArrayList<>();
     }
 
     private int getTemporaryCapacity() {
@@ -295,20 +303,6 @@ public class CraftingRecipeMemory extends SyncHandler {
         invalidateRecipeCache();
     }
 
-    private static void copyInventoryItems(IItemHandler src, IItemHandlerModifiable dest) {
-        for (int i = 0; i < src.getSlots(); i++) {
-            ItemStack itemStack = src.getStackInSlot(i);
-            dest.setStackInSlot(i, itemStack.isEmpty() ? ItemStack.EMPTY : itemStack.copy());
-        }
-    }
-
-    private static void copyInventoryItems(IInventory src, IItemHandlerModifiable dest) {
-        for (int i = 0; i < Math.min(src.getSizeInventory(), dest.getSlots()); i++) {
-            ItemStack itemStack = src.getStackInSlot(i);
-            dest.setStackInSlot(i, itemStack.isEmpty() ? ItemStack.EMPTY : itemStack.copy());
-        }
-    }
-
     public final MemorizedRecipe removeRecipe(int index) {
         if (!hasRecipe(index)) return null;
         MemorizedRecipe removed = memorizedRecipes[index];
@@ -434,32 +428,54 @@ public class CraftingRecipeMemory extends SyncHandler {
         }
     }
 
+    private static final class RecipeBuckets {
+
+        private final List<MemorizedRecipe> temporary = new ArrayList<>();
+        private final List<MemorizedRecipe> locked = new ArrayList<>();
+    }
+
     public static class MemorizedRecipe {
 
         private final ItemStackHandler craftingMatrix = new ItemStackHandler(9);
+        public int timesUsed = 0;
+        public int index;
         private ItemStack recipeResult = ItemStack.EMPTY;
         private boolean recipeLocked = false;
         /**
-         * 保护标志：当配方从锁定区解锁到临时区时设置为 true，
-         * 防止自动记忆覆盖 craftingMatrix 中的原始数据。
-         * 在配方被手动加载或重新锁定时清除。
+         * 保护标志：当配方从锁定区解锁到临时区时设置为 true， 防止自动记忆覆盖 craftingMatrix 中的原始数据。 在配方被手动加载或重新锁定时清除。
          */
         private boolean matrixProtected = false;
-        public int timesUsed = 0;
-        public int index;
 
         private MemorizedRecipe(int index) {
             this.index = index;
         }
 
         /**
-         * 创建一个虚拟的 MemorizedRecipe，用于合成链求解。
-         * 虚拟配方的 index 为 -1，不属于任何记忆槽位。
+         * 创建一个虚拟的 MemorizedRecipe，用于合成链求解。 虚拟配方的 index 为 -1，不属于任何记忆槽位。
          */
         public static MemorizedRecipe createVirtual(IInventory craftingGrid, ItemStack result) {
             MemorizedRecipe recipe = new MemorizedRecipe(-1);
             recipe.recipeResult = result.copy();
             copyInventoryItems(craftingGrid, recipe.craftingMatrix);
+            return recipe;
+        }
+
+        private static MemorizedRecipe deserializeNBT(NBTTagCompound tagCompound, int index) {
+            MemorizedRecipe recipe = new MemorizedRecipe(index);
+            recipe.recipeResult = new ItemStack(tagCompound.getCompoundTag("Result"));
+            recipe.craftingMatrix.deserializeNBT(tagCompound.getCompoundTag("Matrix"));
+            recipe.recipeLocked = tagCompound.getBoolean("Locked");
+            recipe.matrixProtected = tagCompound.getBoolean("MatrixProtected");
+            recipe.timesUsed = tagCompound.getInteger("TimesUsed");
+            return recipe;
+        }
+
+        private static @NotNull MemorizedRecipe fromBuffer(PacketBuffer buffer) {
+            var recipe = new MemorizedRecipe(buffer.readVarInt());
+            recipe.timesUsed = buffer.readInt();
+            recipe.recipeLocked = buffer.readBoolean();
+            recipe.matrixProtected = buffer.readBoolean();
+            recipe.recipeResult = NetworkUtils.readItemStack(buffer);
             return recipe;
         }
 
@@ -473,31 +489,12 @@ public class CraftingRecipeMemory extends SyncHandler {
             return result;
         }
 
-        private static MemorizedRecipe deserializeNBT(NBTTagCompound tagCompound, int index) {
-            MemorizedRecipe recipe = new MemorizedRecipe(index);
-            recipe.recipeResult = new ItemStack(tagCompound.getCompoundTag("Result"));
-            recipe.craftingMatrix.deserializeNBT(tagCompound.getCompoundTag("Matrix"));
-            recipe.recipeLocked = tagCompound.getBoolean("Locked");
-            recipe.matrixProtected = tagCompound.getBoolean("MatrixProtected");
-            recipe.timesUsed = tagCompound.getInteger("TimesUsed");
-            return recipe;
-        }
-
         private void writeToBuffer(PacketBuffer buffer) {
             buffer.writeVarInt(this.index);
             buffer.writeInt(this.timesUsed);
             buffer.writeBoolean(this.recipeLocked);
             buffer.writeBoolean(this.matrixProtected);
             NetworkUtils.writeItemStack(buffer, this.recipeResult);
-        }
-
-        private static @NotNull MemorizedRecipe fromBuffer(PacketBuffer buffer) {
-            var recipe = new MemorizedRecipe(buffer.readVarInt());
-            recipe.timesUsed = buffer.readInt();
-            recipe.recipeLocked = buffer.readBoolean();
-            recipe.matrixProtected = buffer.readBoolean();
-            recipe.recipeResult = NetworkUtils.readItemStack(buffer);
-            return recipe;
         }
 
         private void initialize(ItemStack recipeResult) {

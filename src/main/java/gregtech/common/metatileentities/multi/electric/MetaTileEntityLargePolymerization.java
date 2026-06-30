@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -30,7 +29,7 @@ public class MetaTileEntityLargePolymerization extends GCYMAdvanceRecipeMapMulti
                     .aisle("     ", "XXXXX", "XPPPX", "XXXXX")
                     .aisle("F   F", "XXXXX", "XSXXX", "XXXXX")
                     .self('S', MetaTileEntityLargePolymerization.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -41,18 +40,20 @@ public class MetaTileEntityLargePolymerization extends GCYMAdvanceRecipeMapMulti
                     .block('F', getFrameState())
                     .buildStructureDefinition()
     );
-    private static IBlockState getFrameState() {
-        return MetaBlocks.FRAMES.get(Materials.WatertightSteel).getBlock(Materials.WatertightSteel);
-    }
+
     public MetaTileEntityLargePolymerization(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.POLYMERIZATION_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    private static IBlockState getFrameState() {
+        return MetaBlocks.FRAMES.get(Materials.WatertightSteel).getBlock(Materials.WatertightSteel);
+    }
+
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.WATERTIGHT_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.TITANIUM_PIPE);
     }
 
@@ -65,7 +66,6 @@ public class MetaTileEntityLargePolymerization extends GCYMAdvanceRecipeMapMulti
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
-
 
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart iMultiblockPart) {

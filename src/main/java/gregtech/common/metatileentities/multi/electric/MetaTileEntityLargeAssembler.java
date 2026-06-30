@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -41,7 +40,7 @@ public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblock
                     .aisle("XXXXXXXXX", "XAAAXAXAX", "XCCCXXXXX")
                     .aisle("XXXXXXXXX", "XCCCXXSXX", "XCCCX###X")
                     .self('S',MetaTileEntityLargeAssembler.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1)
                     .tieredHatch()
                     .parallelHatch()
@@ -58,20 +57,20 @@ public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblock
         super(metaTileEntityId, determineRecipeMaps());
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.ASSEMBLING_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.TEMPERED_GLASS);
     }
 
     private static @NotNull RecipeMap<?> @NotNull [] determineRecipeMaps() {
         RecipeMap<?> cuisineAssemblerMap = RecipeMap.getByName("cuisine_assembler");
         if (Loader.isModLoaded(GCYMValues.GTFO_MODID) && cuisineAssemblerMap != null) {
-            return new RecipeMap<?>[]{RecipeMaps.ASSEMBLER_RECIPES, cuisineAssemblerMap};
+            return new RecipeMap<?>[] { RecipeMaps.ASSEMBLER_RECIPES, cuisineAssemblerMap };
         }
-        return new RecipeMap<?>[]{RecipeMaps.ASSEMBLER_RECIPES};
+        return new RecipeMap<?>[] { RecipeMaps.ASSEMBLER_RECIPES };
     }
 
     @Override

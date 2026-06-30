@@ -597,6 +597,8 @@ public class Textures {
             "overlay/machine/heat_input/overlay_front");
     public static final SimpleOverlayRenderer HEAT_OUT = new SimpleOverlayRenderer(
             "overlay/machine/heat_export/overlay_front");
+    public static final OrientedOverlayRenderer HEATER_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/heater");
 
     public static final SimpleOverlayRenderer CONVEYOR_OVERLAY = new SimpleOverlayRenderer("cover/overlay_conveyor");
     public static final SimpleOverlayRenderer CONVEYOR_OVERLAY_INVERTED = new SimpleOverlayRenderer(

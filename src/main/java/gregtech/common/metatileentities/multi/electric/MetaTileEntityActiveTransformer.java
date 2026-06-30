@@ -54,7 +54,7 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
                     .aisle("XXX", "XCX", "XXX")
                     .aisle("XXX", "XSX", "XXX")
                     .self('S', MetaTileEntityActiveTransformer.class)
-                    .block('C', 
+                    .block('C',
                             MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.SUPERCONDUCTOR_COIL))
                     .casing('X', MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING))
                     .universalEnergyInput(1, 4)
@@ -72,6 +72,10 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
         super(metaTileEntityId);
         this.powerOutput = new EnergyContainerList(new ArrayList<>());
         this.powerInput = new EnergyContainerList(new ArrayList<>());
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING);
     }
 
     @Override
@@ -142,10 +146,6 @@ public class MetaTileEntityActiveTransformer extends MultiblockWithDisplayBase i
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         return Textures.HIGH_POWER_CASING;
-    }
-
-    protected IBlockState getCasingState() {
-        return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.HIGH_POWER_CASING);
     }
 
     @SideOnly(Side.CLIENT)

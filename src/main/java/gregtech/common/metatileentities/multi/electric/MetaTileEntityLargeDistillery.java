@@ -68,9 +68,9 @@ public class MetaTileEntityLargeDistillery extends GCYMRecipeMapMultiblockContro
                             .aisle("#####", "#ZZZ#", "#ZCZ#", "#ZZZ#", "#####")
                             .self('S', MetaTileEntityLargeDistillery.class)
                             .casing('Y', getCasingState())
-                            .energyInput(1,2)
-                            .fluidInput(1,2)
-                            .itemInput(1,2)
+                            .energyInput(1, 2)
+                            .fluidInput(1, 2)
+                            .itemInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()
                             .maintenance()
@@ -91,11 +91,11 @@ public class MetaTileEntityLargeDistillery extends GCYMRecipeMapMultiblockContro
         this.handler = new DistillationTowerLogicHandler(this);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.WATERTIGHT_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 

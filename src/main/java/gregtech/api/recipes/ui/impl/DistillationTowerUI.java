@@ -84,8 +84,12 @@ public class DistillationTowerUI<R extends RecipeMap<?>> extends RecipeMapUI<R> 
         if (wasGroupOutput && isOutputs) startInputsY -= 9;
         if (itemHandler.getSlots() == 6 && fluidHandler.getTanks() == 2 && !isOutputs) startInputsY -= 9;
         if (!isOutputs) {
-            addSlot(builder, 40, startInputsY + (itemSlotsToDown - 1) * 18 - 18, 0, itemHandler, fluidHandler,
-                    invertFluids, false);
+            int itemY = startInputsY + (itemSlotsToDown - 1) * 18 - 18;
+            // Item input slots - two slots side by side
+            addSlot(builder, 22, itemY, 0, itemHandler, fluidHandler, false, false);
+            addSlot(builder, 40, itemY, 1, itemHandler, fluidHandler, false, false);
+            // Fluid input slot - 18px below item slots
+            addSlot(builder, 58, itemY, 0, itemHandler, fluidHandler, true, false);
         } else {
             addSlot(builder, 94, startInputsY + (itemSlotsToDown - 1) * 18, 0, itemHandler, fluidHandler, invertFluids,
                     true);

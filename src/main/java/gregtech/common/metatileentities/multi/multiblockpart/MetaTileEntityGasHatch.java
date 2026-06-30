@@ -57,8 +57,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MetaTileEntityGasHatch extends MetaTileEntityMultiblockPart implements
-                                                                                IMultiblockAbilityPart<IMufflerHatch>,
-                                                                                ITieredMetaTileEntity, IMufflerHatch {
+                                                                         IMultiblockAbilityPart<IMufflerHatch>,
+                                                                         ITieredMetaTileEntity, IMufflerHatch {
 
     public static final int INITIAL_INVENTORY_SIZE = 8000;
     protected final FluidTank fluidTank;
@@ -182,7 +182,7 @@ public class MetaTileEntityGasHatch extends MetaTileEntityMultiblockPart impleme
         tooltip.add(I18n.format("gregtech.machine.gas_hatch.tooltip.2"));
         tooltip.add(I18n.format("gregtech.machine.gas_hatch.tooltip.3"));
 
-        if(ConfigHolder.machines.enablePollution) {
+        if (ConfigHolder.machines.enablePollution) {
             tooltip.add(TextFormatting.GREEN + I18n.format("gregtech.tooltip.pollution_mte_available"));
             tooltip.add(I18n.format("gregtech.multiblock.pollution_hatch.tooltip.1"));
             tooltip.add(I18n.format("gregtech.multiblock.pollution_hatch.tooltip.2"));
@@ -199,7 +199,6 @@ public class MetaTileEntityGasHatch extends MetaTileEntityMultiblockPart impleme
         tooltip.add(I18n.format("gregtech.tool_action.wrench.set_facing"));
         super.addToolUsages(stack, world, tooltip, advanced);
     }
-
 
     @Override
     public boolean usesMui2() {

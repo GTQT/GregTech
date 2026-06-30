@@ -33,6 +33,7 @@ import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinHandler;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -97,7 +98,7 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         return "gregtech:fluid_drilling_rig." + type.getName();
     }
 
-    private static StructureDefinition buildStructureDefinition(IFluidDrillType type) {
+    private static StructureDefinition<?> buildStructureDefinition(IFluidDrillType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
@@ -107,7 +108,7 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
                 .frames('F', type.getFrameMaterial())
                 .any('#')
                 .casing('X', type.getCasingState())
-                .energyInput(1,3)
+                .energyInput(1, 3)
                 .fluidOutput(1)
                 .buildStructureDefinition();
     }
@@ -266,6 +267,11 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
     @Override
     protected ICubeRenderer getFrontOverlay() {
         return Textures.FLUID_RIG_OVERLAY;
+    }
+
+    @Override
+    public IBlockState getCasingBlock() {
+        return type.getCasingState();
     }
 
     @Override

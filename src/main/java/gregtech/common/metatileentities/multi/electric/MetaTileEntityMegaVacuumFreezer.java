@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -44,7 +43,7 @@ public class MetaTileEntityMegaVacuumFreezer extends GCYMRecipeMapMultiblockCont
                     .aisle("XXXXXXX#KKK", "XPPPPPX#KVK", "XPAAAPX#KVK", "XPAAAPX#KVK", "XPAAAPX#KKK", "XPPPPPX####", "XXXXXXX####")
                     .aisle("#XXXXX#####", "#XXSXX#####", "#XGGGX#####", "#XGGGX#####", "#XGGGX#####", "#XXXXX#####", "###########")
                     .self('S', MetaTileEntityMegaVacuumFreezer.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .optionalEnergyInput(8)
                     .optionalLaserInput(1)
                     .tieredHatch()
@@ -61,30 +60,30 @@ public class MetaTileEntityMegaVacuumFreezer extends GCYMRecipeMapMultiblockCont
     );
 
     public MetaTileEntityMegaVacuumFreezer(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.VACUUM_RECIPES,
                 RecipeMaps.CRYOGENIC_REACTOR_RECIPES,
                 RecipeMaps.CHEMICAL_DEHYDRATOR_RECIPES
         });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.ALUMINIUM_FROSTPROOF);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.TEMPERED_GLASS);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN);
     }
 
-    private static IBlockState getCasingState4() {
+    public static IBlockState getCasingState4() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.HEAT_VENT);
     }
 
-    private static IBlockState getCasingState5() {
+    public static IBlockState getCasingState5() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.TUNGSTENSTEEL_PIPE);
     }
 
@@ -99,7 +98,8 @@ public class MetaTileEntityMegaVacuumFreezer extends GCYMRecipeMapMultiblockCont
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         InformationHandler.topTooltips("最强冷冻机", tooltip);
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addLaser().build(this, tooltip);

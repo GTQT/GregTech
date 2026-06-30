@@ -5,6 +5,7 @@ import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.NotifiableFluidTank;
+import gregtech.api.items.itemhandlers.FilteredFluidTank;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
@@ -13,6 +14,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuis;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
+import gregtech.common.covers.filter.FluidFilterContainer;
 import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.mui.widget.GTFluidSlot;
 
@@ -38,6 +40,7 @@ import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,7 +49,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotifiablePart
-                                           implements IMultiblockAbilityPart<IFluidTank>, IControllable {
+        implements IMultiblockAbilityPart<IFluidTank>, IControllable {
 
     private static final int BASE_TANK_SIZE = 8000;
 
@@ -57,6 +60,9 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
     private final FluidTankList fluidTankList;
     private boolean workingEnabled;
 
+    @Nullable
+    private FluidFilterContainer fluidFilterContainer;
+
     public MetaTileEntityMultiFluidHatch(ResourceLocation metaTileEntityId, int tier, int numSlots,
                                          boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
@@ -66,17 +72,19 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
         // Nonuple: 1/8th the capacity of a fluid hatch of this tier
         // Sixtenths: 1/16th the capacity of a fluid hatch of this tier
 
-
         this.tankSize = BASE_TANK_SIZE * (1 << tier) /
                 (numSlots == 4 ? 4 :
                         numSlots == 9 ? 8 :
-                                numSlots == 16 ? 16 : 1);
+                        numSlots == 16 ? 16 : 1);
 
         FluidTank[] fluidsHandlers = new FluidTank[numSlots];
         for (int i = 0; i < fluidsHandlers.length; i++) {
             fluidsHandlers[i] = new NotifiableFluidTank(tankSize, this, isExportHatch);
         }
         this.fluidTankList = new FluidTankList(false, fluidsHandlers);
+        if (this.isExportHatch) {
+            this.fluidFilterContainer = new FluidFilterContainer(this::markDirty);
+        }
         initializeInventory();
     }
 
@@ -106,17 +114,17 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
     }
 
     @Override
+    public boolean isWorkingEnabled() {
+        return workingEnabled;
+    }
+
+    @Override
     public void setWorkingEnabled(boolean workingEnabled) {
         this.workingEnabled = workingEnabled;
         World world = getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
         }
-    }
-
-    @Override
-    public boolean isWorkingEnabled() {
-        return workingEnabled;
     }
 
     @Override
@@ -134,6 +142,11 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
         for (var tank : fluidTankList.getFluidTanks()) {
             NetworkUtils.writeFluidStack(buf, tank.getFluid());
         }
+        boolean hasFilter = fluidFilterContainer != null;
+        buf.writeBoolean(hasFilter);
+        if (hasFilter) {
+            fluidFilterContainer.writeInitialSyncData(buf);
+        }
     }
 
     @Override
@@ -143,6 +156,11 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
         for (var tank : fluidTankList.getFluidTanks()) {
             var fluid = NetworkUtils.readFluidStack(buf);
             tank.fill(fluid, true);
+        }
+        if (buf.readerIndex() < buf.writerIndex()) {
+            if (buf.readBoolean() && fluidFilterContainer != null) {
+                fluidFilterContainer.readInitialSyncData(buf);
+            }
         }
     }
 
@@ -158,6 +176,9 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
         data.setBoolean("workingEnabled", workingEnabled);
+        if (fluidFilterContainer != null) {
+            data.setTag("OutputFilter", fluidFilterContainer.serializeNBT());
+        }
         return data;
     }
 
@@ -166,6 +187,9 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
         super.readFromNBT(data);
         if (data.hasKey("workingEnabled")) {
             this.workingEnabled = data.getBoolean("workingEnabled");
+        }
+        if (data.hasKey("OutputFilter") && fluidFilterContainer != null) {
+            fluidFilterContainer.deserializeNBT(data.getCompoundTag("OutputFilter"));
         }
     }
 
@@ -177,9 +201,10 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
             renderer.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
     }
+
     public SimpleOverlayRenderer getOverlay() {
-        if(numSlots==4)return Textures.PIPE_4X_OVERLAY;
-        if(numSlots==9)return Textures.PIPE_9X_OVERLAY;
+        if (numSlots == 4) return Textures.PIPE_4X_OVERLAY;
+        if (numSlots == 9) return Textures.PIPE_9X_OVERLAY;
         return Textures.PIPE_16X_OVERLAY;
     }
 
@@ -215,7 +240,13 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
 
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
-        abilityInstances.addAll(fluidTankList.getFluidTanks());
+        if (isExportHatch && fluidFilterContainer != null) {
+            for (IFluidTank tank : fluidTankList.getFluidTanks()) {
+                abilityInstances.add(new FilteredFluidTank(tank, fluidFilterContainer));
+            }
+        } else {
+            abilityInstances.addAll(fluidTankList.getFluidTanks());
+        }
     }
 
     @Override
@@ -232,17 +263,31 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
             fluidSlots.add(new GTFluidSlot());
         }
 
-        return GTGuis.createPanel(this, 176, 18 + 18 * rowSize + 94)
-                .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .child(new Grid()
+        boolean hasFilter = isExportHatch && fluidFilterContainer != null;
+        int gridTop = 17 + (hasFilter ? 22 : 0);
+
+        int panelHeight = gridTop + 18 * rowSize + 94;
+
+        ModularPanel panel = GTGuis.createPanel(this, 176, panelHeight)
+                .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5));
+
+        if (hasFilter) {
+            Widget<?> filterRow = (Widget<?>) fluidFilterContainer.initUI(guiData, guiSyncManager);
+            filterRow.left(7).top(17).right(7).height(18);
+            panel.child(filterRow);
+        }
+
+        panel.child(new Grid()
                         .margin(0)
                         .leftRel(0.5f)
-                        .top(17)
+                        .top(gridTop)
                         .mapTo(rowSize, fluidSlots,
                                 (i, slot) -> slot.syncHandler(GTFluidSlot.sync(fluidTankList.getTankAt(i))
                                         .accessibility(true, !isExportHatch)))
                         .coverChildren())
                 .bindPlayerInventory();
+
+        return panel;
     }
 
     @Override

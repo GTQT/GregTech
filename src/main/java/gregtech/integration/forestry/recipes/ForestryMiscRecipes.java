@@ -88,6 +88,28 @@ public class ForestryMiscRecipes {
         // Honey and Juice recipes
         if (Config.isFluidEnabled(Fluids.FOR_HONEY)) {
 
+            RecipeMaps.CHEMICAL_RECIPES.recipeBuilder()
+                    .input(OrePrefix.dust, Materials.Blaze)
+                    .fluidInputs(Materials.HydrochloricAcid.getFluid(1000))
+                    .fluidInputs(Fluids.FOR_HONEY.getFluid(250))
+                    .fluidOutputs(Materials.HoneycombExtract.getFluid(2000))
+                    .duration(200).EUt(GTValues.VA[GTValues.LV]).buildAndRegister();
+
+            RecipeMaps.CHEMICAL_RECIPES.recipeBuilder()
+                    .input(OrePrefix.dust, Materials.Blaze)
+                    .fluidInputs(Materials.HydrofluoricAcid.getFluid(1000))
+                    .fluidInputs(Fluids.FOR_HONEY.getFluid(250))
+                    .fluidOutputs(Materials.PremiumHoneycombExtract.getFluid(2000))
+                    .duration(200).EUt(GTValues.VA[GTValues.EV]).buildAndRegister();
+
+            RecipeMaps.CHEMICAL_RECIPES.recipeBuilder()
+                    .input(OrePrefix.dust, Materials.Blaze)
+                    .input(OrePrefix.dustSmall, Materials.NetherStar)
+                    .fluidInputs(Materials.PhthalicAcid.getFluid(1000))
+                    .fluidInputs(Fluids.FOR_HONEY.getFluid(250))
+                    .fluidOutputs(Materials.PremiumGradeHoneycombExtract.getFluid(1000))
+                    .duration(200).EUt(GTValues.VA[GTValues.LuV]).buildAndRegister();
+
             RecipeMaps.BREWING_RECIPES.recipeBuilder()
                     .input(MetaItems.PLANT_BALL)
                     .fluidInputs(Fluids.FOR_HONEY.getFluid(180))

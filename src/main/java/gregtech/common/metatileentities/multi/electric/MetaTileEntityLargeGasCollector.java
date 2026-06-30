@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -32,7 +31,7 @@ public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockCont
                     .aisle("     ", "     ", "CCCCC", "GACAG", "CCCCC")
                     .aisle("F   F", "F   F", "CCCCC", "CCSCC", "CCCCC")
                     .self('S', MetaTileEntityLargeGasCollector.class)
-                    .casing('C', CasingDefinition.simple(getCasingState()))
+                    .casing('C', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -49,7 +48,7 @@ public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockCont
         super(metaTileEntityId, RecipeMaps.GAS_COLLECTOR_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.STEAM_CASING);
     }
 
@@ -74,7 +73,6 @@ public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockCont
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
-
 
     @SideOnly(Side.CLIENT)
     @Override

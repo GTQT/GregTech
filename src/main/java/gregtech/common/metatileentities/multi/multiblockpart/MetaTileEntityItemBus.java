@@ -8,6 +8,7 @@ import gregtech.api.capability.IGhostSlotConfigurable;
 import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.NotifiableItemStackHandler;
+import gregtech.api.items.itemhandlers.FilteredExportItemHandler;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -19,6 +20,7 @@ import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
+import gregtech.common.covers.filter.ItemFilterContainer;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -70,10 +72,21 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
     private boolean autoCollapse;
     private boolean disallowSameItemInsert = false;
 
+    @Nullable
+    private ItemFilterContainer itemFilterContainer;
+    private IItemHandlerModifiable filteredExportHandler;
+
     public MetaTileEntityItemBus(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
         super(metaTileEntityId, tier, isExportHatch);
         this.workingEnabled = true;
+        if (this.isExportHatch) {
+            this.itemFilterContainer = new ItemFilterContainer(this::markDirty);
+        }
         initializeInventory();
+    }
+
+    private static Widget<?> empty(int height) {
+        return new Widget<>().height(height);
     }
 
     @Override
@@ -95,6 +108,17 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
     @Override
     public IItemHandlerModifiable getImportItems() {
         return this.actualImportItems == null ? super.getImportItems() : this.actualImportItems;
+    }
+
+    @Override
+    public IItemHandlerModifiable getExportItems() {
+        if (isExportHatch && itemFilterContainer != null) {
+            if (filteredExportHandler == null) {
+                filteredExportHandler = new FilteredExportItemHandler(super.getExportItems(), itemFilterContainer);
+            }
+            return filteredExportHandler;
+        }
+        return super.getExportItems();
     }
 
     @Override
@@ -184,6 +208,11 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         buf.writeBoolean(workingEnabled);
         buf.writeBoolean(autoCollapse);
         buf.writeBoolean(disallowSameItemInsert);
+        boolean hasFilter = itemFilterContainer != null;
+        buf.writeBoolean(hasFilter);
+        if (hasFilter) {
+            itemFilterContainer.writeInitialSyncData(buf);
+        }
     }
 
     @Override
@@ -192,6 +221,11 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         this.workingEnabled = buf.readBoolean();
         this.autoCollapse = buf.readBoolean();
         this.disallowSameItemInsert = buf.readBoolean();
+        if (buf.readerIndex() < buf.writerIndex()) {
+            if (buf.readBoolean() && itemFilterContainer != null) {
+                itemFilterContainer.readInitialSyncData(buf);
+            }
+        }
     }
 
     @Override
@@ -202,6 +236,9 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         data.setBoolean("DisallowSameItemInsert", disallowSameItemInsert);
         if (this.circuitInventory != null && !this.isExportHatch) {
             this.circuitInventory.write(data);
+        }
+        if (itemFilterContainer != null) {
+            data.setTag("OutputFilter", itemFilterContainer.serializeNBT());
         }
         return data;
     }
@@ -230,6 +267,9 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         if (this.circuitInventory != null && !this.isExportHatch) {
             this.circuitInventory.read(data);
         }
+        if (data.hasKey("OutputFilter") && itemFilterContainer != null) {
+            itemFilterContainer.deserializeNBT(data.getCompoundTag("OutputFilter"));
+        }
     }
 
     @Override
@@ -247,9 +287,9 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         if (this.hasGhostCircuitInventory() && this.actualImportItems != null) {
-            abilityInstances.add(isExportHatch ? this.exportItems : this.actualImportItems);
+            abilityInstances.add(isExportHatch ? getExportItems() : this.actualImportItems);
         } else {
-            abilityInstances.add(isExportHatch ? this.exportItems : this.importItems);
+            abilityInstances.add(isExportHatch ? getExportItems() : this.importItems);
         }
     }
 
@@ -258,72 +298,55 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         return true;
     }
 
+    // region Sidebar Widget Builders
+
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
         int rowSize = (int) Math.sqrt(getInventorySize());
         panelSyncManager.registerSlotGroup("item_inv", rowSize);
 
-        int backgroundWidth = Math.max(
-                9 * 18 + 18 + 14 + 5,   // Player Inv width
-                rowSize * 18 + 14); // Bus Inv width
-        int backgroundHeight = 18 + 18 * rowSize + 94;
-
-        BooleanSyncValue workingStateValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
-        BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
-
-        IItemHandlerModifiable handler = isExportHatch ? exportItems : importItems;
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
 
-        Flow column = Flow.column()
-                .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 5 - 7 - 4)
+        int backgroundWidth = Math.max(
+                9 * 18 + 18 + 14 + 5,   // Player Inv width
+                rowSize * 18 + 14);      // Bus Inv width
+        int gridTop = 18 + (isExportHatch ? 22 : 0);
+
+        int backgroundHeight = gridTop + rowSize * 18 + 94;
+        int sidebarTop = backgroundHeight - 18 * 5 - 7 - 4;
+
+        BooleanSyncValue workingValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
+        BooleanSyncValue collapseValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
+
+        String workKey = isExportHatch ?
+                "gregtech.gui.item_auto_output.tooltip" :
+                "gregtech.gui.item_auto_input.tooltip";
+
+        IItemHandlerModifiable handler = isExportHatch ? exportItems : importItems;
+
+        Flow sidebar = Flow.column()
+                .pos(backgroundWidth - 7 - 18, sidebarTop)
                 .width(18).height(18 * 5 + 4)
                 .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 4 + 4))
-                .child(new ToggleButton()
-                        .top(18 * 3)
-                        .value(workingStateValue)
-                        .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
-                        .tooltipAutoUpdate(true)
-                        .tooltipBuilder(t -> t.addLine(isExportHatch ?
-                                (workingStateValue.getBoolValue() ?
-                                        IKey.lang("gregtech.gui.item_auto_output.tooltip.enabled") :
-                                        IKey.lang("gregtech.gui.item_auto_output.tooltip.disabled")) :
-                                (workingStateValue.getBoolValue() ?
-                                        IKey.lang("gregtech.gui.item_auto_input.tooltip.enabled") :
-                                        IKey.lang("gregtech.gui.item_auto_input.tooltip.disabled")))));
+                .childIf(isExportHatch, () -> empty(18))
+                .childIf(hasGhostCircuit, this::ghostCircuitSlot)
+                .childIf(!hasGhostCircuit, this::unavailableSlot)
+                .child(autoCollapseButton(collapseValue))
+                .childIf(!isExportHatch, this::disallowSameItemButton)
+                .child(autoWorkButton(workingValue, workKey));
 
-        // 禁止相同物品 — 仅输入总线
-        if (!isExportHatch) {
-            BooleanSyncValue disallowSameItemValue = new BooleanSyncValue(
-                    this::isDisallowSameItemInsert, this::setDisallowSameItemInsert);
-            column.child(new ToggleButton()
-                    .top(18 * 2)
-                    .value(disallowSameItemValue)
-                    .overlay(GTGuiTextures.BUTTON_LOCK)
-                    .addTooltip(true, IKey.lang("gregtech.machine.disallow_same_item.enabled"))
-                    .addTooltip(false, IKey.lang("gregtech.machine.disallow_same_item.disabled")));
+        ModularPanel panel = GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
+                .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
+                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7));
+
+        if (isExportHatch && itemFilterContainer != null) {
+            Widget<?> filterRow = (Widget<?>) itemFilterContainer.initUI(guiData, panelSyncManager);
+            filterRow.left(7).top(18).right(7).height(18);
+            panel.child(filterRow);
         }
 
-        column.child(new ToggleButton()
-                .top(18)
-                .value(collapseStateValue)
-                .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
-                .tooltipAutoUpdate(true)
-                .tooltipBuilder(t -> t.addLine(collapseStateValue.getBoolValue() ?
-                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
-                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))))
-                .childIf(hasGhostCircuit, () -> new GhostCircuitSlotWidget()
-                        .slot(circuitInventory, 0)
-                        .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                .childIf(!hasGhostCircuit, () -> new Widget<>()
-                        .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                        .tooltip(t -> t.addLine(
-                                IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))));
-
-        return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
-                .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
-                .child(new Grid()
-                        .top(18).height(rowSize * 18)
+        panel.child(new Grid()
+                        .top(gridTop).height(rowSize * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
                         .alignX(0.5f)
@@ -337,8 +360,54 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
                                             }
                                         })
                                         .accessibility(!isExportHatch, true))))
-                .child(column);
+                .child(sidebar);
+
+        return panel;
     }
+
+    private Widget<?> ghostCircuitSlot() {
+        return new GhostCircuitSlotWidget()
+                .slot(circuitInventory, 0)
+                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY);
+    }
+
+    private Widget<?> unavailableSlot() {
+        return new Widget<>()
+                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
+                .tooltip(t -> t.addLine(IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")));
+    }
+
+    private ToggleButton autoCollapseButton(BooleanSyncValue collapseValue) {
+        return new ToggleButton()
+                .value(collapseValue)
+                .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
+                .tooltipAutoUpdate(true)
+                .tooltipBuilder(tooltip -> tooltip.addLine(collapseValue.getBoolValue() ?
+                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
+                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled")));
+    }
+
+    private ToggleButton disallowSameItemButton() {
+        BooleanSyncValue disallowValue = new BooleanSyncValue(
+                this::isDisallowSameItemInsert, this::setDisallowSameItemInsert);
+        return new ToggleButton()
+                .value(disallowValue)
+                .overlay(GTGuiTextures.BUTTON_LOCK)
+                .addTooltip(true, IKey.lang("gregtech.machine.disallow_same_item.enabled"))
+                .addTooltip(false, IKey.lang("gregtech.machine.disallow_same_item.disabled"));
+    }
+
+    private ToggleButton autoWorkButton(BooleanSyncValue workingValue, String langKey) {
+        return new ToggleButton()
+                .value(workingValue)
+                .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
+                .tooltipAutoUpdate(true)
+                .tooltipBuilder(tooltip -> tooltip.addLine(workingValue.getBoolValue() ?
+                        IKey.lang(langKey + ".enabled") :
+                        IKey.lang(langKey + ".disabled")));
+    }
+
+    // endregion
 
     @Override
     public boolean hasGhostCircuitInventory() {
@@ -406,17 +475,6 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
     }
 
     @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
-            return;
-        }
-        this.circuitInventory.setCircuitValue(config);
-        if (!getWorld().isRemote) {
-            markDirty();
-        }
-    }
-
-    @Override
     public void setGhostCustomStack(@NotNull ItemStack stack) {
         if (this.circuitInventory == null) {
             return;
@@ -434,6 +492,18 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         }
         return this.circuitInventory.getCircuitValue();
     }
+
+    @Override
+    public void setGhostCircuitConfig(int config) {
+        if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
+            return;
+        }
+        this.circuitInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {

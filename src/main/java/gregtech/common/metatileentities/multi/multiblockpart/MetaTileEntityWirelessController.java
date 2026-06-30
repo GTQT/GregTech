@@ -13,7 +13,6 @@ import gregtech.api.wireless.WirelessEnergyService;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 import gregtech.common.wireless.WirelessEnergyServiceImpl;
 
 import net.minecraft.client.resources.I18n;
@@ -66,6 +65,27 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         this.priority = tier;
     }
 
+    private static long longPow(long base, int exponent) {
+        long result = 1;
+        for (int i = 0; i < exponent; i++) {
+            result *= base;
+        }
+        return result;
+    }
+
+    private static long saturatingAdd(long left, long right) {
+        if (left <= 0) return Math.max(right, 0);
+        if (right <= 0) return left;
+        if (Long.MAX_VALUE - left < right) return Long.MAX_VALUE;
+        return left + right;
+    }
+
+    private static long saturatingMultiply(long left, long right) {
+        if (left <= 0 || right <= 0) return 0;
+        if (left > Long.MAX_VALUE / right) return Long.MAX_VALUE;
+        return left * right;
+    }
+
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityWirelessController(metaTileEntityId, getTier());
@@ -80,6 +100,8 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         abilityInstances.add(this);
     }
+
+    // ==================== Wireless Network Binding ====================
 
     @Override
     public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
@@ -113,8 +135,6 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         return Textures.FUSION_REACTOR_OVERLAY;
     }
 
-    // ==================== Wireless Network Binding ====================
-
     @Override
     public void update() {
         super.update();
@@ -136,9 +156,8 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     /**
      * Bidirectional rebalance between PSS local energyBank and the wireless pool.
      * <p>
-     * Threshold = PSS capacity × retentionRatio[tier]
-     * - PSS stored > threshold → push excess to wireless pool
-     * - PSS stored < threshold → pull deficit from wireless pool
+     * Threshold = PSS capacity × retentionRatio[tier] - PSS stored > threshold → push excess to wireless pool - PSS
+     * stored < threshold → pull deficit from wireless pool
      */
     private void tryRebalance(MetaTileEntityPowerSubstation pss) {
         UUID ownerId = this.getOwnerGT();
@@ -198,10 +217,9 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     }
 
     /**
-     * Calculates max transfer per tick using the formula:
-     * 7 * Σ(count_i * V[capacitor_tier_i] * 2^(capacitor_tier_i - UHV) * 5^(controller_tier - UHV))
-     * Only capacitors at UHV tier and above contribute to the transfer rate.
-     * Each voltage tier's capacitors are counted separately.
+     * Calculates max transfer per tick using the formula: 7 * Σ(count_i * V[capacitor_tier_i] * 2^(capacitor_tier_i -
+     * UHV) * 5^(controller_tier - UHV)) Only capacitors at UHV tier and above contribute to the transfer rate. Each
+     * voltage tier's capacitors are counted separately.
      */
     private long getMaxTransferPerTick() {
         MetaTileEntityPowerSubstation pss = getPSS();
@@ -235,27 +253,6 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         }
 
         return saturatingMultiply(TRANSFER_RATE_BASE_MULTIPLIER, totalTransfer);
-    }
-
-    private static long longPow(long base, int exponent) {
-        long result = 1;
-        for (int i = 0; i < exponent; i++) {
-            result *= base;
-        }
-        return result;
-    }
-
-    private static long saturatingAdd(long left, long right) {
-        if (left <= 0) return Math.max(right, 0);
-        if (right <= 0) return left;
-        if (Long.MAX_VALUE - left < right) return Long.MAX_VALUE;
-        return left + right;
-    }
-
-    private static long saturatingMultiply(long left, long right) {
-        if (left <= 0 || right <= 0) return 0;
-        if (left > Long.MAX_VALUE / right) return Long.MAX_VALUE;
-        return left * right;
     }
 
     // ==================== IWirelessController ====================

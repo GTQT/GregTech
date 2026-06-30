@@ -13,7 +13,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -74,7 +73,7 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
                     .aisle("#XXXXXXXXXXX#", "#XXXXXXXXXXX#", "###F#####F###", "###F#####F###", "###FFFFFFF###", "#############", "#############", "#############", "#############", "#############", "####FFFFF####", "#############", "#############", "#############", "#############", "#############", "#############")
                     .aisle("##XXXXXXXXX##", "##XXXXSXXXX##", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############", "#############")
                     .self('S', MetaTileEntityMegaBlastFurnace.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .optionalEnergyInput(8)
                     .optionalLaserInput(1)
                     .tieredHatch()
@@ -99,16 +98,16 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
     private int blastFurnaceTemperature;
 
     public MetaTileEntityMegaBlastFurnace(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{RecipeMaps.FURNACE_RECIPES});
+        super(metaTileEntityId, new RecipeMap[] { RecipeMaps.FURNACE_RECIPES });
         this.recipeMapWorkable = new GCYMHeatCoilRecipeLogic(this);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.HIGH_TEMPERATURE_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST);
     }
 
@@ -182,7 +181,8 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         InformationHandler.topTooltips("最强熔炉王", tooltip);
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addBlast().addLaser().build(this, tooltip);

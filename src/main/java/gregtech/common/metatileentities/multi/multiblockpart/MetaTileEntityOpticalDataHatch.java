@@ -32,13 +32,26 @@ import java.util.Collection;
 import java.util.List;
 
 public class MetaTileEntityOpticalDataHatch extends MetaTileEntityMultiblockNotifiablePart implements
-                                            IMultiblockAbilityPart<IOpticalDataAccessHatch>, IOpticalDataAccessHatch {
+                                                                                           IMultiblockAbilityPart<IOpticalDataAccessHatch>,
+                                                                                           IOpticalDataAccessHatch {
 
     private final boolean isTransmitter;
 
     public MetaTileEntityOpticalDataHatch(ResourceLocation metaTileEntityId, boolean isTransmitter) {
         super(metaTileEntityId, GTValues.LuV, false);
         this.isTransmitter = isTransmitter;
+    }
+
+    private static boolean isRecipeAvailable(@NotNull Iterable<? extends IDataAccessHatch> hatches,
+                                             @NotNull Collection<IDataAccessHatch> seen,
+                                             @NotNull Recipe recipe) {
+        for (IDataAccessHatch hatch : hatches) {
+            if (seen.contains(hatch)) continue;
+            if (hatch.isRecipeAvailable(recipe, seen)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -83,18 +96,6 @@ public class MetaTileEntityOpticalDataHatch extends MetaTileEntityMultiblockNoti
                             getFrontFacing().getOpposite());
                     return cap != null && cap.isRecipeAvailable(recipe, seen);
                 }
-            }
-        }
-        return false;
-    }
-
-    private static boolean isRecipeAvailable(@NotNull Iterable<? extends IDataAccessHatch> hatches,
-                                             @NotNull Collection<IDataAccessHatch> seen,
-                                             @NotNull Recipe recipe) {
-        for (IDataAccessHatch hatch : hatches) {
-            if (seen.contains(hatch)) continue;
-            if (hatch.isRecipeAvailable(recipe, seen)) {
-                return true;
             }
         }
         return false;

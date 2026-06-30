@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -32,7 +31,7 @@ public class MetaTileEntityLargeExtractor extends GCYMAdvanceRecipeMapMultiblock
                     .aisle("XXSXX", "XCCCX", "XXXXX")
                     .aisle("XXXXX", "XXXXX", "XXXXX")
                     .self('S', MetaTileEntityLargeExtractor.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -44,14 +43,14 @@ public class MetaTileEntityLargeExtractor extends GCYMAdvanceRecipeMapMultiblock
     );
 
     public MetaTileEntityLargeExtractor(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{RecipeMaps.EXTRACTOR_RECIPES, RecipeMaps.CANNER_RECIPES});
+        super(metaTileEntityId, new RecipeMap[] { RecipeMaps.EXTRACTOR_RECIPES, RecipeMaps.CANNER_RECIPES });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.WATERTIGHT_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 
@@ -64,7 +63,6 @@ public class MetaTileEntityLargeExtractor extends GCYMAdvanceRecipeMapMultiblock
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
-
 
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart iMultiblockPart) {

@@ -44,7 +44,9 @@ public class MetaTileEntityCokeOvenHatch extends MetaTileEntityMultiblockPart {
 
     @Override
     public ICubeRenderer getBaseTexture() {
-        return Textures.COKE_BRICKS;
+        if(getController()==null)
+            return Textures.COKE_BRICKS;
+        return super.getBaseTexture();
     }
 
     @Override
@@ -129,7 +131,6 @@ public class MetaTileEntityCokeOvenHatch extends MetaTileEntityMultiblockPart {
         }
         return super.onRightClick(playerIn, hand, facing, hitResult);
     }
-
 
     @NotNull
     @Override

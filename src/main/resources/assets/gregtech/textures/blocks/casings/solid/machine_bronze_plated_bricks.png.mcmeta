@@ -5,9 +5,9 @@
         "layer": "CUTOUT",
         "textures": [
             "gregtech:blocks/casings/solid/machine_bronze_plated_bricks_ctm"
-    ],
-    "extra": {
-	  "connect_inside": true
+        ],
+        "extra": {
+            "connect_inside": true
+        }
     }
-  }
 }

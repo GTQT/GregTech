@@ -93,12 +93,12 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:high_performance_computing_array", () -> DeclarativePatternBuilder.start()
                     .piece("top")
-                        .aisle("AA", "CC", "CC", "CC", "AA")
+                    .aisle("AA", "CC", "CC", "CC", "AA")
                     .repeatablePiece("body", 3, 14)
-                        .aisle("VA", "XV", "XV", "XV", "VA")
-                        .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
+                    .aisle("VA", "XV", "XV", "XV", "VA")
+                    .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .piece("bottom")
-                        .aisle("SA", "CC", "CC", "CC", "AA")
+                    .aisle("SA", "CC", "CC", "CC", "AA")
                     .self('S', MetaTileEntityHPCA.class)
                     .block('A', getAdvancedState())
                     .block('V', getVentState())
@@ -106,14 +106,14 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
                             Elements.abilities(MultiblockAbility.HPCA_COMPONENT),
                             () -> MetaTileEntities.HPCA_EMPTY_COMPONENT))
                     .casing('C', getCasingState())
-                        .hatch(MultiblockAbility.MAINTENANCE_HATCH, 1, 1,
-                                () -> MetaTileEntities.MAINTENANCE_HATCH)
-                        .hatch(MultiblockAbility.INPUT_ENERGY, 1, 3,
-                                () -> MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV])
-                        .hatch(MultiblockAbility.IMPORT_FLUIDS, 0, 1,
-                                () -> MetaTileEntities.FLUID_IMPORT_HATCH[GTValues.LV])
-                        .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 1,
-                                () -> MetaTileEntities.COMPUTATION_HATCH_TRANSMITTER[GTValues.LuV])
+                    .hatch(MultiblockAbility.MAINTENANCE_HATCH, 1, 1,
+                            () -> MetaTileEntities.MAINTENANCE_HATCH)
+                    .hatch(MultiblockAbility.INPUT_ENERGY, 1, 3,
+                            () -> MetaTileEntities.ENERGY_INPUT_HATCH[GTValues.LuV])
+                    .hatch(MultiblockAbility.IMPORT_FLUIDS, 0, 1,
+                            () -> MetaTileEntities.FLUID_IMPORT_HATCH[GTValues.LV])
+                    .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 1,
+                            () -> MetaTileEntities.COMPUTATION_HATCH_TRANSMITTER[GTValues.LuV])
                     .buildStructureDefinition());
     private final HPCAGridHandler hpcaHandler;
     private final TimedProgressSupplier progressSupplier;
@@ -131,7 +131,7 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
         this.hpcaHandler = new HPCAGridHandler(this);
     }
 
-    private static @NotNull IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.COMPUTER_CASING.getState(BlockComputerCasing.CasingType.COMPUTER_CASING);
     }
 

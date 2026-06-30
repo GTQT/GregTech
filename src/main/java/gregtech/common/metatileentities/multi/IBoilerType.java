@@ -10,7 +10,9 @@ public interface IBoilerType {
     String getName();
 
     int steamPerTick();
+
     int getTicksToBoiling();
+
     int runtimeBoost(int ticks);
 
     double getPollutionAmount();
@@ -18,11 +20,16 @@ public interface IBoilerType {
     GTGuiTheme getUITheme();
 
     IBlockState getCasingState();
+
     IBlockState getFireboxState();
+
     IBlockState getPipeState();
 
     ICubeRenderer getCasingRenderer();
+
     ICubeRenderer getFireboxIdleRenderer();
+
     ICubeRenderer getFireboxActiveRenderer();
+
     ICubeRenderer getFrontOverlay();
 }

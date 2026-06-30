@@ -10,7 +10,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -61,7 +60,7 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
                     .aisle("CCCCCCCCCCCCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC", "CCGGGGGGGGGCC")
                     .aisle("CCCCCCSCCCCCC", " C         C ", " C         C ", " C         C ", " C         C ", " C         C ", " C         C ")
                     .self('S', MetaTileEntityMegaCrackingUnit.class)
-                    .casing('C', CasingDefinition.simple(getCasingState()))
+                    .casing('C', getCasingState())
                     .optionalEnergyInput(8)
                     .optionalLaserInput(1)
                     .preset(HatchPresets.MUFFLER_IO)
@@ -70,10 +69,10 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
                     .block('G', getGlassState())
                     .tieredCasing('L', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .casing('D', CasingDefinition.simple(getCasingState()))
+                    .casing('D', getCasingState())
                     .optionalHatch(MultiblockAbility.IMPORT_ITEMS, 1)
                     .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 1)
-                    .casing('E', CasingDefinition.simple(getCasingState()))
+                    .casing('E', getCasingState())
                     .optionalHatch(MultiblockAbility.EXPORT_ITEMS, 1)
                     .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 1)
                     .any(' ')
@@ -84,13 +83,13 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
     private int coilTier;
 
     public MetaTileEntityMegaCrackingUnit(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.CRACKING_RECIPES
         });
         this.recipeMapWorkable = new CrackingUnitWorkableHandler(this);
     }
 
-    protected static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.WATERTIGHT_CASING);
     }
 
@@ -128,7 +127,8 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
 
     @SideOnly(Side.CLIENT)
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         InformationHandler.topTooltips("最强裂化机", tooltip);
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addCoilLogic().build(this, tooltip);

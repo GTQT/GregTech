@@ -37,7 +37,8 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public abstract class MetaTileEntityHPCAComponent extends MetaTileEntityMultiblockPart implements
-                                                  IMultiblockAbilityPart<IHPCAComponentHatch>, IHPCAComponentHatch {
+                                                                                       IMultiblockAbilityPart<IHPCAComponentHatch>,
+                                                                                       IHPCAComponentHatch {
 
     private boolean damaged;
 

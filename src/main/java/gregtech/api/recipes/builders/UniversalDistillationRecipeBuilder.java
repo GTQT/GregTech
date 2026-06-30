@@ -33,7 +33,7 @@ public class UniversalDistillationRecipeBuilder extends RecipeBuilder<UniversalD
 
     @Override
     public void buildAndRegister() {
-        if (!this.doDistilleryRecipes) {
+        if (!this.doDistilleryRecipes || !this.inputs.isEmpty()) {
             super.buildAndRegister();
             return;
         }

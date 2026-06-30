@@ -5,7 +5,12 @@ import gregtech.api.cover.Cover;
 import gregtech.api.cover.CoverHolder;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
-import gregtech.api.gui.widgets.*;
+import gregtech.api.gui.widgets.ClickButtonWidget;
+import gregtech.api.gui.widgets.ImageWidget;
+import gregtech.api.gui.widgets.LabelWidget;
+import gregtech.api.gui.widgets.SimpleTextWidget;
+import gregtech.api.gui.widgets.SlotWidget;
+import gregtech.api.gui.widgets.ToggleButtonWidget;
 import gregtech.api.items.behavior.MonitorPluginBaseBehavior;
 import gregtech.api.items.behavior.ProxyHolderPluginBehavior;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
@@ -60,14 +65,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
 
 public class MetaTileEntityMonitorScreen extends MetaTileEntityMultiblockPart {
 
     // run-time data
     public CoverDigitalInterface coverTMP;
-    private long lastClickTime;
-    private UUID lastClickUUID;
     public MonitorPluginBaseBehavior plugin;
     // persistent data
     public FacingPos coverPos;
@@ -75,10 +82,33 @@ public class MetaTileEntityMonitorScreen extends MetaTileEntityMultiblockPart {
     public int slot = 0;
     public float scale = 1;
     public int frameColor = 0XFF00FF00;
+    private long lastClickTime;
+    private UUID lastClickUUID;
     private ItemStackHandler inventory;
 
     public MetaTileEntityMonitorScreen(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, 1);
+    }
+
+    private static double[] handleRayTraceResult(RayTraceResult rayTraceResult) {
+        double dX = rayTraceResult.sideHit.getAxis() == EnumFacing.Axis.X ?
+                rayTraceResult.hitVec.z - rayTraceResult.getBlockPos().getZ() :
+                rayTraceResult.hitVec.x - rayTraceResult.getBlockPos().getX();
+        double dY = rayTraceResult.sideHit.getAxis() == EnumFacing.Axis.Y ?
+                rayTraceResult.hitVec.z - rayTraceResult.getBlockPos().getZ() :
+                rayTraceResult.hitVec.y - rayTraceResult.getBlockPos().getY();
+        dX = 1 - dX;
+        dY = 1 - dY;
+        if (rayTraceResult.sideHit.getYOffset() < 0) {
+            dY = 1 - dY;
+        }
+        if (rayTraceResult.sideHit == EnumFacing.WEST || rayTraceResult.sideHit == EnumFacing.SOUTH) {
+            dX = 1 - dX;
+        } else if (rayTraceResult.sideHit == EnumFacing.UP) {
+            dX = 1 - dX;
+            dY = 1 - dY;
+        }
+        return new double[] { dX, dY };
     }
 
     public void setMode(FacingPos cover, CoverDigitalInterface.MODE mode) {
@@ -128,7 +158,7 @@ public class MetaTileEntityMonitorScreen extends MetaTileEntityMultiblockPart {
         IGregTechTileEntity holder = getHolderFromPos(posFacing.getPos());
         if (holder == null) {
             TileEntity te = this.getWorld() == null ? null : this.getWorld().getTileEntity(posFacing.getPos());
-            if (te instanceof IPipeTile<?, ?>pipeTile) {
+            if (te instanceof IPipeTile<?, ?> pipeTile) {
                 coverHolder = pipeTile.getCoverableImplementation();
             }
         } else {
@@ -535,24 +565,24 @@ public class MetaTileEntityMonitorScreen extends MetaTileEntityMultiblockPart {
             ToggleButtonWidget[] buttons = new ToggleButtonWidget[5];
             buttons[0] = new ToggleButtonWidget(width - 135, 25, 20, 20, GuiTextures.BUTTON_FLUID,
                     () -> this.mode == CoverDigitalInterface.MODE.FLUID, (isPressed) -> {
-                        if (isPressed) setMode(CoverDigitalInterface.MODE.FLUID);
-                    }).setTooltipText("metaitem.cover.digital.mode.fluid");
+                if (isPressed) setMode(CoverDigitalInterface.MODE.FLUID);
+            }).setTooltipText("metaitem.cover.digital.mode.fluid");
             buttons[1] = new ToggleButtonWidget(width - 115, 25, 20, 20, GuiTextures.BUTTON_ITEM,
                     () -> this.mode == CoverDigitalInterface.MODE.ITEM, (isPressed) -> {
-                        if (isPressed) setMode(CoverDigitalInterface.MODE.ITEM);
-                    }).setTooltipText("metaitem.cover.digital.mode.item");
+                if (isPressed) setMode(CoverDigitalInterface.MODE.ITEM);
+            }).setTooltipText("metaitem.cover.digital.mode.item");
             buttons[2] = new ToggleButtonWidget(width - 95, 25, 20, 20, GuiTextures.BUTTON_ENERGY,
                     () -> this.mode == CoverDigitalInterface.MODE.ENERGY, (isPressed) -> {
-                        if (isPressed) setMode(CoverDigitalInterface.MODE.ENERGY);
-                    }).setTooltipText("metaitem.cover.digital.mode.energy");
+                if (isPressed) setMode(CoverDigitalInterface.MODE.ENERGY);
+            }).setTooltipText("metaitem.cover.digital.mode.energy");
             buttons[3] = new ToggleButtonWidget(width - 75, 25, 20, 20, GuiTextures.BUTTON_MACHINE,
                     () -> this.mode == CoverDigitalInterface.MODE.MACHINE, (isPressed) -> {
-                        if (isPressed) setMode(CoverDigitalInterface.MODE.MACHINE);
-                    }).setTooltipText("metaitem.cover.digital.mode.machine");
+                if (isPressed) setMode(CoverDigitalInterface.MODE.MACHINE);
+            }).setTooltipText("metaitem.cover.digital.mode.machine");
             buttons[4] = new ToggleButtonWidget(width - 35, 25, 20, 20, GuiTextures.BUTTON_INTERFACE,
                     () -> this.mode == CoverDigitalInterface.MODE.PROXY, (isPressed) -> {
-                        if (isPressed) setMode(CoverDigitalInterface.MODE.PROXY);
-                    }).setTooltipText("metaitem.cover.digital.mode.proxy");
+                if (isPressed) setMode(CoverDigitalInterface.MODE.PROXY);
+            }).setTooltipText("metaitem.cover.digital.mode.proxy");
             List<CoverDigitalInterface> covers = new ArrayList<>();
             ((MetaTileEntityCentralMonitor) controller).getAllCovers()
                     .forEach(coverPos -> covers.add(getCoverFromPosSide(coverPos)));
@@ -716,27 +746,6 @@ public class MetaTileEntityMonitorScreen extends MetaTileEntityMultiblockPart {
         return false;
     }
 
-    private static double[] handleRayTraceResult(RayTraceResult rayTraceResult) {
-        double dX = rayTraceResult.sideHit.getAxis() == EnumFacing.Axis.X ?
-                rayTraceResult.hitVec.z - rayTraceResult.getBlockPos().getZ() :
-                rayTraceResult.hitVec.x - rayTraceResult.getBlockPos().getX();
-        double dY = rayTraceResult.sideHit.getAxis() == EnumFacing.Axis.Y ?
-                rayTraceResult.hitVec.z - rayTraceResult.getBlockPos().getZ() :
-                rayTraceResult.hitVec.y - rayTraceResult.getBlockPos().getY();
-        dX = 1 - dX;
-        dY = 1 - dY;
-        if (rayTraceResult.sideHit.getYOffset() < 0) {
-            dY = 1 - dY;
-        }
-        if (rayTraceResult.sideHit == EnumFacing.WEST || rayTraceResult.sideHit == EnumFacing.SOUTH) {
-            dX = 1 - dX;
-        } else if (rayTraceResult.sideHit == EnumFacing.UP) {
-            dX = 1 - dX;
-            dY = 1 - dY;
-        }
-        return new double[] { dX, dY };
-    }
-
     private boolean handleHitResultWithScale(EntityPlayer playerIn, EnumHand hand, EnumFacing facing, boolean isRight,
                                              CuboidRayTraceResult rayTraceResult) {
         boolean flag = false;
@@ -772,9 +781,7 @@ public class MetaTileEntityMonitorScreen extends MetaTileEntityMultiblockPart {
                 int i, j;
                 TileEntity tileEntity = this.getWorld().getTileEntity(rayTraceResult.getBlockPos());
                 if (tileEntity instanceof IGregTechTileEntity &&
-                        ((IGregTechTileEntity) tileEntity).getMetaTileEntity() instanceof MetaTileEntityMonitorScreen) {
-                    MetaTileEntityMonitorScreen screenHit = (MetaTileEntityMonitorScreen) ((IGregTechTileEntity) tileEntity)
-                            .getMetaTileEntity();
+                        ((IGregTechTileEntity) tileEntity).getMetaTileEntity() instanceof MetaTileEntityMonitorScreen screenHit) {
                     if (controller == screenHit.getController()) {
                         i = ((MetaTileEntityMonitorScreen) ((IGregTechTileEntity) tileEntity).getMetaTileEntity())
                                 .getX() - this.getX();

@@ -39,8 +39,8 @@ import java.lang.ref.WeakReference;
 import java.util.List;
 
 public class MetaTileEntityEnergyHatch extends MetaTileEntityMultiblockPart
-                                       implements IMultiblockAbilityPart<IEnergyContainer>,
-                                       IQuantumStorage<IEnergyContainer> {
+        implements IMultiblockAbilityPart<IEnergyContainer>,
+                   IQuantumStorage<IEnergyContainer> {
 
     protected final boolean isExportHatch;
     protected final int amperage;
@@ -133,18 +133,21 @@ public class MetaTileEntityEnergyHatch extends MetaTileEntityMultiblockPart
 
         if (isExportHatch) {
             tooltip.add(
-                    I18n.format("gregtech.universal.tooltip.voltage_out", energyContainer.getOutputVoltage(), tierName));
+                    I18n.format("gregtech.universal.tooltip.voltage_out", energyContainer.getOutputVoltage(),
+                            tierName));
             tooltip.add(
                     I18n.format("gregtech.universal.tooltip.amperage_out_till", energyContainer.getOutputAmperage()));
             tooltip.add(
-                    I18n.format("gregtech.universal.tooltip.throughput", energyContainer.getOutputVoltage() * energyContainer.getOutputAmperage()));
+                    I18n.format("gregtech.universal.tooltip.throughput",
+                            energyContainer.getOutputVoltage() * energyContainer.getOutputAmperage()));
         } else {
             tooltip.add(
                     I18n.format("gregtech.universal.tooltip.voltage_in", energyContainer.getInputVoltage(), tierName));
             tooltip.add(
                     I18n.format("gregtech.universal.tooltip.amperage_in_till", energyContainer.getInputAmperage()));
             tooltip.add(
-                    I18n.format("gregtech.universal.tooltip.throughput", energyContainer.getInputVoltage() * energyContainer.getInputAmperage()));
+                    I18n.format("gregtech.universal.tooltip.throughput",
+                            energyContainer.getInputVoltage() * energyContainer.getInputAmperage()));
         }
         tooltip.add(
                 I18n.format("gregtech.universal.tooltip.energy_storage_capacity", energyContainer.getEnergyCapacity()));
@@ -223,9 +226,9 @@ public class MetaTileEntityEnergyHatch extends MetaTileEntityMultiblockPart
             }
         } else if (this.getClass() != MetaTileEntityEnergyHatch.class &&
                 this.getClass() != MetaTileEntitySubstationEnergyHatch.class) {
-                    // let subclasses fall through this override
-                    super.getSubItems(creativeTab, subItems);
-                }
+            // let subclasses fall through this override
+            super.getSubItems(creativeTab, subItems);
+        }
     }
 
     @Override

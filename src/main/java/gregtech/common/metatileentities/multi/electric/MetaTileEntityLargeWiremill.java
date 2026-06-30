@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -30,7 +29,7 @@ public class MetaTileEntityLargeWiremill extends GCYMAdvanceRecipeMapMultiblockC
                     .aisle("XXXXX", "XCCCX", "XXXXX")
                     .aisle("XXXXX", "XSXXX", "XXX##")
                     .self('S', MetaTileEntityLargeWiremill.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -43,19 +42,19 @@ public class MetaTileEntityLargeWiremill extends GCYMAdvanceRecipeMapMultiblockC
     );
 
     public MetaTileEntityLargeWiremill(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.WIREMILL_RECIPES,
                 RecipeMaps.LOOM_RECIPES
 
         });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.STRESS_PROOF_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.TITANIUM_GEARBOX);
     }
 

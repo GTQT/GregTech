@@ -53,29 +53,30 @@ import static gregtech.api.pattern.element.Elements.self;
  * </pre>
  *
  * <p>The wall piece itself is larger than one block on every axis (3 x 2 x 2),
- * and then repeats along X (width: 1~5), Y (height: 1~7) and Z (depth: 1~4).
- * The irregular pattern (different characters W and C across slices) ensures
- * this uses the NESTED_BACKTRACKING search strategy rather than INDEPENDENT_1D.
+ * and then repeats along X (width: 1~5), Y (height: 1~7) and Z (depth: 1~4). The irregular pattern (different
+ * characters W and C across slices) ensures this uses the NESTED_BACKTRACKING search strategy rather than
+ * INDEPENDENT_1D.
  */
 public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
 
     // Structure definition using DeclarativePatternBuilder
     private static final StructureDefinition<?> DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:multi_axis_demo", () ->
-            DeclarativePatternBuilder.start(RelativeDirection.RIGHT, RelativeDirection.UP, RelativeDirection.BACK)
-                    // Fixed base piece: controller sits on the bottom
-                    .piece("base")
+                    DeclarativePatternBuilder.start(RelativeDirection.RIGHT, RelativeDirection.UP,
+                                    RelativeDirection.BACK)
+                            // Fixed base piece: controller sits on the bottom
+                            .piece("base")
                             .aisle("WSW", "WWW")
                             .centerOffset(1, 0, 0)
-                    // Repeatable wall piece: irregular (W + C + space), size 3 x 2 x 2.
-                    // X axis: 1~5, Y axis: 1~7, Z axis: 1~4.
-                    .repeatablePiece("wall",
-                            new String[][]{
-                                    {"WCW", "W W"},
-                                    {"WWW", "C W"}
-                            },
-                            // The base occupies local Y=0..1, so the wall must start at Y=2.
-                            new Vec3i(0, 2, 0))
+                            // Repeatable wall piece: irregular (W + C + space), size 3 x 2 x 2.
+                            // X axis: 1~5, Y axis: 1~7, Z axis: 1~4.
+                            .repeatablePiece("wall",
+                                    new String[][] {
+                                            { "WCW", "W W" },
+                                            { "WWW", "C W" }
+                                    },
+                                    // The base occupies local Y=0..1, so the wall must start at Y=2.
+                                    new Vec3i(0, 2, 0))
                             .repeatAxes(0, 1, 2)       // X, Y and Z axes
                             .repeatRange(1, 5, 1, 7, 1, 4) // X: 1~5, Y: 1~7, Z: 1~4
                             // Runtime local +Z points toward the controller front. Anchor the
@@ -97,6 +98,18 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
 
     public MetaTileEntityMultiAxisDemo(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
+    }
+
+    /** Get the casing block state for walls */
+    @NotNull
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
+    }
+
+    /** Get the corner block state (different from walls to make pattern irregular) */
+    @NotNull
+    protected static IBlockState getCornerState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.INVAR_HEATPROOF);
     }
 
     @Override
@@ -154,17 +167,5 @@ public class MetaTileEntityMultiAxisDemo extends MultiblockWithDisplayBase {
     public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
         tooltip.add("Multi-Axis Demo: irregular 3 x 2 x 2 repeatable sub-region");
         tooltip.add("X: 1~5, Y: 1~7, Z: 1~4 (NESTED_BACKTRACKING strategy)");
-    }
-
-    /** Get the casing block state for walls */
-    @NotNull
-    protected static IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
-    }
-
-    /** Get the corner block state (different from walls to make pattern irregular) */
-    @NotNull
-    protected static IBlockState getCornerState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.INVAR_HEATPROOF);
     }
 }

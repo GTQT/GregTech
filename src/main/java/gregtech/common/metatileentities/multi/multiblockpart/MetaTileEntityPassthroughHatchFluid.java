@@ -50,8 +50,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MetaTileEntityPassthroughHatchFluid extends MetaTileEntityMultiblockPart implements IPassthroughHatch,
-                                                 IMultiblockAbilityPart<IPassthroughHatch>,
-                                                 IControllable {
+                                                                                                 IMultiblockAbilityPart<IPassthroughHatch>,
+                                                                                                 IControllable {
 
     private static final int TANK_SIZE = 16_000;
 
@@ -96,16 +96,16 @@ public class MetaTileEntityPassthroughHatchFluid extends MetaTileEntityMultibloc
         }
     }
 
+    public boolean isWorkingEnabled() {
+        return this.workingEnabled;
+    }
+
     public void setWorkingEnabled(boolean workingEnabled) {
         this.workingEnabled = workingEnabled;
         World world = getWorld();
         if (world != null && !world.isRemote) {
             writeCustomData(GregtechDataCodes.WORKING_ENABLED, buf -> buf.writeBoolean(workingEnabled));
         }
-    }
-
-    public boolean isWorkingEnabled() {
-        return this.workingEnabled;
     }
 
     @Override

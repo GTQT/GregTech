@@ -46,7 +46,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static gregtech.api.GTValues.*;
+import static gregtech.api.GTValues.V;
+import static gregtech.api.GTValues.VOCNF;
 import static gregtech.api.capability.GregtechDataCodes.IS_WORKING;
 
 public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
@@ -113,6 +114,11 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
         setActive(totalEnergyGeneration > 0);
     }
 
+    @Override
+    public boolean isActive() {
+        return this.isActive;
+    }
+
     private void setActive(boolean isActive) {
         if (this.isActive != isActive) {
             this.isActive = isActive;
@@ -120,11 +126,6 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
                 writeCustomData(IS_WORKING, w -> w.writeBoolean(isActive));
             }
         }
-    }
-
-    @Override
-    public boolean isActive() {
-        return this.isActive;
     }
 
     @Override
@@ -160,8 +161,8 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
         return true;
     }
 
-    public int calculateRange(){
-        return (int) (Math.pow(2,getTier()-1)*16);
+    public int calculateRange() {
+        return (int) (Math.pow(2, getTier() - 1) * 16);
     }
 
     private void updateConnectedCrystals() {
@@ -249,7 +250,7 @@ public class MetaTileEntityMagicEnergyAbsorber extends TieredMetaTileEntity {
         tooltip.add(I18n.format("tooltip.ender_power_generator.range", calculateRange()));
         tooltip.add(I18n.format("tooltip.ender_power_generator.crystal_output"));
         tooltip.add(I18n.format("tooltip.ender_power_generator.dragon_egg"));
-        tooltip.add(I18n.format("tooltip.ender_power_generator.current_output", V[getTier()-1]));
+        tooltip.add(I18n.format("tooltip.ender_power_generator.current_output", V[getTier() - 1]));
     }
 
     @Override

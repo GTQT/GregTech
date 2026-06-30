@@ -66,9 +66,8 @@ public class MetaTileEntityMiner extends TieredMetaTileEntity implements IMiner,
 
     private final int inventorySize;
     private final long energyPerTick;
-    private boolean isInventoryFull = false;
-
     private final MinerLogic minerLogic;
+    private boolean isInventoryFull = false;
 
     public MetaTileEntityMiner(ResourceLocation metaTileEntityId, int tier, int speed, int maximumRadius, int fortune) {
         super(metaTileEntityId, tier);
@@ -231,13 +230,11 @@ public class MetaTileEntityMiner extends TieredMetaTileEntity implements IMiner,
         this.minerLogic.performMining();
         if (!getWorld().isRemote) {
             ItemStack stack = chargerInventory.getStackInSlot(0);
-            if(!stack.isEmpty() && energyContainer.getEnergyStored() < energyContainer.getEnergyCapacity()) {
-                if(stack.isItemEqual(OreDictUnifier.get(OrePrefix.dust, Materials.Redstone)))
-                {
+            if (!stack.isEmpty() && energyContainer.getEnergyStored() < energyContainer.getEnergyCapacity()) {
+                if (stack.isItemEqual(OreDictUnifier.get(OrePrefix.dust, Materials.Redstone))) {
                     stack.shrink(1);
                     energyContainer.addEnergy(1920);
-                }
-                else ((EnergyContainerHandler) this.energyContainer).dischargeOrRechargeEnergyContainers(stack);
+                } else ((EnergyContainerHandler) this.energyContainer).dischargeOrRechargeEnergyContainers(stack);
             }
             if (getOffsetTimer() % 5 == 0)
                 pushItemsIntoNearbyHandlers(getFrontFacing());

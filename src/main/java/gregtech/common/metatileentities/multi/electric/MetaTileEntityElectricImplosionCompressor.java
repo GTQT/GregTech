@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -41,7 +40,7 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
                     .block('C', getPipeState())
                     .frames('D', Materials.Naquadah)
                     .air('E')
-                    .casing('F', CasingDefinition.simple(getStructureState()))
+                    .casing('F', getStructureState())
                     .energyInput(1,4)
                     .maintenance()
                     .preset(HatchPresets.STANDARD_IO)
@@ -55,12 +54,13 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
         super(metaTileEntityId, RecipeMaps.ELECTRIC_IMPLOSION_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getStructureState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST);
     }
 
-    private static IBlockState getStructureState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.NAQUADAH_REINFORCED_CASING);
+    private static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
+                BlockLargeMultiblockCasing.CasingType.NAQUADAH_REINFORCED_CASING);
     }
 
     private static IBlockState getPipeState() {

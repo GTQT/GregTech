@@ -6,6 +6,7 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.cclop.LightMapOperation;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.BloomEffectUtil;
+import gregtech.client.utils.RenderUtil;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
@@ -62,14 +63,15 @@ public class SimpleOverlayRenderer implements ICubeRenderer {
     public void renderOrientedState(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline,
                                     Cuboid6 bounds, EnumFacing frontFacing, boolean isActive,
                                     boolean isWorkingEnabled) {
-        Textures.renderFace(renderState, translation, pipeline, frontFacing, bounds, sprite,
+        Matrix4 renderTranslation = RenderUtil.adjustTrans(translation, frontFacing, 10);
+        Textures.renderFace(renderState, renderTranslation, pipeline, frontFacing, bounds, sprite,
                 BlockRenderLayer.CUTOUT_MIPPED);
         if (spriteEmissive != null) {
             if (ConfigHolder.client.machinesEmissiveTextures) {
                 IVertexOperation[] lightPipeline = ArrayUtils.add(pipeline, new LightMapOperation(240, 240));
-                Textures.renderFace(renderState, translation, lightPipeline, frontFacing, bounds, spriteEmissive,
+                Textures.renderFace(renderState, renderTranslation, lightPipeline, frontFacing, bounds, spriteEmissive,
                         BloomEffectUtil.getEffectiveBloomLayer());
-            } else Textures.renderFace(renderState, translation, pipeline, frontFacing, bounds, spriteEmissive,
+            } else Textures.renderFace(renderState, renderTranslation, pipeline, frontFacing, bounds, spriteEmissive,
                     BlockRenderLayer.CUTOUT_MIPPED);
         }
     }

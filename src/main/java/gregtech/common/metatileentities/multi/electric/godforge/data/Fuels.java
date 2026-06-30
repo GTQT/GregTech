@@ -1,12 +1,12 @@
 package gregtech.common.metatileentities.multi.electric.godforge.data;
 
-import net.minecraftforge.fluids.FluidStack;
-
-import com.google.common.base.Supplier;
-
 import gregtech.api.fluids.store.FluidStorageKeys;
 import gregtech.api.unification.material.Materials;
 import gregtech.common.metatileentities.multi.electric.godforge.util.ForgeOfGodsData;
+
+import net.minecraftforge.fluids.FluidStack;
+
+import com.google.common.base.Supplier;
 
 public enum Fuels {
 
@@ -25,6 +25,10 @@ public enum Fuels {
         this.fluidSupplier = fluidSupplier;
     }
 
+    public static Fuels getFromData(ForgeOfGodsData data) {
+        return VALUES[data.getSelectedFuelType()];
+    }
+
     public FluidStack getFluid() {
         return fluidSupplier.get();
     }
@@ -39,9 +43,5 @@ public enum Fuels {
 
     public void select(ForgeOfGodsData data) {
         data.setSelectedFuelType(ordinal());
-    }
-
-    public static Fuels getFromData(ForgeOfGodsData data) {
-        return VALUES[data.getSelectedFuelType()];
     }
 }

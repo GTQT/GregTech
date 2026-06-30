@@ -527,13 +527,13 @@ public class ConfigHolder {
                 "16777215 (0xFFFFFF in decimal) is no coloring (like GTCE).",
                 "13819135 (0xD2DCFF in decimal) is the classic blue from GT5 (default)." })
         @Config.RangeInt(min = 0, max = 0xFFFFFF)
-        public int defaultPaintingColor = 0xD2DCFF;
+        public int defaultPaintingColor = 0xFFFFFF;
 
         @Config.Comment({ "The default color to overlay onto Machine (and other) UIs.",
                 "16777215 (0xFFFFFF) is no coloring (like GTCE).",
                 "13819135 (0xD2DCFF in decimal) is the classic blue from GT5 (default)." })
         @Config.RangeInt(min = 0, max = 0xFFFFFF)
-        public int defaultUIColor = 0xD2DCFF;
+        public int defaultUIColor = 0xFFFFFF;
 
         // requires mc restart, color is set upon jei plugin registration
         @Config.Comment({ "The color to use as a background for the Multiblock Preview JEI Page.",

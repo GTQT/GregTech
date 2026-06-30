@@ -17,7 +17,6 @@ import gregtech.api.mui.widget.GhostCircuitSlotWidget;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
 import gregtech.common.mui.widget.GTFluidSlot;
 
 import net.minecraft.client.resources.I18n;
@@ -46,6 +45,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNotifiablePart
@@ -53,9 +53,8 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
 
     private static final int ROW_SIZE = 9;
     private static final int TEMPLATE_TANKS = ROW_SIZE * ROW_SIZE;
-    private static final int TEMPLATE_TANK_CAPACITY = 1;
     private static final int CREATIVE_FLUID_AMOUNT = Integer.MAX_VALUE / TEMPLATE_TANKS;
-
+    private static final int TEMPLATE_TANK_CAPACITY = 1;
     private NotifiableFluidTank[] templateTanks;
     private FluidTankList templateTankList;
     private CreativeFluidTank[] creativeTanks;
@@ -102,9 +101,7 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         if (abilityInstances.isKey(MultiblockAbility.IMPORT_FLUIDS)) {
-            for (CreativeFluidTank creativeTank : this.creativeTanks) {
-                abilityInstances.add(creativeTank);
-            }
+            Collections.addAll(abilityInstances, this.creativeTanks);
         } else if (abilityInstances.isKey(MultiblockAbility.IMPORT_ITEMS)) {
             abilityInstances.add(this.circuitInventory);
         }
@@ -180,6 +177,11 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
     }
 
     @Override
+    public int getGhostCircuitConfig() {
+        return this.circuitInventory == null ? 0 : this.circuitInventory.getCircuitValue();
+    }
+
+    @Override
     public void setGhostCircuitConfig(int config) {
         if (this.circuitInventory == null || this.circuitInventory.getCircuitValue() == config) {
             return;
@@ -188,11 +190,6 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
         if (!getWorld().isRemote) {
             markDirty();
         }
-    }
-
-    @Override
-    public int getGhostCircuitConfig() {
-        return this.circuitInventory == null ? 0 : this.circuitInventory.getCircuitValue();
     }
 
     @Override
@@ -228,6 +225,11 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
         }
 
         @Override
+        public void setFluid(FluidStack fluid) {
+            this.template.setFluid(GTUtility.isEmpty(fluid) ? null : GTUtility.copy(TEMPLATE_TANK_CAPACITY, fluid));
+        }
+
+        @Override
         public int getFluidAmount() {
             return GTUtility.isEmpty(this.template.getFluid()) ? 0 : CREATIVE_FLUID_AMOUNT;
         }
@@ -235,11 +237,6 @@ public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNo
         @Override
         public int getCapacity() {
             return CREATIVE_FLUID_AMOUNT;
-        }
-
-        @Override
-        public void setFluid(FluidStack fluid) {
-            this.template.setFluid(GTUtility.isEmpty(fluid) ? null : GTUtility.copy(TEMPLATE_TANK_CAPACITY, fluid));
         }
 
         @Override

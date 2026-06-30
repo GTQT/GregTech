@@ -9,7 +9,6 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -52,7 +51,7 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
                     .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
                     .aisle("XXXXX", "XXXXX", "XXSXX", "XXXXX", "XXXXX")
                     .self('S', MetaTileEntityLargePyrolyser.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -72,11 +71,12 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
         this.recipeMapWorkable = new PyrolyseOvenWorkableHandler(this);
     }
 
-    private static IBlockState getCasingState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
+    public static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
+                BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 
@@ -155,7 +155,8 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
+                               boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addCoilLogic().build(this, tooltip);
         tooltip.add(I18n.format("gregtech.machine.pyrolyse_oven.tooltip.1"));

@@ -17,6 +17,29 @@ public class StarColorSetting {
         this.gamma = gamma;
     }
 
+    protected static StarColorSetting deserialize(NBTTagCompound nbt) {
+        int r = nbt.getInteger("R");
+        int g = nbt.getInteger("G");
+        int b = nbt.getInteger("B");
+        float gamma = nbt.getFloat("Gamma");
+        return new StarColorSetting(r, g, b, gamma);
+    }
+
+    public static void writeToBuffer(PacketBuffer buf, StarColorSetting color) {
+        buf.writeInt(color.r);
+        buf.writeInt(color.g);
+        buf.writeInt(color.b);
+        buf.writeFloat(color.gamma);
+    }
+
+    public static StarColorSetting readFromBuffer(PacketBuffer buf) {
+        int r = buf.readInt();
+        int g = buf.readInt();
+        int b = buf.readInt();
+        float gamma = buf.readFloat();
+        return new StarColorSetting(r, g, b, gamma);
+    }
+
     public int getColorR() {
         return r;
     }
@@ -40,29 +63,6 @@ public class StarColorSetting {
         nbt.setInteger("B", b);
         nbt.setFloat("Gamma", gamma);
         return nbt;
-    }
-
-    protected static StarColorSetting deserialize(NBTTagCompound nbt) {
-        int r = nbt.getInteger("R");
-        int g = nbt.getInteger("G");
-        int b = nbt.getInteger("B");
-        float gamma = nbt.getFloat("Gamma");
-        return new StarColorSetting(r, g, b, gamma);
-    }
-
-    public static void writeToBuffer(PacketBuffer buf, StarColorSetting color) {
-        buf.writeInt(color.r);
-        buf.writeInt(color.g);
-        buf.writeInt(color.b);
-        buf.writeFloat(color.gamma);
-    }
-
-    public static StarColorSetting readFromBuffer(PacketBuffer buf) {
-        int r = buf.readInt();
-        int g = buf.readInt();
-        int b = buf.readInt();
-        float gamma = buf.readFloat();
-        return new StarColorSetting(r, g, b, gamma);
     }
 
     @Override
@@ -90,9 +90,9 @@ public class StarColorSetting {
     @Override
     public String toString() {
         return new ToStringBuilder(this).append("r", r)
-            .append("g", g)
-            .append("b", b)
-            .append("gamma", gamma)
-            .build();
+                .append("g", g)
+                .append("b", b)
+                .append("gamma", gamma)
+                .build();
     }
 }

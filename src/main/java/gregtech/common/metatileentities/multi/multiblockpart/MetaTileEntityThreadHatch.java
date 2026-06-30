@@ -2,6 +2,7 @@ package gregtech.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.capability.IThreadController;
 import gregtech.api.capability.IThreadHatch;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -9,13 +10,11 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.OrientedOverlayRenderer;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;

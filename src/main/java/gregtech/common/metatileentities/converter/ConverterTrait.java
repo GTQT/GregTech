@@ -21,20 +21,16 @@ public class ConverterTrait extends MTETrait {
 
     private final int amps;
     private final long voltage;
-
+    private final IEnergyStorage energyFE = new FEContainer();
+    private final IEnergyContainer energyEU = new EUContainer();
+    private final long baseCapacity;
+    protected long storedEU;
     /**
      * If TRUE, the front facing of the machine will OUTPUT EU, other sides INPUT FE.
      * <p>
      * If FALSE, the front facing of the machine will OUTPUT FE, other sides INPUT EU.
      */
     private boolean feToEu;
-
-    private final IEnergyStorage energyFE = new FEContainer();
-    private final IEnergyContainer energyEU = new EUContainer();
-    protected long storedEU;
-
-    private final long baseCapacity;
-
     private long usedAmps;
 
     public ConverterTrait(MetaTileEntityConverter mte, int amps, boolean feToEu) {

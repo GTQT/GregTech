@@ -447,7 +447,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
 
     @Override
     public boolean isBatchAllowed() {
-        return true;
+        return false;
     }
 
     @Override

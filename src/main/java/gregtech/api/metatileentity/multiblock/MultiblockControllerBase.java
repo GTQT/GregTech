@@ -38,6 +38,7 @@ import gregtech.api.util.world.DummyWorld;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
+import gregtech.client.renderer.texture.cube.VisualStateRenderer;
 import gregtech.common.ConfigHolder;
 import gregtech.common.creativetab.GTCreativeTabs;
 
@@ -319,9 +320,43 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return getFrontOverlay().getParticleSprite();
     }
 
+    /**
+     * Returns the casing {@link IBlockState} for CTM by reflecting on the subclass's
+     * {@code public static getCasingState()} method.
+     */
+    @SideOnly(Side.CLIENT)
+    @Override
+    public IBlockState getCasingBlock() {
+        if (cachedCasingBlock != null) return cachedCasingBlock;
+        if (casingBlockResolved) return null;
+        casingBlockResolved = true;
+        try {
+            java.lang.reflect.Method method = getClass().getMethod("getCasingState");
+            if (!method.getDeclaringClass().equals(MultiblockControllerBase.class)) {
+                cachedCasingBlock = (IBlockState) method.invoke(null);
+                return cachedCasingBlock;
+            }
+        } catch (Exception ignored) {
+        }
+        return null;
+    }
+
+    public IBlockState getCasingBlock(@Nullable IMultiblockPart sourcePart) {
+        return getCasingBlock();
+    }
+
+    private IBlockState cachedCasingBlock;
+    private boolean casingBlockResolved;
+
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
-        ICubeRenderer baseTexture = getBaseTexture(null);
+        IBlockState casing = getCasingBlock(null);
+        ICubeRenderer baseTexture;
+        if (casing != null) {
+            baseTexture = new VisualStateRenderer(casing);
+        } else {
+            baseTexture = getBaseTexture(null);
+        }
         pipeline = ArrayUtils.add(pipeline,
                 new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering())));
         if (baseTexture instanceof SimpleOrientedCubeRenderer) {
@@ -348,6 +383,10 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @SideOnly(Side.CLIENT)
     @Override
     public Pair<TextureAtlasSprite, Integer> getParticleTexture() {
+        IBlockState casing = getCasingBlock(null);
+        if (casing != null) {
+            return Pair.of(new VisualStateRenderer(casing).getParticleSprite(), getPaintingColorForRendering());
+        }
         return Pair.of(getBaseTexture(null).getParticleSprite(), getPaintingColorForRendering());
     }
 

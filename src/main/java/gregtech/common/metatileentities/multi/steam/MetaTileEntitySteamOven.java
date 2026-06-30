@@ -35,20 +35,8 @@ import java.util.List;
 public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController {
 
     private static final int PARALLEL_LIMIT = 8;
-
-    public MetaTileEntitySteamOven(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, RecipeMaps.FURNACE_RECIPES, CONVERSION_RATE, ParallelLogicType.CROSS_RECIPE);
-        this.recipeMapWorkable = new SteamMultiWorkable(this, CONVERSION_RATE, ParallelLogicType.CROSS_RECIPE);
-        this.recipeMapWorkable.setParallelLimit(PARALLEL_LIMIT);
-    }
-
-    @Override
-    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntitySteamOven(metaTileEntityId);
-    }
-
     @NotNull
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:steam_oven", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "CCC", "#C#")
                     .aisle("XXX", "C#C", "#C#")
@@ -56,29 +44,48 @@ public class MetaTileEntitySteamOven extends RecipeMapSteamMultiblockController 
                     .self('S', MetaTileEntitySteamOven.class)
                     .any('#')
                     .casing('X',
-                            MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.BRONZE_FIREBOX))
-                        .hatch(MultiblockAbility.STEAM, 1, 3)
+                            getFireboxState())
+                    .hatch(MultiblockAbility.STEAM, 1, 3)
                     .casing('C',
-                            MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS))
-                        .optionalHatch(MultiblockAbility.STEAM_IMPORT_ITEMS, 4)
-                        .optionalHatch(MultiblockAbility.STEAM_EXPORT_ITEMS, 4)
+                            getCasingState())
+                    .optionalHatch(MultiblockAbility.STEAM_IMPORT_ITEMS, 4)
+                    .optionalHatch(MultiblockAbility.STEAM_EXPORT_ITEMS, 4)
                     .buildStructureDefinition());
+
+    public MetaTileEntitySteamOven(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId, RecipeMaps.FURNACE_RECIPES, CONVERSION_RATE, ParallelLogicType.CROSS_RECIPE);
+        this.recipeMapWorkable = new SteamMultiWorkable(this, CONVERSION_RATE, ParallelLogicType.CROSS_RECIPE);
+        this.recipeMapWorkable.setParallelLimit(PARALLEL_LIMIT);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS);
+    }
+
+    @Override
+    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        return new MetaTileEntitySteamOven(metaTileEntityId);
+    }
 
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 
-    public IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS);
-    }
-
-    public IBlockState getFireboxState() {
+    public static IBlockState getFireboxState() {
         return MetaBlocks.BOILER_FIREBOX_CASING.getState(BlockFireboxCasing.FireboxCasingType.BRONZE_FIREBOX);
     }
 
     private boolean isFireboxPart(IMultiblockPart sourcePart) {
         return isStructureFormed() && (((MetaTileEntity) sourcePart).getPos().getY() < getPos().getY());
+    }
+
+    @Override
+    public IBlockState getCasingBlock(@Nullable IMultiblockPart sourcePart) {
+        if (sourcePart != null && isFireboxPart(sourcePart)) {
+            return getFireboxState();
+        }
+        return super.getCasingBlock(sourcePart);
     }
 
     @SideOnly(Side.CLIENT)

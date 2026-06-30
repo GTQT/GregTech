@@ -24,16 +24,14 @@ import java.util.List;
 public final class ForgeOfGodsStructureString {
 
     private static final String STRUCTURE_ROOT = "/assets/gregtech/godforge/structures/";
-
-    private ForgeOfGodsStructureString() {}
-
     public static final String[][] BEAM_SHAFT = loadStructure("beam_shaft.txt");
     public static final String[][] FIRST_RING = loadStructure("first_ring.txt");
     public static final String[][] FIRST_RING_AIR = replaceLetters(FIRST_RING, "L");
     public static final String[][] SECOND_RING = loadStructure("second_ring.txt");
-    public static final String[][] THIRD_RING = loadStructure("third_ring.txt");
     public static final String[][] SECOND_RING_AIR = replaceLetters(SECOND_RING, "L");
+    public static final String[][] THIRD_RING = loadStructure("third_ring.txt");
     public static final String[][] THIRD_RING_AIR = replaceLetters(THIRD_RING, "L");
+    private ForgeOfGodsStructureString() {}
 
     private static String[][] loadStructure(String fileName) {
         String path = STRUCTURE_ROOT + fileName;

@@ -209,18 +209,17 @@ public class MetaTileEntityCreativeEnergy extends MetaTileEntity implements ILas
                                         () -> new Object[] { TextFormattingUtil.formatNumbers(lastEnergyIOPerSec) })
                                 .asWidget())
                         .child(Flow.row()
+                                .widthRel(1.0f)
                                 .height(20)
+                                .mainAxisAlignment(Alignment.MainAxis.SPACE_AROUND)
                                 .child(new ToggleButton()
-                                        .left(30)
                                         .width(50)
                                         .value(activeSync)
                                         .overlay(IKey.lang(() -> activeSync.getBoolValue() ?
                                                 "gregtech.creative.activity.on" :
                                                 "gregtech.creative.activity.off")))
                                 .child(new ToggleButton()
-                                        .left(90)
                                         .width(50)
-                                        .posRel(Alignment.CenterRight)
                                         .value(sourceSync)
                                         .overlay(IKey.lang(() -> sourceSync.getBoolValue() ?
                                                 "gregtech.creative.energy.source" :

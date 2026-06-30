@@ -1,15 +1,15 @@
 package gregtech.common.metatileentities.multi.electric.godforge.color;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
 
 import com.cleanroommc.modularui.value.sync.GenericListSyncHandler;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class StarColorStorage {
 
@@ -50,7 +50,7 @@ public class StarColorStorage {
         }
 
         if (!color.getName()
-            .equals(name)) {
+                .equals(name)) {
             color.setName(name);
         }
         nameMapping.put(name, color);
@@ -89,11 +89,11 @@ public class StarColorStorage {
 
     public GenericListSyncHandler<ForgeOfGodsStarColor> getSyncer() {
         return GenericListSyncHandler.<ForgeOfGodsStarColor>builder()
-            .getter(this::getAllColors)
-            .deserializer(ForgeOfGodsStarColor::readFromBuffer)
-            .serializer(ForgeOfGodsStarColor::writeToBuffer)
-            .copy(color -> color == null ? null : ForgeOfGodsStarColor.deserialize(color.serializeToNBT()))
-            .build();
+                .getter(this::getAllColors)
+                .deserializer(ForgeOfGodsStarColor::readFromBuffer)
+                .serializer(ForgeOfGodsStarColor::writeToBuffer)
+                .copy(color -> color == null ? null : ForgeOfGodsStarColor.deserialize(color.serializeToNBT()))
+                .build();
     }
 
     public void writeToNBT(NBTTagCompound nbt) {

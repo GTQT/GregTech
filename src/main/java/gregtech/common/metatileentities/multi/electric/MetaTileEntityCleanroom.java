@@ -1330,7 +1330,7 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
 
     // protected to allow easy addition of addon "cleanrooms"
     @NotNull
-    protected IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.CLEANROOM_CASING.getState(BlockCleanroomCasing.CasingType.PLASCRETE);
     }
 

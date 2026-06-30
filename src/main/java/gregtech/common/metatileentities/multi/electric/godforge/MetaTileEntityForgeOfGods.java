@@ -11,12 +11,10 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.OffsetMode;
 import gregtech.api.pattern.PatternError;
-import gregtech.api.pattern.StructureActivationContext;
 import gregtech.api.pattern.StructureCondition;
 import gregtech.api.pattern.StructureExternalDependencies;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOrientation;
-import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.Elements;
@@ -100,43 +98,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     // Core tick interval: every 100 ticks (5 seconds) just like GT5
     private static final int TICK_INTERVAL = 100;
     private static final int RING_REPLACEMENT_BLOCK_BUDGET = 1024;
-
-    private final ForgeOfGodsData data = new ForgeOfGodsData();
-    private SyncHypervisor syncHypervisor;
-    private final List<MTEBaseModule> moduleHatches = new ArrayList<>();
-    // Start at TICK_INTERVAL-1 so the first updateFormedValid tick immediately
-    // runs the full logic (milestone recalculation, module connections, etc.)
-    private long ticker = TICK_INTERVAL - 1;
-    private int lastKnownRingAmount = 1;
-    private int lastKnownClearedRingAmount = 0;
-    private long lastStructureFailureLogTime = -1;
-    private long lastModuleConnectionLogTime = -1;
-    private long lastRingStateLogTime = -1;
-    private long lastRenderedRingOwnershipLogTime = -1;
-    private boolean pendingStructureRefresh = false;
-    private boolean recoveringRenderedStructure = false;
-
-    /**
-     * Dirty flag for ring block replacement. Set when ring state changes
-     * (e.g., renderer created/destroyed, ring unlocked/respec). Cleared after
-     * replaceRenderedRings() is executed. This avoids scanning ~1M block positions
-     * every 100 ticks when nothing has changed.
-     */
-    private boolean ringsDirty = false;
-    private RingReplacementTask ringReplacementTask;
-
-    public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId);
-        this.data.setStructureStateChangeListener(this::notifyGodforgeStructureStateChanged);
-    }
-
-    @Override
-    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityForgeOfGods(metaTileEntityId);
-    }
-
-    // ==================== Multi-Piece Pattern (Canonical Structure) ====================
-
     // Piece offsets use OffsetMode.RELATIVE coordinates (right, up, back).
     // The source templates advance toward FRONT after the beam shaft, so their
     // positive forward distances are negative values on the BACK axis here.
@@ -150,23 +111,49 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     private static final Vec3i SECOND_RING_OFFSET = new Vec3i(0, 0, -67);
     private static final Vec3i THIRD_RING_OFFSET = new Vec3i(0, 0, -76);
     private static final RelativeDirection[] GODFORGE_STRUCTURE_DIRECTIONS = { RIGHT, UP, FRONT };
-
     // External center offsets [x, y, z, minZ, maxZ] for sub-piece templates without selfPredicate
     private static final int[] FIRST_RING_CENTER = { 63, 14, 0, 0, 0 };
     private static final int[] SECOND_RING_CENTER = { 55, 11, 0, 0, 0 };
     private static final int[] THIRD_RING_CENTER = { 47, 13, 0, 0, 0 };
-
     private static final StructureDefinition<MetaTileEntityForgeOfGods>
             STRUCTURE_DEFINITION = buildGodforgeStructureDefinition();
+    /**
+     * Offset from controller to render position along the structure's back axis. In GT5, the star is at the center of
+     * the ring structure, 122 blocks behind the controller.
+     */
+    private static final int RENDER_OFFSET = 122;
+    private final ForgeOfGodsData data = new ForgeOfGodsData();
+    private final List<MTEBaseModule> moduleHatches = new ArrayList<>();
+    private SyncHypervisor syncHypervisor;
+    // Start at TICK_INTERVAL-1 so the first updateFormedValid tick immediately
+    // runs the full logic (milestone recalculation, module connections, etc.)
+    private long ticker = TICK_INTERVAL - 1;
+    private int lastKnownRingAmount = 1;
+    private int lastKnownClearedRingAmount = 0;
 
-    @Override
-    protected StructureDefinition<?> createStructureDefinition() {
-        return STRUCTURE_DEFINITION;
+    // ==================== Multi-Piece Pattern (Canonical Structure) ====================
+    private long lastStructureFailureLogTime = -1;
+    private long lastModuleConnectionLogTime = -1;
+    private long lastRingStateLogTime = -1;
+    private long lastRenderedRingOwnershipLogTime = -1;
+    private boolean pendingStructureRefresh = false;
+    private boolean recoveringRenderedStructure = false;
+    /**
+     * Dirty flag for ring block replacement. Set when ring state changes (e.g., renderer created/destroyed, ring
+     * unlocked/respec). Cleared after replaceRenderedRings() is executed. This avoids scanning ~1M block positions
+     * every 100 ticks when nothing has changed.
+     */
+    private boolean ringsDirty = false;
+    private RingReplacementTask ringReplacementTask;
+
+    public MetaTileEntityForgeOfGods(ResourceLocation metaTileEntityId) {
+        super(metaTileEntityId);
+        this.data.setStructureStateChangeListener(this::notifyGodforgeStructureStateChanged);
     }
 
     private static StructureDefinition<MetaTileEntityForgeOfGods> buildGodforgeStructureDefinition() {
         StructureDefinition.Builder<MetaTileEntityForgeOfGods> builder = StructureDefinition
-                .<MetaTileEntityForgeOfGods>builder(RIGHT, UP, FRONT);
+                .builder(RIGHT, UP, FRONT);
 
         applyAllElements(builder.piece("beam_shaft", ForgeOfGodsStructureString.BEAM_SHAFT, BEAM_SHAFT_OFFSET),
                 true, true).end();
@@ -240,10 +227,252 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                             >= ringIndex;
                     return active
                             && controller.canUseRenderedRingTemplate(
-                                    ringIndex, rendererOwned) == rendererOwned;
+                            ringIndex, rendererOwned) == rendererOwned;
                 },
                 StructureExternalDependencies.upgrades(),
                 StructureExternalDependencies.configuration());
+    }
+
+    private static StructureDefinition.PieceBuilder<MetaTileEntityForgeOfGods> applyAllElements(
+            StructureDefinition.PieceBuilder<MetaTileEntityForgeOfGods> builder,
+            boolean includeController,
+            boolean allowEmptyModuleSlots) {
+        if (includeController) {
+            builder.where('S', godforgeController());
+        }
+        applySharedElements(builder, allowEmptyModuleSlots);
+        return builder;
+    }
+
+    private static void applySharedElements(
+            StructureDefinition.PieceBuilder<MetaTileEntityForgeOfGods> builder,
+            boolean allowEmptyModuleSlots) {
+        builder.where('A', hatches())
+                .where('B', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)))
+                .where('C', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING)))
+                .where('D', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING)))
+                .where('E', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)))
+                .where('F', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING)))
+                .where('G', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.REMOTE_GRAVITON_FLOW_MODULATOR)))
+                .where('H', Elements.block(getGlassState()))
+                .where('J', godforgeModuleSlot(allowEmptyModuleSlots))
+                .where('I', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR)))
+                .where('K', Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR)))
+                .where('L', Elements.air());
+    }
+
+    private static IBlockState getCasingState(BlockGodforgeCasing.CasingType type) {
+        return MetaBlocks.GODFORGE_CASING.getState(type);
+    }
+
+    private static IBlockState getGlassState() {
+        return MetaBlocks.GODFORGE_GLASS.getState(
+                BlockGodforgeGlass.GlassType.SPATIALLY_TRANSCENDENT_GRAVITATIONAL_LENS);
+    }
+
+    private static IStructureElement hatches() {
+        return Elements.chain(
+                Elements.abilities(MultiblockAbility.IMPORT_ITEMS),
+                Elements.abilities(MultiblockAbility.IMPORT_FLUIDS),
+                Elements.abilities(MultiblockAbility.EXPORT_ITEMS),
+                Elements.abilities(MultiblockAbility.EXPORT_FLUIDS),
+                Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)));
+    }
+
+    private static IStructureElement godforgeModules() {
+        return Elements.metaTileEntities(
+                MetaTileEntities.GODFORGE_SMELTING_MODULE,
+                MetaTileEntities.GODFORGE_MOLTEN_MODULE,
+                MetaTileEntities.GODFORGE_PLASMA_MODULE,
+                MetaTileEntities.GODFORGE_EXOTIC_MODULE);
+    }
+
+    private static IStructureElement godforgeModuleSlot(boolean allowEmptyModuleSlots) {
+        IStructureElement predicate = Elements.chain(
+                godforgeModules(),
+                Elements.block(getCasingState(
+                        BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)));
+        return allowEmptyModuleSlots ? Elements.chain(predicate, Elements.air()) : predicate;
+    }
+
+    private static IStructureElement godforgeController() {
+        return Elements.self(MetaTileEntityForgeOfGods.class);
+    }
+
+    private static String describeFailurePath(@Nullable StructureFailureTrace failure) {
+        return failure == null ? "none" : failure.getPath();
+    }
+
+    private static String describeFailureOperation(@Nullable StructureFailureTrace failure) {
+        return failure == null ? "none" : failure.getOperation();
+    }
+
+    private static String describeFailureResult(@Nullable StructureFailureTrace failure) {
+        return failure == null ? "none" : failure.getResult();
+    }
+
+    private static String describeFailureExpected(@Nullable StructureFailureTrace failure) {
+        return failure == null || failure.getExpected() == null ? "none" : failure.getExpected();
+    }
+
+    private static String describeFailureActual(@Nullable StructureFailureTrace failure) {
+        return failure == null || failure.getActual() == null ? "none" : failure.getActual();
+    }
+
+    private static String describeFailureMissingAbilities(@Nullable StructureFailureTrace failure) {
+        return failure == null ? "none" : failure.getMissingAbilities();
+    }
+
+    @Nullable
+    private static BlockPos describeFailureErrorPos(@Nullable StructureFailureTrace failure) {
+        return failure == null ? null : failure.getErrorPos();
+    }
+
+    @Nullable
+    private static BlockPos getFailureErrorPos(@Nullable StructureFailureTrace failure, @NotNull PatternError error) {
+        if (failure != null && failure.getErrorPos() != null) {
+            return failure.getErrorPos();
+        }
+        try {
+            return error.getPos();
+        } catch (RuntimeException ignored) {
+            return null;
+        }
+    }
+
+    // ==================== Block State Helpers ====================
+
+    private static String describeTileEntity(@Nullable TileEntity tileEntity) {
+        if (tileEntity == null) return "null";
+        String description = tileEntity.getClass().getName();
+        if (tileEntity instanceof IGregTechTileEntity) {
+            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            description += ", mte=" + (metaTileEntity == null ? "null" :
+                    metaTileEntity.metaTileEntityId + "/" + metaTileEntity.getClass().getName());
+        }
+        return description;
+    }
+
+    private static String describeCandidates(PatternError error) {
+        StringBuilder builder = new StringBuilder();
+        for (List<ItemStack> group : error.getCandidates()) {
+            if (builder.length() > 0) builder.append(" | ");
+            builder.append('[');
+            int written = 0;
+            for (ItemStack stack : group) {
+                if (stack.isEmpty()) continue;
+                if (written > 0) builder.append(", ");
+                builder.append(stack.getItem().getRegistryName()).append(':').append(stack.getMetadata());
+                written++;
+                if (written >= 3) {
+                    builder.append(", ...");
+                    break;
+                }
+            }
+            builder.append(']');
+        }
+        return builder.length() == 0 ? "[]" : builder.toString();
+    }
+
+    private static String describeModule(MTEBaseModule module) {
+        if (module == null) return "null";
+        return module.metaTileEntityId + "@" + module.getPos() +
+                "{formed=" + module.isStructureFormed() +
+                ", connected=" + module.isConnected() +
+                ", type=" + module.getClass().getSimpleName() + "}";
+    }
+
+    private static String[][] getRingShape(int ringIndex) {
+        switch (ringIndex) {
+            case 1:
+                return ForgeOfGodsStructureString.FIRST_RING;
+            case 2:
+                return ForgeOfGodsStructureString.SECOND_RING;
+            case 3:
+                return ForgeOfGodsStructureString.THIRD_RING;
+            default:
+                throw new IllegalArgumentException("Invalid Godforge ring index: " + ringIndex);
+        }
+    }
+
+    private static Vec3i getRingOffset(int ringIndex) {
+        switch (ringIndex) {
+            case 1:
+                return FIRST_RING_OFFSET;
+            case 2:
+                return SECOND_RING_OFFSET;
+            case 3:
+                return THIRD_RING_OFFSET;
+            default:
+                throw new IllegalArgumentException("Invalid Godforge ring index: " + ringIndex);
+        }
+    }
+
+    private static int[] getRingCenter(int ringIndex) {
+        switch (ringIndex) {
+            case 1:
+                return FIRST_RING_CENTER;
+            case 2:
+                return SECOND_RING_CENTER;
+            case 3:
+                return THIRD_RING_CENTER;
+            default:
+                throw new IllegalArgumentException("Invalid Godforge ring index: " + ringIndex);
+        }
+    }
+
+    @Nullable
+    private static IBlockState getAirReplacement(char marker) {
+        return marker >= 'A' && marker <= 'Z' ? Blocks.AIR.getDefaultState() : null;
+    }
+
+    // ==================== Structure Lifecycle ====================
+
+    @Nullable
+    private static IBlockState getRingBlockState(char marker) {
+        switch (marker) {
+            case 'B':
+                return getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING);
+            case 'C':
+                return getCasingState(BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING);
+            case 'D':
+                return getCasingState(
+                        BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING);
+            case 'E':
+                return getCasingState(
+                        BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING);
+            case 'F':
+                return getCasingState(BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING);
+            case 'G':
+                return getCasingState(BlockGodforgeCasing.CasingType.REMOTE_GRAVITON_FLOW_MODULATOR);
+            case 'H':
+                return getGlassState();
+            case 'I':
+                return getCasingState(BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR);
+            case 'K':
+                return getCasingState(BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR);
+            default:
+                return null;
+        }
+    }
+
+    @Override
+    public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
+        return new MetaTileEntityForgeOfGods(metaTileEntityId);
+    }
+
+    @Override
+    protected StructureDefinition<?> createStructureDefinition() {
+        return STRUCTURE_DEFINITION;
     }
 
     private void notifyGodforgeStructureStateChanged() {
@@ -335,12 +564,11 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         IBlockState state = getWorld().getBlockState(renderPos);
         TileEntity te = getWorld().getTileEntity(renderPos);
         String teName = te == null ? "null" : te.getClass().getName();
-        if (!(te instanceof GodforgeRenderTileEntity)) {
+        if (!(te instanceof GodforgeRenderTileEntity renderTE)) {
             return "renderPos=" + renderPos + ", loaded=true, block=" + state + ", te=" + teName +
                     ", ownedByThis=false";
         }
 
-        GodforgeRenderTileEntity renderTE = (GodforgeRenderTileEntity) te;
         BlockPos ownerPos = renderTE.getOwnerPosForDebug();
         boolean ownedByThis = getPos() != null && getPos().equals(ownerPos);
         return "renderPos=" + renderPos + ", loaded=true, block=" + state + ", te=" + teName +
@@ -406,82 +634,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 ringReplacementTask == null ? "none" : ringReplacementTask.describe(),
                 describeRendererOwnershipForLog());
     }
-
-    private static StructureDefinition.PieceBuilder<MetaTileEntityForgeOfGods> applyAllElements(
-            StructureDefinition.PieceBuilder<MetaTileEntityForgeOfGods> builder,
-            boolean includeController,
-            boolean allowEmptyModuleSlots) {
-        if (includeController) {
-            builder.where('S', godforgeController());
-        }
-        applySharedElements(builder, allowEmptyModuleSlots);
-        return builder;
-    }
-
-    // ==================== Block State Helpers ====================
-
-    private static void applySharedElements(
-            StructureDefinition.PieceBuilder<MetaTileEntityForgeOfGods> builder,
-            boolean allowEmptyModuleSlots) {
-        builder.where('A', hatches())
-                .where('B', Elements.block(getCasingState(
-                        BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)))
-                .where('C', Elements.block(getCasingState(
-                        BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING)))
-                .where('D', Elements.block(getCasingState(
-                        BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING)))
-                .where('E', Elements.block(getCasingState(
-                        BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)))
-                .where('F', Elements.block(getCasingState(
-                        BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING)))
-                .where('G', Elements.block(getCasingState(
-                        BlockGodforgeCasing.CasingType.REMOTE_GRAVITON_FLOW_MODULATOR)))
-                .where('H', Elements.block(getGlassState()))
-                .where('J', godforgeModuleSlot(allowEmptyModuleSlots))
-                .where('I', Elements.block(getCasingState(
-                        BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR)))
-                .where('K', Elements.block(getCasingState(
-                        BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR)))
-                .where('L', Elements.air());
-    }
-
-    private static IBlockState getCasingState(BlockGodforgeCasing.CasingType type) {
-        return MetaBlocks.GODFORGE_CASING.getState(type);
-    }
-
-    private static IBlockState getGlassState() {
-        return MetaBlocks.GODFORGE_GLASS.getState(BlockGodforgeGlass.GlassType.SPATIALLY_TRANSCENDENT_GRAVITATIONAL_LENS);
-    }
-
-    private static IStructureElement hatches() {
-        return Elements.chain(
-                Elements.abilities(MultiblockAbility.IMPORT_ITEMS),
-                Elements.abilities(MultiblockAbility.IMPORT_FLUIDS),
-                Elements.abilities(MultiblockAbility.EXPORT_ITEMS),
-                Elements.abilities(MultiblockAbility.EXPORT_FLUIDS),
-                Elements.block(getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING)));
-    }
-
-    private static IStructureElement godforgeModules() {
-        return Elements.metaTileEntities(
-                MetaTileEntities.GODFORGE_SMELTING_MODULE,
-                MetaTileEntities.GODFORGE_MOLTEN_MODULE,
-                MetaTileEntities.GODFORGE_PLASMA_MODULE,
-                MetaTileEntities.GODFORGE_EXOTIC_MODULE);
-    }
-
-    private static IStructureElement godforgeModuleSlot(boolean allowEmptyModuleSlots) {
-        IStructureElement predicate = Elements.chain(
-                godforgeModules(),
-                Elements.block(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)));
-        return allowEmptyModuleSlots ? Elements.chain(predicate, Elements.air()) : predicate;
-    }
-
-    private static IStructureElement godforgeController() {
-        return Elements.self(MetaTileEntityForgeOfGods.class);
-    }
-
-    // ==================== Structure Lifecycle ====================
 
     @Override
     public void checkStructurePattern() {
@@ -597,79 +749,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return getStructureRuntime() == null ? null : getStructureRuntime().getLastFailure();
     }
 
-    private static String describeFailurePath(@Nullable StructureFailureTrace failure) {
-        return failure == null ? "none" : failure.getPath();
-    }
-
-    private static String describeFailureOperation(@Nullable StructureFailureTrace failure) {
-        return failure == null ? "none" : failure.getOperation();
-    }
-
-    private static String describeFailureResult(@Nullable StructureFailureTrace failure) {
-        return failure == null ? "none" : failure.getResult();
-    }
-
-    private static String describeFailureExpected(@Nullable StructureFailureTrace failure) {
-        return failure == null || failure.getExpected() == null ? "none" : failure.getExpected();
-    }
-
-    private static String describeFailureActual(@Nullable StructureFailureTrace failure) {
-        return failure == null || failure.getActual() == null ? "none" : failure.getActual();
-    }
-
-    private static String describeFailureMissingAbilities(@Nullable StructureFailureTrace failure) {
-        return failure == null ? "none" : failure.getMissingAbilities();
-    }
-
-    @Nullable
-    private static BlockPos describeFailureErrorPos(@Nullable StructureFailureTrace failure) {
-        return failure == null ? null : failure.getErrorPos();
-    }
-
-    @Nullable
-    private static BlockPos getFailureErrorPos(@Nullable StructureFailureTrace failure, @NotNull PatternError error) {
-        if (failure != null && failure.getErrorPos() != null) {
-            return failure.getErrorPos();
-        }
-        try {
-            return error.getPos();
-        } catch (RuntimeException ignored) {
-            return null;
-        }
-    }
-
-    private static String describeTileEntity(@Nullable TileEntity tileEntity) {
-        if (tileEntity == null) return "null";
-        String description = tileEntity.getClass().getName();
-        if (tileEntity instanceof IGregTechTileEntity) {
-            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
-            description += ", mte=" + (metaTileEntity == null ? "null" :
-                    metaTileEntity.metaTileEntityId + "/" + metaTileEntity.getClass().getName());
-        }
-        return description;
-    }
-
-    private static String describeCandidates(PatternError error) {
-        StringBuilder builder = new StringBuilder();
-        for (List<ItemStack> group : error.getCandidates()) {
-            if (builder.length() > 0) builder.append(" | ");
-            builder.append('[');
-            int written = 0;
-            for (ItemStack stack : group) {
-                if (stack.isEmpty()) continue;
-                if (written > 0) builder.append(", ");
-                builder.append(stack.getItem().getRegistryName()).append(':').append(stack.getMetadata());
-                written++;
-                if (written >= 3) {
-                    builder.append(", ...");
-                    break;
-                }
-            }
-            builder.append(']');
-        }
-        return builder.length() == 0 ? "[]" : builder.toString();
-    }
-
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         formStructureWithDisplay(formed);
@@ -701,6 +780,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         super.invalidateStructure();
     }
 
+    // ==================== Rendering ====================
+
     @Override
     public void onRemoval() {
         if (getWorld() != null && !getWorld().isRemote) {
@@ -718,8 +799,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     /**
-     * Discovers Godforge modules from the committed structure ability map.
-     * Modules are sub-multiblocks attached to the beam_shaft at 'J' positions.
+     * Discovers Godforge modules from the committed structure ability map. Modules are sub-multiblocks attached to the
+     * beam_shaft at 'J' positions.
      */
     private void discoverModules() {
         moduleHatches.clear();
@@ -742,6 +823,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
         return moduleParts;
     }
+
+    // ==================== Tick Logic ====================
 
     private String describeCommittedModulePartsMissingFromAbilities() {
         StringBuilder missing = new StringBuilder();
@@ -781,7 +864,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                     describeCommittedModulePartsMissingFromAbilities(), getFormedRingAmount(), getDesiredRingAmount());
         }
 
-        GTLog.logger.info("[FOG] discoverModules: controller={}, parts={}, committedModuleParts={}, abilityModules={}, " +
+        GTLog.logger.info(
+                "[FOG] discoverModules: controller={}, parts={}, committedModuleParts={}, abilityModules={}, " +
                         "moduleHatches={}, battery={}, formedRings={}, desiredRings={}, modules={}",
                 getPos(), getMultiblockParts().size(), committedModuleParts,
                 getAbilities(MultiblockAbility.GODFORGE_MODULE).size(), moduleHatches.size(),
@@ -789,10 +873,12 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 modules.length() == 0 ? "[]" : modules);
     }
 
+    // ==================== Fuel System ====================
+
     /**
-     * Commits the ring tier from the successful multi-piece structure definition.
-     * The active piece set was already selected from desiredRingAmount and validated
-     * by the structure check, so this must not rescan ring templates as a second source.
+     * Commits the ring tier from the successful multi-piece structure definition. The active piece set was already
+     * selected from desiredRingAmount and validated by the structure check, so this must not rescan ring templates as a
+     * second source.
      */
     private void commitFormedRingAmountFromStructure(@NotNull FormedStructureView formed) {
         int rings = GodforgeRingMatchPolicy.getFormedRingAmount(formed);
@@ -807,8 +893,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
     }
 
-    // ==================== Rendering ====================
-
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
@@ -822,13 +906,13 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return Textures.GODFORGE_CONTROLLER_OVERLAY;
     }
 
+    // ==================== Battery Management ====================
+
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
         getFrontOverlay().renderOrientedState(renderState, translation, pipeline, getFrontFacing(), true, true);
     }
-
-    // ==================== Tick Logic ====================
 
     @Override
     public void update() {
@@ -947,11 +1031,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return false;
     }
 
-    // ==================== Fuel System ====================
-
     /**
-     * Absorbs stellar fuel from input bus for battery startup,
-     * or graviton shards if battery is already running and END upgrade is active.
+     * Absorbs stellar fuel from input bus for battery startup, or graviton shards if battery is already running and END
+     * upgrade is active.
      */
     private void absorbFuelOrShards() {
         List<IItemHandlerModifiable> itemInputs = getAbilities(MultiblockAbility.IMPORT_ITEMS);
@@ -1003,16 +1085,17 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     /**
-     * Returns the item used as stellar fuel for battery startup.
-     * In GT5 this was Avaritia's Infinity Catalyst; here it's a dedicated MetaItem.
+     * Returns the item used as stellar fuel for battery startup. In GT5 this was Avaritia's Infinity Catalyst; here
+     * it's a dedicated MetaItem.
      */
     private ItemStack getStellarFuelItem() {
         return MetaItems.STELLAR_FUEL.getStackForm();
     }
 
+    // ==================== Milestone Tracking ====================
+
     /**
-     * Drains fuel fluid from input hatches and manages battery charge.
-     * Port of GT5 MTEForgeOfGods#drainFuel().
+     * Drains fuel fluid from input hatches and manages battery charge. Port of GT5 MTEForgeOfGods#drainFuel().
      */
     private void drainFuel() {
         int fuelConsumptionFactor = data.getFuelConsumptionFactor();
@@ -1079,8 +1162,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
     }
 
-    // ==================== Battery Management ====================
-
     private void increaseBattery(int amount) {
         long newCharge = (long) data.getInternalBattery() + amount;
         if (newCharge <= data.getMaxBatteryCharge()) {
@@ -1103,9 +1184,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     /**
-     * Lightweight renderer integrity check. Only verifies that the render block exists
-     * at the expected position (single getBlockState call). If missing, recreates it.
-     * Ring block replacement is handled separately by the ringsDirty flag.
+     * Lightweight renderer integrity check. Only verifies that the render block exists at the expected position (single
+     * getBlockState call). If missing, recreates it. Ring block replacement is handled separately by the ringsDirty
+     * flag.
      */
     private void ensureRendererState() {
         if (!isStructureFormed()) {
@@ -1126,12 +1207,14 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         if (data.isRenderActive()) {
             BlockPos renderPos = getRenderPos();
             if (renderPos == null || getWorld().getBlockState(renderPos).getBlock() != MetaBlocks.GODFORGE_RENDER) {
-                GTLog.logger.info("[FOG] ensureRendererState: render block missing, recreating. isRenderActive={}", data.isRenderActive());
+                GTLog.logger.info("[FOG] ensureRendererState: render block missing, recreating. isRenderActive={}",
+                        data.isRenderActive());
                 data.setRenderActive(false);
                 createRenderer();
             } else if (!isRendererOwnedByThisController()) {
                 if (isForeignRendererLoadedAtRenderPos()) {
-                    GTLog.logger.warn("[FOG] ensureRendererState: foreign render block at {}; disabling renderer. owner={}",
+                    GTLog.logger.warn(
+                            "[FOG] ensureRendererState: foreign render block at {}; disabling renderer. owner={}",
                             renderPos, describeRendererOwnershipForLog());
                     data.setRenderActive(false);
                     notifyGodforgeStructureStateChanged();
@@ -1180,19 +1263,11 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                 module.getProcessingVoltage(), module.getCurrentRecipeHeat());
     }
 
-    private static String describeModule(MTEBaseModule module) {
-        if (module == null) return "null";
-        return module.metaTileEntityId + "@" + module.getPos() +
-                "{formed=" + module.isStructureFormed() +
-                ", connected=" + module.isConnected() +
-                ", type=" + module.getClass().getSimpleName() + "}";
-    }
-
-    // ==================== Milestone Tracking ====================
+    // ==================== Facing ====================
 
     /**
-     * Determines the composition milestone level based on active module types.
-     * Port of GT5 MTEForgeOfGods#determineCompositionMilestoneLevel().
+     * Determines the composition milestone level based on active module types. Port of GT5
+     * MTEForgeOfGods#determineCompositionMilestoneLevel().
      */
     private void determineCompositionMilestoneLevel() {
         int[] uniqueModuleCount = new int[5];
@@ -1246,13 +1321,13 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         GodforgeMath.determineConversionMilestone(data);
         GodforgeMath.determineCatalystMilestone(data);
         GodforgeMath.determineCompositionMilestone(data);
-   }
+    }
 
     private void pushMilestoneProgress() {
         if (syncHypervisor == null) return;
         // DEBUG: Log sync hypervisor state
         GTLog.logger.info("[FOG Milestone DEBUG] pushMilestoneProgress - syncHypervisor present, " +
-            "MILESTONE PSM={}", syncHypervisor.getSyncManager(Panels.MILESTONE));
+                "MILESTONE PSM={}", syncHypervisor.getSyncManager(Panels.MILESTONE));
         SyncValues.MILESTONE_CHARGE_PROGRESS.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
         SyncValues.MILESTONE_CHARGE_PROGRESS_INVERTED.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
         SyncValues.MILESTONE_CONVERSION_PROGRESS.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
@@ -1262,6 +1337,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         SyncValues.MILESTONE_COMPOSITION_PROGRESS.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
         SyncValues.MILESTONE_COMPOSITION_PROGRESS_INVERTED.notifyUpdateFrom(Panels.MILESTONE, syncHypervisor);
     }
+
+    // ==================== Structure Channels ====================
 
     /**
      * Checks if all milestones have reached tier 7 to enable inversion.
@@ -1326,8 +1403,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         }
     }
 
-    // ==================== Facing ====================
-
     @Override
     public boolean allowsExtendedFacing() {
         return true;
@@ -1339,12 +1414,12 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         return getFrontFacing().getOpposite();
     }
 
+    // ==================== Data Access ====================
+
     @Override
     protected boolean allowsAsyncStructureCheck() {
         return false;
     }
-
-    // ==================== Structure Channels ====================
 
     @Override
     @NotNull
@@ -1366,9 +1441,8 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     /**
-     * Checks whether rotation/flipping is currently locked.
-     * Rotation is disabled when the structure is formed and the star renderer is active,
-     * since rotating would desync the renderer position from the structure.
+     * Checks whether rotation/flipping is currently locked. Rotation is disabled when the structure is formed and the
+     * star renderer is active, since rotating would desync the renderer position from the structure.
      */
     private boolean isRotationLocked() {
         return isStructureFormed() && data.isRenderActive();
@@ -1393,7 +1467,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         super.setUpwardsFacing(upwardsFacing);
     }
 
-    // ==================== Data Access ====================
+    // ==================== Renderer Management ====================
 
     public ForgeOfGodsData getData() {
         return data;
@@ -1436,17 +1510,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
         markDirty();
     }
 
-    // ==================== Renderer Management ====================
-
     /**
-     * Offset from controller to render position along the structure's back axis.
-     * In GT5, the star is at the center of the ring structure, 122 blocks behind the controller.
-     */
-    private static final int RENDER_OFFSET = 122;
-
-    /**
-     * Creates the render TileEntity at the structure center.
-     * Places an invisible block with GodforgeRenderTileEntity at the correct position.
+     * Creates the render TileEntity at the structure center. Places an invisible block with GodforgeRenderTileEntity at
+     * the correct position.
      */
     public void createRenderer() {
         if (getWorld() == null || getWorld().isRemote) return;
@@ -1485,8 +1551,7 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             }
             te = getWorld().getTileEntity(renderPos);
         }
-        if (te instanceof GodforgeRenderTileEntity) {
-            GodforgeRenderTileEntity renderTE = (GodforgeRenderTileEntity) te;
+        if (te instanceof GodforgeRenderTileEntity renderTE) {
             renderTE.setOwnerPos(getPos());
             renderTE.setRenderRotation(getFrontFacing());
             data.setRenderActive(true);
@@ -1577,9 +1642,9 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     }
 
     /**
-     * Returns the number of rings that can be replaced with air during rendering.
-     * Uses only the ring amount committed by the successful multi-piece structure.
-     * The renderer may clear or restore blocks, but it must not become a ring-tier source.
+     * Returns the number of rings that can be replaced with air during rendering. Uses only the ring amount committed
+     * by the successful multi-piece structure. The renderer may clear or restore blocks, but it must not become a
+     * ring-tier source.
      */
     private int getReplaceableRingAmount() {
         return getFormedRingAmount();
@@ -1591,45 +1656,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             rings = Math.max(rings, ringReplacementTask.ringAmount);
         }
         return rings;
-    }
-
-    private static String[][] getRingShape(int ringIndex) {
-        switch (ringIndex) {
-            case 1:
-                return ForgeOfGodsStructureString.FIRST_RING;
-            case 2:
-                return ForgeOfGodsStructureString.SECOND_RING;
-            case 3:
-                return ForgeOfGodsStructureString.THIRD_RING;
-            default:
-                throw new IllegalArgumentException("Invalid Godforge ring index: " + ringIndex);
-        }
-    }
-
-    private static Vec3i getRingOffset(int ringIndex) {
-        switch (ringIndex) {
-            case 1:
-                return FIRST_RING_OFFSET;
-            case 2:
-                return SECOND_RING_OFFSET;
-            case 3:
-                return THIRD_RING_OFFSET;
-            default:
-                throw new IllegalArgumentException("Invalid Godforge ring index: " + ringIndex);
-        }
-    }
-
-    private static int[] getRingCenter(int ringIndex) {
-        switch (ringIndex) {
-            case 1:
-                return FIRST_RING_CENTER;
-            case 2:
-                return SECOND_RING_CENTER;
-            case 3:
-                return THIRD_RING_CENTER;
-            default:
-                throw new IllegalArgumentException("Invalid Godforge ring index: " + ringIndex);
-        }
     }
 
     private int replaceRingBlocks(String[][] shape, Vec3i pieceOffset, int[] centerOffset, boolean restoreBlocks) {
@@ -1669,6 +1695,87 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
             }
         }
         return changed;
+    }
+
+    private void cleanupPossibleRendererBlocks() {
+        BlockPos controllerPos = getPos();
+        if (controllerPos == null) return;
+
+        for (EnumFacing facing : EnumFacing.VALUES) {
+            destroyRendererAt(controllerPos.offset(facing, RENDER_OFFSET));
+        }
+        data.setRenderActive(false);
+        data.setClearedRingAmount(0);
+        markDirty();
+    }
+
+    private void destroyRendererAt(BlockPos renderPos) {
+        if (!getWorld().isBlockLoaded(renderPos)) return;
+
+        IBlockState state = getWorld().getBlockState(renderPos);
+        if (state.getBlock() == MetaBlocks.GODFORGE_RENDER) {
+            getWorld().setBlockToAir(renderPos);
+        }
+    }
+
+    /**
+     * Syncs current star parameters to the render TileEntity.
+     */
+    public void updateRenderer() {
+        if (getWorld() == null || getWorld().isRemote) return;
+
+        BlockPos renderPos = getRenderPos();
+        if (renderPos == null) return;
+
+        TileEntity te = getWorld().getTileEntity(renderPos);
+        if (!(te instanceof GodforgeRenderTileEntity renderTE)) return;
+
+        renderTE.setOwnerPos(getPos());
+        renderTE.setRingCount(Math.max(1, data.getClearedRingAmount()));
+        renderTE.setStarRadius(data.getStarSize());
+        renderTE.setRotationSpeed(data.getRotationSpeed());
+        renderTE.setColor(
+                data.getStarColors()
+                        .getByName(data.getSelectedStarColor()));
+        renderTE.updateToClient();
+    }
+
+    /**
+     * Calculates the world position where the render TE should be placed. The star is at the center of the ring
+     * structure, behind the controller.
+     */
+    @Nullable
+    private BlockPos getRenderPos() {
+        BlockPos controllerPos = getPos();
+        if (controllerPos == null) return null;
+
+        EnumFacing back = getFrontFacing().getOpposite();
+        return controllerPos.offset(back, RENDER_OFFSET);
+    }
+
+    @Override
+    protected MultiblockUIFactory createUIFactory() {
+        return new GodforgeUIFactory(this);
+    }
+
+    // ==================== GUI ====================
+
+    @Override
+    public NBTTagCompound writeToNBT(NBTTagCompound data) {
+        NBTTagCompound tag = super.writeToNBT(data);
+        this.data.writeToNBT(tag);
+        return tag;
+    }
+
+    // ==================== NBT ====================
+
+    @Override
+    public void readFromNBT(NBTTagCompound data) {
+        super.readFromNBT(data);
+        this.data.readFromNBT(data);
+        // Recalculate milestone percentages immediately after loading,
+        // since they are not persisted in NBT but derived from totals.
+        determineMilestoneProgress();
     }
 
     private final class RingReplacementTask {
@@ -1750,119 +1857,5 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
                     ", z=" + z +
                     ", changed=" + changedBlocks;
         }
-    }
-
-    @Nullable
-    private static IBlockState getAirReplacement(char marker) {
-        return marker >= 'A' && marker <= 'Z' ? Blocks.AIR.getDefaultState() : null;
-    }
-
-    @Nullable
-    private static IBlockState getRingBlockState(char marker) {
-        switch (marker) {
-            case 'B':
-                return getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING);
-            case 'C':
-                return getCasingState(BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING);
-            case 'D':
-                return getCasingState(BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING);
-            case 'E':
-                return getCasingState(
-                        BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING);
-            case 'F':
-                return getCasingState(BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING);
-            case 'G':
-                return getCasingState(BlockGodforgeCasing.CasingType.REMOTE_GRAVITON_FLOW_MODULATOR);
-            case 'H':
-                return getGlassState();
-            case 'I':
-                return getCasingState(BlockGodforgeCasing.CasingType.MEDIAL_GRAVITON_FLOW_MODULATOR);
-            case 'K':
-                return getCasingState(BlockGodforgeCasing.CasingType.CENTRAL_GRAVITON_FLOW_MODULATOR);
-            default:
-                return null;
-        }
-    }
-
-    private void cleanupPossibleRendererBlocks() {
-        BlockPos controllerPos = getPos();
-        if (controllerPos == null) return;
-
-        for (EnumFacing facing : EnumFacing.VALUES) {
-            destroyRendererAt(controllerPos.offset(facing, RENDER_OFFSET));
-        }
-        data.setRenderActive(false);
-        data.setClearedRingAmount(0);
-        markDirty();
-    }
-
-    private void destroyRendererAt(BlockPos renderPos) {
-        if (!getWorld().isBlockLoaded(renderPos)) return;
-
-        IBlockState state = getWorld().getBlockState(renderPos);
-        if (state.getBlock() == MetaBlocks.GODFORGE_RENDER) {
-            getWorld().setBlockToAir(renderPos);
-        }
-    }
-
-    /**
-     * Syncs current star parameters to the render TileEntity.
-     */
-    public void updateRenderer() {
-        if (getWorld() == null || getWorld().isRemote) return;
-
-        BlockPos renderPos = getRenderPos();
-        if (renderPos == null) return;
-
-        TileEntity te = getWorld().getTileEntity(renderPos);
-        if (!(te instanceof GodforgeRenderTileEntity)) return;
-
-        GodforgeRenderTileEntity renderTE = (GodforgeRenderTileEntity) te;
-        renderTE.setOwnerPos(getPos());
-        renderTE.setRingCount(Math.max(1, data.getClearedRingAmount()));
-        renderTE.setStarRadius(data.getStarSize());
-        renderTE.setRotationSpeed(data.getRotationSpeed());
-        renderTE.setColor(
-                data.getStarColors()
-                        .getByName(data.getSelectedStarColor()));
-        renderTE.updateToClient();
-    }
-
-    /**
-     * Calculates the world position where the render TE should be placed.
-     * The star is at the center of the ring structure, behind the controller.
-     */
-    @Nullable
-    private BlockPos getRenderPos() {
-        BlockPos controllerPos = getPos();
-        if (controllerPos == null) return null;
-
-        EnumFacing back = getFrontFacing().getOpposite();
-        return controllerPos.offset(back, RENDER_OFFSET);
-    }
-
-    // ==================== GUI ====================
-
-    @Override
-    protected MultiblockUIFactory createUIFactory() {
-        return new GodforgeUIFactory(this);
-    }
-
-    // ==================== NBT ====================
-
-    @Override
-    public NBTTagCompound writeToNBT(NBTTagCompound data) {
-        NBTTagCompound tag = super.writeToNBT(data);
-        this.data.writeToNBT(tag);
-        return tag;
-    }
-
-    @Override
-    public void readFromNBT(NBTTagCompound data) {
-        super.readFromNBT(data);
-        this.data.readFromNBT(data);
-        // Recalculate milestone percentages immediately after loading,
-        // since they are not persisted in NBT but derived from totals.
-        determineMilestoneProgress();
     }
 }

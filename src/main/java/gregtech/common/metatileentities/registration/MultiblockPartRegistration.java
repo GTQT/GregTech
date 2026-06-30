@@ -3,9 +3,7 @@ package gregtech.common.metatileentities.registration;
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.common.metatileentities.electric.MetaTileEntityDustCollector;
-import gregtech.common.metatileentities.heat.MetaTileEntityElectricHeater;
-import gregtech.common.metatileentities.heat.MetaTileEntityHeatHatch;
-import gregtech.common.metatileentities.heat.MetaTileEntityHeatSensor;
+import gregtech.common.metatileentities.electric.MetaTileEntityElectricHeater;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAutoMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCleaningMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
@@ -17,6 +15,8 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityDualH
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityEnergyHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityFluidHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityGasHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatSensor;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeItemBus;
@@ -132,7 +132,6 @@ public final class MultiblockPartRegistration {
         }
     }
 
-
     // ---- Steam Hatches/Buses ----
 
     private static void registerSteamHatches() {
@@ -196,7 +195,8 @@ public final class MultiblockPartRegistration {
                     new MetaTileEntitySubstationEnergyHatch(gregtechId("substation_hatch.output_64a." + voltageName), i,
                             64, true));
             SUBSTATION_ENERGY_OUTPUT_HATCH_256A[i] = registerMetaTileEntity(2495 + i,
-                    new MetaTileEntitySubstationEnergyHatch(gregtechId("substation_hatch.output_256a." + voltageName), i,
+                    new MetaTileEntitySubstationEnergyHatch(gregtechId("substation_hatch.output_256a." + voltageName),
+                            i,
                             256, true));
         }
     }
@@ -254,73 +254,95 @@ public final class MultiblockPartRegistration {
             String voltageName = GTValues.VN[i].toLowerCase();
 
             WIRELESS_CONTROLLERS[i] = registerMetaTileEntity(2800 + i,
-                        new MetaTileEntityWirelessController(gregtechId("wireless_controller." + voltageName), i));
+                    new MetaTileEntityWirelessController(gregtechId("wireless_controller." + voltageName), i));
 
             WIRELESS_INPUT_ENERGY_HATCH[i] = registerMetaTileEntity(2815 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input." + voltageName), i, 2,
+                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input." + voltageName), i,
+                            2,
                             false));
             WIRELESS_INPUT_ENERGY_HATCH_4A[i] = registerMetaTileEntity(2830 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_4a." + voltageName), i, 4,
+                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_4a." + voltageName),
+                            i, 4,
                             false));
             WIRELESS_INPUT_ENERGY_HATCH_16A[i] = registerMetaTileEntity(2845 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_16a." + voltageName), i, 16,
+                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_16a." + voltageName),
+                            i, 16,
                             false));
             WIRELESS_INPUT_ENERGY_HATCH_64A[i] = registerMetaTileEntity(2860 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_64a." + voltageName), i, 64,
+                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_64a." + voltageName),
+                            i, 64,
                             false));
             WIRELESS_INPUT_ENERGY_HATCH_256A[i] = registerMetaTileEntity(2875 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_256a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_256a." + voltageName),
+                            i,
                             256, false));
             WIRELESS_INPUT_ENERGY_HATCH_1024A[i] = registerMetaTileEntity(2890 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_1024a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.input_1024a." + voltageName), i,
                             1024, false));
             WIRELESS_INPUT_ENERGY_HATCH_4096A[i] = registerMetaTileEntity(2905 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_4096a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.input_4096a." + voltageName), i,
                             4096, false));
             WIRELESS_INPUT_ENERGY_HATCH_16384A[i] = registerMetaTileEntity(2920 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_16384a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.input_16384a." + voltageName), i,
                             16384, false));
             WIRELESS_INPUT_ENERGY_HATCH_65536A[i] = registerMetaTileEntity(2935 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_65536a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.input_65536a." + voltageName), i,
                             65536, false));
             WIRELESS_INPUT_ENERGY_HATCH_262144A[i] = registerMetaTileEntity(2950 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_262144a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.input_262144a." + voltageName), i,
                             262144, false));
             WIRELESS_INPUT_ENERGY_HATCH_1048576A[i] = registerMetaTileEntity(2965 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.input_1048576a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.input_1048576a." + voltageName), i,
                             1048576, false));
             WIRELESS_OUTPUT_ENERGY_HATCH[i] = registerMetaTileEntity(2980 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output." + voltageName), i, 2,
+                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output." + voltageName), i,
+                            2,
                             true));
             WIRELESS_OUTPUT_ENERGY_HATCH_4A[i] = registerMetaTileEntity(2995 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_4a." + voltageName), i, 4,
+                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_4a." + voltageName),
+                            i, 4,
                             true));
             WIRELESS_OUTPUT_ENERGY_HATCH_16A[i] = registerMetaTileEntity(3010 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_16a." + voltageName), i, 16,
+                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_16a." + voltageName),
+                            i, 16,
                             true));
             WIRELESS_OUTPUT_ENERGY_HATCH_64A[i] = registerMetaTileEntity(3025 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_64a." + voltageName), i, 64,
+                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_64a." + voltageName),
+                            i, 64,
                             true));
             WIRELESS_OUTPUT_ENERGY_HATCH_256A[i] = registerMetaTileEntity(3040 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_256a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.output_256a." + voltageName), i,
                             256, true));
             WIRELESS_OUTPUT_ENERGY_HATCH_1024A[i] = registerMetaTileEntity(3055 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_1024a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.output_1024a." + voltageName), i,
                             1024, true));
             WIRELESS_OUTPUT_ENERGY_HATCH_4096A[i] = registerMetaTileEntity(3070 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_4096a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.output_4096a." + voltageName), i,
                             4096, true));
             WIRELESS_OUTPUT_ENERGY_HATCH_16384A[i] = registerMetaTileEntity(3085 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_16384a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.output_16384a." + voltageName), i,
                             16384, true));
             WIRELESS_OUTPUT_ENERGY_HATCH_65536A[i] = registerMetaTileEntity(3100 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_65536a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.output_65536a." + voltageName), i,
                             65536, true));
             WIRELESS_OUTPUT_ENERGY_HATCH_262144A[i] = registerMetaTileEntity(3115 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_262144a." + voltageName), i,
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.output_262144a." + voltageName), i,
                             262144, true));
             WIRELESS_OUTPUT_ENERGY_HATCH_1048576A[i] = registerMetaTileEntity(3130 + i,
-                    new MetaTileEntityWirelessEnergyHatch(gregtechId("wireless_energy_hatch.output_1048576a." + voltageName),
+                    new MetaTileEntityWirelessEnergyHatch(
+                            gregtechId("wireless_energy_hatch.output_1048576a." + voltageName),
                             i, 1048576, true));
         }
     }
@@ -335,7 +357,8 @@ public final class MultiblockPartRegistration {
         CLEANING_MAINTENANCE_HATCH = registerMetaTileEntity(3203,
                 new MetaTileEntityCleaningMaintenanceHatch(gregtechId("maintenance_hatch_cleanroom_auto")));
         STERILE_CLEANING_MAINTENANCE_HATCH = registerMetaTileEntity(3204,
-                new MetaTileEntitySterileCleaningMaintenanceHatch(gregtechId("maintenance_hatch_sterile_cleanroom_auto")));
+                new MetaTileEntitySterileCleaningMaintenanceHatch(
+                        gregtechId("maintenance_hatch_sterile_cleanroom_auto")));
         ISO3_CLEANING_MAINTENANCE_HATCH = registerMetaTileEntity(3205,
                 new MetaTileEntityISO3CleaningMaintenanceHatch(gregtechId("maintenance_hatch_iso_3_cleanroom_auto")));
         ISO2_CLEANING_MAINTENANCE_HATCH = registerMetaTileEntity(3206,
@@ -445,9 +468,12 @@ public final class MultiblockPartRegistration {
         }
         for (int i = 0; i < HEAT_INPUT_HATCH.length - 1; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
-            HEAT_INPUT_HATCH[i] = registerMetaTileEntity(3405 + i, new MetaTileEntityHeatHatch(gregtechId("heat_input_hatch." + voltageName), i, false));
-            HEAT_OUTPUT_HATCH[i] = registerMetaTileEntity(3420 + i, new MetaTileEntityHeatHatch(gregtechId("heat_output_hatch." + voltageName), i, true));
-            ELECTRIC_HEATER[i] = registerMetaTileEntity(3435 + i, new MetaTileEntityElectricHeater(gregtechId("electric_heater." + voltageName), i));
+            HEAT_INPUT_HATCH[i] = registerMetaTileEntity(3405 + i,
+                    new MetaTileEntityHeatHatch(gregtechId("heat_input_hatch." + voltageName), i, false));
+            HEAT_OUTPUT_HATCH[i] = registerMetaTileEntity(3420 + i,
+                    new MetaTileEntityHeatHatch(gregtechId("heat_output_hatch." + voltageName), i, true));
+            ELECTRIC_HEATER[i] = registerMetaTileEntity(3435 + i,
+                    new MetaTileEntityElectricHeater(gregtechId("electric_heater." + voltageName), i));
         }
 
         HEAT_SENSOR = registerMetaTileEntity(3450, new MetaTileEntityHeatSensor(gregtechId("heat_sensor")));

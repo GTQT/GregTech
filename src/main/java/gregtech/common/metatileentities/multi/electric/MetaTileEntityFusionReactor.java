@@ -46,6 +46,7 @@ import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.renderer.OpenGlHelper;
@@ -322,6 +323,11 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
     @Override
     protected ICubeRenderer getFrontOverlay() {
         return Textures.FUSION_REACTOR_OVERLAY;
+    }
+
+    @Override
+    public IBlockState getCasingBlock() {
+        return type.getCasingState();
     }
 
     @Override

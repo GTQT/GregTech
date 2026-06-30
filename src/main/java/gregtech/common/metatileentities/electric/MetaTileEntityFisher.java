@@ -92,7 +92,7 @@ public class MetaTileEntityFisher extends TieredMetaTileEntity {
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
                 .child(new ItemSlot().slot(SyncHandlers.itemSlot(importItems, 0)
-                        .slotGroup("item_in"))
+                                .slotGroup("item_in"))
                         .background(GTGuiTextures.SLOT, GTGuiTextures.STRING_SLOT_OVERLAY)
                         .pos(7 + 9, 9 * (rowSize + 1)))
                 .child(new Grid()

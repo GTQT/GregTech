@@ -25,7 +25,6 @@ import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumBlockRenderType;
@@ -200,7 +199,7 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer {
             for (EnumFacing side : EnumFacing.VALUES) {
                 sideMask[side.getIndex()] = state.shouldSideBeRendered(world, pos, side);
             }
-            Textures.RENDER_STATE.set(new CubeRendererState(renderLayer, sideMask, world));
+            Textures.RENDER_STATE.set(new CubeRendererState(renderLayer, sideMask, world, pos));
             if (canRenderInLayer(renderLayer)) {
                 renderState.lightMatrix.locate(world, pos);
                 PipeRenderContext renderContext = new PipeRenderContext(pos, renderState.lightMatrix, connectedSidesMap,

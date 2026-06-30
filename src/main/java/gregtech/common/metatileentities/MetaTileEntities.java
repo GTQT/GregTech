@@ -23,6 +23,7 @@ import gregtech.common.metatileentities.electric.MetaTileEntityCharger;
 import gregtech.common.metatileentities.electric.MetaTileEntityDiode;
 import gregtech.common.metatileentities.electric.MetaTileEntityDisposableBatteryBase;
 import gregtech.common.metatileentities.electric.MetaTileEntityDustCollector;
+import gregtech.common.metatileentities.electric.MetaTileEntityElectricHeater;
 import gregtech.common.metatileentities.electric.MetaTileEntityFisher;
 import gregtech.common.metatileentities.electric.MetaTileEntityGasCollector;
 import gregtech.common.metatileentities.electric.MetaTileEntityHull;
@@ -37,9 +38,6 @@ import gregtech.common.metatileentities.electric.MetaTileEntitySingleTurbine;
 import gregtech.common.metatileentities.electric.MetaTileEntityTeleporter;
 import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
-import gregtech.common.metatileentities.heat.MetaTileEntityElectricHeater;
-import gregtech.common.metatileentities.heat.MetaTileEntityHeatHatch;
-import gregtech.common.metatileentities.heat.MetaTileEntityHeatSensor;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOvenHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntityHugeTransformer;
@@ -133,6 +131,8 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityDualH
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityEnergyHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityFluidHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityGasHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatSensor;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeItemBus;
@@ -335,26 +335,44 @@ public class MetaTileEntities {
     public static final SimpleGeneratorMetaTileEntity[] SEMI_FLUID_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
     public static final SimpleGeneratorMetaTileEntity[] PLASMA_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
     // MULTIBLOCK PARTS SECTION
-    public static final MetaTileEntityItemBus[] ITEM_IMPORT_BUS = new MetaTileEntityItemBus[GTValues.V.length - 1]; // All tiers but MAX
+    public static final MetaTileEntityItemBus[] ITEM_IMPORT_BUS = new MetaTileEntityItemBus[GTValues.V.length -
+            1]; // All tiers but MAX
     public static final MetaTileEntityItemBus[] ITEM_EXPORT_BUS = new MetaTileEntityItemBus[GTValues.V.length - 1];
-    public static final MetaTileEntityFluidHatch[] FLUID_IMPORT_HATCH = new MetaTileEntityFluidHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityFluidHatch[] FLUID_EXPORT_HATCH = new MetaTileEntityFluidHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityMultiFluidHatch[] QUADRUPLE_IMPORT_HATCH = new MetaTileEntityMultiFluidHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityMultiFluidHatch[] NONUPLE_IMPORT_HATCH = new MetaTileEntityMultiFluidHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityMultiFluidHatch[] SIXTEEN_IMPORT_HATCH = new MetaTileEntityMultiFluidHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityMultiFluidHatch[] QUADRUPLE_EXPORT_HATCH = new MetaTileEntityMultiFluidHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityMultiFluidHatch[] NONUPLE_EXPORT_HATCH = new MetaTileEntityMultiFluidHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityMultiFluidHatch[] SIXTEEN_EXPORT_HATCH = new MetaTileEntityMultiFluidHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityDualHatch[] DUAL_IMPORT_HATCH = new MetaTileEntityDualHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityDualHatch[] DUAL_EXPORT_HATCH = new MetaTileEntityDualHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityComplexDualHatch[] COMPLEX_DUAL_HATCH = new MetaTileEntityComplexDualHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityMoldItemBus[] MOLD_ITEM_BUS = new MetaTileEntityMoldItemBus[GTValues.V.length - 1];
+    public static final MetaTileEntityFluidHatch[] FLUID_IMPORT_HATCH = new MetaTileEntityFluidHatch[GTValues.V.length -
+            1];
+    public static final MetaTileEntityFluidHatch[] FLUID_EXPORT_HATCH = new MetaTileEntityFluidHatch[GTValues.V.length -
+            1];
+    public static final MetaTileEntityMultiFluidHatch[] QUADRUPLE_IMPORT_HATCH = new MetaTileEntityMultiFluidHatch[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityMultiFluidHatch[] NONUPLE_IMPORT_HATCH = new MetaTileEntityMultiFluidHatch[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityMultiFluidHatch[] SIXTEEN_IMPORT_HATCH = new MetaTileEntityMultiFluidHatch[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityMultiFluidHatch[] QUADRUPLE_EXPORT_HATCH = new MetaTileEntityMultiFluidHatch[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityMultiFluidHatch[] NONUPLE_EXPORT_HATCH = new MetaTileEntityMultiFluidHatch[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityMultiFluidHatch[] SIXTEEN_EXPORT_HATCH = new MetaTileEntityMultiFluidHatch[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityDualHatch[] DUAL_IMPORT_HATCH = new MetaTileEntityDualHatch[GTValues.V.length -
+            1];
+    public static final MetaTileEntityDualHatch[] DUAL_EXPORT_HATCH = new MetaTileEntityDualHatch[GTValues.V.length -
+            1];
+    public static final MetaTileEntityComplexDualHatch[] COMPLEX_DUAL_HATCH = new MetaTileEntityComplexDualHatch[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityMoldItemBus[] MOLD_ITEM_BUS = new MetaTileEntityMoldItemBus[GTValues.V.length -
+            1];
 
-    public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_IMPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1];
-    public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_EXPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.V.length - 1];
-    public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_IMPORT_HATCH = new MetaTileEntityHugeDualHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_EXPORT_HATCH = new MetaTileEntityHugeDualHatch[GTValues.V.length - 1];
-    public static final MetaTileEntityHugeComplexDualHatch[] HUGE_COMPLEX_DUAL_HATCH = new MetaTileEntityHugeComplexDualHatch[GTValues.V.length - 1];
+    public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_IMPORT_BUS = new MetaTileEntityHugeItemBus[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_EXPORT_BUS = new MetaTileEntityHugeItemBus[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_IMPORT_HATCH = new MetaTileEntityHugeDualHatch[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_EXPORT_HATCH = new MetaTileEntityHugeDualHatch[
+            GTValues.V.length - 1];
+    public static final MetaTileEntityHugeComplexDualHatch[] HUGE_COMPLEX_DUAL_HATCH = new MetaTileEntityHugeComplexDualHatch[
+            GTValues.V.length - 1];
 
     public static final MetaTileEntityEnergyHatch[] ENERGY_INPUT_HATCH = new MetaTileEntityEnergyHatch[GTValues.V.length];
     public static final MetaTileEntityEnergyHatch[] ENERGY_INPUT_HATCH_4A = new MetaTileEntityEnergyHatch[GTValues.V.length];
@@ -371,22 +389,6 @@ public class MetaTileEntities {
     public static final MetaTileEntitySubstationEnergyHatch[] SUBSTATION_ENERGY_OUTPUT_HATCH = new MetaTileEntitySubstationEnergyHatch[GTValues.V.length];
     public static final MetaTileEntitySubstationEnergyHatch[] SUBSTATION_ENERGY_INPUT_HATCH_256A = new MetaTileEntitySubstationEnergyHatch[GTValues.V.length];
     public static final MetaTileEntitySubstationEnergyHatch[] SUBSTATION_ENERGY_OUTPUT_HATCH_256A = new MetaTileEntitySubstationEnergyHatch[GTValues.V.length];
-
-    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_256 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_1024 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_4096 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_16384 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_65536 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_262144 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_1048576 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_256 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_1024 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_4096 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_16384 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_65536 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_262144 = new MetaTileEntityLaserHatch[10]; // IV+
-    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_1048576 = new MetaTileEntityLaserHatch[10]; // IV+
-
     public static final MetaTileEntityWirelessController[] WIRELESS_CONTROLLERS = new MetaTileEntityWirelessController[GTValues.V.length];
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_INPUT_ENERGY_HATCH = new MetaTileEntityWirelessEnergyHatch[GTValues.V.length];
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_OUTPUT_ENERGY_HATCH = new MetaTileEntityWirelessEnergyHatch[GTValues.V.length];
@@ -410,10 +412,9 @@ public class MetaTileEntities {
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_OUTPUT_ENERGY_HATCH_262144A = new MetaTileEntityWirelessEnergyHatch[GTValues.V.length];
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_INPUT_ENERGY_HATCH_1048576A = new MetaTileEntityWirelessEnergyHatch[GTValues.V.length];
     public static final MetaTileEntityWirelessEnergyHatch[] WIRELESS_OUTPUT_ENERGY_HATCH_1048576A = new MetaTileEntityWirelessEnergyHatch[GTValues.V.length];
-
-
     public static final MetaTileEntityRotorHolder[] ROTOR_HOLDER = new MetaTileEntityRotorHolder[12]; // HV, EV, IV, LuV, ZPM, UV, UHV, UEV, UIV, UXV, OPV,MAX
-    public static final MetaTileEntityMufflerHatch[] MUFFLER_HATCH = new MetaTileEntityMufflerHatch[GTValues.UHV + 1]; // LV-UHV
+    public static final MetaTileEntityMufflerHatch[] MUFFLER_HATCH = new MetaTileEntityMufflerHatch[GTValues.UHV +
+            1]; // LV-UHV
     public static final MetaTileEntityFusionReactor[] FUSION_REACTOR = new MetaTileEntityFusionReactor[3];
     public static final MetaTileEntityQuantumChest[] QUANTUM_CHEST = new MetaTileEntityQuantumChest[10];
     public static final MetaTileEntityQuantumTank[] QUANTUM_TANK = new MetaTileEntityQuantumTank[10];
@@ -426,19 +427,31 @@ public class MetaTileEntities {
     public static final MetaTileEntityWorldAccelerator[] WORLD_ACCELERATOR = new MetaTileEntityWorldAccelerator[
             GTValues.V.length - 1];
     public static final MetaTileEntityTeleporter[] TELEPORTER = new MetaTileEntityTeleporter[GTValues.V.length - 1];
-
     public static final MetaTileEntityGasHatch[] GAS_HATCH = new MetaTileEntityGasHatch[GTValues.UHV + 1];
     public static final MetaTileEntityDustCollector[] DUST_COLLECTOR = new MetaTileEntityDustCollector[
             GTValues.V.length - 1];
     public static final MetaTileEntityHeatHatch[] HEAT_INPUT_HATCH = new MetaTileEntityHeatHatch[10];
     public static final MetaTileEntityHeatHatch[] HEAT_OUTPUT_HATCH = new MetaTileEntityHeatHatch[10];
     public static final MetaTileEntityElectricHeater[] ELECTRIC_HEATER = new MetaTileEntityElectricHeater[10];
-
     public static final MetaTileEntityQuantumMultiTank[] MULTI_QUANTUM_TANK = new MetaTileEntityQuantumMultiTank[10];
     public static final MetaTileEntityHugeBuffer[] HUGE_BUFFER = new MetaTileEntityHugeBuffer[5];
     // Used for addons if they wish to disable certain tiers of machines
     private static final Map<String, Boolean> MID_TIER = new HashMap<>();
     private static final Map<String, Boolean> HIGH_TIER = new HashMap<>();
+    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_256 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_1024 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_4096 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_16384 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_65536 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_262144 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_INPUT_HATCH_1048576 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_256 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_1024 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_4096 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_16384 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_65536 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_262144 = new MetaTileEntityLaserHatch[10]; // IV+
+    public static MetaTileEntityLaserHatch[] LASER_OUTPUT_HATCH_1048576 = new MetaTileEntityLaserHatch[10]; // IV+
     // spotless:off
     public static MetaTileEntityLockedSafe LOCKED_SAFE;
     public static MetaTileEntityQuantumStorageController QUANTUM_STORAGE_CONTROLLER;

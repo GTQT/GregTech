@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -33,7 +32,7 @@ public class MetaTileEntityLargeMassFabricator extends GCYMRecipeMapMultiblockCo
                     .aisle("XXXXX", "GAAAG", "GAKAG", "GAAAG", "XXXXX")
                     .aisle("XXXXX", "XGGGX", "XGSGX", "XGGGX", "XXXXX")
                     .self('S', MetaTileEntityLargeMassFabricator.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -51,19 +50,19 @@ public class MetaTileEntityLargeMassFabricator extends GCYMRecipeMapMultiblockCo
         super(metaTileEntityId, RecipeMaps.MASS_FABRICATOR_RECIPES);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.ATOMIC_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.FUSION_GLASS);
     }
 
-    private static IBlockState getCasingState3() {
+    public static IBlockState getCasingState3() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.HEAT_VENT);
     }
 
-    private static IBlockState getCasingState4() {
+    public static IBlockState getCasingState4() {
         return MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.FUSION_COIL);
     }
 

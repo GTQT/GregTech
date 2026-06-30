@@ -230,7 +230,7 @@ public class MetaTileEntityRotorHolder extends MetaTileEntityMultiblockNotifiabl
         return isRotorSpinning;
     }
 
-    private void applyDamage(Entity  entity) {
+    private void applyDamage(Entity entity) {
         float damageApplied = Math.min(1, currentSpeed / 1000);
         entity.attackEntityFrom(DamageSources.getTurbineDamage(), damageApplied);
     }

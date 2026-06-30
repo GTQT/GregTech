@@ -3,7 +3,6 @@ package gregtech.common.metatileentities.steam.multiblockpart;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -42,20 +41,18 @@ public class MetaTileEntityHugeSteamItemBus extends MetaTileEntityItemBus {
         return isExportHatch ? MultiblockAbility.STEAM_EXPORT_ITEMS : MultiblockAbility.STEAM_IMPORT_ITEMS;
     }
 
-    // Override base texture to have a bus with 4 slots, but ULV textures
-    @Override
-    public ICubeRenderer getBaseTexture() {
-        MultiblockControllerBase controller = getController();
-        if (controller == null)
-            return Textures.STEAM_CASING_STEEL;
-        return controller.getBaseTexture(this);
-    }
-
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         tooltip.add(TooltipHelper.BLINKING_ORANGE + I18n.format("gregtech.machine.steam_bus.tooltip"));
+    }
+
+    @Override
+    public ICubeRenderer getBaseTexture() {
+        if(getController()==null)
+            return Textures.STEAM_CASING_STEEL;
+        return super.getBaseTexture();
     }
 
     @Override

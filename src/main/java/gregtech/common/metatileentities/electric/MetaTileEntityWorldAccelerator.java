@@ -55,6 +55,7 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
     private static boolean gatheredClasses = false;
     private final int speed;
     private final int successLimit;
+    long cacheWorldTime = 0L;
     private boolean tileMode = false;
     private boolean isActive = false;
     private boolean isPaused = false;
@@ -165,13 +166,11 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
         return 6L;
     }
 
-    long cacheWorldTime = 0L;
     @Override
     public void update() {
         super.update();
         if (!getWorld().isRemote) {
-            if(getWorld().getWorldTime() == cacheWorldTime)
-            {
+            if (getWorld().getWorldTime() == cacheWorldTime) {
                 return;
             }
             cacheWorldTime = getWorld().getWorldTime();
@@ -199,8 +198,7 @@ public class MetaTileEntityWorldAccelerator extends TieredMetaTileEntity impleme
             MetaTileEntity metaTileEntity = GTUtility.getMetaTileEntity(world, pos.offset(facing));
 
             if (metaTileEntity != null) {
-                if(metaTileEntity instanceof MetaTileEntityWorldAccelerator)
-                {
+                if (metaTileEntity instanceof MetaTileEntityWorldAccelerator) {
                     continue;
                 }
                 for (int i = 0; i < speed; i++) {

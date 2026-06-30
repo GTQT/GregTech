@@ -63,6 +63,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
                             .self('S', MetaTileEntityDistillationTower.class)
                             .air('#')
                             .casing('Y', getCasingState())
+                            .optionalItemInput(2)
                             .optionalItemOutput(1)
                             .energyInput(1, 3)
                             .fluidInput(1)
@@ -87,7 +88,7 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
         } else this.handler = null;
     }
 
-    protected static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(MetalCasingType.STAINLESS_CLEAN);
     }
 

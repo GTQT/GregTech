@@ -54,9 +54,9 @@ public class MetaTileEntityCrate extends MetaTileEntity {
     private final Material material;
     private final int inventorySize;
     private final int rowSize;
+    private final String TAPED_NBT = "Taped";
     protected ItemStackHandler inventory;
     private boolean isTaped;
-    private final String TAPED_NBT = "Taped";
 
     public MetaTileEntityCrate(ResourceLocation metaTileEntityId, Material material, int inventorySize, int rowSize) {
         super(metaTileEntityId);

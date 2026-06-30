@@ -1,7 +1,6 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.GTValues;
-import gregtech.api.gui.ModularUI;
 import gregtech.api.metatileentity.GCYMMultiblockAbility;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -12,7 +11,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.client.renderer.texture.Textures;
 
 import net.minecraft.client.resources.I18n;
-import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
@@ -40,11 +38,6 @@ public class MetaTileEntityTieredHatch extends MetaTileEntityMultiblockPart
     @Override
     protected boolean openGUIOnRightClick() {
         return false;
-    }
-
-    @Override
-    protected ModularUI createUI(EntityPlayer entityPlayer) {
-        return null;
     }
 
     @Override

@@ -1,11 +1,7 @@
 package gregtech.common.metatileentities.multi.multiblockpart.hpca;
 
-import com.cleanroommc.modularui.drawable.UITexture;
-
 import gregtech.api.GTValues;
 import gregtech.api.capability.IHPCAComputationProvider;
-import gregtech.api.gui.GuiTextures;
-import gregtech.api.gui.resources.TextureArea;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.mui.GTGuiTextures;
@@ -13,6 +9,8 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 
 import net.minecraft.util.ResourceLocation;
+
+import com.cleanroommc.modularui.drawable.UITexture;
 
 import static gregtech.api.GTValues.CWT;
 

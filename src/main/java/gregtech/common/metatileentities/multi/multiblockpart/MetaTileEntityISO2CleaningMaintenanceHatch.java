@@ -8,11 +8,9 @@ import gregtech.api.metatileentity.multiblock.DummyCleanroom;
 import gregtech.api.metatileentity.multiblock.ICleanroomProvider;
 import gregtech.api.metatileentity.multiblock.ICleanroomReceiver;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.ConfigHolder;
-
 import gregtech.common.metatileentities.MetaTileEntities;
 
 import net.minecraft.client.resources.I18n;
@@ -24,12 +22,10 @@ import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
 import codechicken.lib.render.CCRenderState;
-import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.google.common.collect.ImmutableSet;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
-import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -38,6 +34,8 @@ import java.util.Set;
 public class MetaTileEntityISO2CleaningMaintenanceHatch extends MetaTileEntityAutoMaintenanceHatch {
 
     protected static final Set<CleanroomType> CLEANED_TYPES = new ObjectOpenHashSet<>();
+    // must come after the static block
+    private static final ICleanroomProvider DUMMY_CLEANROOM = DummyCleanroom.createForTypes(CLEANED_TYPES);
 
     static {
         CLEANED_TYPES.add(CleanroomType.CLEANROOM);
@@ -46,11 +44,26 @@ public class MetaTileEntityISO2CleaningMaintenanceHatch extends MetaTileEntityAu
         CLEANED_TYPES.add(CleanroomType.ISO2);
     }
 
-    // must come after the static block
-    private static final ICleanroomProvider DUMMY_CLEANROOM = DummyCleanroom.createForTypes(CLEANED_TYPES);
-
     public MetaTileEntityISO2CleaningMaintenanceHatch(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId);
+    }
+
+    /**
+     * Add an {@link CleanroomType} that is provided to multiblocks with this hatch
+     *
+     * @param type the type to add
+     */
+    @SuppressWarnings("unused")
+    public static void addCleanroomType(CleanroomType type) {
+        CLEANED_TYPES.add(type);
+    }
+
+    /**
+     * @return the {@link CleanroomType}s this hatch provides to multiblocks
+     */
+    @SuppressWarnings("unused")
+    public static ImmutableSet<CleanroomType> getCleanroomTypes() {
+        return ImmutableSet.copyOf(CLEANED_TYPES);
     }
 
     @Override
@@ -89,10 +102,10 @@ public class MetaTileEntityISO2CleaningMaintenanceHatch extends MetaTileEntityAu
 
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
-        getBaseTexture().render(renderState, translation, ArrayUtils.add(pipeline,
-                new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering()))));
+        super.renderMetaTileEntity(renderState, translation, pipeline);
         if (shouldRenderOverlay())
-            Textures.MAINTENANCE_OVERLAY_ISO2_CLEANING.renderSided(getFrontFacing(), renderState, translation, pipeline);
+            Textures.MAINTENANCE_OVERLAY_ISO2_CLEANING.renderSided(getFrontFacing(), renderState, translation,
+                    pipeline);
     }
 
     @Override
@@ -112,24 +125,6 @@ public class MetaTileEntityISO2CleaningMaintenanceHatch extends MetaTileEntityAu
         for (CleanroomType type : CLEANED_TYPES) {
             tooltip.add(String.format("  %s%s", TextFormatting.LIGHT_PURPLE, I18n.format(type.getTranslationKey())));
         }
-    }
-
-    /**
-     * Add an {@link CleanroomType} that is provided to multiblocks with this hatch
-     *
-     * @param type the type to add
-     */
-    @SuppressWarnings("unused")
-    public static void addCleanroomType( CleanroomType type) {
-        CLEANED_TYPES.add(type);
-    }
-
-    /**
-     * @return the {@link CleanroomType}s this hatch provides to multiblocks
-     */
-    @SuppressWarnings("unused")
-    public static ImmutableSet<CleanroomType> getCleanroomTypes() {
-        return ImmutableSet.copyOf(CLEANED_TYPES);
     }
 
 }

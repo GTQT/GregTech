@@ -50,7 +50,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MetaTileEntityPumpHatch extends MetaTileEntityMultiblockPart
-                                     implements IMultiblockAbilityPart<IFluidTank> {
+        implements IMultiblockAbilityPart<IFluidTank> {
 
     private static final int FLUID_TANK_SIZE = 1000;
 
@@ -161,13 +161,13 @@ public class MetaTileEntityPumpHatch extends MetaTileEntityMultiblockPart
                         .pos(69, 52)
                         .disableBackground())
                 .child(new ItemSlot().slot(SyncHandlers.itemSlot(this.importItems, 0)
-                        .slotGroup("item_inv")
-                        .filter(itemStack -> FluidUtil.getFluidHandler(itemStack) != null))
+                                .slotGroup("item_inv")
+                                .filter(itemStack -> FluidUtil.getFluidHandler(itemStack) != null))
                         .background(GTGuiTextures.SLOT, GTGuiTextures.IN_SLOT_OVERLAY)
                         .pos(90, 16))
                 .child(new ItemSlot().slot(SyncHandlers.itemSlot(this.exportItems, 0)
-                        .slotGroup("item_inv")
-                        .accessibility(false, true))
+                                .slotGroup("item_inv")
+                                .accessibility(false, true))
                         .background(GTGuiTextures.SLOT, GTGuiTextures.OUT_SLOT_OVERLAY)
                         .pos(90, 53));
     }

@@ -9,7 +9,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.Elements;
@@ -40,16 +39,16 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
             "gcym:steam_engine", () ->
                     DeclarativePatternBuilder.start()
                             .piece("main")
-                                .aisle("#XX", "XEX", "#XX")
-                                .aisle("XXX", "XGX", "XMX")
-                                .aisle("#XX", "XGX", "#XX")
-                                .aisle("#XX", "#SX", "#XX")
+                            .aisle("#XX", "XEX", "#XX")
+                            .aisle("XXX", "XGX", "XMX")
+                            .aisle("#XX", "XGX", "#XX")
+                            .aisle("#XX", "#SX", "#XX")
                             .self('S', MetaTileEntitySteamEngine.class)
                             .block('G', getCasingState2())
                             .where('E', energyOutputElement())
                             .hatch('M', MultiblockAbility.MUFFLER_HATCH)
                             .any('#')
-                            .casing('X', CasingDefinition.simple(getCasingState()))
+                            .casing('X', getCasingState())
                             .hatch(MultiblockAbility.MAINTENANCE_HATCH,
                                     ConfigHolder.machines.enableMaintenance ? 1 : 0, 1)
                             .preset(HatchPresets.STANDARD_FLUID_IO)
@@ -77,11 +76,11 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
                 "gregtech.multiblock.pattern.error.limited.0 " + GTValues.VN[GTValues.MV]);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.STEAM_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.TURBINE_CASING.getState(BlockTurbineCasing.TurbineCasingType.BRONZE_GEARBOX);
     }
 

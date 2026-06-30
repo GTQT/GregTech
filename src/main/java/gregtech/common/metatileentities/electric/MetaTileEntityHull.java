@@ -17,6 +17,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
@@ -26,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public class MetaTileEntityHull extends MetaTileEntityMultiblockPart
-                                implements IPassthroughHatch, IMultiblockAbilityPart<IPassthroughHatch> {
+        implements IPassthroughHatch, IMultiblockAbilityPart<IPassthroughHatch> {
 
     protected IEnergyContainer energyContainer;
 

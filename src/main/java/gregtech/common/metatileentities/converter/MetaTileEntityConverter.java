@@ -85,6 +85,10 @@ public class MetaTileEntityConverter extends TieredMetaTileEntity {
         return true;
     }
 
+    public boolean isFeToEu() {
+        return converterTrait.isFeToEu();
+    }
+
     public void setFeToEu(boolean feToEu) {
         converterTrait.setFeToEu(feToEu);
         if (!getWorld().isRemote) {
@@ -92,10 +96,6 @@ public class MetaTileEntityConverter extends TieredMetaTileEntity {
             notifyBlockUpdate();
             markDirty();
         }
-    }
-
-    public boolean isFeToEu() {
-        return converterTrait.isFeToEu();
     }
 
     @Override

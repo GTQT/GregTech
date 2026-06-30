@@ -5,7 +5,6 @@ import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
 import gregtech.api.pattern.casing.HatchPresets;
@@ -20,6 +19,7 @@ import gregtech.common.blocks.BlockBoilerCasing;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.core.sound.GTSoundEvents;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -27,6 +27,7 @@ import net.minecraft.util.SoundEvent;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -43,7 +44,7 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
                     .aisle("XXXXX", "XPPPX", "XCCCX", "XPPPX", "XXXXX")
                     .aisle("X###X", "SXXXX", "X###X", "XXXXX", "X###X")
                     .self('S', MetaTileEntityLargeChemicalComplex.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -57,7 +58,7 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
     );
 
     public MetaTileEntityLargeChemicalComplex(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.CHEMICAL_RECIPES,
                 RecipeMaps.POLYMERIZATION_RECIPES,
                 RecipeMaps.DESULFURIZATION_RECIPES
@@ -65,11 +66,11 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
         this.recipeMapWorkable = new GCYMMultiblockRecipeLogic(this, true);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.PTFE_INERT_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.POLYTETRAFLUOROETHYLENE_PIPE);
     }
 

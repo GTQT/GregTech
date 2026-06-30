@@ -4,7 +4,6 @@ import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.pattern.casing.CasingDefinition;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -31,7 +30,7 @@ public class MetaTileEntityLargeElectrolyzer extends GCYMAdvanceRecipeMapMultibl
                     .aisle("XXXXX", "XCCCX", "XCCCX")
                     .aisle("XXXXX", "XXSXX", "XXXXX")
                     .self('S', MetaTileEntityLargeElectrolyzer.class)
-                    .casing('X', CasingDefinition.simple(getCasingState()))
+                    .casing('X', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -43,18 +42,18 @@ public class MetaTileEntityLargeElectrolyzer extends GCYMAdvanceRecipeMapMultibl
     );
 
     public MetaTileEntityLargeElectrolyzer(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, new RecipeMap[]{
+        super(metaTileEntityId, new RecipeMap[] {
                 RecipeMaps.ELECTROLYZER_RECIPES,
                 RecipeMaps.LIGHTNING_PROCESSOR_RECIPES
         });
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.LARGE_MULTIBLOCK_CASING
                 .getState(BlockLargeMultiblockCasing.CasingType.NONCONDUCTING_CASING);
     }
 
-    private static IBlockState getCasingState2() {
+    public static IBlockState getCasingState2() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.ELECTROLYTIC_CELL);
     }
 

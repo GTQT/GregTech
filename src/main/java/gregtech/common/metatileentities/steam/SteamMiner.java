@@ -1,6 +1,10 @@
 package gregtech.common.metatileentities.steam;
 
-import gregtech.api.capability.*;
+import gregtech.api.capability.GregtechDataCodes;
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IControllable;
+import gregtech.api.capability.IMiner;
+import gregtech.api.capability.IVentable;
 import gregtech.api.capability.impl.CommonFluidFilters;
 import gregtech.api.capability.impl.FilteredFluidHandler;
 import gregtech.api.capability.impl.FluidTankList;
@@ -30,7 +34,11 @@ import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.*;
+import net.minecraft.util.EntitySelectors;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumParticleTypes;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.ITextComponent;
@@ -65,14 +73,12 @@ import java.util.List;
 
 public class SteamMiner extends MetaTileEntity implements IMiner, IControllable, IVentable, IDataInfoProvider {
 
-    private boolean needsVenting = false;
-    private boolean ventingStuck = false;
-
     private final int inventorySize;
     private final int energyPerTick;
-    private boolean isInventoryFull = false;
-
     private final MinerLogic minerLogic;
+    private boolean needsVenting = false;
+    private boolean ventingStuck = false;
+    private boolean isInventoryFull = false;
 
     public SteamMiner(ResourceLocation metaTileEntityId, int speed, int maximumRadius, int fortune) {
         super(metaTileEntityId);
@@ -313,26 +319,6 @@ public class SteamMiner extends MetaTileEntity implements IMiner, IControllable,
                 getPaintingColorForRendering());
     }
 
-    public void setVentingStuck(boolean ventingStuck) {
-        this.ventingStuck = ventingStuck;
-        if (!this.getWorld().isRemote) {
-            this.markDirty();
-            this.writeCustomData(GregtechDataCodes.VENTING_STUCK, (buf) -> buf.writeBoolean(ventingStuck));
-        }
-    }
-
-    @Override
-    public void setNeedsVenting(boolean needsVenting) {
-        this.needsVenting = needsVenting;
-        if (!needsVenting && this.ventingStuck)
-            this.setVentingStuck(false);
-
-        if (!this.getWorld().isRemote) {
-            this.markDirty();
-            this.writeCustomData(GregtechDataCodes.NEEDS_VENTING, (buf) -> buf.writeBoolean(needsVenting));
-        }
-    }
-
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
         if (capability == GregtechTileCapabilities.CAPABILITY_CONTROLLABLE) {
@@ -367,6 +353,18 @@ public class SteamMiner extends MetaTileEntity implements IMiner, IControllable,
     }
 
     @Override
+    public void setNeedsVenting(boolean needsVenting) {
+        this.needsVenting = needsVenting;
+        if (!needsVenting && this.ventingStuck)
+            this.setVentingStuck(false);
+
+        if (!this.getWorld().isRemote) {
+            this.markDirty();
+            this.writeCustomData(GregtechDataCodes.NEEDS_VENTING, (buf) -> buf.writeBoolean(needsVenting));
+        }
+    }
+
+    @Override
     public void tryDoVenting() {
         BlockPos machinePos = this.getPos();
         EnumFacing ventingSide = EnumFacing.UP;
@@ -397,6 +395,14 @@ public class SteamMiner extends MetaTileEntity implements IMiner, IControllable,
     @Override
     public boolean isVentingStuck() {
         return ventingStuck;
+    }
+
+    public void setVentingStuck(boolean ventingStuck) {
+        this.ventingStuck = ventingStuck;
+        if (!this.getWorld().isRemote) {
+            this.markDirty();
+            this.writeCustomData(GregtechDataCodes.VENTING_STUCK, (buf) -> buf.writeBoolean(ventingStuck));
+        }
     }
 
     @NotNull

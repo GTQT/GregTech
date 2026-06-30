@@ -51,8 +51,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MetaTileEntityPassthroughHatchItem extends MetaTileEntityMultiblockPart implements IPassthroughHatch,
-                                                IMultiblockAbilityPart<IPassthroughHatch>,
-                                                IControllable {
+                                                                                                IMultiblockAbilityPart<IPassthroughHatch>,
+                                                                                                IControllable {
 
     private ItemStackHandler itemStackHandler;
 

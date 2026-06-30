@@ -336,7 +336,7 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
                                                 gtHandler.onContentsChanged(index);
                                             }
                                         })
-                                        .accessibility(!false, true))))
+                                        .accessibility(true, true))))
                 .child(Flow.column()
                         .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 4)
                         .width(18).height(18 * 4 + 4)
@@ -386,6 +386,10 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
         return true;
     }
 
+    public boolean isAutoCollapse() {
+        return autoCollapse;
+    }
+
     public void setAutoCollapse(boolean inverted) {
         autoCollapse = inverted;
         if (!getWorld().isRemote) {
@@ -395,21 +399,6 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
             writeCustomData(GregtechDataCodes.TOGGLE_COLLAPSE_ITEMS,
                     packetBuffer -> packetBuffer.writeBoolean(autoCollapse));
             notifyBlockUpdate();
-            markDirty();
-        }
-    }
-
-    public boolean isAutoCollapse() {
-        return autoCollapse;
-    }
-
-    @Override
-    public void setGhostCircuitConfig(int config) {
-        if (this.moldInventory == null || this.moldInventory.getCircuitValue() == config) {
-            return;
-        }
-        this.moldInventory.setCircuitValue(config);
-        if (!getWorld().isRemote) {
             markDirty();
         }
     }
@@ -432,6 +421,18 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
         }
         return this.moldInventory.getCircuitValue();
     }
+
+    @Override
+    public void setGhostCircuitConfig(int config) {
+        if (this.moldInventory == null || this.moldInventory.getCircuitValue() == config) {
+            return;
+        }
+        this.moldInventory.setCircuitValue(config);
+        if (!getWorld().isRemote) {
+            markDirty();
+        }
+    }
+
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {

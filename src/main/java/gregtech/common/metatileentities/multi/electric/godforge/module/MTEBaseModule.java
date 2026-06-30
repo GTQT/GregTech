@@ -1,19 +1,5 @@
 package gregtech.common.metatileentities.multi.electric.godforge.module;
 
-import java.math.BigInteger;
-import java.util.List;
-
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TextFormatting;
-
-import com.cleanroommc.modularui.api.drawable.IKey;
-import org.jetbrains.annotations.NotNull;
-
-import gregtech.api.GTValues;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
 import gregtech.api.metatileentity.multiblock.IGodforgeModule;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
@@ -21,8 +7,8 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.ui.KeyManager;
-import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.UISyncer;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.Elements;
@@ -37,11 +23,20 @@ import gregtech.common.blocks.BlockGodforgeCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.mui.multiblock.godforge.MTEBaseModuleGui;
 
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextFormatting;
+
+import com.cleanroommc.modularui.api.drawable.IKey;
+import org.jetbrains.annotations.NotNull;
+
+import java.math.BigInteger;
+
 public abstract class MTEBaseModule extends RecipeMapMultiblockController
         implements IGodforgeModule, IMultiblockAbilityPart<IGodforgeModule> {
 
     protected boolean isConnected = false;
-    private MultiblockControllerBase attachedGodforge;
     protected int machineHeat = 0;
     protected int overclockHeat = 0;
     protected int calculatedMaxParallel = 0;
@@ -60,6 +55,7 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
     protected BigInteger powerTally = BigInteger.ZERO;
     protected long recipeTally = 0;
     protected long currentRecipeHeat = 0;
+    private MultiblockControllerBase attachedGodforge;
     private StructureDefinition<?> structureDefinition;
 
     public MTEBaseModule(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap) {
@@ -68,6 +64,21 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
     }
 
     // region GUI
+
+    private static IKey createStatLine(String labelKey, IKey value) {
+        return IKey.comp(
+                IKey.lang(labelKey).style(TextFormatting.GRAY),
+                KeyUtil.string(TextFormatting.GRAY, ": "),
+                value);
+    }
+
+    private static IKey formatDouble(double value) {
+        return KeyUtil.string(TextFormatting.AQUA, TextFormattingUtil.formatNumbers(value));
+    }
+
+    protected static IBlockState getCasingState(BlockGodforgeCasing.CasingType type) {
+        return MetaBlocks.GODFORGE_CASING.getState(type);
+    }
 
     protected abstract MTEBaseModuleGui<?> createModuleGui();
 
@@ -82,6 +93,8 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
         configureDisplayText(builder);
         builder.addCustom(this::addModuleDisplayText);
     }
+
+    // endregion
 
     private void addModuleDisplayText(KeyManager keyManager, UISyncer syncer) {
         if (!syncer.syncBoolean(this::isStructureFormed)) {
@@ -111,19 +124,6 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
                 KeyUtil.number(TextFormatting.AQUA, syncer.syncLong(this::getProcessingVoltage), " EU/t")));
     }
 
-    private static IKey createStatLine(String labelKey, IKey value) {
-        return IKey.comp(
-                IKey.lang(labelKey).style(TextFormatting.GRAY),
-                KeyUtil.string(TextFormatting.GRAY, ": "),
-                value);
-    }
-
-    private static IKey formatDouble(double value) {
-        return KeyUtil.string(TextFormatting.AQUA, TextFormattingUtil.formatNumbers(value));
-    }
-
-    // endregion
-
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
@@ -152,15 +152,19 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
                 .metaTileEntities('~', this)
                 .where('A', getCoilBlockElement())
                 .where('B', Elements.chain(
-                        Elements.block(getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)),
+                        Elements.block(getCasingState(
+                                BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING)),
                         Elements.abilities(MultiblockAbility.IMPORT_ITEMS),
                         Elements.abilities(MultiblockAbility.IMPORT_FLUIDS),
                         Elements.abilities(MultiblockAbility.EXPORT_ITEMS),
                         Elements.abilities(MultiblockAbility.EXPORT_FLUIDS)))
-                .block('C', getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING))
+                .block('C',
+                        getCasingState(BlockGodforgeCasing.CasingType.SINGULARITY_REINFORCED_STELLAR_SHIELDING_CASING))
                 .block('D', getCasingState(BlockGodforgeCasing.CasingType.CELESTIAL_MATTER_GUIDANCE_CASING))
-                .block('E', getCasingState(BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING))
-                .block('F', getCasingState(BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))
+                .block('E', getCasingState(
+                        BlockGodforgeCasing.CasingType.BOUNDLESS_GRAVITATIONALLY_SEVERED_STRUCTURE_CASING))
+                .block('F', getCasingState(
+                        BlockGodforgeCasing.CasingType.TRANSCENDENTALLY_AMPLIFIED_MAGNETIC_CONFINEMENT_CASING))
                 .block('G', getCasingState(BlockGodforgeCasing.CasingType.STELLAR_ENERGY_SIPHON_CASING))
                 .buildStructureDefinition();
     }
@@ -488,9 +492,5 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
     @Override
     public ICubeRenderer getBaseTexture(gregtech.api.metatileentity.multiblock.IMultiblockPart sourcePart) {
         return Textures.GODFORGE_INNER_CASING;
-    }
-
-    protected static IBlockState getCasingState(BlockGodforgeCasing.CasingType type) {
-        return MetaBlocks.GODFORGE_CASING.getState(type);
     }
 }

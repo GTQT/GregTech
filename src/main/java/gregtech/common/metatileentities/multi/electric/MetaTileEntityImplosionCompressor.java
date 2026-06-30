@@ -24,20 +24,23 @@ import org.jetbrains.annotations.NotNull;
 
 public class MetaTileEntityImplosionCompressor extends RecipeMapMultiblockController {
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:implosion_compressor", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
                     .aisle("XXX", "X#X", "XXX")
                     .aisle("XXX", "XSX", "XXX")
                     .self('S', MetaTileEntityImplosionCompressor.class)
                     .air('#')
-                    .casing('X',
-                            MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID))
-                        .preset(HatchPresets.ELECTRIC_STANDARD)
+                    .casing('X', getCasingState())
+                    .preset(HatchPresets.ELECTRIC_STANDARD)
                     .buildStructureDefinition());
 
     public MetaTileEntityImplosionCompressor(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.IMPLOSION_RECIPES);
+    }
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID);
     }
 
     @Override
@@ -54,10 +57,6 @@ public class MetaTileEntityImplosionCompressor extends RecipeMapMultiblockContro
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
         return Textures.SOLID_STEEL_CASING;
-    }
-
-    protected IBlockState getCasingState() {
-        return MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID);
     }
 
     @SideOnly(Side.CLIENT)

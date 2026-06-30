@@ -7,7 +7,6 @@ import gregtech.api.capability.IRotorHolder;
 import gregtech.api.capability.impl.MultiblockFuelRecipeLogic;
 import gregtech.api.metatileentity.multiblock.FuelMultiblockController;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMap;
@@ -16,7 +15,6 @@ import gregtech.api.util.GTUtility;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
-import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import org.jetbrains.annotations.NotNull;
@@ -190,7 +188,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
             if (parallel <= 0) return false;
 
             // 确保刷新流体状态
-            ((RecipeMapMultiblockController) metaTileEntity).refreshAllBeforeConsumption();
+            metaTileEntity.refreshAllBeforeConsumption();
 
             FluidStack inputFluid = getInputFluidStack();
             if (inputFluid == null || inputFluid.amount < recipeFluidStack.amount * parallel) {
@@ -224,7 +222,7 @@ public class LargeTurbineWorkableHandler extends MultiblockFuelRecipeLogic {
     }
 
     public void updateTanks() {
-        FuelMultiblockController controller = (FuelMultiblockController) this.metaTileEntity;
+        FuelMultiblockController controller = this.metaTileEntity;
         for (IFluidTank tank : controller.getAbilities(MultiblockAbility.IMPORT_FLUIDS)) {
             controller.addNotifiedInput(tank);
         }
