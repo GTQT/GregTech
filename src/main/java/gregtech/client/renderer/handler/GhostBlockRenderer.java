@@ -281,7 +281,9 @@ public class GhostBlockRenderer {
      * manageable for large multi-piece multiblocks like the Forge of the Gods.
      */
     private static boolean buildPieceVBO(MultiblockControllerBase controller, int pieceIndex) {
-        MultiPiecePattern multiPiece = controller.getStructureDefinition().getCompiledPattern();
+        MultiPiecePattern multiPiece = controller.getStructureDefinition().supportsSingleTemplatePath()
+                ? null
+                : controller.getStructureDefinition().getCompiledPattern();
         if (multiPiece == null) {
             GTLog.logger.warn("[StructureProjector] multi-piece pattern missing controller={} piece={}",
                     controller.getMetaName(), pieceIndex);
@@ -322,7 +324,9 @@ public class GhostBlockRenderer {
     private static boolean buildFullVBO(MultiblockControllerBase controller) {
         MultiblockShapeInfo shapeInfo;
         BlockPos controllerLocalPos;
-        MultiPiecePattern multiPiece = controller.getStructureDefinition().getCompiledPattern();
+        MultiPiecePattern multiPiece = controller.getStructureDefinition().supportsSingleTemplatePath()
+                ? null
+                : controller.getStructureDefinition().getCompiledPattern();
         if (multiPiece != null) {
             MultiPiecePreviewAssembler.Result preview = getMultiPiecePreview(
                     controller, MultiPiecePreviewAssembler.DEFAULT_TOOLING_PIECES);

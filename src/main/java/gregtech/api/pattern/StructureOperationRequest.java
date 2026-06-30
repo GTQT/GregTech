@@ -1,6 +1,7 @@
 package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.pattern.casing.GTStructureChannels;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
@@ -153,14 +154,14 @@ public final class StructureOperationRequest {
     @NotNull
     public static StructureOperationRequest previewMultiPiece(@Nullable Map<String, Integer> channelValues,
                                                               @Nullable MultiblockControllerBase controller) {
-        return previewMultiPiece(channelValues, controller, false);
+        return previewMultiPiece(channelValues, controller, false, resolveToolingPieceIndex(channelValues));
     }
 
     @NotNull
     public static StructureOperationRequest previewMultiPiece(@Nullable Map<String, Integer> channelValues,
                                                               @Nullable MultiblockControllerBase controller,
                                                               boolean skipHatches) {
-        return previewMultiPiece(channelValues, controller, skipHatches, 0);
+        return previewMultiPiece(channelValues, controller, skipHatches, resolveToolingPieceIndex(channelValues));
     }
 
     @NotNull
@@ -171,6 +172,11 @@ public final class StructureOperationRequest {
         return new StructureOperationRequest(
                 Kind.PREVIEW, null, null, null, null, controller, null,
                 channelValues, null, null, ItemStack.EMPTY, false, skipHatches, toolingPieceIndex);
+    }
+
+    private static int resolveToolingPieceIndex(@Nullable Map<String, Integer> channelValues) {
+        if (channelValues == null) return 0;
+        return channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0);
     }
 
     @NotNull

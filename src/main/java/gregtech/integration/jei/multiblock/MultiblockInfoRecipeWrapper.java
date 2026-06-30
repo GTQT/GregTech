@@ -489,6 +489,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     private void regeneratePatterns() {
+        clearPreviewSelection();
         Set<ItemStack> drops = new ObjectOpenCustomHashSet<>(ItemStackHashStrategy.comparingAllButCount());
         this.patterns = controller.getMatchingShapes(channelValues).stream()
                 .map(it -> initializePattern(it, drops))
@@ -501,13 +502,27 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         updateParts();
         getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch),
                 Math.toRadians(rotationYaw));
-        if (this.selected != null) {
-            this.selected = null;
-            for (int i = 0; i < previewCandidates.size(); i++) {
-                recipeLayout.getItemStacks().set(i + MAX_PARTS, ItemStack.EMPTY);
-            }
-            previewCandidates.clear();
+        if (getCurrentRenderer() instanceof FBOWorldSceneRenderer fboRenderer) {
+            fboRenderer.markFBODirty();
         }
+    }
+
+    private void clearPreviewSelection() {
+        this.selected = null;
+        this.candidateCycleIndex = 0;
+        this.lastCandidateCycleTime = 0L;
+        if (recipeLayout != null) {
+            IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
+            for (int i = 0; i < MAX_CANDIDATES; i++) {
+                try {
+                    itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
+                } catch (Exception ignored) {
+                    // Candidate slots are created lazily; ignore slots that do not exist yet.
+                }
+            }
+        }
+        previewCandidates.clear();
+        previewTips = null;
     }
 
     private void preparePlaceForParts(int recipeHeight) {
@@ -1141,13 +1156,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         world.setRenderFilter(worldSceneRenderer.renderedBlocks::contains);
 
         Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
-        if (controllerBase != null && controllerBlockPos != null) {
-            controllerBase.buildStructurePreviewEntries(channelValues).forEach((previewPos, entry) -> {
-                if (blockMap.containsKey(previewPos)) {
-                    previewEntries.put(previewPos, entry);
-                }
-            });
-        }
+        MultiblockControllerBase previewEntryController = controllerBase != null ? controllerBase : controller;
+        previewEntryController.buildStructurePreviewEntries(channelValues).forEach((previewPos, entry) -> {
+            if (blockMap.containsKey(previewPos)) {
+                previewEntries.put(previewPos, entry);
+            }
+        });
 
         List<ItemStack> sortedParts = gatherStructureBlocks(worldSceneRenderer.world, blockMap, parts).stream()
                 .sorted((one, two) -> {
