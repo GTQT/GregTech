@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.assembly"
+    "layer0": "gregtech:items/metaitems/circuit.assembly",
+    "layer1": "gregtech:items/metaitems/circuit/micro_processor_assembly_hv"
   }
 }

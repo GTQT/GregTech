@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.vacuum_tube"
+    "layer0": "gregtech:items/metaitems/circuit.vacuum_tube",
+    "layer1": "gregtech:items/metaitems/circuit/vacuum_tube_ulv"
   }
 }

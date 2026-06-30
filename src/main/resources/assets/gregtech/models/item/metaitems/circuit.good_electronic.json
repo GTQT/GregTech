@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.good_electronic"
+    "layer0": "gregtech:items/metaitems/circuit.good_electronic",
+    "layer1": "gregtech:items/metaitems/circuit/good_electronic_circuit_mv"
   }
 }

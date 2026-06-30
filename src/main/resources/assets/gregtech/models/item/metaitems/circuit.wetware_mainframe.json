@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.wetware_mainframe"
+    "layer0": "gregtech:items/metaitems/circuit.wetware_mainframe",
+    "layer1": "gregtech:items/metaitems/circuit/wetware_processor_mainframe_uhv"
   }
 }

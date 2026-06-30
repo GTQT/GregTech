@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.wetware_assembly"
+    "layer0": "gregtech:items/metaitems/circuit.wetware_assembly",
+    "layer1": "gregtech:items/metaitems/circuit/wetware_processor_assembly_zpm"
   }
 }

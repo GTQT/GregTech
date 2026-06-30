@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.crystal_processor"
+    "layer0": "gregtech:items/metaitems/circuit.crystal_processor",
+    "layer1": "gregtech:items/metaitems/circuit/crystal_processor_iv"
   }
 }

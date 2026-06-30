@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures" : {
-    "layer0": "gregtech:items/metaitems/circuits/iv"
+    "layer0": "gregtech:items/metaitems/circuits/iv",
+    "layer1": "gregtech:items/metaitems/circuit/iv"
   }
 }
