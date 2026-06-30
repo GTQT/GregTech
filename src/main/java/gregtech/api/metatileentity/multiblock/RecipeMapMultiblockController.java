@@ -209,8 +209,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     }
 
     /**
-     * Synchronizes protected fields from the ability manager. This ensures backward compatibility with subclasses that
-     * read fields directly.
+     * Synchronizes protected fields from the ability manager for subclasses that read fields directly.
      */
     private void syncFromAbilityManager() {
         this.inputInventory = abilityManager.getInputInventory();

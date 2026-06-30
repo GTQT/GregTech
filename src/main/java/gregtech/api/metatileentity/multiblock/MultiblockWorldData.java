@@ -65,7 +65,7 @@ public class MultiblockWorldData {
     /**
      * Register a formed multiblock with a position owner index. Watched
      * positions drive event dirty roots; formed positions remain available for
-     * compatibility queries.
+     * formed-position lookups.
      */
     public void registerMultiblock(MultiblockControllerBase controller,
                                    StructurePositionIndex positionIndex,

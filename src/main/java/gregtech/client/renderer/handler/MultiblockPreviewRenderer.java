@@ -201,7 +201,7 @@ public class MultiblockPreviewRenderer {
             // Build VBO for a specific piece from the MultiPiecePattern
             buildPieceVBO(controller, pieceIndex);
         } else {
-            // Default: build VBO for the main pattern (backward compatible)
+            // Build the main pattern when no piece channel is selected.
             List<MultiblockShapeInfo> shapes = channelValues != null
                     ? controller.getMatchingShapes(channelValues)
                     : controller.getMatchingShapes();
@@ -293,7 +293,7 @@ public class MultiblockPreviewRenderer {
      * Compute comparison data by comparing expected structure against real world blocks.
      * <p>
      * Delegates to {@link PreviewRenderUtils#computeComparisonData} with this renderer's
-     * comparison lists. Retained for backward compatibility with external callers.
+     * comparison lists.
      *
      * @param expectedBlocks map of world positions -> expected block states
      * @param world          the real world to compare against

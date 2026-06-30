@@ -52,49 +52,28 @@ public interface IStructureElement<T> {
     }
 
     /**
-     * Whether this element can participate in the contribution-eligible
-     * evaluator path. New direct elements are typed by default; migration
-     * wrappers override this when they hide side effects from the dependency
-     * compiler.
+     * Whether this element can participate in contribution-aware evaluation.
+     * Elements with side effects or hidden inputs should report opaque support.
      */
     @NotNull
-    default StructureIncrementalSupport getIncrementalSupport() {
-        return StructureIncrementalSupport.TYPED_CONTRIBUTION;
-    }
+    StructureIncrementalSupport getIncrementalSupport();
 
     /**
      * Typed inputs that can affect this element's match or contribution result.
      *
      * <p>Direct elements that read previously formed piece metadata, controller
-     * mode, configured channels, upgrades, or other non-block state should
-     * declare those inputs here. The incremental eligibility compiler consumes
-     * this metadata directly; callers should not route new runtime logic through
-     * untyped side channels just to make dependencies visible.
+     * mode, configured channels, upgrades, or other non-block state must declare
+     * those inputs here.
      */
     @NotNull
-    default Set<StructureDependency> getDependencies() {
-        return Collections.emptySet();
-    }
+    Set<StructureDependency> getDependencies();
 
     /**
      * Whether this direct element explicitly declares its incremental support
-     * and typed dependencies instead of inheriting the default contract.
-     *
-     * <p>Existing addon elements remain source-compatible, but the dependency
-     * compiler treats undeclared contracts as opaque until both methods are
-     * implemented.
+     * and typed dependencies. Every direct element must provide this contract.
      */
     @ApiStatus.Internal
-    default boolean hasExplicitIncrementalContract() {
-        try {
-            return getClass().getMethod("getIncrementalSupport").getDeclaringClass()
-                    != IStructureElement.class
-                    && getClass().getMethod("getDependencies").getDeclaringClass()
-                    != IStructureElement.class;
-        } catch (NoSuchMethodException ignored) {
-            return false;
-        }
-    }
+    boolean hasExplicitIncrementalContract();
 
     /**
      * Low-level runtime check entry. Compiled templates call
@@ -428,6 +407,11 @@ public interface IStructureElement<T> {
                     return Collections.emptySet();
                 }
                 return Collections.unmodifiableSet(new LinkedHashSet<>(dependencies));
+            }
+
+            @Override
+            public boolean hasExplicitIncrementalContract() {
+                return IStructureElement.this.hasExplicitIncrementalContract();
             }
         };
     }

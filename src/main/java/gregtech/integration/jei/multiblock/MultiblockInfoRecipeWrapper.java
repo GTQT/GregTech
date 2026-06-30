@@ -923,7 +923,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         if (MISSING_TYPED_PREVIEW_DIAGNOSTICS.add(key)) {
             GTLog.logger.debug(
                     "Missing typed JEI multiblock preview {} for {} at preview position {} with channels {}. "
-                            + "Legacy predicate fallback is disabled; add StructureElementPreviewEntry metadata.",
+                            + "Add StructureElementPreviewEntry metadata.",
                     surface, controller.metaTileEntityId, pos, channelValues);
         }
     }

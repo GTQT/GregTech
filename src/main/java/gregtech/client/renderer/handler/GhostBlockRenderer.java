@@ -317,8 +317,7 @@ public class GhostBlockRenderer {
 
     /**
      * Build VBO for the full merged structure (all active pieces combined).
-     * This is the backward-compatible path used when no STRUCTURE_PIECE channel
-     * value is set.
+     * Used when no STRUCTURE_PIECE channel value is set.
      */
     private static boolean buildFullVBO(MultiblockControllerBase controller) {
         MultiblockShapeInfo shapeInfo;
