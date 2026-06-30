@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.nano_computer"
+    "layer0": "gregtech:items/metaitems/circuit.nano_computer",
+    "layer1": "gregtech:items/metaitems/circuit/nano_processor_computer_iv"
   }
 }

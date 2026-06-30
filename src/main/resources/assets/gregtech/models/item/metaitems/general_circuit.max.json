@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures" : {
-    "layer0": "gregtech:items/metaitems/circuits/max"
+    "layer0": "gregtech:items/metaitems/circuits/max",
+    "layer1": "gregtech:items/metaitems/circuit/max"
   }
 }

@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.quantum_computer"
+    "layer0": "gregtech:items/metaitems/circuit.quantum_computer",
+    "layer1": "gregtech:items/metaitems/circuit/quantum_processor_computer_luv"
   }
 }

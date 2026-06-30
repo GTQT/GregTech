@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures" : {
-    "layer0": "gregtech:items/metaitems/circuits/zpm"
+    "layer0": "gregtech:items/metaitems/circuits/zpm",
+    "layer1": "gregtech:items/metaitems/circuit/zpm"
   }
 }

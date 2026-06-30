@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.quantum_assembly"
+    "layer0": "gregtech:items/metaitems/circuit.quantum_assembly",
+    "layer1": "gregtech:items/metaitems/circuit/quantum_processor_assembly_iv"
   }
 }

@@ -1,6 +1,7 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gregtech:items/metaitems/circuit.advanced_integrated"
+    "layer0": "gregtech:items/metaitems/circuit.advanced_integrated",
+    "layer1": "gregtech:items/metaitems/circuit/advanced_integrated_circuit_hv"
   }
 }
