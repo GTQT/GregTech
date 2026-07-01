@@ -1,5 +1,9 @@
 package gregtech.api.pattern.element;
 
+import gregtech.api.GTValues;
+import gregtech.api.capability.GregtechCapabilities;
+import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.StructureEvaluationContext;
@@ -25,6 +29,7 @@ import gregtech.api.util.BlockInfo;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 
+import java.util.Collections;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -148,6 +153,38 @@ public final class ElementUtility {
                                                                int min, int max, int previewCount,
                                                                MetaTileEntity... metaTileEntities) {
         return new MetaTileEntityElement(ability, min, max, previewCount, metaTileEntities);
+    }
+
+    /** Create an output energy hatch element filtered by tier throughput. */
+    public static IStructureElement ofEnergyOutput(int tier, boolean minimumThroughput) {
+        return ofMetaTileEntities(MultiblockAbility.REGISTRY
+                .getOrDefault(MultiblockAbility.OUTPUT_ENERGY, Collections.emptyList())
+                .stream()
+                .filter(mte -> {
+                    IEnergyContainer container = mte.getCapability(
+                            GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
+                    if (container == null) {
+                        return false;
+                    }
+                    long throughput = container.getOutputVoltage() * container.getOutputAmperage();
+                    return minimumThroughput
+                            ? throughput >= GTValues.V[tier]
+                            : container.getOutputVoltage() <= GTValues.V[tier];
+                })
+                .toArray(MetaTileEntity[]::new));
+    }
+
+    /** Create an output laser hatch element filtered by hatch tier. */
+    public static IStructureElement ofLaserOutput(int tier, boolean minimumTier) {
+        return ofMetaTileEntities(MultiblockAbility.REGISTRY
+                .getOrDefault(MultiblockAbility.OUTPUT_LASER, Collections.emptyList())
+                .stream()
+                .filter(mte -> mte instanceof ITieredMetaTileEntity)
+                .filter(mte -> {
+                    int hatchTier = ((ITieredMetaTileEntity) mte).getTier();
+                    return minimumTier ? hatchTier >= tier : hatchTier <= tier;
+                })
+                .toArray(MetaTileEntity[]::new));
     }
 
     /** Create an element matching frame blocks or frame pipes for the supplied materials */

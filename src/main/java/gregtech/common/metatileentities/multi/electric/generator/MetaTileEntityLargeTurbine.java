@@ -16,8 +16,6 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.SoftReferenceHolder;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -44,29 +42,14 @@ import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         implements ITieredMetaTileEntity, ProgressBarMultiblock {
 
     private static final int MIN_DURABILITY_TO_WARN = 10;
-    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
-            new HashMap<>();
-
-    static {
-        STRUCTURE_DEFINITIONS.put("steam", TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(LargeTurbineType.STEAM),
-                        () -> buildStructureDefinition(LargeTurbineType.STEAM)));
-        STRUCTURE_DEFINITIONS.put("gas", TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(LargeTurbineType.GAS),
-                        () -> buildStructureDefinition(LargeTurbineType.GAS)));
-        STRUCTURE_DEFINITIONS.put("plasma", TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(LargeTurbineType.PLASMA),
-                        () -> buildStructureDefinition(LargeTurbineType.PLASMA)));
-    }
+    private static final String STRUCTURE_POOL_KEY = "gregtech:large_turbine";
 
     public final ILargeTurbineType type;
     public IFluidHandler exportFluidHandler;
@@ -76,10 +59,6 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         this.type = type;
         this.recipeMapWorkable = new LargeTurbineWorkableHandler(this, tier);
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
-    }
-
-    private static String structurePoolKey(ILargeTurbineType type) {
-        return "gregtech:large_turbine." + type.getName();
     }
 
     private static StructureDefinition<?> buildStructureDefinition(ILargeTurbineType type) {
@@ -260,11 +239,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
-        if (definition == null) {
-            throw new IllegalStateException("Unknown turbine type: " + type.getName());
-        }
-        return definition.get();
+        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, type.getName(), () -> buildStructureDefinition(type));
     }
 
     @Override

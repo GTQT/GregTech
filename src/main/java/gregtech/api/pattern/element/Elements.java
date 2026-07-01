@@ -140,6 +140,16 @@ public final class Elements {
         return ElementUtility.ofMetaTileEntitiesAsAbility(ability, min, max, previewCount, metaTileEntities);
     }
 
+    /** Output energy hatch element filtered by tier throughput. */
+    public static IStructureElement energyOutput(int tier, boolean minimumThroughput) {
+        return ElementUtility.ofEnergyOutput(tier, minimumThroughput);
+    }
+
+    /** Output laser hatch element filtered by hatch tier. */
+    public static IStructureElement laserOutput(int tier, boolean minimumTier) {
+        return ElementUtility.ofLaserOutput(tier, minimumTier);
+    }
+
     /** Frame element matching frame blocks or frame pipes for the supplied materials */
     public static IStructureElement frames(Material... frameMaterials) {
         return ElementUtility.ofFrames(frameMaterials);
