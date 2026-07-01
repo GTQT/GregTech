@@ -1,5 +1,9 @@
 package gregtech.api.pattern.element;
 
+import gregtech.api.GTValues;
+import gregtech.api.capability.GregtechCapabilities;
+import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.StructureEvaluationContext;
@@ -10,6 +14,8 @@ import gregtech.api.pattern.element.impl.AbilityElement;
 import gregtech.api.pattern.element.impl.BlockElement;
 import gregtech.api.pattern.element.impl.BlockPredicateElement;
 import gregtech.api.pattern.element.impl.ChainElement;
+import gregtech.api.pattern.element.impl.ChoiceElement;
+import gregtech.api.pattern.element.impl.CountedElement;
 import gregtech.api.pattern.element.impl.FrameElement;
 import gregtech.api.pattern.element.impl.HatchElement;
 import gregtech.api.pattern.element.impl.MetaTileEntityElement;
@@ -23,6 +29,7 @@ import gregtech.api.util.BlockInfo;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 
+import java.util.Collections;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -148,6 +155,38 @@ public final class ElementUtility {
         return new MetaTileEntityElement(ability, min, max, previewCount, metaTileEntities);
     }
 
+    /** Create an output energy hatch element filtered by tier throughput. */
+    public static IStructureElement ofEnergyOutput(int tier, boolean minimumThroughput) {
+        return ofMetaTileEntities(MultiblockAbility.REGISTRY
+                .getOrDefault(MultiblockAbility.OUTPUT_ENERGY, Collections.emptyList())
+                .stream()
+                .filter(mte -> {
+                    IEnergyContainer container = mte.getCapability(
+                            GregtechCapabilities.CAPABILITY_ENERGY_CONTAINER, null);
+                    if (container == null) {
+                        return false;
+                    }
+                    long throughput = container.getOutputVoltage() * container.getOutputAmperage();
+                    return minimumThroughput
+                            ? throughput >= GTValues.V[tier]
+                            : container.getOutputVoltage() <= GTValues.V[tier];
+                })
+                .toArray(MetaTileEntity[]::new));
+    }
+
+    /** Create an output laser hatch element filtered by hatch tier. */
+    public static IStructureElement ofLaserOutput(int tier, boolean minimumTier) {
+        return ofMetaTileEntities(MultiblockAbility.REGISTRY
+                .getOrDefault(MultiblockAbility.OUTPUT_LASER, Collections.emptyList())
+                .stream()
+                .filter(mte -> mte instanceof ITieredMetaTileEntity)
+                .filter(mte -> {
+                    int hatchTier = ((ITieredMetaTileEntity) mte).getTier();
+                    return minimumTier ? hatchTier >= tier : hatchTier <= tier;
+                })
+                .toArray(MetaTileEntity[]::new));
+    }
+
     /** Create an element matching frame blocks or frame pipes for the supplied materials */
     public static IStructureElement ofFrames(Material... frameMaterials) {
         return new FrameElement(frameMaterials);
@@ -182,5 +221,26 @@ public final class ElementUtility {
     /** Create a chain of alternative elements (any may match) */
     public static IStructureElement ofChain(IStructureElement... elements) {
         return new ChainElement(elements);
+    }
+
+    /** Create an alternative element that declares requirements for every branch before matching */
+    public static IStructureElement ofChoice(IStructureElement... elements) {
+        return new ChoiceElement(elements);
+    }
+
+    /** Apply global count constraints to any element */
+    public static IStructureElement counted(int min, int max, IStructureElement element) {
+        return new CountedElement(element, min, max, -1, -1, -1);
+    }
+
+    /** Apply global count constraints and preview count to any element */
+    public static IStructureElement counted(int min, int max, int previewCount, IStructureElement element) {
+        return new CountedElement(element, min, max, -1, -1, previewCount);
+    }
+
+    /** Apply per-layer count constraints and preview count to any element */
+    public static IStructureElement layerCounted(int minLayer, int maxLayer, int previewCount,
+                                                 IStructureElement element) {
+        return new CountedElement(element, 0, -1, minLayer, maxLayer, previewCount);
     }
 }

@@ -140,6 +140,16 @@ public final class Elements {
         return ElementUtility.ofMetaTileEntitiesAsAbility(ability, min, max, previewCount, metaTileEntities);
     }
 
+    /** Output energy hatch element filtered by tier throughput. */
+    public static IStructureElement energyOutput(int tier, boolean minimumThroughput) {
+        return ElementUtility.ofEnergyOutput(tier, minimumThroughput);
+    }
+
+    /** Output laser hatch element filtered by hatch tier. */
+    public static IStructureElement laserOutput(int tier, boolean minimumTier) {
+        return ElementUtility.ofLaserOutput(tier, minimumTier);
+    }
+
     /** Frame element matching frame blocks or frame pipes for the supplied materials */
     public static IStructureElement frames(Material... frameMaterials) {
         return ElementUtility.ofFrames(frameMaterials);
@@ -174,5 +184,26 @@ public final class Elements {
     /** Chain of elements */
     public static IStructureElement chain(IStructureElement... elements) {
         return ElementUtility.ofChain(elements);
+    }
+
+    /** Alternative elements with shared requirement declaration */
+    public static IStructureElement choice(IStructureElement... elements) {
+        return ElementUtility.ofChoice(elements);
+    }
+
+    /** Element with global count constraints */
+    public static IStructureElement counted(int min, int max, IStructureElement element) {
+        return ElementUtility.counted(min, max, element);
+    }
+
+    /** Element with global count constraints and preview count */
+    public static IStructureElement counted(int min, int max, int previewCount, IStructureElement element) {
+        return ElementUtility.counted(min, max, previewCount, element);
+    }
+
+    /** Element with per-layer count constraints and preview count */
+    public static IStructureElement layerCounted(int minLayer, int maxLayer, int previewCount,
+                                                 IStructureElement element) {
+        return ElementUtility.layerCounted(minLayer, maxLayer, previewCount, element);
     }
 }

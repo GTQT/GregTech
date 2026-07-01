@@ -294,6 +294,30 @@ public interface IStructureElement<T> {
     /** Add tooltip lines for this element. */
     default void addTooltip(List<String> tooltip) {}
 
+    /** Return this element wrapped with preview tooltip lines. */
+    @NotNull
+    default IStructureElement<T> addTooltips(String... tips) {
+        return ElementUtility.withTooltips(this, tips);
+    }
+
+    /** Return this element wrapped with one preview tooltip line. */
+    @NotNull
+    default IStructureElement<T> addTooltip(String tip) {
+        return addTooltips(tip);
+    }
+
+    /** Return this element wrapped with one preview tooltip line and simple textual arguments. */
+    @NotNull
+    default IStructureElement<T> addTooltip(String tip, Object... args) {
+        if (args == null || args.length == 0) {
+            return addTooltip(tip);
+        }
+        String joinedArgs = String.join(" ", Arrays.stream(args)
+                .map(String::valueOf)
+                .toArray(String[]::new));
+        return addTooltip(tip + " " + joinedArgs);
+    }
+
     /**
      * Direct tooltip entry for preview/projector/tooling surfaces.
      *

@@ -474,6 +474,26 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     }
 
     /**
+     * Get or build a typed StructureDefinition via TemplatePool.
+     *
+     * <p>This is intended for multiblocks whose structure is selected by a runtime
+     * type object. The owner key identifies the machine family, and the type key
+     * identifies the concrete variant.
+     *
+     * @param ownerKey the machine-family cache key
+     * @param typeKey  the concrete variant key
+     * @param factory  supplier that builds the StructureDefinition
+     * @return the resolved StructureDefinition
+     */
+    @NotNull
+    public static <T extends MultiblockControllerBase> StructureDefinition<T> getOrBuild(
+            @NotNull String ownerKey,
+            @NotNull String typeKey,
+            @NotNull Supplier<StructureDefinition<T>> factory) {
+        return getOrBuild(ownerKey + "." + typeKey, factory);
+    }
+
+    /**
      * Adapt a canonical {@link PieceTemplate} into a single-piece {@link StructureDefinition}.
      */
     @NotNull

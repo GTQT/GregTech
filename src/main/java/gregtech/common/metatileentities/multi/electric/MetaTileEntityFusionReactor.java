@@ -18,8 +18,6 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.SoftReferenceHolder;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -78,9 +76,7 @@ import org.lwjgl.opengl.GL11;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
@@ -92,20 +88,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
 
     protected static final int NO_COLOR = 0;
 
-    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
-            new HashMap<>();
-
-    static {
-        STRUCTURE_DEFINITIONS.put("luv", TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(FusionReactorType.MK1),
-                        () -> buildStructureDefinition(FusionReactorType.MK1)));
-        STRUCTURE_DEFINITIONS.put("zpm", TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(FusionReactorType.MK2),
-                        () -> buildStructureDefinition(FusionReactorType.MK2)));
-        STRUCTURE_DEFINITIONS.put("uv", TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(FusionReactorType.MK3),
-                        () -> buildStructureDefinition(FusionReactorType.MK3)));
-    }
+    private static final String STRUCTURE_POOL_KEY = "gregtech:fusion_reactor";
 
     private final IFusionReactorType type;
     private EnergyContainerList inputEnergyContainers;
@@ -129,11 +112,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         };
     }
 
-    private static String structurePoolKey(IFusionReactorType type) {
-        return "gregtech:fusion_reactor." + type.getName();
-    }
-
-    private static StructureDefinition buildStructureDefinition(IFusionReactorType type) {
+    private static StructureDefinition<?> buildStructureDefinition(IFusionReactorType type) {
         return DeclarativePatternBuilder.start()
                 .aisle("###############", "######OGO######", "###############")
                 .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
@@ -193,11 +172,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
-        if (definition == null) {
-            throw new IllegalStateException("Unknown fusion reactor type: " + type.getName());
-        }
-        return definition.get();
+        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, type.getName(), () -> buildStructureDefinition(type));
     }
 
     @SideOnly(Side.CLIENT)
