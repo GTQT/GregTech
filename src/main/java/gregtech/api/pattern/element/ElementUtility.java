@@ -10,6 +10,8 @@ import gregtech.api.pattern.element.impl.AbilityElement;
 import gregtech.api.pattern.element.impl.BlockElement;
 import gregtech.api.pattern.element.impl.BlockPredicateElement;
 import gregtech.api.pattern.element.impl.ChainElement;
+import gregtech.api.pattern.element.impl.ChoiceElement;
+import gregtech.api.pattern.element.impl.CountedElement;
 import gregtech.api.pattern.element.impl.FrameElement;
 import gregtech.api.pattern.element.impl.HatchElement;
 import gregtech.api.pattern.element.impl.MetaTileEntityElement;
@@ -182,5 +184,26 @@ public final class ElementUtility {
     /** Create a chain of alternative elements (any may match) */
     public static IStructureElement ofChain(IStructureElement... elements) {
         return new ChainElement(elements);
+    }
+
+    /** Create an alternative element that declares requirements for every branch before matching */
+    public static IStructureElement ofChoice(IStructureElement... elements) {
+        return new ChoiceElement(elements);
+    }
+
+    /** Apply global count constraints to any element */
+    public static IStructureElement counted(int min, int max, IStructureElement element) {
+        return new CountedElement(element, min, max, -1, -1, -1);
+    }
+
+    /** Apply global count constraints and preview count to any element */
+    public static IStructureElement counted(int min, int max, int previewCount, IStructureElement element) {
+        return new CountedElement(element, min, max, -1, -1, previewCount);
+    }
+
+    /** Apply per-layer count constraints and preview count to any element */
+    public static IStructureElement layerCounted(int minLayer, int maxLayer, int previewCount,
+                                                 IStructureElement element) {
+        return new CountedElement(element, 0, -1, minLayer, maxLayer, previewCount);
     }
 }

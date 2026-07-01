@@ -175,4 +175,25 @@ public final class Elements {
     public static IStructureElement chain(IStructureElement... elements) {
         return ElementUtility.ofChain(elements);
     }
+
+    /** Alternative elements with shared requirement declaration */
+    public static IStructureElement choice(IStructureElement... elements) {
+        return ElementUtility.ofChoice(elements);
+    }
+
+    /** Element with global count constraints */
+    public static IStructureElement counted(int min, int max, IStructureElement element) {
+        return ElementUtility.counted(min, max, element);
+    }
+
+    /** Element with global count constraints and preview count */
+    public static IStructureElement counted(int min, int max, int previewCount, IStructureElement element) {
+        return ElementUtility.counted(min, max, previewCount, element);
+    }
+
+    /** Element with per-layer count constraints and preview count */
+    public static IStructureElement layerCounted(int minLayer, int maxLayer, int previewCount,
+                                                 IStructureElement element) {
+        return ElementUtility.layerCounted(minLayer, maxLayer, previewCount, element);
+    }
 }
