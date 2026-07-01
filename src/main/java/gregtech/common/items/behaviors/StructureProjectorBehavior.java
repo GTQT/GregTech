@@ -306,6 +306,10 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             int[] range = controller.getChannelRange(ch);
             ranges.put(ch.getName(), range);
         }
+        if (ConfigHolder.machines.debugStructureTrace) {
+            GTLog.logger.debug("[StructureProjector] saved channel ranges controller={} ranges={}",
+                    controller.getMetaName(), ranges.keySet());
+        }
         writeChannelRanges(stack, ranges);
     }
 
@@ -411,6 +415,10 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         Map<String, Integer> channelValues = readChannelValues(stack);
         Map<String, int[]> channelRanges = readChannelRanges(stack);
         List<ChannelEntry> entries = buildChannelEntries(channelValues, channelRanges);
+        if (ConfigHolder.machines.debugStructureTrace) {
+            GTLog.logger.debug("[StructureProjector] building channel GUI values={} ranges={} entries={}",
+                    channelValues.keySet(), channelRanges.keySet(), entries.size());
+        }
 
         var panel = GTGuis.createPanel(stack, 176, 240);
 
@@ -589,27 +597,35 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                                                           @NotNull Map<String, int[]> channelRanges) {
         List<ChannelEntry> entries = new ArrayList<>();
 
-        // If channelValues is empty and we have range info from a controller, auto-fill entries
-        if (channelValues.isEmpty() && !channelRanges.isEmpty()) {
-            for (Map.Entry<String, int[]> rangeEntry : channelRanges.entrySet()) {
-                String name = rangeEntry.getKey();
-                if (name.equals(GTStructureChannels.STRUCTURE_WIDTH.getName())) continue;
-                if (name.equals(GTStructureChannels.STRUCTURE_HEIGHT.getName())) continue;
-                if (name.equals(GTStructureChannels.STRUCTURE_LENGTH.getName())) continue;
-                entries.add(new ChannelEntry(name, 0));
-            }
-            return entries;
-        }
-
-        // Build entries from existing channel values
+        // Build entries from existing channel values first, preserving configured values.
         for (Map.Entry<String, Integer> e : channelValues.entrySet()) {
-            if (e.getKey().equals(GTStructureChannels.STRUCTURE_WIDTH.getName())) continue;
-            if (e.getKey().equals(GTStructureChannels.STRUCTURE_HEIGHT.getName())) continue;
-            if (e.getKey().equals(GTStructureChannels.STRUCTURE_LENGTH.getName())) continue;
+            if (isDedicatedDimensionChannel(e.getKey())) continue;
             entries.add(new ChannelEntry(e.getKey(), e.getValue()));
         }
 
+        // Then append supported channels discovered from the last clicked controller.
+        for (Map.Entry<String, int[]> rangeEntry : channelRanges.entrySet()) {
+            String name = rangeEntry.getKey();
+            if (isDedicatedDimensionChannel(name) || containsEntry(entries, name)) continue;
+            entries.add(new ChannelEntry(name, channelValues.getOrDefault(name, 0)));
+        }
+
         return entries;
+    }
+
+    private static boolean isDedicatedDimensionChannel(@NotNull String name) {
+        return name.equals(GTStructureChannels.STRUCTURE_WIDTH.getName()) ||
+                name.equals(GTStructureChannels.STRUCTURE_HEIGHT.getName()) ||
+                name.equals(GTStructureChannels.STRUCTURE_LENGTH.getName());
+    }
+
+    private static boolean containsEntry(@NotNull List<ChannelEntry> entries, @NotNull String name) {
+        for (ChannelEntry entry : entries) {
+            if (name.equals(entry.name)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
