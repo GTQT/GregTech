@@ -64,7 +64,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     private final List<AbilityGroupLimit> abilityGroupLimits;
     @Nullable
     private final StructureRuntimeDetector<T> runtimeDetector;
-    private final List<String> primaryTemplateDescription;
     @Nullable
     private final SoftReferenceHolder<StructureDefinition<T>> delegate;
 
@@ -88,7 +87,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.abilityLimits = Collections.unmodifiableMap(new HashMap<>(b.abilityLimits));
         this.abilityGroupLimits = Collections.unmodifiableList(new ArrayList<>(b.abilityGroupLimits));
         this.runtimeDetector = b.runtimeDetector;
-        this.primaryTemplateDescription = Collections.unmodifiableList(new ArrayList<>(b.primaryTemplateDescription));
         this.delegate = null;
         this.compiledPattern = null;
         this.supportsSingleTemplatePath =
@@ -101,7 +99,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.abilityLimits = Collections.emptyMap();
         this.abilityGroupLimits = Collections.emptyList();
         this.runtimeDetector = null;
-        this.primaryTemplateDescription = Collections.emptyList();
         this.delegate = delegate;
         this.supportsSingleTemplatePath = false;
     }
@@ -288,61 +285,22 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     }
 
     /**
-     * Whether this definition can use the single-template runtime path.
+     * V3 §6: internal derived flag indicating this definition compiles to exactly
+     * one non-repeatable piece. Exposed only package-internally so the compiler
+     * and runtime can apply the single-piece fast-path inside
+     * {@link MultiPiecePattern}/{@link CommittedStructureGraph}; external callers
+     * must go through {@link #getCompiledPattern()} and let the fast-path kick
+     * in there, rather than branching on this flag to bypass compiled multi-piece.
      *
      * <p>This is intentionally narrower than "contains one declared piece": a
      * single repeatable piece still requires the multi-piece runtime because it
      * compiles to a {@link RepeatGroupPiece}.
      */
-    public boolean supportsSingleTemplatePath() {
+    boolean supportsSingleTemplatePath() {
         if (delegate != null) {
             return delegate.get().supportsSingleTemplatePath();
         }
         return supportsSingleTemplatePath;
-    }
-
-    /**
-     * Convenience: get the primary piece's template when the definition supports
-     * the single-template runtime path.
-     * Returns {@code null} for multi-piece and repeatable-piece definitions.
-     *
-     * <p>This bypasses the {@link MultiPiecePattern} wrapping step and compiles
-     * the single piece's template directly via
-     * {@link StructureCompiler#compilePieceTemplate(IStructurePiece, RelativeDirection[])}.
-     * For eligible 1-piece callers (the common case), this avoids one unnecessary
-     * {@code ArrayList<StructurePiece>}, one {@code StructurePiece}, and one
-     * {@code MultiPiecePattern} allocation per call compared to going through
-     * {@link #getCompiledPattern()}.
-     *
-     * <p>Intended for callers that need a quick path to retrieve the equivalent
-     * template for a 1-piece structure.
-     * Multi-piece callers should iterate {@link #getCompiledPattern()} instead.
-     */
-    @Nullable
-    public PieceTemplate getPrimaryTemplate() {
-        if (delegate != null) {
-            return delegate.get().getPrimaryTemplate();
-        }
-        return getPrimaryTemplate(primaryTemplateDescription);
-    }
-
-    /**
-     * Get the primary single-template compiled form, optionally with an auto-generated
-     * structure description. Returns {@code null} for definitions that require the
-     * multi-piece runtime; those callers should iterate {@link #getCompiledPattern()} instead.
-     *
-     * @param structureDescription  optional description lines to embed in the template;
-     *                               {@code null} or empty means "no description"
-     * @return the compiled template, or {@code null} when the multi-piece runtime is required
-     */
-    @Nullable
-    public PieceTemplate getPrimaryTemplate(@Nullable List<String> structureDescription) {
-        if (delegate != null) {
-            return delegate.get().getPrimaryTemplate(structureDescription);
-        }
-        if (!supportsSingleTemplatePath) return null;
-        return StructureCompiler.compilePieceTemplate(
-                getPieceEntries().get(0).piece, getStructureDir(), structureDescription);
     }
 
     @NotNull
@@ -578,7 +536,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         private final List<PieceEntry> pieceEntries = new ArrayList<>();
         private final Map<MultiblockAbility<?>, AbilityLimit> abilityLimits = new HashMap<>();
         private final List<AbilityGroupLimit> abilityGroupLimits = new ArrayList<>();
-        private final List<String> primaryTemplateDescription = new ArrayList<>();
         @Nullable
         private StructureRuntimeDetector<T> runtimeDetector;
 
@@ -748,19 +705,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         @NotNull
         public Builder<T> runtimeDetector(@NotNull StructureRuntimeDetector<T> runtimeDetector) {
             this.runtimeDetector = runtimeDetector;
-            return this;
-        }
-
-        /**
-         * Optional description lines embedded when exporting the primary single-piece
-         * template through {@link StructureDefinition#getPrimaryTemplate()}.
-         */
-        @NotNull
-        public Builder<T> primaryTemplateDescription(@Nullable List<String> description) {
-            primaryTemplateDescription.clear();
-            if (description != null) {
-                primaryTemplateDescription.addAll(description);
-            }
             return this;
         }
 

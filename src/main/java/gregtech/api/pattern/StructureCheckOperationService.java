@@ -640,9 +640,11 @@ final class StructureCheckOperationService {
                 || result.getRuntimePublication() == null) {
             return result;
         }
-        if (canUseLightweightSingleTemplateCommit(plan)) {
-            return result;
-        }
+        // V3 §7/§8: every matched check must publish a CommittedStructureGraph
+        // through the committer. The single-template fast-path lives inside
+        // CommittedStructureGraph.create / MultiPiecePattern, not here — bypassing
+        // graph publication breaks the canonical formed snapshot, the read API
+        // (FormedStructureView.getAggregate/...) and the incremental baseline.
         MultiPiecePattern pattern = operationRuntime().pattern;
         CommittedStructureGraph graph = CommittedStructureGraph.create(
                 result.getResultTable(),
@@ -652,12 +654,6 @@ final class StructureCheckOperationService {
                 orientation,
                 plan.snapshotExternalDependencies(request.getController()));
         return result.withGraphPublication(graph);
-    }
-
-    private boolean canUseLightweightSingleTemplateCommit(@NotNull StructureEligibilityPlan plan) {
-        return definition != null
-                && definition.supportsSingleTemplatePath()
-                && plan.getExternalDependencies().isEmpty();
     }
 
     private static void accumulatePriorFromResult(

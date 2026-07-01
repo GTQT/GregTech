@@ -322,8 +322,7 @@ public class DeclarativePatternBuilder {
      */
     public StructureDefinition<?> buildStructureDefinition() {
         StructureDefinition.Builder<?> builder = StructureDefinition.builder(
-                structureDir[0], structureDir[1], structureDir[2])
-                .primaryTemplateDescription(computeStructureDescription());
+                structureDir[0], structureDir[1], structureDir[2]);
 
         List<PieceDef> activePieces = new ArrayList<>();
         for (PieceDef piece : pieces) {
@@ -784,48 +783,6 @@ public class DeclarativePatternBuilder {
         return alternatives.size() == 1
                 ? alternatives.get(0)
                 : Elements.chain(alternatives.toArray(new IStructureElement[0]));
-    }
-
-    // --- Structure description ---
-
-    /**
-     * Build the auto-generated structure description lines for this pattern. Pure function
-     * of the current builder state; returns an empty list if there are no entries to describe.
-     *
-     * <p>The returned list is the canonical list passed to the template constructor.
-     * Callers must not mutate it.
-     */
-    @NotNull
-    private List<String> computeStructureDescription() {
-        List<String> lines = new ArrayList<>();
-
-        for (CasingSlotInfo info : casingSlots.values()) {
-            char symbol = info.symbol;
-            int totalCount = countCharInAllPieces(symbol);
-            int maxHatches = info.hatches.stream().mapToInt(h -> h.maxCount).sum()
-                    + info.customHatches.stream().mapToInt(h -> h.maxCount).sum();
-            int minCasings = Math.max(0, totalCount - maxHatches);
-
-            lines.add("casing:" + info.casing.getTranslationKey() + ":" + minCasings + ":" + totalCount);
-
-            for (HatchInfo hatch : info.hatches) {
-                lines.add("hatch:" + hatch.ability.toString() + ":" + hatch.minCount + ":" + hatch.maxCount);
-            }
-        }
-
-        for (TieredSlotInfo info : tieredSlots.values()) {
-            lines.add("tiered:" + info.group.getTranslationKey() + ":" + info.group.requiresUniformTier());
-            if (info.channel != null) {
-                lines.add("channel:" + info.channel.getDefaultTooltip());
-            }
-        }
-
-        for (AbilityGroupLimit groupLimit : abilityGroupLimits) {
-            lines.add("hatch_group:" + groupLimit.getDisplayAbility() + ":"
-                    + groupLimit.getMin() + ":" + groupLimit.getMax());
-        }
-
-        return lines;
     }
 
     // --- Internal helpers ---

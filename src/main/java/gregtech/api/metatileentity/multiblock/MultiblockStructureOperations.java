@@ -3,7 +3,6 @@ package gregtech.api.metatileentity.multiblock;
 import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.StructureBuildResult;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureDirtyPrecheck;
@@ -117,27 +116,21 @@ final class MultiblockStructureOperations {
 
     @NotNull
     static List<StructureChannel> getSupportedChannels(@NotNull MultiblockControllerBase controller) {
-        if (controller.patternTemplate == null) {
-            controller.reinitializeStructurePattern();
-            if (controller.patternTemplate == null) {
-                return MultiblockStructureChannels.collectChannelsFromMultiPiece(controller.multiPiecePattern);
-            }
-        }
-        return MultiblockStructureChannels.collectChannelsFromTemplate(controller.patternTemplate);
+        ensureMultiPiecePatternInitialized(controller);
+        // V3 §13: tooling consumes the compiled MultiPiecePattern, not a
+        // bypassing single-template accessor. Single-template patterns compile
+        // to a MultiPiecePattern with one piece, so this path covers both.
+        return MultiblockStructureChannels.collectChannelsFromMultiPiece(controller.multiPiecePattern);
     }
 
     @NotNull
     static int[] getChannelRange(@NotNull MultiblockControllerBase controller,
                                  @NotNull StructureChannel channel) {
-        if (controller.patternTemplate == null) {
-            controller.reinitializeStructurePattern();
-            if (controller.patternTemplate == null) {
-                return MultiblockStructureChannels.getChannelRangeFromMultiPiece(
-                        controller.multiPiecePattern, channel);
-            }
-        }
-        return MultiblockStructureChannels.getTemplateChannelRange(
-                controller.patternTemplate, channel.getName());
+        ensureMultiPiecePatternInitialized(controller);
+        // V3 §13: channel range is read from the compiled MultiPiecePattern so
+        // single-piece and multi-piece share one tooling path.
+        return MultiblockStructureChannels.getChannelRangeFromMultiPiece(
+                controller.multiPiecePattern, channel);
     }
 
     @NotNull
@@ -151,21 +144,21 @@ final class MultiblockStructureOperations {
                                                        @Nullable Map<String, Integer> channelValues,
                                                        boolean skipHatches) {
         Map<String, Integer> effectiveChannels = emptyToNull(channelValues);
-        if (controller.patternTemplate == null) {
-            controller.reinitializeStructurePattern();
-            if (controller.patternTemplate == null) {
-                List<MultiblockShapeInfo> shapes = MultiblockStructurePreviews.buildMultiPieceShapes(
-                        controller, controller.multiPiecePattern, controller.pieceRuntimes,
-                        controller.getStructureRuntime(), effectiveChannels, skipHatches);
-                logMatchingShapes(controller, false, effectiveChannels, skipHatches, shapes.size());
-                return shapes;
-            }
-        }
-        List<MultiblockShapeInfo> shapes = MultiblockStructurePreviews.getMatchingShapes(
-                controller, controller.patternTemplate, controller.runtimeState,
+        ensureMultiPiecePatternInitialized(controller);
+        // V3 §13: JEI / projector / build-all consume the compiled MultiPiecePattern
+        // and PieceRuntimes. The single-template fast-path is internal to the
+        // multi-piece preview assembler, not a separate branch here.
+        List<MultiblockShapeInfo> shapes = MultiblockStructurePreviews.buildMultiPieceShapes(
+                controller, controller.multiPiecePattern, controller.pieceRuntimes,
                 controller.getStructureRuntime(), effectiveChannels, skipHatches);
-        logMatchingShapes(controller, true, effectiveChannels, skipHatches, shapes.size());
+        logMatchingShapes(controller, false, effectiveChannels, skipHatches, shapes.size());
         return shapes;
+    }
+
+    private static void ensureMultiPiecePatternInitialized(@NotNull MultiblockControllerBase controller) {
+        if (controller.multiPiecePattern == null) {
+            controller.reinitializeStructurePattern();
+        }
     }
 
     @NotNull
@@ -197,23 +190,10 @@ final class MultiblockStructureOperations {
             @Nullable Map<String, Integer> channelValues) {
         Map<String, Integer> effectiveChannels = emptyToNull(channelValues);
         StructureRuntime runtime = controller.getOrCreateStructureRuntime();
-        StructureDefinition<?> definition = controller.getStructureDefinition();
-        if (definition != null && definition.supportsSingleTemplatePath()) {
-            int[] repetitions = resolveSinglePreviewRepetitions(definition, effectiveChannels);
-            StructurePreviewResult result = runtime.previewSingleResult(
-                    StructureOperationRequest.preview(repetitions, effectiveChannels));
-            if (result.getSinglePieceCells() == null) {
-                logPreviewEntries(controller, true, effectiveChannels, result.getOutcome().name(),
-                        repetitions, 0);
-                return Collections.emptyMap();
-            }
-            Map<BlockPos, StructureElementPreviewEntry> entries =
-                    normalizeSinglePreviewEntries(result.getSinglePieceCells());
-            logPreviewEntries(controller, true, effectiveChannels, result.getOutcome().name(),
-                    repetitions, entries.size());
-            return entries;
-        }
-
+        // V3 §13: typed preview entries come from the compiled MultiPiecePattern
+        // via MultiPiecePreviewAssembler. Single-piece patterns compile to a
+        // one-piece MultiPiecePattern, so this path serves both cases and the
+        // fast-path lives inside the assembler, not as a branch here.
         StructurePreviewResult result = runtime.previewMultiPieceResult(
                 StructureOperationRequest.previewMultiPiece(effectiveChannels, controller));
         MultiPiecePreviewAssembler.Result preview = result.getMultiPieceResult();
@@ -268,61 +248,6 @@ final class MultiblockStructureOperations {
     @NotNull
     private static Map<String, Integer> channelLogValue(@Nullable Map<String, Integer> channelValues) {
         return channelValues == null ? Collections.emptyMap() : new TreeMap<>(channelValues);
-    }
-
-    @NotNull
-    private static Map<BlockPos, StructureElementPreviewEntry> normalizeSinglePreviewEntries(
-            @NotNull PieceRuntimeState.PreviewCells cells) {
-        if (cells.getPreviewEntries().isEmpty()) {
-            return Collections.emptyMap();
-        }
-        int minX = 0;
-        int minY = 0;
-        int minZ = 0;
-        boolean initialized = false;
-        for (BlockPos pos : cells.getBlocks().keySet()) {
-            if (!initialized) {
-                minX = pos.getX();
-                minY = pos.getY();
-                minZ = pos.getZ();
-                initialized = true;
-            } else {
-                minX = Math.min(minX, pos.getX());
-                minY = Math.min(minY, pos.getY());
-                minZ = Math.min(minZ, pos.getZ());
-            }
-        }
-        if (!initialized) {
-            return Collections.emptyMap();
-        }
-        Map<BlockPos, StructureElementPreviewEntry> normalized = new HashMap<>();
-        for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry : cells.getPreviewEntries().entrySet()) {
-            normalized.put(new BlockPos(
-                    entry.getKey().getX() - minX,
-                    entry.getKey().getY() - minY,
-                    entry.getKey().getZ() - minZ), entry.getValue());
-        }
-        return normalized;
-    }
-
-    @NotNull
-    private static int[] resolveSinglePreviewRepetitions(
-            @NotNull StructureDefinition<?> definition,
-            @Nullable Map<String, Integer> channelValues) {
-        PieceTemplate template = definition.getPrimaryTemplate();
-        PieceTemplate.AisleDef[] aisles = template.getAisles();
-        int[] repetitions = new int[aisles.length];
-        for (int i = 0; i < aisles.length; i++) {
-            PieceTemplate.AisleDef aisle = aisles[i];
-            Integer value = aisle.channelName() == null || channelValues == null
-                    ? null
-                    : channelValues.get(aisle.channelName());
-            repetitions[i] = value == null
-                    ? aisle.minRepeat()
-                    : PieceRuntimeState.resolveRepetitionValue(
-                            value, aisle.minRepeat(), aisle.maxRepeat());
-        }
-        return repetitions;
     }
 
     @Nullable

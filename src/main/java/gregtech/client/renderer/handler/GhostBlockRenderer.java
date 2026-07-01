@@ -242,16 +242,13 @@ public class GhostBlockRenderer {
         lastBuildTime = System.currentTimeMillis();
         layer = requestedLayer;
 
-        boolean singleTemplate = controller.getStructureDefinition().supportsSingleTemplatePath();
-        int requestedPieceIndex = channelValues != null
+        // V3 §13: ghost renderer consumes the compiled MultiPiecePattern
+        // unconditionally. Single-piece patterns compile to a one-piece
+        // MultiPiecePattern, so the multi-piece preview assembler handles them
+        // without a separate single-template branch here.
+        int pieceIndex = channelValues != null
                 ? channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0)
                 : 0;
-        int pieceIndex = singleTemplate ? 0 : requestedPieceIndex;
-        if (singleTemplate && requestedPieceIndex > 0) {
-            GTLog.logger.info("[StructureProjector] ignoring structure_piece={} for single-template controller={} " +
-                            "channels={}",
-                    requestedPieceIndex, controller.getMetaName(), channelValues);
-        }
 
         boolean built = false;
         try {
@@ -288,14 +285,11 @@ public class GhostBlockRenderer {
      * manageable for large multi-piece multiblocks like the Forge of the Gods.
      */
     private static boolean buildPieceVBO(MultiblockControllerBase controller, int pieceIndex) {
-        boolean singleTemplate = controller.getStructureDefinition().supportsSingleTemplatePath();
-        MultiPiecePattern multiPiece = singleTemplate
-                ? null
-                : controller.getStructureDefinition().getCompiledPattern();
+        MultiPiecePattern multiPiece = controller.getStructureDefinition().getCompiledPattern();
         if (multiPiece == null) {
-            GTLog.logger.warn("[StructureProjector] multi-piece pattern missing controller={} piece={} " +
-                            "singleTemplate={} channels={}",
-                    controller.getMetaName(), pieceIndex, singleTemplate, channelValues);
+            GTLog.logger.warn("[StructureProjector] compiled pattern missing controller={} piece={} " +
+                            "channels={}",
+                    controller.getMetaName(), pieceIndex, channelValues);
             return false;
         }
         MultiPiecePreviewAssembler.Result preview = getMultiPiecePreview(controller, pieceIndex);
@@ -331,44 +325,30 @@ public class GhostBlockRenderer {
      * Used when no STRUCTURE_PIECE channel value is set.
      */
     private static boolean buildFullVBO(MultiblockControllerBase controller) {
-        MultiblockShapeInfo shapeInfo;
-        BlockPos controllerLocalPos;
-        boolean singleTemplate = controller.getStructureDefinition().supportsSingleTemplatePath();
-        GTLog.logger.info("[StructureProjector] full preview path controller={} singleTemplate={} channels={} " +
+        MultiPiecePattern multiPiece = controller.getStructureDefinition().getCompiledPattern();
+        GTLog.logger.info("[StructureProjector] full preview path controller={} pieces={} channels={} " +
                         "noHatch={}",
-                controller.getMetaName(), singleTemplate, channelValues, noHatch);
-        MultiPiecePattern multiPiece = singleTemplate
-                ? null
-                : controller.getStructureDefinition().getCompiledPattern();
-        if (multiPiece != null) {
-            MultiPiecePreviewAssembler.Result preview = getMultiPiecePreview(
-                    controller, MultiPiecePreviewAssembler.DEFAULT_TOOLING_PIECES);
-            if (preview == null || preview.isEmpty()) {
-                GTLog.logger.warn("[StructureProjector] no multi-piece preview controller={} channels={} " +
-                                "noHatch={}",
-                        controller.getMetaName(), channelValues, noHatch);
-                return false;
-            }
-            return buildMultiPieceVBO(controller, multiPiece, preview);
-        } else {
-            List<MultiblockShapeInfo> shapes = controller.getMatchingShapes(channelValues, noHatch);
-            if (shapes.isEmpty()) {
-                GTLog.logger.warn("[StructureProjector] no matching preview shape controller={} channels={}",
-                        controller.getMetaName(), channelValues);
-                return false;
-            }
-            shapeInfo = shapes.get(0);
-            controllerLocalPos = PreviewRenderUtils.findControllerInPreview(
-                    shapeInfo.getBlocks(), controller);
-            if (controllerLocalPos == null) {
-                GTLog.logger.warn("[StructureProjector] controller missing from preview controller={}",
-                        controller.getMetaName());
-                return false;
-            }
+                controller.getMetaName(),
+                multiPiece == null ? 0 : multiPiece.getToolingPieceCount(),
+                channelValues, noHatch);
+        if (multiPiece == null) {
+            GTLog.logger.warn("[StructureProjector] compiled pattern missing controller={} channels={}",
+                    controller.getMetaName(), channelValues);
+            return false;
         }
-
-        return buildVBOInternal(controller, shapeInfo, controllerLocalPos, controller.getPos(),
-                null, false);
+        // V3 §13: ghost renderer consumes the compiled MultiPiecePattern via the
+        // multi-piece preview assembler for both single-piece and multi-piece
+        // structures. Single-piece patterns compile to a one-piece pattern, so
+        // the fast-path lives inside the assembler, not as a bypass here.
+        MultiPiecePreviewAssembler.Result preview = getMultiPiecePreview(
+                controller, MultiPiecePreviewAssembler.DEFAULT_TOOLING_PIECES);
+        if (preview == null || preview.isEmpty()) {
+            GTLog.logger.warn("[StructureProjector] no multi-piece preview controller={} channels={} " +
+                            "noHatch={}",
+                    controller.getMetaName(), channelValues, noHatch);
+            return false;
+        }
+        return buildMultiPieceVBO(controller, multiPiece, preview);
     }
 
     private static MultiPiecePreviewAssembler.Result getMultiPiecePreview(

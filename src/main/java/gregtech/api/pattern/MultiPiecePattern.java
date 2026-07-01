@@ -1010,6 +1010,25 @@ public class MultiPiecePattern {
     }
 
     /**
+     * V3 §6: whether this compiled pattern represents exactly one
+     * non-repeatable piece. This is the compiled-pattern view of the
+     * {@code supportsSingleTemplatePath} flag on {@code StructureDefinition};
+     * external callers should query the compiled pattern here rather than
+     * branching on the definition-level flag to bypass the multi-piece path.
+     *
+     * <p>Used by controller/runtime setup to decide whether to initialize
+     * legacy single-template fields ({@code patternTemplate}/
+     * {@code runtimeState}). The single-piece fast-path itself lives inside
+     * the committer and {@code PieceRuntimes}, not at the call site.
+     *
+     * @return {@code true} if the pattern has exactly one piece and it is not
+     *         a {@link RepeatGroupPiece}
+     */
+    public boolean isSingleNonRepeatablePiece() {
+        return pieceList.size() == 1 && !(pieceList.get(0) instanceof RepeatGroupPiece);
+    }
+
+    /**
      * Reset every piece's runtime state via the per-controller {@link PieceRuntimes}.
      * The pattern itself is unaffected — it carries no per-instance state to reset.
      */

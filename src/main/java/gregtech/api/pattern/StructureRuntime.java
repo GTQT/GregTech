@@ -81,15 +81,18 @@ public final class StructureRuntime {
 
     @NotNull
     public static StructureRuntime fromDefinition(@NotNull StructureDefinition<?> definition) {
+        // V3 §6: always go through the compiled multi-piece path. The
+        // single-piece fast-path lives inside PieceRuntimes / the committer
+        // (where pieceCount==1 can skip redundant work), not here. Branching
+        // on supportsSingleTemplatePath() to pick a separate single-template
+        // runtime was a bypass of the compiled pattern and is removed.
+        //
+        // The template/state fields stay nullable; they are only populated
+        // by the runtime-detector path (controllers that construct a
+        // StructureRuntime directly with a PieceTemplate + PieceRuntimeState).
         MultiPiecePattern multiPiecePattern = definition.getCompiledPattern();
-        StructurePiece primaryPiece = definition.supportsSingleTemplatePath()
-                ? multiPiecePattern.getPrimaryPiece()
-                : null;
-        PieceRuntimeState state = primaryPiece == null ? null : new PieceRuntimeState(primaryPiece.getTemplate());
-        return new StructureRuntime(definition, null, state, multiPiecePattern,
-                state == null
-                        ? new PieceRuntimes(multiPiecePattern)
-                        : PieceRuntimes.singleWithState(multiPiecePattern, state));
+        return new StructureRuntime(definition, null, null, multiPiecePattern,
+                new PieceRuntimes(multiPiecePattern));
     }
 
     @Nullable

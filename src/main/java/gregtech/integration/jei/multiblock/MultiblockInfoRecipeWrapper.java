@@ -1191,10 +1191,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 + new TreeMap<>(channelValues);
         if (TYPED_PREVIEW_ENTRY_DIAGNOSTICS.add(key)) {
             GTLog.logger.debug("[JEIMultiblockPreview] typed preview entries controller={} " +
-                            "previewController={} singleTemplate={} channels={} blocks={} sourceEntries={} " +
+                            "previewController={} pieces={} channels={} blocks={} sourceEntries={} " +
                             "retainedEntries={}",
                     controller.metaTileEntityId, previewControllerId,
-                    controller.getStructureDefinition().supportsSingleTemplatePath(),
+                    controller.getStructureDefinition().getCompiledPattern().getPieceCount(),
                     new TreeMap<>(channelValues), blockCount, sourceEntryCount, retainedEntryCount);
         }
     }

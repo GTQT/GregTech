@@ -175,15 +175,18 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         StructureRuntime previousRuntime = this.structureRuntime;
         this.structureDefinition = resolveStructureDefinition();
         this.multiPiecePattern = this.structureDefinition.getCompiledPattern();
-        if (this.structureDefinition.supportsSingleTemplatePath()) {
+        // V3 §6: query the compiled pattern rather than the definition-level
+        // supportsSingleTemplatePath() flag. The legacy patternTemplate /
+        // runtimeState fields are only populated for single non-repeatable
+        // pieces so that tooltip / cache-clear / dismantle paths keep working
+        // as before; multi-piece runtimes go through PieceRuntimes.
+        if (this.multiPiecePattern.isSingleNonRepeatablePiece()) {
             this.patternTemplate = this.multiPiecePattern.getPrimaryPiece().getTemplate();
             this.runtimeState = new PieceRuntimeState(this.patternTemplate);
         } else {
             this.patternTemplate = null;
             this.runtimeState = null;
         }
-        // Per-controller state for the compiled pattern. Single-template
-        // runtimes use PieceRuntimeState directly.
         this.pieceRuntimes = this.runtimeState == null
                 ? new PieceRuntimes(this.multiPiecePattern)
                 : PieceRuntimes.singleWithState(this.multiPiecePattern, this.runtimeState);
