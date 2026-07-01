@@ -104,6 +104,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     // Candidate cycling interval in milliseconds
     private static final long CANDIDATE_CYCLE_INTERVAL_MS = 1000L;
     private static final Set<String> MISSING_TYPED_PREVIEW_DIAGNOSTICS = new HashSet<>();
+    private static final Set<String> TYPED_PREVIEW_ENTRY_DIAGNOSTICS = new HashSet<>();
     private static ItemStack tooltipBlockStack;
     private static long lastRender;
     private static MultiblockInfoRecipeWrapper lastWrapper;
@@ -1156,12 +1157,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         world.setRenderFilter(worldSceneRenderer.renderedBlocks::contains);
 
         Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
-        MultiblockControllerBase previewEntryController = controllerBase != null ? controllerBase : controller;
-        previewEntryController.buildStructurePreviewEntries(channelValues).forEach((previewPos, entry) -> {
+        Map<BlockPos, StructureElementPreviewEntry> sourcePreviewEntries =
+                controller.buildStructurePreviewEntries(channelValues);
+        sourcePreviewEntries.forEach((previewPos, entry) -> {
             if (blockMap.containsKey(previewPos)) {
                 previewEntries.put(previewPos, entry);
             }
         });
+        logTypedPreviewEntrySource(controllerBase, blockMap.size(), sourcePreviewEntries.size(),
+                previewEntries.size());
 
         List<ItemStack> sortedParts = gatherStructureBlocks(worldSceneRenderer.world, blockMap, parts).stream()
                 .sorted((one, two) -> {
@@ -1174,6 +1178,25 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 }).map(PartInfo::getItemStack).collect(Collectors.toList());
 
         return new MBPattern(worldSceneRenderer, sortedParts, previewEntries);
+    }
+
+    private void logTypedPreviewEntrySource(@Nullable MultiblockControllerBase previewController,
+                                            int blockCount,
+                                            int sourceEntryCount,
+                                            int retainedEntryCount) {
+        String previewControllerId = previewController == null
+                ? "none"
+                : previewController.metaTileEntityId.toString();
+        String key = controller.metaTileEntityId + "|" + previewControllerId + "|"
+                + new TreeMap<>(channelValues);
+        if (TYPED_PREVIEW_ENTRY_DIAGNOSTICS.add(key)) {
+            GTLog.logger.debug("[JEIMultiblockPreview] typed preview entries controller={} " +
+                            "previewController={} singleTemplate={} channels={} blocks={} sourceEntries={} " +
+                            "retainedEntries={}",
+                    controller.metaTileEntityId, previewControllerId,
+                    controller.getStructureDefinition().supportsSingleTemplatePath(),
+                    new TreeMap<>(channelValues), blockCount, sourceEntryCount, retainedEntryCount);
+        }
     }
 
     private static final class PreviewCandidate {

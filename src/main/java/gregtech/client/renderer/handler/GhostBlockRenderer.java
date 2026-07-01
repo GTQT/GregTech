@@ -242,9 +242,16 @@ public class GhostBlockRenderer {
         lastBuildTime = System.currentTimeMillis();
         layer = requestedLayer;
 
-        int pieceIndex = channelValues != null
+        boolean singleTemplate = controller.getStructureDefinition().supportsSingleTemplatePath();
+        int requestedPieceIndex = channelValues != null
                 ? channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0)
                 : 0;
+        int pieceIndex = singleTemplate ? 0 : requestedPieceIndex;
+        if (singleTemplate && requestedPieceIndex > 0) {
+            GTLog.logger.info("[StructureProjector] ignoring structure_piece={} for single-template controller={} " +
+                            "channels={}",
+                    requestedPieceIndex, controller.getMetaName(), channelValues);
+        }
 
         boolean built = false;
         try {
@@ -281,12 +288,14 @@ public class GhostBlockRenderer {
      * manageable for large multi-piece multiblocks like the Forge of the Gods.
      */
     private static boolean buildPieceVBO(MultiblockControllerBase controller, int pieceIndex) {
-        MultiPiecePattern multiPiece = controller.getStructureDefinition().supportsSingleTemplatePath()
+        boolean singleTemplate = controller.getStructureDefinition().supportsSingleTemplatePath();
+        MultiPiecePattern multiPiece = singleTemplate
                 ? null
                 : controller.getStructureDefinition().getCompiledPattern();
         if (multiPiece == null) {
-            GTLog.logger.warn("[StructureProjector] multi-piece pattern missing controller={} piece={}",
-                    controller.getMetaName(), pieceIndex);
+            GTLog.logger.warn("[StructureProjector] multi-piece pattern missing controller={} piece={} " +
+                            "singleTemplate={} channels={}",
+                    controller.getMetaName(), pieceIndex, singleTemplate, channelValues);
             return false;
         }
         MultiPiecePreviewAssembler.Result preview = getMultiPiecePreview(controller, pieceIndex);
@@ -324,7 +333,11 @@ public class GhostBlockRenderer {
     private static boolean buildFullVBO(MultiblockControllerBase controller) {
         MultiblockShapeInfo shapeInfo;
         BlockPos controllerLocalPos;
-        MultiPiecePattern multiPiece = controller.getStructureDefinition().supportsSingleTemplatePath()
+        boolean singleTemplate = controller.getStructureDefinition().supportsSingleTemplatePath();
+        GTLog.logger.info("[StructureProjector] full preview path controller={} singleTemplate={} channels={} " +
+                        "noHatch={}",
+                controller.getMetaName(), singleTemplate, channelValues, noHatch);
+        MultiPiecePattern multiPiece = singleTemplate
                 ? null
                 : controller.getStructureDefinition().getCompiledPattern();
         if (multiPiece != null) {
@@ -338,9 +351,7 @@ public class GhostBlockRenderer {
             }
             return buildMultiPieceVBO(controller, multiPiece, preview);
         } else {
-            List<MultiblockShapeInfo> shapes = channelValues != null
-                    ? controller.getMatchingShapes(channelValues)
-                    : controller.getMatchingShapes();
+            List<MultiblockShapeInfo> shapes = controller.getMatchingShapes(channelValues, noHatch);
             if (shapes.isEmpty()) {
                 GTLog.logger.warn("[StructureProjector] no matching preview shape controller={} channels={}",
                         controller.getMetaName(), channelValues);

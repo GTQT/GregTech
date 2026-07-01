@@ -35,9 +35,21 @@ final class MultiblockStructurePreviews {
             @Nullable PieceRuntimeState runtimeState,
             @Nullable StructureRuntime structureRuntime,
             @Nullable Map<String, Integer> channelValues) {
+        return getMatchingShapes(controller, patternTemplate, runtimeState, structureRuntime,
+                channelValues, false);
+    }
+
+    @NotNull
+    static List<MultiblockShapeInfo> getMatchingShapes(
+            @NotNull MultiblockControllerBase controller,
+            @NotNull PieceTemplate patternTemplate,
+            @Nullable PieceRuntimeState runtimeState,
+            @Nullable StructureRuntime structureRuntime,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches) {
         int[][] aisleRepetitions = patternTemplate.getAisleRepetitions();
         return repetitionDFS(controller, patternTemplate, runtimeState, structureRuntime,
-                new ArrayList<>(), aisleRepetitions, new Stack<>(), channelValues);
+                new ArrayList<>(), aisleRepetitions, new Stack<>(), channelValues, skipHatches);
     }
 
     @NotNull
@@ -47,17 +59,31 @@ final class MultiblockStructurePreviews {
             @Nullable PieceRuntimes pieceRuntimes,
             @Nullable StructureRuntime structureRuntime,
             @Nullable Map<String, Integer> channelValues) {
+        return buildMultiPieceShapes(controller, multiPiecePattern, pieceRuntimes, structureRuntime,
+                channelValues, false);
+    }
+
+    @NotNull
+    static List<MultiblockShapeInfo> buildMultiPieceShapes(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable MultiPiecePattern multiPiecePattern,
+            @Nullable PieceRuntimes pieceRuntimes,
+            @Nullable StructureRuntime structureRuntime,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches) {
         if (multiPiecePattern == null) {
             return Collections.emptyList();
         }
         int pieceIndex = resolveToolingPieceIndex(channelValues);
         if (pieceIndex > 0) {
-            MultiblockShapeInfo shape = getMatchingShapeForPiece(controller, multiPiecePattern,
-                    pieceRuntimes, structureRuntime, pieceIndex, channelValues);
+            MultiPiecePreviewAssembler.PieceResult preview = getMatchingPreviewPiece(controller,
+                    multiPiecePattern, pieceRuntimes, structureRuntime, pieceIndex, channelValues,
+                    skipHatches);
+            MultiblockShapeInfo shape = preview == null ? null : preview.getShape();
             return shape == null ? Collections.emptyList() : Collections.singletonList(shape);
         }
         MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,
-                multiPiecePattern, pieceRuntimes, structureRuntime, channelValues);
+                multiPiecePattern, pieceRuntimes, structureRuntime, channelValues, skipHatches);
         return Collections.singletonList(preview.getShape());
     }
 
@@ -108,13 +134,27 @@ final class MultiblockStructurePreviews {
             @Nullable StructureRuntime structureRuntime,
             int pieceIndex,
             @Nullable Map<String, Integer> channelValues) {
+        return getMatchingPreviewPiece(controller, multiPiecePattern, pieceRuntimes, structureRuntime,
+                pieceIndex, channelValues, false);
+    }
+
+    @Nullable
+    private static MultiPiecePreviewAssembler.PieceResult getMatchingPreviewPiece(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable MultiPiecePattern multiPiecePattern,
+            @Nullable PieceRuntimes pieceRuntimes,
+            @Nullable StructureRuntime structureRuntime,
+            int pieceIndex,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches) {
         if (multiPiecePattern == null
                 || pieceIndex < 1
                 || pieceIndex > multiPiecePattern.getToolingPieceCount()) {
             return null;
         }
         MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,
-                multiPiecePattern, pieceRuntimes, structureRuntime, channelValues, pieceIndex);
+                multiPiecePattern, pieceRuntimes, structureRuntime, channelValues, skipHatches,
+                pieceIndex);
         return preview.getPiece(pieceIndex);
     }
 
@@ -124,10 +164,22 @@ final class MultiblockStructurePreviews {
             @Nullable PieceRuntimes pieceRuntimes,
             @Nullable StructureRuntime structureRuntime,
             @Nullable Map<String, Integer> channelValues) {
+        return assembleMultiPiecePreview(controller, multiPiecePattern, pieceRuntimes, structureRuntime,
+                channelValues, false);
+    }
+
+    private static MultiPiecePreviewAssembler.Result assembleMultiPiecePreview(
+            @NotNull MultiblockControllerBase controller,
+            @NotNull MultiPiecePattern multiPiecePattern,
+            @Nullable PieceRuntimes pieceRuntimes,
+            @Nullable StructureRuntime structureRuntime,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches) {
         return structureRuntime == null
-                ? MultiPiecePreviewAssembler.assemble(multiPiecePattern, pieceRuntimes, channelValues, controller)
+                ? MultiPiecePreviewAssembler.assemble(multiPiecePattern, pieceRuntimes, channelValues, controller,
+                        skipHatches, resolveToolingPieceIndex(channelValues))
                 : structureRuntime.previewMultiPiece(
-                        StructureOperationRequest.previewMultiPiece(channelValues, controller));
+                        StructureOperationRequest.previewMultiPiece(channelValues, controller, skipHatches));
     }
 
     private static MultiPiecePreviewAssembler.Result assembleMultiPiecePreview(
@@ -137,12 +189,24 @@ final class MultiblockStructurePreviews {
             @Nullable StructureRuntime structureRuntime,
             @Nullable Map<String, Integer> channelValues,
             int toolingPieceIndex) {
+        return assembleMultiPiecePreview(controller, multiPiecePattern, pieceRuntimes, structureRuntime,
+                channelValues, false, toolingPieceIndex);
+    }
+
+    private static MultiPiecePreviewAssembler.Result assembleMultiPiecePreview(
+            @NotNull MultiblockControllerBase controller,
+            @NotNull MultiPiecePattern multiPiecePattern,
+            @Nullable PieceRuntimes pieceRuntimes,
+            @Nullable StructureRuntime structureRuntime,
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches,
+            int toolingPieceIndex) {
         return structureRuntime == null
                 ? MultiPiecePreviewAssembler.assemble(multiPiecePattern, pieceRuntimes, channelValues,
-                        controller, false, toolingPieceIndex)
+                        controller, skipHatches, toolingPieceIndex)
                 : structureRuntime.previewMultiPiece(
                         StructureOperationRequest.previewMultiPiece(
-                                channelValues, controller, false, toolingPieceIndex));
+                                channelValues, controller, skipHatches, toolingPieceIndex));
     }
 
     private static int resolveToolingPieceIndex(@Nullable Map<String, Integer> channelValues) {
@@ -158,7 +222,8 @@ final class MultiblockStructurePreviews {
             @NotNull List<MultiblockShapeInfo> pages,
             @NotNull int[][] aisleRepetitions,
             @NotNull Stack<Integer> repetitionStack,
-            @Nullable Map<String, Integer> channelValues) {
+            @Nullable Map<String, Integer> channelValues,
+            boolean skipHatches) {
         if (repetitionStack.size() == aisleRepetitions.length) {
             int[] repetition = new int[repetitionStack.size()];
             for (int i = 0; i < repetitionStack.size(); i++) {
@@ -170,10 +235,11 @@ final class MultiblockStructurePreviews {
                             : runtimeState.createPreviewCells(repetition, channelValues,
                                     controller.multiPiecePattern == null
                                             ? null
-                                            : controller.multiPiecePattern.createAbilityPlacementTracker())
+                                            : controller.multiPiecePattern.createAbilityPlacementTracker(),
+                                    skipHatches)
                                     .toBlockArray()
                     : structureRuntime.previewSingle(
-                            StructureOperationRequest.preview(repetition, channelValues));
+                            StructureOperationRequest.preview(repetition, channelValues, null, skipHatches));
             pages.add(new MultiblockShapeInfo(preview));
         } else {
             int aisleIdx = repetitionStack.size();
@@ -190,13 +256,13 @@ final class MultiblockStructurePreviews {
                 int clamped = Math.max(min, Math.min(max, channelValue));
                 repetitionStack.push(clamped);
                 repetitionDFS(controller, patternTemplate, runtimeState, structureRuntime,
-                        pages, aisleRepetitions, repetitionStack, channelValues);
+                        pages, aisleRepetitions, repetitionStack, channelValues, skipHatches);
                 repetitionStack.pop();
             } else {
                 for (int i = aisleRepetitions[aisleIdx][0]; i <= aisleRepetitions[aisleIdx][1]; i++) {
                     repetitionStack.push(i);
                     repetitionDFS(controller, patternTemplate, runtimeState, structureRuntime,
-                            pages, aisleRepetitions, repetitionStack, channelValues);
+                            pages, aisleRepetitions, repetitionStack, channelValues, skipHatches);
                     repetitionStack.pop();
                 }
             }

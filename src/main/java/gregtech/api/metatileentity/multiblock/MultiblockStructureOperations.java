@@ -18,6 +18,7 @@ import gregtech.api.pattern.StructureTrace;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.util.math.BlockPos;
@@ -25,10 +26,14 @@ import net.minecraft.util.math.BlockPos;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * Internal facade for structure operations owned by {@link MultiblockControllerBase}.
@@ -38,6 +43,9 @@ import java.util.Map;
  * side effects.
  */
 final class MultiblockStructureOperations {
+
+    private static final Set<String> PREVIEW_PATH_DIAGNOSTICS =
+            Collections.synchronizedSet(new HashSet<>());
 
     private MultiblockStructureOperations() {}
 
@@ -135,31 +143,34 @@ final class MultiblockStructureOperations {
     @NotNull
     static List<MultiblockShapeInfo> getMatchingShapes(@NotNull MultiblockControllerBase controller,
                                                        @Nullable Map<String, Integer> channelValues) {
-        if (channelValues == null || channelValues.isEmpty()) {
-            return getMatchingShapes(controller);
-        }
+        return getMatchingShapes(controller, channelValues, false);
+    }
+
+    @NotNull
+    static List<MultiblockShapeInfo> getMatchingShapes(@NotNull MultiblockControllerBase controller,
+                                                       @Nullable Map<String, Integer> channelValues,
+                                                       boolean skipHatches) {
+        Map<String, Integer> effectiveChannels = emptyToNull(channelValues);
         if (controller.patternTemplate == null) {
             controller.reinitializeStructurePattern();
             if (controller.patternTemplate == null) {
-                return buildMultiPieceShapes(controller, channelValues);
+                List<MultiblockShapeInfo> shapes = MultiblockStructurePreviews.buildMultiPieceShapes(
+                        controller, controller.multiPiecePattern, controller.pieceRuntimes,
+                        controller.getStructureRuntime(), effectiveChannels, skipHatches);
+                logMatchingShapes(controller, false, effectiveChannels, skipHatches, shapes.size());
+                return shapes;
             }
         }
-        return MultiblockStructurePreviews.getMatchingShapes(
+        List<MultiblockShapeInfo> shapes = MultiblockStructurePreviews.getMatchingShapes(
                 controller, controller.patternTemplate, controller.runtimeState,
-                controller.getStructureRuntime(), channelValues);
+                controller.getStructureRuntime(), effectiveChannels, skipHatches);
+        logMatchingShapes(controller, true, effectiveChannels, skipHatches, shapes.size());
+        return shapes;
     }
 
     @NotNull
     static List<MultiblockShapeInfo> getMatchingShapes(@NotNull MultiblockControllerBase controller) {
-        if (controller.patternTemplate == null) {
-            controller.reinitializeStructurePattern();
-            if (controller.patternTemplate == null) {
-                return buildMultiPieceShapes(controller, null);
-            }
-        }
-        return MultiblockStructurePreviews.getMatchingShapes(
-                controller, controller.patternTemplate, controller.runtimeState,
-                controller.getStructureRuntime(), null);
+        return getMatchingShapes(controller, null, false);
     }
 
     @NotNull
@@ -184,22 +195,79 @@ final class MultiblockStructureOperations {
     static Map<BlockPos, StructureElementPreviewEntry> buildStructurePreviewEntries(
             @NotNull MultiblockControllerBase controller,
             @Nullable Map<String, Integer> channelValues) {
+        Map<String, Integer> effectiveChannels = emptyToNull(channelValues);
         StructureRuntime runtime = controller.getOrCreateStructureRuntime();
         StructureDefinition<?> definition = controller.getStructureDefinition();
         if (definition != null && definition.supportsSingleTemplatePath()) {
-            int[] repetitions = resolveSinglePreviewRepetitions(definition, channelValues);
+            int[] repetitions = resolveSinglePreviewRepetitions(definition, effectiveChannels);
             StructurePreviewResult result = runtime.previewSingleResult(
-                    StructureOperationRequest.preview(repetitions, channelValues));
+                    StructureOperationRequest.preview(repetitions, effectiveChannels));
             if (result.getSinglePieceCells() == null) {
+                logPreviewEntries(controller, true, effectiveChannels, result.getOutcome().name(),
+                        repetitions, 0);
                 return Collections.emptyMap();
             }
-            return normalizeSinglePreviewEntries(result.getSinglePieceCells());
+            Map<BlockPos, StructureElementPreviewEntry> entries =
+                    normalizeSinglePreviewEntries(result.getSinglePieceCells());
+            logPreviewEntries(controller, true, effectiveChannels, result.getOutcome().name(),
+                    repetitions, entries.size());
+            return entries;
         }
 
         StructurePreviewResult result = runtime.previewMultiPieceResult(
-                StructureOperationRequest.previewMultiPiece(channelValues, controller));
+                StructureOperationRequest.previewMultiPiece(effectiveChannels, controller));
         MultiPiecePreviewAssembler.Result preview = result.getMultiPieceResult();
-        return preview == null ? Collections.emptyMap() : preview.getPreviewEntries();
+        Map<BlockPos, StructureElementPreviewEntry> entries =
+                preview == null ? Collections.emptyMap() : preview.getPreviewEntries();
+        logPreviewEntries(controller, false, effectiveChannels, result.getOutcome().name(),
+                null, entries.size());
+        return entries;
+    }
+
+    @Nullable
+    private static Map<String, Integer> emptyToNull(@Nullable Map<String, Integer> channelValues) {
+        return channelValues == null || channelValues.isEmpty() ? null : channelValues;
+    }
+
+    private static void logMatchingShapes(@NotNull MultiblockControllerBase controller,
+                                          boolean singleTemplate,
+                                          @Nullable Map<String, Integer> channelValues,
+                                          boolean skipHatches,
+                                          int shapeCount) {
+        String key = "shapes|" + controller.metaTileEntityId + "|" + singleTemplate + "|"
+                + skipHatches + "|" + channelKey(channelValues);
+        if (PREVIEW_PATH_DIAGNOSTICS.add(key)) {
+            GTLog.logger.debug("[MultiblockPreview] getMatchingShapes controller={} singleTemplate={} " +
+                            "skipHatches={} channels={} shapes={}",
+                    controller.metaTileEntityId, singleTemplate, skipHatches,
+                    channelLogValue(channelValues), shapeCount);
+        }
+    }
+
+    private static void logPreviewEntries(@NotNull MultiblockControllerBase controller,
+                                          boolean singleTemplate,
+                                          @Nullable Map<String, Integer> channelValues,
+                                          @NotNull String outcome,
+                                          @Nullable int[] repetitions,
+                                          int entryCount) {
+        String key = "entries|" + controller.metaTileEntityId + "|" + singleTemplate + "|"
+                + channelKey(channelValues);
+        if (PREVIEW_PATH_DIAGNOSTICS.add(key)) {
+            GTLog.logger.debug("[MultiblockPreview] typed preview entries controller={} singleTemplate={} " +
+                            "channels={} outcome={} repetitions={} entries={}",
+                    controller.metaTileEntityId, singleTemplate, channelLogValue(channelValues),
+                    outcome, repetitions == null ? "n/a" : Arrays.toString(repetitions), entryCount);
+        }
+    }
+
+    @NotNull
+    private static String channelKey(@Nullable Map<String, Integer> channelValues) {
+        return channelValues == null ? "{}" : new TreeMap<>(channelValues).toString();
+    }
+
+    @NotNull
+    private static Map<String, Integer> channelLogValue(@Nullable Map<String, Integer> channelValues) {
+        return channelValues == null ? Collections.emptyMap() : new TreeMap<>(channelValues);
     }
 
     @NotNull

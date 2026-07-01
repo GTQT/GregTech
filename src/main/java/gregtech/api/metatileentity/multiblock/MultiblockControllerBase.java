@@ -1108,6 +1108,11 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return MultiblockStructureOperations.getMatchingShapes(this, channelValues);
     }
 
+    public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues,
+                                                       boolean skipHatches) {
+        return MultiblockStructureOperations.getMatchingShapes(this, channelValues, skipHatches);
+    }
+
     /**
      * Build preview shapes for multi-piece structures (StructureDefinition with multiple pieces).
      * Merges all pieces' previews into a single combined shape by offsetting each piece
