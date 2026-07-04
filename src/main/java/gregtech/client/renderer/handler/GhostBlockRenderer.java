@@ -341,7 +341,7 @@ public class GhostBlockRenderer {
         // structures. Single-piece patterns compile to a one-piece pattern, so
         // the fast-path lives inside the assembler, not as a bypass here.
         MultiPiecePreviewAssembler.Result preview = getMultiPiecePreview(
-                controller, MultiPiecePreviewAssembler.DEFAULT_TOOLING_PIECES);
+                controller, MultiPiecePreviewAssembler.ALL_TOOLING_PIECES);
         if (preview == null || preview.isEmpty()) {
             GTLog.logger.warn("[StructureProjector] no multi-piece preview controller={} channels={} " +
                             "noHatch={}",

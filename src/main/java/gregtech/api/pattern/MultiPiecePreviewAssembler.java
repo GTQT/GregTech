@@ -30,6 +30,7 @@ import java.util.Map;
  */
 public final class MultiPiecePreviewAssembler {
 
+    public static final int ALL_TOOLING_PIECES = 0;
     public static final int DEFAULT_TOOLING_PIECES = -1;
 
     private static final EnumFacing CANONICAL_FRONT = EnumFacing.SOUTH;
@@ -171,7 +172,7 @@ public final class MultiPiecePreviewAssembler {
             pieceCenters.put(piece.getName(), pieceCenter);
         }
 
-        orientPreviewMetaTileEntities(allBlocks);
+        orientPreviewMetaTileEntities(allBlocks, controller);
 
         NormalizedShape combined = normalize(allBlocks);
         Map<BlockPos, StructureElementPreviewEntry> normalizedPreviewEntries = new HashMap<>();
@@ -250,13 +251,20 @@ public final class MultiPiecePreviewAssembler {
         return repetitions;
     }
 
-    private static void orientPreviewMetaTileEntities(@NotNull Map<BlockPos, BlockInfo> blocks) {
+    private static void orientPreviewMetaTileEntities(@NotNull Map<BlockPos, BlockInfo> blocks,
+                                                      @Nullable MultiblockControllerBase controller) {
         blocks.forEach((pos, info) -> {
             if (!(info.getTileEntity() instanceof MetaTileEntityHolder holder)) {
                 return;
             }
             MetaTileEntity metaTileEntity = holder.getMetaTileEntity();
             if (metaTileEntity == null) {
+                return;
+            }
+            if (controller != null && metaTileEntity instanceof MultiblockControllerBase
+                    && metaTileEntity.metaTileEntityId.equals(controller.metaTileEntityId)
+                    && metaTileEntity.isValidFrontFacing(controller.getFrontFacing())) {
+                metaTileEntity.setFrontFacing(controller.getFrontFacing());
                 return;
             }
             for (EnumFacing facing : RelativeDirection.ALL_FACINGS) {

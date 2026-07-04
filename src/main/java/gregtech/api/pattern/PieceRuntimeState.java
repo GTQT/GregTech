@@ -1956,13 +1956,20 @@ public final class PieceRuntimeState {
                 // the default in place.
                 for (EnumFacing enumFacing : RelativeDirection.ALL_FACINGS) {
                     if (metaTileEntity.isValidFrontFacing(enumFacing) &&
-                            !blocks.containsKey(pos.offset(enumFacing))) {
+                            !isOccupied(blocks.get(pos.offset(enumFacing)))) {
                         metaTileEntity.setFrontFacing(enumFacing);
                         break;
                     }
                 }
             }
         });
+    }
+
+    private static boolean isOccupied(@Nullable BlockInfo info) {
+        return info != null
+                && info != BlockInfo.EMPTY
+                && info.getBlockState() != null
+                && info.getBlockState().getBlock() != Blocks.AIR;
     }
 
     @NotNull
