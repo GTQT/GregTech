@@ -74,6 +74,7 @@ public class GhostBlockRenderer {
 
     private static final float BLOCK_SCALE = 0.75F;
     private static final float BLOCK_OFFSET = 0.125F;
+    private static final FaceVisibility FULL_BLOCK_VISIBILITY = new FaceVisibility();
     private static final int GHOST_TINT = 0x9EDFFF;
     private static final IVertexOperation[] GHOST_MTE_PIPELINE = new IVertexOperation[] {
             new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(GHOST_TINT))
@@ -242,13 +243,12 @@ public class GhostBlockRenderer {
         lastBuildTime = System.currentTimeMillis();
         layer = requestedLayer;
 
-        // V3 §13: ghost renderer consumes the compiled MultiPiecePattern
-        // unconditionally. Single-piece patterns compile to a one-piece
-        // MultiPiecePattern, so the multi-piece preview assembler handles them
-        // without a separate single-template branch here.
-        int pieceIndex = channelValues != null
+        MultiPiecePattern multiPiece = controller.getStructureDefinition().getCompiledPattern();
+        boolean controllerPreview = multiPiece != null && multiPiece.isSingleNonRepeatablePiece();
+        int requestedPieceIndex = channelValues != null
                 ? channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0)
                 : 0;
+        int pieceIndex = controllerPreview ? 0 : requestedPieceIndex;
 
         boolean built = false;
         try {
@@ -317,7 +317,7 @@ public class GhostBlockRenderer {
         BlockPos pieceCenterLocal = piecePreview.getCenter();
 
         return buildVBOInternal(controller, shapeInfo, pieceCenterLocal, pieceCenterWorld,
-                structureDir, true);
+                structureDir, true, true);
     }
 
     /**
@@ -336,10 +336,14 @@ public class GhostBlockRenderer {
                     controller.getMetaName(), channelValues);
             return false;
         }
+        if (multiPiece.isSingleNonRepeatablePiece()) {
+            return buildControllerPreviewVBO(controller);
+        }
         // V3 §13: ghost renderer consumes the compiled MultiPiecePattern via the
-        // multi-piece preview assembler for both single-piece and multi-piece
-        // structures. Single-piece patterns compile to a one-piece pattern, so
-        // the fast-path lives inside the assembler, not as a bypass here.
+        // multi-piece preview assembler for real multi-piece structures. Single
+        // fixed-piece controllers may expose a separate dynamic tooling preview
+        // through getMatchingShapes(channelValues), so they use the controller
+        // preview path above.
         MultiPiecePreviewAssembler.Result preview = getMultiPiecePreview(
                 controller, MultiPiecePreviewAssembler.ALL_TOOLING_PIECES);
         if (preview == null || preview.isEmpty()) {
@@ -349,6 +353,28 @@ public class GhostBlockRenderer {
             return false;
         }
         return buildMultiPieceVBO(controller, multiPiece, preview);
+    }
+
+    private static boolean buildControllerPreviewVBO(MultiblockControllerBase controller) {
+        // Dynamic single-piece controllers expose their real tooling shape via
+        // the legacy channel-aware hook. The skip-hatch overload may fall back
+        // to the canonical identity piece, which is just the controller block.
+        List<MultiblockShapeInfo> shapes = controller.getMatchingShapes(channelValues);
+        if (shapes.isEmpty()) {
+            GTLog.logger.warn("[StructureProjector] no matching preview shape controller={} channels={}",
+                    controller.getMetaName(), channelValues);
+            return false;
+        }
+        MultiblockShapeInfo shapeInfo = shapes.get(0);
+        BlockPos controllerLocalPos = PreviewRenderUtils.findControllerInPreview(
+                shapeInfo.getBlocks(), controller);
+        if (controllerLocalPos == null) {
+            GTLog.logger.warn("[StructureProjector] controller missing from preview controller={}",
+                    controller.getMetaName());
+            return false;
+        }
+        return buildVBOInternal(controller, shapeInfo, controllerLocalPos, controller.getPos(),
+                null, false, true);
     }
 
     private static MultiPiecePreviewAssembler.Result getMultiPiecePreview(
@@ -419,7 +445,7 @@ public class GhostBlockRenderer {
         }
         BlockPos controllerVirtualPos = controller.getPos().subtract(virtualOrigin);
         return buildMappedVBO(
-                controller, blockMap, localToWorld, layerCoordinates, controllerVirtualPos, false);
+                controller, blockMap, localToWorld, layerCoordinates, controllerVirtualPos, false, true);
     }
 
     private static BlockPos getMinimumPosition(Map<BlockPos, BlockInfo> blocks) {
@@ -437,11 +463,9 @@ public class GhostBlockRenderer {
     /**
      * Shared VBO build logic for both piece and full-structure modes.
      *
-     * <p>Face culling is performed per-block during VBO construction via
-     * {@link PreviewRenderUtils#computeFaceVisibility}, replacing the separate
-     * {@code computeSurfaceBlocks} pass. This eliminates the O(n&times;6) HashMap
-     * lookups that previously ran on every activation, and bakes only visible
-     * faces into the VBO so per-frame draw cost is minimal.</p>
+     * <p>Projector previews skip blocks that are fully hidden by the rendered
+     * subset, keeping large structures surface-sized. Rendered ghost blocks are
+     * still baked at a reduced scale with complete faces.</p>
      *
      * @param controller         the multiblock controller
      * @param shapeInfo          the shape to project
@@ -450,13 +474,15 @@ public class GhostBlockRenderer {
      * @param refWorldPos        the reference position in world coords
      * @param pieceStructureDir  the piece's structure directions (null for full mode)
      * @param isPieceMode        true if projecting a single piece
+     * @param skipFullyHiddenBlocks true to skip blocks enclosed by the rendered subset
      */
     private static boolean buildVBOInternal(MultiblockControllerBase controller,
                                             MultiblockShapeInfo shapeInfo,
                                             BlockPos refLocalPos,
                                             BlockPos refWorldPos,
                                             @Nullable RelativeDirection[] pieceStructureDir,
-                                            boolean isPieceMode) {
+                                            boolean isPieceMode,
+                                            boolean skipFullyHiddenBlocks) {
         BlockInfo[][][] blocks = shapeInfo.getBlocks();
 
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
@@ -490,7 +516,7 @@ public class GhostBlockRenderer {
 
         return buildMappedVBO(
                 controller, blockMap, localToWorld, layerCoordinates,
-                isPieceMode ? null : refLocalPos, isPieceMode);
+                isPieceMode ? null : refLocalPos, isPieceMode, skipFullyHiddenBlocks);
     }
 
     private static boolean buildMappedVBO(MultiblockControllerBase controller,
@@ -498,7 +524,8 @@ public class GhostBlockRenderer {
                                           Map<BlockPos, BlockPos> localToWorld,
                                           Map<BlockPos, Integer> layerCoordinates,
                                           @Nullable BlockPos controllerLocalPos,
-                                          boolean isPieceMode) {
+                                          boolean isPieceMode,
+                                          boolean skipFullyHiddenBlocks) {
         int nonAirBlocks = blockMap.size();
         if (nonAirBlocks == 0) {
             GTLog.logger.warn("[StructureProjector] preview contains no blocks controller={} pieceMode={}",
@@ -573,7 +600,7 @@ public class GhostBlockRenderer {
 
                         BlockPos worldPos = localToWorld.get(pos);
                         renderGhostBlockIntoBuffer(renderer, mteAccess, state, pos, worldPos,
-                                blockMap, renderFilter, buffer);
+                                blockMap, renderFilter, buffer, skipFullyHiddenBlocks);
                     }
 
                     buffer.finishDrawing();
@@ -624,8 +651,8 @@ public class GhostBlockRenderer {
     /**
      * Render a single ghost block into the given buffer. MTE blocks use
      * {@link MetaTileEntityRenderer} with the ghost tint pipeline; regular blocks
-     * use {@link FaceCulledRenderBlocks#renderBlockScaled} with per-face visibility
-     * culling so only visible faces contribute vertices to the VBO.
+     * use {@link FaceCulledRenderBlocks#renderBlockScaled}. Hidden-block skipping
+     * is optional, but rendered ghost blocks stay scaled down with complete faces.
      */
     private static void renderGhostBlockIntoBuffer(FaceCulledRenderBlocks renderer,
                                                    PreviewRenderUtils.OffsetBlockAccess mteAccess,
@@ -634,7 +661,8 @@ public class GhostBlockRenderer {
                                                    BlockPos worldPos,
                                                    Map<BlockPos, BlockInfo> blockMap,
                                                    Predicate<BlockPos> renderFilter,
-                                                   BufferBuilder buffer) {
+                                                   BufferBuilder buffer,
+                                                   boolean skipFullyHiddenBlocks) {
         if (state.getBlock().getRenderType(state) == MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
             mteAccess.setPos(localPos, worldPos, true);
             Matrix4 transform = new Matrix4()
@@ -648,13 +676,14 @@ public class GhostBlockRenderer {
             return;
         }
 
-        FaceVisibility faceVisibility = PreviewRenderUtils.computeFaceVisibility(
-                localPos, blockMap, renderFilter);
-        // Skip block entirely if all faces are occluded
-        if (faceVisibility.isEntireObscured()) return;
+        if (skipFullyHiddenBlocks) {
+            FaceVisibility faceVisibility = PreviewRenderUtils.computeFaceVisibility(
+                    localPos, blockMap, renderFilter);
+            if (faceVisibility.isEntireObscured()) return;
+        }
 
         renderer.renderBlockScaled(state, localPos, worldPos, BLOCK_SCALE, BLOCK_OFFSET,
-                faceVisibility, buffer);
+                FULL_BLOCK_VISIBILITY, buffer);
     }
 
     // ========== Cleanup ==========

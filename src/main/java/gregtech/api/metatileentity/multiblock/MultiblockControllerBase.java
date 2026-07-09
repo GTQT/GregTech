@@ -1113,6 +1113,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues,
                                                        boolean skipHatches) {
+        if (!skipHatches) {
+            return getMatchingShapes(channelValues);
+        }
         return MultiblockStructureOperations.getMatchingShapes(this, channelValues, skipHatches);
     }
 
