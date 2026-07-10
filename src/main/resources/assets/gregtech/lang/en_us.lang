@@ -8741,6 +8741,9 @@ fog.debug.gravitonshardsetter.tooltip=Set the amount of available graviton shard
 # --- Forge of the Gods: Buttons ---
 fog.button.furnacemode.tooltip.01=Blast Mode
 fog.button.furnacemode.tooltip.02=Furnace Mode
+fog.button.recipemap_routing.tooltip.01=Multi Recipe Map Execution: Off
+fog.button.recipemap_routing.tooltip.02=Multi Recipe Map Execution: On
+fog.button.recipemap_routing.mode_locked=Mode selection is disabled while multi recipe map execution is enabled
 fog.button.magmattermode.tooltip.01=Quark-Gluon Plasma Mode
 fog.button.magmattermode.tooltip.02=Magmatter Mode
 fog.button.magmattermode.tooltip.03=Magmatter Mode locked, missing upgrade

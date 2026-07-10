@@ -4,6 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.capability.IRecipeMapBoundInput;
 import gregtech.api.capability.IMultiblockController;
 import gregtech.api.capability.IMultipleNotifiableHandler;
 import gregtech.api.capability.IMultipleRecipeMaps;
@@ -54,6 +55,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected IItemHandlerModifiable currentDistinctInputBus;
     protected List<IItemHandlerModifiable> invalidatedInputList = new ArrayList<>();
 
+    @Nullable
+    private RecipeMap<?> routedRecipeMap;
+    @Nullable
+    private RecipeMap<?> previousDistinctRecipeMap;
+
     // Cross-recipe parallel scheduler (lazy initialized when ParallelLogicType.CROSS_RECIPE is active)
     @Nullable
     protected CrossRecipeParallelScheduler crossRecipeScheduler;
@@ -82,6 +88,41 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     public <T extends MetaTileEntity & IRecipeMapHolder> MultiblockRecipeLogic(T tileEntity,
                                                                                 RecipeMap<?> recipeMap) {
         super(tileEntity, recipeMap);
+    }
+
+    @Nullable
+    private RecipeMap<?> getConfiguredRecipeMap() {
+        if (metaTileEntity instanceof IMultipleRecipeMaps) {
+            return ((IMultipleRecipeMaps) metaTileEntity).getCurrentRecipeMap();
+        }
+        return super.getRecipeMap();
+    }
+
+    @Nullable
+    protected RecipeMap<?> getRecipeMapForInput(IItemHandler input) {
+        if (!(input instanceof IRecipeMapBoundInput) || !(metaTileEntity instanceof IMultipleRecipeMaps)) {
+            return getConfiguredRecipeMap();
+        }
+        IMultipleRecipeMaps controller = (IMultipleRecipeMaps) metaTileEntity;
+        IRecipeMapBoundInput boundInput = (IRecipeMapBoundInput) input;
+        if (!controller.supportsRecipeMapPatternRouting()) {
+            // Do not reinterpret queued routed inputs after the feature is turned off.
+            return boundInput.getBoundRecipeMapName() == null ? getConfiguredRecipeMap() : null;
+        }
+
+        String mapName = boundInput.getBoundRecipeMapName();
+        if (mapName == null) return null;
+        for (RecipeMap<?> recipeMap : controller.getAvailableRecipeMaps()) {
+            if (recipeMap != null && mapName.equals(recipeMap.getUnlocalizedName())) return recipeMap;
+        }
+        return null;
+    }
+
+    @Nullable
+    protected Recipe findRecipe(@Nullable RecipeMap<?> recipeMap, long maxVoltage,
+                                IItemHandlerModifiable inputs, IMultipleTankHandler fluidInputs) {
+        if (recipeMap == null || !isRecipeMapValid(recipeMap)) return null;
+        return recipeMap.findRecipe(maxVoltage, inputs, fluidInputs);
     }
 
     @Override
@@ -222,8 +263,6 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      */
     protected void fillSchedulerSlotsDistinct(@NotNull CrossRecipeParallelScheduler scheduler) {
         List<IItemHandlerModifiable> importInventory = getInputBuses();
-        RecipeMap<?> recipeMap = getRecipeMap();
-        if (recipeMap == null) return;
 
         long totalPowerBudget = scheduler.getRemainingPowerBudget();
         long remainingBasePower = totalPowerBudget;
@@ -237,8 +276,13 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             IItemHandlerModifiable bus = importInventory.get(i);
             IMultipleTankHandler busFluidTank = getInputTank(bus);
 
-            Recipe recipe = findRecipe(remainingBasePower, bus, busFluidTank);
-            if (recipe == null || !checkRecipe(recipe)) continue;
+            RecipeMap<?> recipeMap = getRecipeMapForInput(bus);
+            routedRecipeMap = recipeMap;
+            Recipe recipe = findRecipe(recipeMap, remainingBasePower, bus, busFluidTank);
+            if (recipe == null || !checkRecipe(recipe)) {
+                routedRecipeMap = null;
+                continue;
+            }
 
             RecipeSlot slot = scheduler.acquireSlot();
             SlotAllocation alloc = allocateSlotParallel(slot, recipe, recipeMap, bus, busFluidTank,
@@ -251,6 +295,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             } else {
                 scheduler.releaseSlot(slot);
             }
+            routedRecipeMap = null;
         }
 
         // Phase 2: Distribute surplus power proportionally and overclock all slots
@@ -741,6 +786,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             crossRecipeSchedulerActive = false;
         }
         lastCrossRecipe = null;
+        routedRecipeMap = null;
+        previousDistinctRecipeMap = null;
     }
 
     public void onDistinctChanged() {
@@ -952,17 +999,23 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         long maxVoltage = getMaxVoltage();
         Recipe currentRecipe;
         List<IItemHandlerModifiable> importInventory = getInputBuses();
+        routedRecipeMap = null;
 
         // Our caching implementation
         // This guarantees that if we get a recipe cache hit, our efficiency is no different from other machines
-        if (checkPreviousRecipeDistinct(importInventory.get(lastRecipeIndex)) && checkRecipe(previousRecipe)) {
+        IItemHandlerModifiable previousBus = importInventory.get(lastRecipeIndex);
+        RecipeMap<?> previousMap = getRecipeMapForInput(previousBus);
+        if (previousMap != null && previousMap == previousDistinctRecipeMap &&
+                checkPreviousRecipeDistinct(previousBus)) {
+            routedRecipeMap = previousMap;
             currentRecipe = previousRecipe;
-            currentDistinctInputBus = importInventory.get(lastRecipeIndex);
-            if (prepareRecipeDistinct(currentRecipe)) {
+            currentDistinctInputBus = previousBus;
+            if (checkRecipe(currentRecipe) && prepareRecipeDistinct(currentRecipe)) {
                 // No need to cache the previous recipe here, as it is not null and matched by the current recipe,
                 // so it will always be the same
                 return;
             }
+            routedRecipeMap = null;
         }
 
         // On a cache miss, our efficiency is much worse, as it will check
@@ -973,16 +1026,26 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             if (invalidatedInputList.contains(bus)) {
                 continue;
             }
+            RecipeMap<?> recipeMap = getRecipeMapForInput(bus);
+            if (recipeMap == null) {
+                invalidatedInputList.add(bus);
+                continue;
+            }
             // Look for a new recipe after a cache miss
-            currentRecipe = findRecipe(maxVoltage, bus, getInputTank(bus));
+            currentRecipe = findRecipe(recipeMap, maxVoltage, bus, getInputTank(bus));
             // Cache the current recipe, if one is found
-            if (currentRecipe != null && checkRecipe(currentRecipe)) {
+            if (currentRecipe != null) {
+                routedRecipeMap = recipeMap;
+                if (checkRecipe(currentRecipe)) {
                 this.previousRecipe = currentRecipe;
+                this.previousDistinctRecipeMap = recipeMap;
                 currentDistinctInputBus = bus;
                 if (prepareRecipeDistinct(currentRecipe)) {
                     lastRecipeIndex = i;
                     return;
                 }
+                }
+                routedRecipeMap = null;
             }
             if (currentRecipe == null) {
                 // no valid recipe found, invalidate this bus
@@ -1000,8 +1063,6 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected void trySearchNewRecipeDistinctCrossRecipe() {
         CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
         List<IItemHandlerModifiable> importInventory = getInputBuses();
-        RecipeMap<?> recipeMap = getRecipeMap();
-        if (recipeMap == null) return;
 
         long totalPowerBudget = scheduler.getRemainingPowerBudget();
         long remainingBasePower = totalPowerBudget;
@@ -1018,7 +1079,13 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             IMultipleTankHandler busFluidTank = getInputTank(bus);
             boolean foundFromBus = false;
 
-            Recipe recipe = findRecipe(remainingBasePower, bus, busFluidTank);
+            RecipeMap<?> recipeMap = getRecipeMapForInput(bus);
+            if (recipeMap == null) {
+                invalidatedInputList.add(bus);
+                continue;
+            }
+            routedRecipeMap = recipeMap;
+            Recipe recipe = findRecipe(recipeMap, remainingBasePower, bus, busFluidTank);
             if (recipe != null && checkRecipe(recipe)) {
                 RecipeSlot slot = scheduler.acquireSlot();
                 SlotAllocation alloc = allocateSlotParallel(slot, recipe, recipeMap, bus, busFluidTank,
@@ -1033,6 +1100,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     scheduler.releaseSlot(slot);
                 }
             }
+            routedRecipeMap = null;
 
             if (!foundFromBus) {
                 invalidatedInputList.add(bus);
@@ -1183,6 +1251,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected void completeRecipe() {
         performMufflerOperations();
         super.completeRecipe();
+        routedRecipeMap = null;
     }
 
     // ==================== Serialization for Cross-Recipe Scheduler ====================
@@ -1296,9 +1365,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Nullable
     @Override
     public RecipeMap<?> getRecipeMap() {
+        if (routedRecipeMap != null) return routedRecipeMap;
         // if the multiblock has more than one RecipeMap, return the currently selected one
-        if (metaTileEntity instanceof IMultipleRecipeMaps)
-            return ((IMultipleRecipeMaps) metaTileEntity).getCurrentRecipeMap();
-        return super.getRecipeMap();
+        return getConfiguredRecipeMap();
     }
 }

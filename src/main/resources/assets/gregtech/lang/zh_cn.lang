@@ -8720,6 +8720,9 @@ fog.debug.gravitonshardsetter.tooltip=设置可用引力子碎片数量
 # --- 诸神之煅炉：按钮 ---
 fog.button.furnacemode.tooltip.01=高炉模式
 fog.button.furnacemode.tooltip.02=熔炉模式
+fog.button.recipemap_routing.tooltip.01=多配方表执行：关闭
+fog.button.recipemap_routing.tooltip.02=多配方表执行：开启
+fog.button.recipemap_routing.mode_locked=多配方表执行开启时不能切换模式
 fog.button.magmattermode.tooltip.01=夸克-胶子等离子体模式
 fog.button.magmattermode.tooltip.02=磁物质模式
 fog.button.magmattermode.tooltip.03=磁物质模式已锁定，缺少升级

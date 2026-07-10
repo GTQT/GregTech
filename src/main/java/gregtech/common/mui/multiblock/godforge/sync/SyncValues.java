@@ -244,6 +244,10 @@ public class SyncValues {
     public static final ModuleSyncValue<BooleanSyncValue, MTESmeltingModule> SMELTING_MODE = new ModuleSyncValue<>(
         "fog.sync.smelting_mode",
         module -> new BooleanSyncValue(module::isFurnaceModeOn, module::setFurnaceMode));
+    public static final ModuleSyncValue<BooleanSyncValue, MTESmeltingModule> SMELTING_RECIPE_MAP_ROUTING = new ModuleSyncValue<>(
+        "fog.sync.smelting_recipe_map_routing",
+        module -> new BooleanSyncValue(module::isRecipeMapPatternRoutingEnabled,
+            module::setRecipeMapPatternRoutingEnabled));
 
     public static final ModuleSyncValue<IntSyncValue, MTEPlasmaModule> DEBUG_PLASMA_PARALLEL = new ModuleSyncValue<>(
         "fog.sync.debug_plasma_parallel",
