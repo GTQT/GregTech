@@ -938,7 +938,6 @@ public final class PieceRuntimeState {
                                 @NotNull EntityPlayer player,
                                 @NotNull MultiblockControllerBase controllerBase,
                                 @Nullable Map<String, Integer> channelValues,
-                                boolean skipHatches,
                                 @Nullable AbilityPlacementTracker abilityTracker,
                                 @NotNull ItemStack triggerStack,
                                 @NotNull BuildTraversalState buildState,
@@ -1100,7 +1099,7 @@ public final class PieceRuntimeState {
             return;
         }
 
-        if (skipHatches) {
+        if (StructureOperationRequest.isNoHatch(channelValues)) {
             List<BlockInfo> nonHatchInfos = new ArrayList<>();
             List<ItemStack> nonHatchCandidates = new ArrayList<>();
             int candidateIdx = 0;
@@ -1344,7 +1343,7 @@ public final class PieceRuntimeState {
      * Auto-build the structure in the world (default: max size, no channel preferences).
      */
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase) {
-        autoBuild(player, controllerBase, (Map<String, Integer>) null, false);
+        autoBuild(player, controllerBase, null);
     }
 
     /**
@@ -1363,11 +1362,10 @@ public final class PieceRuntimeState {
      * @param player         the player performing the build
      * @param controllerBase the multiblock controller
      * @param channelValues  map of channel name -> desired value (null = max size, no tier preference)
-     * @param skipHatches    if true, skip all hatch placement and only place casing blocks
      */
     public void autoBuild(EntityPlayer player, MultiblockControllerBase controllerBase,
-                          Map<String, Integer> channelValues, boolean skipHatches) {
-        autoBuildAt(player, controllerBase, controllerBase.getPos(), channelValues, skipHatches);
+                          @Nullable Map<String, Integer> channelValues) {
+        autoBuildAt(player, controllerBase, controllerBase.getPos(), channelValues);
     }
 
     /**
@@ -1378,21 +1376,20 @@ public final class PieceRuntimeState {
      * @param controllerBase the multiblock controller (used for facing/flip info)
      * @param centerPos      the center position for this build (controller pos or piece center)
      * @param channelValues  map of channel name -> desired value (null = max size, no tier preference)
-     * @param skipHatches    if true, skip all hatch placement and only place casing blocks
      */
     public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
-                            BlockPos centerPos, Map<String, Integer> channelValues, boolean skipHatches) {
-        autoBuildAt(player, controllerBase, centerPos, channelValues, skipHatches, null);
+                            BlockPos centerPos, @Nullable Map<String, Integer> channelValues) {
+        autoBuildAt(player, controllerBase, centerPos, channelValues, null);
     }
 
     public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
-                            BlockPos centerPos, Map<String, Integer> channelValues, boolean skipHatches,
+                            BlockPos centerPos, @Nullable Map<String, Integer> channelValues,
                             @Nullable AbilityPlacementTracker abilityTracker) {
         // Delegate to the offset-aware overload with zero cell offsets. Callers that need to
         // fold a piece-level offset (e.g. RepeatGroupPiece) into the cell loop use the
         // (xOffset, yOffset, zOffset) overload directly so the structureDir rotation is
         // applied exactly once per cell.
-        autoBuildAt(player, controllerBase, centerPos, 0, 0, 0, channelValues, skipHatches, abilityTracker);
+        autoBuildAt(player, controllerBase, centerPos, 0, 0, 0, channelValues, abilityTracker);
     }
 
     /**
@@ -1414,42 +1411,41 @@ public final class PieceRuntimeState {
      * @param yOffset        template-local y offset added to every cell before transformation
      * @param zOffset        template-local z offset added to every cell before transformation
      * @param channelValues  map of channel name -> desired value (null = max size, no tier preference)
-     * @param skipHatches    if true, skip all hatch placement and only place casing blocks
      */
     public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
                             BlockPos centerPos, int xOffset, int yOffset, int zOffset,
-                            Map<String, Integer> channelValues, boolean skipHatches) {
+                            @Nullable Map<String, Integer> channelValues) {
         autoBuildAt(player, controllerBase, centerPos, xOffset, yOffset, zOffset,
-                channelValues, skipHatches, null);
+                channelValues, null);
     }
 
     public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
                             BlockPos centerPos, int xOffset, int yOffset, int zOffset,
-                            Map<String, Integer> channelValues, boolean skipHatches,
+                            @Nullable Map<String, Integer> channelValues,
                             @Nullable AbilityPlacementTracker abilityTracker) {
         autoBuildAt(player, controllerBase, centerPos,
                 StructureOrientation.fromController(controllerBase),
-                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker);
+                xOffset, yOffset, zOffset, channelValues, abilityTracker);
     }
 
     public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
                             BlockPos centerPos, @NotNull StructureOrientation orientation,
                             int xOffset, int yOffset, int zOffset,
-                            Map<String, Integer> channelValues, boolean skipHatches,
+                            @Nullable Map<String, Integer> channelValues,
                             @Nullable AbilityPlacementTracker abilityTracker) {
         autoBuildAt(player, controllerBase, centerPos, orientation,
-                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker,
+                xOffset, yOffset, zOffset, channelValues, abilityTracker,
                 StructureEvaluationContext.Operation.CREATIVE_BUILD);
     }
 
     public void autoBuildAt(EntityPlayer player, MultiblockControllerBase controllerBase,
                              BlockPos centerPos, @NotNull StructureOrientation orientation,
                              int xOffset, int yOffset, int zOffset,
-                             Map<String, Integer> channelValues, boolean skipHatches,
+                             @Nullable Map<String, Integer> channelValues,
                              @Nullable AbilityPlacementTracker abilityTracker,
                              @NotNull StructureEvaluationContext.Operation operation) {
         autoBuildAtWithResult(player, controllerBase, centerPos, orientation,
-                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker,
+                xOffset, yOffset, zOffset, channelValues, abilityTracker,
                 operation, ItemStack.EMPTY);
     }
 
@@ -1460,11 +1456,10 @@ public final class PieceRuntimeState {
                                                       @NotNull StructureOrientation orientation,
                                                       int xOffset, int yOffset, int zOffset,
                                                       Map<String, Integer> channelValues,
-                                                      boolean skipHatches,
                                                       @Nullable AbilityPlacementTracker abilityTracker,
                                                       @NotNull StructureEvaluationContext.Operation operation) {
         return autoBuildAtWithResult(player, controllerBase, centerPos, orientation,
-                xOffset, yOffset, zOffset, channelValues, skipHatches, abilityTracker,
+                xOffset, yOffset, zOffset, channelValues, abilityTracker,
                 operation, ItemStack.EMPTY);
     }
 
@@ -1475,13 +1470,12 @@ public final class PieceRuntimeState {
                                                       @NotNull StructureOrientation orientation,
                                                       int xOffset, int yOffset, int zOffset,
                                                       Map<String, Integer> channelValues,
-                                                      boolean skipHatches,
                                                       @Nullable AbilityPlacementTracker abilityTracker,
                                                       @NotNull StructureEvaluationContext.Operation operation,
                                                       @NotNull ItemStack triggerStack) {
         return autoBuildAtWithResult(player, controllerBase,
                 StructureCellTraversal.at(centerPos, orientation).withLocalOffset(xOffset, yOffset, zOffset),
-                channelValues, skipHatches, abilityTracker, operation, triggerStack);
+                channelValues, abilityTracker, operation, triggerStack);
     }
 
     @NotNull
@@ -1489,11 +1483,10 @@ public final class PieceRuntimeState {
                                                       MultiblockControllerBase controllerBase,
                                                       @NotNull StructureCellTraversal traversal,
                                                       Map<String, Integer> channelValues,
-                                                      boolean skipHatches,
                                                       @Nullable AbilityPlacementTracker abilityTracker,
                                                       @NotNull StructureEvaluationContext.Operation operation) {
         return autoBuildAtWithResult(player, controllerBase, traversal, channelValues,
-                skipHatches, abilityTracker, operation, ItemStack.EMPTY);
+                abilityTracker, operation, ItemStack.EMPTY);
     }
 
     @NotNull
@@ -1501,7 +1494,6 @@ public final class PieceRuntimeState {
                                                       MultiblockControllerBase controllerBase,
                                                       @NotNull StructureCellTraversal traversal,
                                                       Map<String, Integer> channelValues,
-                                                      boolean skipHatches,
                                                       @Nullable AbilityPlacementTracker abilityTracker,
                                                       @NotNull StructureEvaluationContext.Operation operation,
                                                       @NotNull ItemStack triggerStack) {
@@ -1515,7 +1507,7 @@ public final class PieceRuntimeState {
                 traversal.getXOffset(), traversal.getYOffset(), traversal.getZOffset(),
                 (cell, layerCounts) -> autoBuildCell(
                         cell, layerCounts, player, controllerBase, channelValues,
-                        skipHatches, abilityTracker, triggerStack, buildState, operation));
+                        abilityTracker, triggerStack, buildState, operation));
         EnumFacing[] facings = ArrayUtils.addAll(new EnumFacing[] { controllerBase.getFrontFacing() },
                 RelativeDirection.ALL_FACINGS);
         buildState.blocks.forEach((pos, block) -> {
@@ -1662,8 +1654,7 @@ public final class PieceRuntimeState {
                                                     @NotNull Map<StructureElementPreview.CandidateGroup, Integer> cacheLayer,
                                                     @NotNull PreviewTraversalState previewState,
                                                     @Nullable Map<String, Integer> channelValues,
-                                                    @Nullable AbilityPlacementTracker abilityTracker,
-                                                    boolean skipHatches) {
+                                                    @Nullable AbilityPlacementTracker abilityTracker) {
         BlockInfo[] infos = null;
         StructureElementPreview.CandidateGroup matchedGroup = null;
         for (StructureElementPreview.CandidateGroup limit : preview.getLimited()) {
@@ -1774,7 +1765,8 @@ public final class PieceRuntimeState {
         BlockInfo info = candidateIdx < 0 || infos == null || infos.length == 0
                 ? BlockInfo.EMPTY
                 : infos[candidateIdx];
-        if (skipHatches && info.getTileEntity() instanceof IGregTechTileEntity) {
+        if (StructureOperationRequest.isNoHatch(channelValues)
+                && info.getTileEntity() instanceof IGregTechTileEntity) {
             BlockInfo fallback = findNonHatchPreviewCandidate(preview, previewState, abilityTracker);
             if (fallback != null) {
                 info = fallback;
@@ -1892,15 +1884,6 @@ public final class PieceRuntimeState {
     @NotNull
     public PreviewCells createPreviewCells(@NotNull int[] repetition,
                                            @Nullable Map<String, Integer> channelValues,
-                                           @Nullable AbilityPlacementTracker abilityTracker,
-                                           boolean skipHatches) {
-        return createPreviewCells(
-                repetition, channelValues, DEFAULT_PREVIEW_ORIENTATION, abilityTracker, skipHatches);
-    }
-
-    @NotNull
-    public PreviewCells createPreviewCells(@NotNull int[] repetition,
-                                           @Nullable Map<String, Integer> channelValues,
                                            @NotNull StructureOrientation previewOrientation) {
         return createPreviewCells(repetition, channelValues, previewOrientation, null);
     }
@@ -1910,20 +1893,11 @@ public final class PieceRuntimeState {
                                            @Nullable Map<String, Integer> channelValues,
                                            @NotNull StructureOrientation previewOrientation,
                                            @Nullable AbilityPlacementTracker abilityTracker) {
-        return createPreviewCells(repetition, channelValues, previewOrientation, abilityTracker, false);
-    }
-
-    @NotNull
-    public PreviewCells createPreviewCells(@NotNull int[] repetition,
-                                           @Nullable Map<String, Integer> channelValues,
-                                           @NotNull StructureOrientation previewOrientation,
-                                           @Nullable AbilityPlacementTracker abilityTracker,
-                                           boolean skipHatches) {
         PreviewTraversalState previewState = new PreviewTraversalState();
         visitFixedStructureCells(repetition, BlockPos.ORIGIN, previewOrientation, 0, 0, 0, (cell, layerCounts) -> {
             StructureElementPreview preview = cell.element.getPreview();
             BlockInfo info = selectPreviewBlockInfo(
-                    preview, layerCounts, previewState, channelValues, abilityTracker, skipHatches);
+                    preview, layerCounts, previewState, channelValues, abilityTracker);
             previewState.record(cell.worldPos, info,
                     StructureElementPreviewEntry.of(preview, previewTooltip(cell.element)));
         });

@@ -135,10 +135,10 @@ public class ChainElement implements IStructureElement<Object> {
 
     @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
-                              @NotNull EntityPlayer player, boolean skipHatches) {
+                              @NotNull EntityPlayer player) {
         for (IStructureElement e : elements) {
             if (context.transaction(childContext ->
-                    e.placeBlock(childContext, player, skipHatches))) {
+                    e.placeBlock(childContext, player))) {
                 return true;
             }
         }
@@ -149,12 +149,11 @@ public class ChainElement implements IStructureElement<Object> {
     @Override
     public PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<Object> context,
                                           @NotNull ItemStack trigger,
-                                          @NotNull AutoPlaceEnvironment env,
-                                          boolean skipHatches) {
+                                          @NotNull AutoPlaceEnvironment env) {
         boolean allContinue = true;
         for (IStructureElement e : elements) {
             PlaceResult result = context.transactionValue(
-                    childContext -> e.survivalPlaceBlock(childContext, trigger, env, skipHatches),
+                    childContext -> e.survivalPlaceBlock(childContext, trigger, env),
                     ChainElement::isCommittedSurvivalResult);
             switch (result) {
                 case REJECT_CONTINUE:

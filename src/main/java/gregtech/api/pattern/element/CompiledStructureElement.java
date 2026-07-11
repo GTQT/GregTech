@@ -106,19 +106,18 @@ public final class CompiledStructureElement<T> implements IStructureElement<T> {
 
     @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<T> context,
-                              @NotNull EntityPlayer player, boolean skipHatches) {
+                              @NotNull EntityPlayer player) {
         return context.probe(probeContext ->
-                source.placeBlock(probeContext, player, skipHatches));
+                source.placeBlock(probeContext, player));
     }
 
     @NotNull
     @Override
     public PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<T> context,
                                           @NotNull ItemStack trigger,
-                                          @NotNull AutoPlaceEnvironment env,
-                                          boolean skipHatches) {
+                                          @NotNull AutoPlaceEnvironment env) {
         return context.probeValue(probeContext ->
-                source.survivalPlaceBlock(probeContext, trigger, env, skipHatches));
+                source.survivalPlaceBlock(probeContext, trigger, env));
     }
 
     @NotNull

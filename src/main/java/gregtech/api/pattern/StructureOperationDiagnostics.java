@@ -14,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
 public final class StructureOperationDiagnostics {
 
     private static final StructureOperationDiagnostics EMPTY =
-            new StructureOperationDiagnostics("unknown", "UNKNOWN", null, 0, false);
+            new StructureOperationDiagnostics("unknown", "UNKNOWN", null, 0);
 
     @NotNull
     private final String path;
@@ -23,18 +23,15 @@ public final class StructureOperationDiagnostics {
     @Nullable
     private final String detail;
     private final int pieceCount;
-    private final boolean syntheticSinglePiece;
 
     private StructureOperationDiagnostics(@NotNull String path,
                                           @NotNull String operation,
                                           @Nullable String detail,
-                                          int pieceCount,
-                                          boolean syntheticSinglePiece) {
+                                          int pieceCount) {
         this.path = path;
         this.operation = operation;
         this.detail = detail;
         this.pieceCount = Math.max(0, pieceCount);
-        this.syntheticSinglePiece = syntheticSinglePiece;
     }
 
     @NotNull
@@ -46,10 +43,8 @@ public final class StructureOperationDiagnostics {
     public static StructureOperationDiagnostics of(@NotNull String path,
                                                    @NotNull String operation,
                                                    @Nullable String detail,
-                                                   int pieceCount,
-                                                   boolean syntheticSinglePiece) {
-        return new StructureOperationDiagnostics(
-                path, operation, detail, pieceCount, syntheticSinglePiece);
+                                                   int pieceCount) {
+        return new StructureOperationDiagnostics(path, operation, detail, pieceCount);
     }
 
     @NotNull
@@ -71,16 +66,11 @@ public final class StructureOperationDiagnostics {
         return pieceCount;
     }
 
-    public boolean isSyntheticSinglePiece() {
-        return syntheticSinglePiece;
-    }
-
     @NotNull
     public String describe() {
         return "path=" + path +
                 ", operation=" + operation +
                 ", pieceCount=" + pieceCount +
-                ", syntheticSinglePiece=" + syntheticSinglePiece +
                 (detail == null || detail.isEmpty() ? "" : ", detail=" + detail);
     }
 }

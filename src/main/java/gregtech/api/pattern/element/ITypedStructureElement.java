@@ -22,7 +22,7 @@ public interface ITypedStructureElement<T> extends IStructureElement<T> {
 
     @Override
     default boolean placeBlock(@NotNull StructureEvaluationContext<T> context,
-                               @NotNull EntityPlayer player, boolean skipHatches) {
+                               @NotNull EntityPlayer player) {
         return false;
     }
 
@@ -30,8 +30,7 @@ public interface ITypedStructureElement<T> extends IStructureElement<T> {
     @Override
     default PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<T> context,
                                            @NotNull net.minecraft.item.ItemStack trigger,
-                                           @NotNull AutoPlaceEnvironment env,
-                                           boolean skipHatches) {
+                                           @NotNull AutoPlaceEnvironment env) {
         if (context.probe(this::check)) {
             return PlaceResult.SKIP;
         }
@@ -53,7 +52,7 @@ public interface ITypedStructureElement<T> extends IStructureElement<T> {
             if (taken.isEmpty()) {
                 return PlaceResult.REJECT;
             }
-            if (!placeBlock(context, actor, skipHatches)) {
+            if (!placeBlock(context, actor)) {
                 return PlaceResult.REJECT;
             }
             source.takeOne(blocksToPlace.getPredicate(), false);
@@ -65,7 +64,7 @@ public interface ITypedStructureElement<T> extends IStructureElement<T> {
             net.minecraft.item.ItemStack one = stack.copy();
             one.setCount(1);
             if (!source.takeOne(one, true)) continue;
-            if (!placeBlock(context, actor, skipHatches)) {
+            if (!placeBlock(context, actor)) {
                 return PlaceResult.REJECT;
             }
             source.takeOne(one, false);

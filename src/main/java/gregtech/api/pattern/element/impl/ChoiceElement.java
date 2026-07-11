@@ -131,10 +131,10 @@ public final class ChoiceElement implements IStructureElement<Object> {
 
     @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
-                              @NotNull EntityPlayer player, boolean skipHatches) {
+                              @NotNull EntityPlayer player) {
         for (IStructureElement element : elements) {
             if (context.transaction(childContext ->
-                    element.placeBlock(childContext, player, skipHatches))) {
+                    element.placeBlock(childContext, player))) {
                 return true;
             }
         }
@@ -145,12 +145,11 @@ public final class ChoiceElement implements IStructureElement<Object> {
     @Override
     public PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<Object> context,
                                           @NotNull ItemStack trigger,
-                                          @NotNull AutoPlaceEnvironment env,
-                                          boolean skipHatches) {
+                                          @NotNull AutoPlaceEnvironment env) {
         boolean allContinue = true;
         for (IStructureElement element : elements) {
             PlaceResult result = context.transactionValue(
-                    childContext -> element.survivalPlaceBlock(childContext, trigger, env, skipHatches),
+                    childContext -> element.survivalPlaceBlock(childContext, trigger, env),
                     ChoiceElement::isCommittedSurvivalResult);
             switch (result) {
                 case REJECT_CONTINUE:

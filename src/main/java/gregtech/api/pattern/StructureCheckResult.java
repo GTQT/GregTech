@@ -231,13 +231,11 @@ public final class StructureCheckResult {
     @NotNull
     public StructureOperationDiagnostics getDiagnostics() {
         int pieceCount = resultTable == null ? 0 : resultTable.size();
-        boolean syntheticSinglePiece = "v3-typed-single".equals(getTracePath());
         return StructureOperationDiagnostics.of(
                 getTracePath(),
                 StructureEvaluationContext.Operation.MATCH_WORLD.name(),
                 traceActualDetail,
-                pieceCount,
-                syntheticSinglePiece);
+                pieceCount);
     }
 
     @NotNull

@@ -709,7 +709,7 @@ public class RepeatGroupPiece extends StructurePiece {
      * Each slice is placed by folding the per-slice step (and the piece's base offset)
      * into the cell loop as a template-local offset passed to
      * {@link PieceRuntimeState#autoBuildAt(EntityPlayer, MultiblockControllerBase, BlockPos,
-     * int, int, int, Map, boolean)}. {@code setActualRelativeOffset} therefore runs
+     * int, int, int, Map)}. {@code setActualRelativeOffset} therefore runs
      * exactly once per cell, so every slice keeps the same orientation — only the
      * per-cell world position shifts along the repeat axis / axes.
      */
@@ -717,23 +717,23 @@ public class RepeatGroupPiece extends StructurePiece {
                                      @NotNull BlockPos controllerOrigin,
                                      @NotNull StructureOrientation orientation,
                                      @Nullable FormedStructureMetadata prior,
-                                     @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                     @Nullable Map<String, Integer> channelValues,
                                     @NotNull PieceRuntime runtime,
                                     @NotNull AbilityPlacementTracker abilityTracker) {
         autoBuildAtRepeated(player, controller, controllerOrigin, orientation, prior, channelValues,
-                skipHatches, runtime, abilityTracker, StructureEvaluationContext.Operation.CREATIVE_BUILD);
+                runtime, abilityTracker, StructureEvaluationContext.Operation.CREATIVE_BUILD);
     }
 
     public void autoBuildAtRepeated(@NotNull EntityPlayer player, @NotNull MultiblockControllerBase controller,
                                     @NotNull BlockPos controllerOrigin,
                                     @NotNull StructureOrientation orientation,
                                     @Nullable FormedStructureMetadata prior,
-                                    @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                    @Nullable Map<String, Integer> channelValues,
                                     @NotNull PieceRuntime runtime,
                                     @NotNull AbilityPlacementTracker abilityTracker,
                                      @NotNull StructureEvaluationContext.Operation operation) {
         autoBuildAtRepeatedWithResult(player, controller, controllerOrigin, orientation, prior,
-                channelValues, skipHatches, runtime, abilityTracker, operation, ItemStack.EMPTY);
+                channelValues, runtime, abilityTracker, operation, ItemStack.EMPTY);
     }
 
     @NotNull
@@ -743,12 +743,11 @@ public class RepeatGroupPiece extends StructurePiece {
                                                               @NotNull StructureOrientation orientation,
                                                               @Nullable FormedStructureMetadata prior,
                                                               @Nullable Map<String, Integer> channelValues,
-                                                               boolean skipHatches,
                                                                @NotNull PieceRuntime runtime,
                                                                @NotNull AbilityPlacementTracker abilityTracker,
                                                                @NotNull StructureEvaluationContext.Operation operation) {
         return autoBuildAtRepeatedWithResult(player, controller, controllerOrigin, orientation, prior,
-                channelValues, skipHatches, runtime, abilityTracker, operation, ItemStack.EMPTY);
+                channelValues, runtime, abilityTracker, operation, ItemStack.EMPTY);
     }
 
     @NotNull
@@ -758,7 +757,6 @@ public class RepeatGroupPiece extends StructurePiece {
                                                               @NotNull StructureOrientation orientation,
                                                               @Nullable FormedStructureMetadata prior,
                                                               @Nullable Map<String, Integer> channelValues,
-                                                              boolean skipHatches,
                                                               @NotNull PieceRuntime runtime,
                                                               @NotNull AbilityPlacementTracker abilityTracker,
                                                               @NotNull StructureEvaluationContext.Operation operation,
@@ -778,7 +776,7 @@ public class RepeatGroupPiece extends StructurePiece {
         for (StructureCellTraversal traversal : iteration.getTraversals()) {
             result.merge(state.autoBuildAtWithResult(player, controller,
                     traversal,
-                    channelValues, skipHatches, abilityTracker, operation, triggerStack));
+                    channelValues, abilityTracker, operation, triggerStack));
         }
         return result.build();
     }

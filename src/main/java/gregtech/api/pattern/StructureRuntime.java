@@ -18,6 +18,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -39,9 +40,9 @@ public final class StructureRuntime {
     private PieceTemplate template;
     @Nullable
     private final PieceRuntimeState state;
-    @Nullable
+    @NotNull
     private final MultiPiecePattern multiPiecePattern;
-    @Nullable
+    @NotNull
     private final PieceRuntimes pieceRuntimes;
     @NotNull
     private final StructureOperationEvaluator evaluator;
@@ -68,15 +69,15 @@ public final class StructureRuntime {
     public StructureRuntime(@Nullable StructureDefinition<?> definition,
                             @Nullable PieceTemplate template,
                             @Nullable PieceRuntimeState state,
-                            @Nullable MultiPiecePattern multiPiecePattern,
-                            @Nullable PieceRuntimes pieceRuntimes) {
+                            @NotNull MultiPiecePattern multiPiecePattern,
+                            @NotNull PieceRuntimes pieceRuntimes) {
         this.definition = definition;
         this.template = template;
         this.state = state;
-        this.multiPiecePattern = multiPiecePattern;
-        this.pieceRuntimes = pieceRuntimes;
+        this.multiPiecePattern = Objects.requireNonNull(multiPiecePattern, "multiPiecePattern");
+        this.pieceRuntimes = Objects.requireNonNull(pieceRuntimes, "pieceRuntimes");
         this.evaluator = new StructureOperationEvaluator(
-                definition, state, multiPiecePattern, pieceRuntimes);
+                definition, this.multiPiecePattern, this.pieceRuntimes);
     }
 
     @NotNull
@@ -84,12 +85,11 @@ public final class StructureRuntime {
         // V3 §6: always go through the compiled multi-piece path. The
         // single-piece fast-path lives inside PieceRuntimes / the committer
         // (where pieceCount==1 can skip redundant work), not here. Branching
-        // on supportsSingleTemplatePath() to pick a separate single-template
-        // runtime was a bypass of the compiled pattern and is removed.
+        // outside the compiled pattern to pick a separate single-template
+        // runtime would bypass the V3 operation model.
         //
-        // The template/state fields stay nullable; they are only populated
-        // by the runtime-detector path (controllers that construct a
-        // StructureRuntime directly with a PieceTemplate + PieceRuntimeState).
+        // Controller-owned single-template runtimes may carry template/state
+        // cache data, but that data never selects a separate evaluator.
         MultiPiecePattern multiPiecePattern = definition.getCompiledPattern();
         return new StructureRuntime(definition, null, null, multiPiecePattern,
                 new PieceRuntimes(multiPiecePattern));
@@ -113,12 +113,12 @@ public final class StructureRuntime {
         return state;
     }
 
-    @Nullable
+    @NotNull
     public MultiPiecePattern getMultiPiecePattern() {
         return multiPiecePattern;
     }
 
-    @Nullable
+    @NotNull
     public PieceRuntimes getPieceRuntimes() {
         return pieceRuntimes;
     }

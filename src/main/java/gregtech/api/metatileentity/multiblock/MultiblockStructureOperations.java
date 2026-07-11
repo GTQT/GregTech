@@ -136,13 +136,6 @@ final class MultiblockStructureOperations {
     @NotNull
     static List<MultiblockShapeInfo> getMatchingShapes(@NotNull MultiblockControllerBase controller,
                                                        @Nullable Map<String, Integer> channelValues) {
-        return getMatchingShapes(controller, channelValues, false);
-    }
-
-    @NotNull
-    static List<MultiblockShapeInfo> getMatchingShapes(@NotNull MultiblockControllerBase controller,
-                                                       @Nullable Map<String, Integer> channelValues,
-                                                       boolean skipHatches) {
         Map<String, Integer> effectiveChannels = emptyToNull(channelValues);
         ensureMultiPiecePatternInitialized(controller);
         // V3 §13: JEI / projector / build-all consume the compiled MultiPiecePattern
@@ -150,8 +143,8 @@ final class MultiblockStructureOperations {
         // multi-piece preview assembler, not a separate branch here.
         List<MultiblockShapeInfo> shapes = MultiblockStructurePreviews.buildMultiPieceShapes(
                 controller, controller.multiPiecePattern, controller.pieceRuntimes,
-                controller.getStructureRuntime(), effectiveChannels, skipHatches);
-        logMatchingShapes(controller, false, effectiveChannels, skipHatches, shapes.size());
+                controller.getStructureRuntime(), effectiveChannels);
+        logMatchingShapes(controller, false, effectiveChannels, shapes.size());
         return shapes;
     }
 
@@ -163,7 +156,7 @@ final class MultiblockStructureOperations {
 
     @NotNull
     static List<MultiblockShapeInfo> getMatchingShapes(@NotNull MultiblockControllerBase controller) {
-        return getMatchingShapes(controller, null, false);
+        return getMatchingShapes(controller, null);
     }
 
     @NotNull
@@ -212,14 +205,14 @@ final class MultiblockStructureOperations {
     private static void logMatchingShapes(@NotNull MultiblockControllerBase controller,
                                           boolean singleTemplate,
                                           @Nullable Map<String, Integer> channelValues,
-                                          boolean skipHatches,
                                           int shapeCount) {
         String key = "shapes|" + controller.metaTileEntityId + "|" + singleTemplate + "|"
-                + skipHatches + "|" + channelKey(channelValues);
+                + StructureOperationRequest.isNoHatch(channelValues) + "|" + channelKey(channelValues);
         if (PREVIEW_PATH_DIAGNOSTICS.add(key)) {
             GTLog.logger.debug("[MultiblockPreview] getMatchingShapes controller={} singleTemplate={} " +
-                            "skipHatches={} channels={} shapes={}",
-                    controller.metaTileEntityId, singleTemplate, skipHatches,
+                            "noHatch={} channels={} shapes={}",
+                    controller.metaTileEntityId, singleTemplate,
+                    StructureOperationRequest.isNoHatch(channelValues),
                     channelLogValue(channelValues), shapeCount);
         }
     }

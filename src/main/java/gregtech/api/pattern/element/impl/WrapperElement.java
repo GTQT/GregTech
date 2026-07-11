@@ -175,19 +175,18 @@ public class WrapperElement implements IStructureElement<Object> {
 
     @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
-                              @NotNull EntityPlayer player, boolean skipHatches) {
+                              @NotNull EntityPlayer player) {
         return context.probe(probeContext ->
-                getDelegate().placeBlock(probeContext, player, skipHatches));
+                getDelegate().placeBlock(probeContext, player));
     }
 
     @NotNull
     @Override
     public PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<Object> context,
                                           @NotNull ItemStack trigger,
-                                          @NotNull AutoPlaceEnvironment env,
-                                          boolean skipHatches) {
+                                          @NotNull AutoPlaceEnvironment env) {
         return context.probeValue(probeContext ->
-                getDelegate().survivalPlaceBlock(probeContext, trigger, env, skipHatches));
+                getDelegate().survivalPlaceBlock(probeContext, trigger, env));
     }
 
     @NotNull

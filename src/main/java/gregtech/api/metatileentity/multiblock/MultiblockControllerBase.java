@@ -175,11 +175,9 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         StructureRuntime previousRuntime = this.structureRuntime;
         this.structureDefinition = resolveStructureDefinition();
         this.multiPiecePattern = this.structureDefinition.getCompiledPattern();
-        // V3 §6: query the compiled pattern rather than the definition-level
-        // supportsSingleTemplatePath() flag. The legacy patternTemplate /
-        // runtimeState fields are only populated for single non-repeatable
-        // pieces so that tooltip / cache-clear / dismantle paths keep working
-        // as before; multi-piece runtimes go through PieceRuntimes.
+        // V3 §6: the compiled pattern decides whether to initialize the
+        // single-template cache state. Multi-piece runtimes always go through
+        // PieceRuntimes; single non-repeatable pieces reuse that cache state.
         if (this.multiPiecePattern.isSingleNonRepeatablePiece()) {
             this.patternTemplate = this.multiPiecePattern.getPrimaryPiece().getTemplate();
             this.runtimeState = new PieceRuntimeState(this.patternTemplate);
@@ -1109,14 +1107,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
 
     public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues) {
         return MultiblockStructureOperations.getMatchingShapes(this, channelValues);
-    }
-
-    public List<MultiblockShapeInfo> getMatchingShapes(@Nullable Map<String, Integer> channelValues,
-                                                       boolean skipHatches) {
-        if (!skipHatches) {
-            return getMatchingShapes(channelValues);
-        }
-        return MultiblockStructureOperations.getMatchingShapes(this, channelValues, skipHatches);
     }
 
     /**

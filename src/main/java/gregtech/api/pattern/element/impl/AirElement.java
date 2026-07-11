@@ -38,7 +38,7 @@ public class AirElement implements ITypedStructureElement<Object> {
 
     @Override
     public boolean placeBlock(StructureEvaluationContext<Object> context,
-                              EntityPlayer player, boolean skipHatches) {
+                              EntityPlayer player) {
         World world = context.getWorld();
         if (world == null) {
             return false;

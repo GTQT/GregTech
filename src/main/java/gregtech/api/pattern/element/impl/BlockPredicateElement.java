@@ -61,7 +61,7 @@ public class BlockPredicateElement implements ITypedStructureElement<Object> {
 
     @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
-                              @NotNull EntityPlayer player, boolean skipHatches) {
+                              @NotNull EntityPlayer player) {
         World world = context.getWorld();
         if (world == null) {
             return false;

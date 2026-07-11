@@ -1068,8 +1068,7 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
         @Override
         public boolean placeBlock(
                 @NotNull StructureEvaluationContext<Object> context,
-                EntityPlayer player,
-                boolean skipHatches) {
+                EntityPlayer player) {
             World world = context.getWorld();
             return world != null && world.setBlockState(
                     context.getPos(), Blocks.LOG.getDefaultState());
@@ -1118,8 +1117,7 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
         @Override
         public boolean placeBlock(
                 @NotNull StructureEvaluationContext<Object> context,
-                EntityPlayer player,
-                boolean skipHatches) {
+                EntityPlayer player) {
             BlockInfo[] candidates = getCandidates();
             if (candidates.length == 0) {
                 return false;

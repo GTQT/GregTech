@@ -79,7 +79,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
     private StructureEligibilityPlan eligibilityPlan;
     @Nullable
     private volatile Set<StructureElementCapability> supportedElementCapabilities;
-    private final boolean supportsSingleTemplatePath;
 
     private StructureDefinition(Builder<T> b) {
         this.structureDir = new RelativeDirection[]{b.charDir, b.stringDir, b.aisleDir};
@@ -89,8 +88,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.runtimeDetector = b.runtimeDetector;
         this.delegate = null;
         this.compiledPattern = null;
-        this.supportsSingleTemplatePath =
-                pieceEntries.size() == 1 && !pieceEntries.get(0).piece.isRepeatable();
     }
 
     private StructureDefinition(@NotNull SoftReferenceHolder<StructureDefinition<T>> delegate) {
@@ -100,7 +97,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         this.abilityGroupLimits = Collections.emptyList();
         this.runtimeDetector = null;
         this.delegate = delegate;
-        this.supportsSingleTemplatePath = false;
     }
 
     @NotNull
@@ -282,25 +278,6 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                 new BlockPos(minX - margin, minY - margin, minZ - margin),
                 new BlockPos(maxX + margin, maxY + margin, maxZ + margin)
         };
-    }
-
-    /**
-     * V3 §6: internal derived flag indicating this definition compiles to exactly
-     * one non-repeatable piece. Exposed only package-internally so the compiler
-     * and runtime can apply the single-piece fast-path inside
-     * {@link MultiPiecePattern}/{@link CommittedStructureGraph}; external callers
-     * must go through {@link #getCompiledPattern()} and let the fast-path kick
-     * in there, rather than branching on this flag to bypass compiled multi-piece.
-     *
-     * <p>This is intentionally narrower than "contains one declared piece": a
-     * single repeatable piece still requires the multi-piece runtime because it
-     * compiles to a {@link RepeatGroupPiece}.
-     */
-    boolean supportsSingleTemplatePath() {
-        if (delegate != null) {
-            return delegate.get().supportsSingleTemplatePath();
-        }
-        return supportsSingleTemplatePath;
     }
 
     @NotNull

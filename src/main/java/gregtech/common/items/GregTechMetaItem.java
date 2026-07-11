@@ -1544,10 +1544,6 @@ public final class GregTechMetaItem extends StandardMetaItem {
         LOGO = addItem(1003, "logo").setInvisible();
         LOGO.getMetaItem().addPropertyOverride(new ResourceLocation("xmas"), (s, w, e) -> GTValues.XMAS.get() ? 1 : 0);
 
-        MULTIBLOCK_BUILDER = addItem(1004, "tool.multiblock_builder").addComponents(new StructureProjectorBehavior())
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-
         MULTIBLOCK_REMOVER = addItem(1005, "tool.multiblock_remover").addComponents(new MultiblockRemovalBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);

@@ -796,42 +796,41 @@ public class MultiPiecePattern {
      * @param player         the player performing the build
      * @param controller     the multiblock controller
      * @param channelValues  channel values for tier selection
-     * @param skipHatches    if true, skip hatch placement
      * @param runtimes       per-controller state for each piece
      * @return true if the piece was successfully built (index valid and piece exists)
      */
     public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
-                                   @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                   @Nullable Map<String, Integer> channelValues,
                                    @NotNull PieceRuntimes runtimes) {
-        return autoBuildPiece(pieceIndex, player, controller, channelValues, skipHatches,
+        return autoBuildPiece(pieceIndex, player, controller, channelValues,
                 runtimes, createAbilityPlacementTracker());
     }
 
     public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
-                                  @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                  @Nullable Map<String, Integer> channelValues,
                                   @NotNull PieceRuntimes runtimes,
                                   @NotNull AbilityPlacementTracker abilityTracker) {
         return autoBuildPiece(pieceIndex, player, controller, StructureOrientation.fromController(controller),
-                channelValues, skipHatches, runtimes, abilityTracker);
+                channelValues, runtimes, abilityTracker);
     }
 
     public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
                                   @NotNull StructureOrientation orientation,
-                                  @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                  @Nullable Map<String, Integer> channelValues,
                                   @NotNull PieceRuntimes runtimes,
                                   @NotNull AbilityPlacementTracker abilityTracker) {
-        return autoBuildPiece(pieceIndex, player, controller, orientation, channelValues, skipHatches,
+        return autoBuildPiece(pieceIndex, player, controller, orientation, channelValues,
                 runtimes, abilityTracker, StructureEvaluationContext.Operation.CREATIVE_BUILD);
     }
 
     public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,
                                   @NotNull StructureOrientation orientation,
-                                  @Nullable Map<String, Integer> channelValues, boolean skipHatches,
+                                  @Nullable Map<String, Integer> channelValues,
                                   @NotNull PieceRuntimes runtimes,
                                   @NotNull AbilityPlacementTracker abilityTracker,
                                   @NotNull StructureEvaluationContext.Operation operation) {
         return autoBuildPieceWithResult(pieceIndex, player, controller, orientation, channelValues,
-                skipHatches, runtimes, abilityTracker, operation, ItemStack.EMPTY).isAttempted();
+                runtimes, abilityTracker, operation, ItemStack.EMPTY).isAttempted();
     }
 
     @NotNull
@@ -840,12 +839,11 @@ public class MultiPiecePattern {
                                                          MultiblockControllerBase controller,
                                                          @NotNull StructureOrientation orientation,
                                                          @Nullable Map<String, Integer> channelValues,
-                                                          boolean skipHatches,
                                                           @NotNull PieceRuntimes runtimes,
                                                           @NotNull AbilityPlacementTracker abilityTracker,
                                                           @NotNull StructureEvaluationContext.Operation operation) {
         return autoBuildPieceWithResult(pieceIndex, player, controller, orientation, channelValues,
-                skipHatches, runtimes, abilityTracker, operation, ItemStack.EMPTY);
+                runtimes, abilityTracker, operation, ItemStack.EMPTY);
     }
 
     @NotNull
@@ -854,7 +852,6 @@ public class MultiPiecePattern {
                                                          MultiblockControllerBase controller,
                                                          @NotNull StructureOrientation orientation,
                                                          @Nullable Map<String, Integer> channelValues,
-                                                         boolean skipHatches,
                                                          @NotNull PieceRuntimes runtimes,
                                                          @NotNull AbilityPlacementTracker abilityTracker,
                                                          @NotNull StructureEvaluationContext.Operation operation,
@@ -887,11 +884,11 @@ public class MultiPiecePattern {
                 (repeatPiece, pieceRuntime, piecePrior) ->
                         repeatPiece.autoBuildAtRepeatedWithResult(
                                 player, controller, controller.getPos(), orientation, piecePrior,
-                                channelValues, skipHatches, pieceRuntime, abilityTracker,
+                                channelValues, pieceRuntime, abilityTracker,
                                 operation, triggerStack),
                 (fixedPiece, pieceRuntime, piecePrior, traversal) ->
                         pieceRuntime.getState().autoBuildAtWithResult(
-                                player, controller, traversal, channelValues, skipHatches,
+                                player, controller, traversal, channelValues,
                                 abilityTracker, operation, triggerStack)));
         return result.build();
     }
@@ -1011,15 +1008,12 @@ public class MultiPiecePattern {
 
     /**
      * V3 §6: whether this compiled pattern represents exactly one
-     * non-repeatable piece. This is the compiled-pattern view of the
-     * {@code supportsSingleTemplatePath} flag on {@code StructureDefinition};
-     * external callers should query the compiled pattern here rather than
-     * branching on the definition-level flag to bypass the multi-piece path.
+     * non-repeatable piece.
      *
-     * <p>Used by controller/runtime setup to decide whether to initialize
-     * legacy single-template fields ({@code patternTemplate}/
-     * {@code runtimeState}). The single-piece fast-path itself lives inside
-     * the committer and {@code PieceRuntimes}, not at the call site.
+     * <p>Used by controller/runtime setup to initialize V3 single-template
+     * cache state ({@code patternTemplate}/{@code runtimeState}). The
+     * single-piece fast-path itself lives inside the committer and
+     * {@code PieceRuntimes}, not at the call site.
      *
      * @return {@code true} if the pattern has exactly one piece and it is not
      *         a {@link RepeatGroupPiece}

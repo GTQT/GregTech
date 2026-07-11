@@ -48,20 +48,18 @@ final class StructureBuildOperationService {
     void creativeBuildSingle(
             @NotNull EntityPlayer player,
             @NotNull MultiblockControllerBase controller,
-            @Nullable Map<String, Integer> channelValues,
-            boolean skipHatches) {
+            @Nullable Map<String, Integer> channelValues) {
         creativeBuildSingle(player, controller, StructureOrientation.fromController(controller),
-                channelValues, skipHatches);
+                channelValues);
     }
 
     void creativeBuildSingle(
             @NotNull EntityPlayer player,
             @NotNull MultiblockControllerBase controller,
             @NotNull StructureOrientation orientation,
-            @Nullable Map<String, Integer> channelValues,
-            boolean skipHatches) {
+            @Nullable Map<String, Integer> channelValues) {
         creativeBuildSingle(StructureOperationRequest.creativeBuild(
-                player, controller, orientation, channelValues, skipHatches));
+                player, controller, orientation, channelValues));
     }
 
     @NotNull
@@ -79,8 +77,7 @@ final class StructureBuildOperationService {
             int tier) {
         creativeBuildSingle(StructureOperationRequest.creativeBuild(
                 player, controller, StructureOrientation.fromController(controller),
-                tierChannelValues(context.runtime().pattern.getPrimaryPiece().getTemplate(), tier),
-                false));
+                tierChannelValues(context.runtime().pattern.getPrimaryPiece().getTemplate(), tier)));
     }
 
     boolean creativeBuildPiece(
@@ -88,30 +85,27 @@ final class StructureBuildOperationService {
             @NotNull EntityPlayer player,
             @NotNull MultiblockControllerBase controller,
             @Nullable Map<String, Integer> channelValues,
-            boolean skipHatches,
             @NotNull AbilityPlacementTracker abilityTracker) {
         return creativeBuildPiece(
                 pieceIndex, player, controller, StructureOrientation.fromController(controller),
-                channelValues, skipHatches, abilityTracker);
+                channelValues, abilityTracker);
     }
 
     boolean creativeBuildAllPieces(
             @NotNull EntityPlayer player,
             @NotNull MultiblockControllerBase controller,
-            @Nullable Map<String, Integer> channelValues,
-            boolean skipHatches) {
+            @Nullable Map<String, Integer> channelValues) {
         return creativeBuildAllPieces(player, controller, StructureOrientation.fromController(controller),
-                channelValues, skipHatches);
+                channelValues);
     }
 
     boolean creativeBuildAllPieces(
             @NotNull EntityPlayer player,
             @NotNull MultiblockControllerBase controller,
             @NotNull StructureOrientation orientation,
-            @Nullable Map<String, Integer> channelValues,
-            boolean skipHatches) {
+            @Nullable Map<String, Integer> channelValues) {
         return creativeBuildAllPieces(StructureOperationRequest.creativeBuild(
-                player, controller, orientation, channelValues, skipHatches)).isAttempted();
+                player, controller, orientation, channelValues)).isAttempted();
     }
 
     @NotNull
@@ -130,8 +124,7 @@ final class StructureBuildOperationService {
             }
             result.merge(creativeBuildPiece(StructureOperationRequest.creativeBuildPiece(
                     compiledPieceIndex, request.requirePlayer(), request.requireController(),
-                    request.requireOrientation(), request.getChannelValues(),
-                    request.skipHatches(), abilityTracker)));
+                    request.requireOrientation(), request.getChannelValues(), abilityTracker)));
         }
         StructureBuildResult buildResult = result.build();
         StructureTrace.debug(request.requireController(), "creative-build-all-pieces-result",
@@ -145,11 +138,9 @@ final class StructureBuildOperationService {
             @NotNull MultiblockControllerBase controller,
             @NotNull StructureOrientation orientation,
             @Nullable Map<String, Integer> channelValues,
-            boolean skipHatches,
             @NotNull AbilityPlacementTracker abilityTracker) {
         return creativeBuildPiece(StructureOperationRequest.creativeBuildPiece(
-                pieceIndex, player, controller, orientation, channelValues,
-                skipHatches, abilityTracker)).isAttempted();
+                pieceIndex, player, controller, orientation, channelValues, abilityTracker)).isAttempted();
     }
 
     @NotNull
@@ -167,10 +158,9 @@ final class StructureBuildOperationService {
             @NotNull MultiblockControllerBase controller,
             @NotNull StructureOrientation orientation,
             @Nullable Map<String, Integer> channelValues,
-            boolean skipHatches,
             @NotNull ItemStack triggerStack) {
         survivalBuildSingle(StructureOperationRequest.survivalBuild(
-                player, controller, orientation, channelValues, skipHatches, triggerStack));
+                player, controller, orientation, channelValues, triggerStack));
     }
 
     @NotNull
@@ -178,7 +168,7 @@ final class StructureBuildOperationService {
         request.requireKind(StructureOperationRequest.Kind.SURVIVAL_BUILD);
         StructureTrace.debug(request.requireController(), "survival-build-single",
                 "path=v3-typed-single, operation=" + request.getEvaluationOperation()
-                        + ", skipHatches=" + request.skipHatches());
+                        + ", noHatch=" + request.isNoHatch());
         StructureBuildResult result = buildPieceThroughRuntime(
                 request, 1, request.requireTriggerStack());
         StructureTrace.debug(request.requireController(), "survival-build-single-result",
@@ -191,10 +181,9 @@ final class StructureBuildOperationService {
             @NotNull MultiblockControllerBase controller,
             @NotNull StructureOrientation orientation,
             @Nullable Map<String, Integer> channelValues,
-            boolean skipHatches,
             @NotNull ItemStack triggerStack) {
         return survivalBuildAllPieces(StructureOperationRequest.survivalBuild(
-                player, controller, orientation, channelValues, skipHatches, triggerStack)).isAttempted();
+                player, controller, orientation, channelValues, triggerStack)).isAttempted();
     }
 
     @NotNull
@@ -202,7 +191,7 @@ final class StructureBuildOperationService {
         request.requireKind(StructureOperationRequest.Kind.SURVIVAL_BUILD);
         StructureTrace.debug(request.requireController(), "survival-build-all-pieces",
                 "path=v3-typed-pattern, operation=" + request.getEvaluationOperation()
-                        + ", skipHatches=" + request.skipHatches());
+                        + ", noHatch=" + request.isNoHatch());
         StructureOperationRuntime runtime = context.runtime();
         MultiPiecePattern pattern = runtime.pattern;
         AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
@@ -217,7 +206,7 @@ final class StructureBuildOperationService {
             result.merge(survivalBuildPiece(StructureOperationRequest.survivalBuildPiece(
                     compiledPieceIndex, request.requirePlayer(), request.requireController(),
                     request.requireOrientation(), request.getChannelValues(),
-                    request.skipHatches(), abilityTracker, request.requireTriggerStack())));
+                    abilityTracker, request.requireTriggerStack())));
         }
         StructureBuildResult buildResult = result.build();
         StructureTrace.debug(request.requireController(), "survival-build-all-pieces-result",
@@ -231,7 +220,7 @@ final class StructureBuildOperationService {
         StructureTrace.debug(request.requireController(), "survival-build-piece",
                 "path=v3-typed-pattern, pieceIndex=" + request.getPieceIndex()
                         + ", operation=" + request.getEvaluationOperation()
-                        + ", skipHatches=" + request.skipHatches());
+                        + ", noHatch=" + request.isNoHatch());
         StructureBuildResult result = buildPieceThroughRuntime(
                 request, request.getPieceIndex(), request.requireTriggerStack());
         StructureTrace.debug(request.requireController(), "survival-build-piece-result",
@@ -251,7 +240,7 @@ final class StructureBuildOperationService {
         }
         return runtime.pattern.autoBuildPieceWithResult(
                 pieceIndex, request.requirePlayer(), request.requireController(),
-                request.requireOrientation(), request.getChannelValues(), request.skipHatches(),
+                request.requireOrientation(), request.getChannelValues(),
                 runtime.runtimes, abilityTracker,
                 request.getEvaluationOperation(), triggerStack)
                 .withDiagnostics(runtime.diagnostics(request.getEvaluationOperation()));

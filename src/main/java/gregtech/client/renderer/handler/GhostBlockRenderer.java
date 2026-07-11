@@ -91,7 +91,6 @@ public class GhostBlockRenderer {
     private static int layer;
     private static boolean renderEntryLogged;
     private static boolean compareMode = false;
-    private static boolean noHatch = false;
     @Nullable
     private static Map<String, Integer> channelValues = null;
 
@@ -267,7 +266,7 @@ public class GhostBlockRenderer {
             GTLog.logger.info(
                     "[StructureProjector] preview ready controller={} pos={} piece={} layer={} compare={} noHatch={} " +
                             "vbos={} missing={} wrong={} totalMs={}",
-                    controller.getMetaName(), controller.getPos(), pieceIndex, layer, compareMode, noHatch,
+                    controller.getMetaName(), controller.getPos(), pieceIndex, layer, compareMode, isNoHatch(),
                     countVBOs(), missingPositions.size(), wrongPositions.size(), totalMillis);
         } else {
             GTLog.logger.warn("[StructureProjector] preview unavailable controller={} pos={} piece={} layer={} " +
@@ -297,7 +296,7 @@ public class GhostBlockRenderer {
         if (piecePreview == null) {
             GTLog.logger.warn("[StructureProjector] piece preview missing controller={} piece={} channels={} " +
                             "noHatch={}",
-                    controller.getMetaName(), pieceIndex, channelValues, noHatch);
+                    controller.getMetaName(), pieceIndex, channelValues, isNoHatch());
             return false;
         }
         MultiblockShapeInfo shapeInfo = piecePreview.getShape();
@@ -330,7 +329,7 @@ public class GhostBlockRenderer {
                         "noHatch={}",
                 controller.getMetaName(),
                 multiPiece == null ? 0 : multiPiece.getToolingPieceCount(),
-                channelValues, noHatch);
+                channelValues, isNoHatch());
         if (multiPiece == null) {
             GTLog.logger.warn("[StructureProjector] compiled pattern missing controller={} channels={}",
                     controller.getMetaName(), channelValues);
@@ -349,7 +348,7 @@ public class GhostBlockRenderer {
         if (preview == null || preview.isEmpty()) {
             GTLog.logger.warn("[StructureProjector] no multi-piece preview controller={} channels={} " +
                             "noHatch={}",
-                    controller.getMetaName(), channelValues, noHatch);
+                    controller.getMetaName(), channelValues, isNoHatch());
             return false;
         }
         return buildMultiPieceVBO(controller, multiPiece, preview);
@@ -357,8 +356,8 @@ public class GhostBlockRenderer {
 
     private static boolean buildControllerPreviewVBO(MultiblockControllerBase controller) {
         // Dynamic single-piece controllers expose their real tooling shape via
-        // the legacy channel-aware hook. The skip-hatch overload may fall back
-        // to the canonical identity piece, which is just the controller block.
+        // the channel-aware hook. The no_hatch channel is carried in the same
+        // map, so this path has no separate hatch-control state.
         List<MultiblockShapeInfo> shapes = controller.getMatchingShapes(channelValues);
         if (shapes.isEmpty()) {
             GTLog.logger.warn("[StructureProjector] no matching preview shape controller={} channels={}",
@@ -381,7 +380,7 @@ public class GhostBlockRenderer {
             MultiblockControllerBase controller, int toolingPieceIndex) {
         return controller.getOrCreateStructureRuntime().previewMultiPiece(
                 StructureOperationRequest.previewMultiPiece(
-                        channelValues, controller, noHatch, toolingPieceIndex));
+                        channelValues, controller, toolingPieceIndex));
     }
 
     private static boolean buildMultiPieceVBO(MultiblockControllerBase controller,
@@ -730,12 +729,12 @@ public class GhostBlockRenderer {
         compareMode = enabled;
     }
 
-    public static void setNoHatch(boolean enabled) {
-        noHatch = enabled;
-    }
-
     public static void setChannelValues(@Nullable Map<String, Integer> values) {
         channelValues = values != null && !values.isEmpty() ? new HashMap<>(values) : null;
+    }
+
+    private static boolean isNoHatch() {
+        return StructureOperationRequest.isNoHatch(channelValues);
     }
 
     public static boolean isCompareMode() {

@@ -39,11 +39,10 @@ public final class StructureOperationEvaluator {
     private final StructureIterateOperationService iterateOperations;
 
     public StructureOperationEvaluator(@Nullable StructureDefinition<?> definition,
-                                       @Nullable PieceRuntimeState state,
-                                       @Nullable MultiPiecePattern multiPiecePattern,
-                                       @Nullable PieceRuntimes pieceRuntimes) {
+                                       @NotNull MultiPiecePattern multiPiecePattern,
+                                       @NotNull PieceRuntimes pieceRuntimes) {
         this.operationContext = new StructureOperationContext(
-                definition, state, multiPiecePattern, pieceRuntimes);
+                definition, multiPiecePattern, pieceRuntimes);
         this.checkOperations = new StructureCheckOperationService(operationContext);
         this.snapshotOperations = new StructureSnapshotOperationService(operationContext);
         this.buildOperations = new StructureBuildOperationService(operationContext);
@@ -114,9 +113,8 @@ public final class StructureOperationEvaluator {
     void creativeBuildSingle(
             @NotNull EntityPlayer player,
             @NotNull MultiblockControllerBase controller,
-            @Nullable Map<String, Integer> channelValues,
-            boolean skipHatches) {
-        buildOperations.creativeBuildSingle(player, controller, channelValues, skipHatches);
+            @Nullable Map<String, Integer> channelValues) {
+        buildOperations.creativeBuildSingle(player, controller, channelValues);
     }
 
     void creativeBuildSingle(

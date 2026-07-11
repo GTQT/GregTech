@@ -8,8 +8,6 @@ final class StructureOperationRuntime {
     final MultiPiecePattern pattern;
     @NotNull
     final PieceRuntimes runtimes;
-    private final boolean transientRuntimes;
-    private final boolean syntheticSinglePiece;
     @NotNull
     final String checkTracePath;
     @NotNull
@@ -17,24 +15,17 @@ final class StructureOperationRuntime {
 
     StructureOperationRuntime(@NotNull MultiPiecePattern pattern,
                               @NotNull PieceRuntimes runtimes,
-                              boolean transientRuntimes,
-                              boolean syntheticSinglePiece,
                               @NotNull String checkTracePath,
                               @NotNull String detail) {
         this.pattern = pattern;
         this.runtimes = runtimes;
-        this.transientRuntimes = transientRuntimes;
-        this.syntheticSinglePiece = syntheticSinglePiece;
         this.checkTracePath = checkTracePath;
         this.detail = detail;
     }
 
     @NotNull
     PieceRuntimes newCandidateRuntimes() {
-        if (!transientRuntimes) {
-            return new PieceRuntimes(pattern);
-        }
-        return runtimes;
+        return new PieceRuntimes(pattern);
     }
 
     @NotNull
@@ -47,6 +38,6 @@ final class StructureOperationRuntime {
             @NotNull StructureEvaluationContext.Operation operation) {
         return StructureOperationDiagnostics.of(
                 checkTracePath, operation.name(), detail,
-                pattern.getPieceCount(), syntheticSinglePiece);
+                pattern.getPieceCount());
     }
 }

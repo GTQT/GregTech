@@ -655,7 +655,6 @@ public final class MetaItems {
 
     public static MetaItem<?>.MetaValueItem LOGO;
 
-    public static MetaItem<?>.MetaValueItem MULTIBLOCK_BUILDER;
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_REMOVER;
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_PREVIEW;
 

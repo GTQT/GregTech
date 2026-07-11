@@ -10,9 +10,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
-/**
- * Trace logging helper for the structure-system-v3 migration.
- */
+/** Trace logging helper for V3 structure operations. */
 public final class StructureTrace {
 
     private StructureTrace() {}

@@ -1289,7 +1289,7 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
 
         @Override
         public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
-                                  EntityPlayer player, boolean skipHatches) {
+                                  EntityPlayer player) {
             BlockInfo[] candidates = getCandidates();
             if (candidates.length == 0) {
                 return false;

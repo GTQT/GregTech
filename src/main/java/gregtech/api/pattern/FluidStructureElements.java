@@ -64,7 +64,7 @@ public final class FluidStructureElements {
 
             @Override
             public boolean placeBlock(StructureEvaluationContext<Object> context,
-                                      EntityPlayer player, boolean skipHatches) {
+                                      EntityPlayer player) {
                 World world = context.getWorld();
                 if (world == null) return false;
                 IBlockState state = ConfigHolder.misc.showFluidsForAutoFillingMultiblocks ?

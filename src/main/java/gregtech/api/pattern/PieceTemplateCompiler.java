@@ -13,7 +13,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.reflect.Array;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -309,33 +308,4 @@ public final class PieceTemplateCompiler {
         return structureDir;
     }
 
-    // --- Read-only views for migration code ---
-    //
-    // These expose the underlying lists/maps without copying, so callers
-    // can forward reads cheaply. They are intended only for internal
-    // migration code and should not be used by new callers.
-
-    /** @return the aisle repetition ranges. Each entry is {@code [minRepeat, maxRepeat]}. */
-    @NotNull
-    public List<int[]> aisleRepetitionsView() {
-        return Collections.unmodifiableList(aisleRepetitions);
-    }
-
-    /** @return the channel names for repeatable aisles. Null for non-channel aisles. */
-    @NotNull
-    public List<String> aisleChannelNamesView() {
-        return Collections.unmodifiableList(aisleChannelNames);
-    }
-
-    /** @return the aisle string definitions. Each entry is an array of row strings. */
-    @NotNull
-    public List<String[]> depthView() {
-        return Collections.unmodifiableList(depth);
-    }
-
-    /** @return the symbol-to-element mapping. */
-    @NotNull
-    public Map<Character, CompiledStructureElement<?>> elementMapView() {
-        return Collections.unmodifiableMap(elementMap);
-    }
 }

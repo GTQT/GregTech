@@ -164,7 +164,7 @@ public interface IStructureElement<T> {
      * distinguishes creative and survival construction.
      */
     default boolean placeBlock(@NotNull StructureEvaluationContext<T> context,
-                               @NotNull EntityPlayer player, boolean skipHatches) {
+                               @NotNull EntityPlayer player) {
         return false;
     }
 
@@ -176,8 +176,7 @@ public interface IStructureElement<T> {
     @NotNull
     default PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<T> context,
                                            @NotNull ItemStack trigger,
-                                           @NotNull AutoPlaceEnvironment env,
-                                           boolean skipHatches) {
+                                           @NotNull AutoPlaceEnvironment env) {
         if (context.probe(this::check)) {
             return PlaceResult.SKIP;
         }
@@ -199,7 +198,7 @@ public interface IStructureElement<T> {
             if (taken.isEmpty()) {
                 return PlaceResult.REJECT;
             }
-            if (!placeBlock(context, actor, skipHatches)) {
+            if (!placeBlock(context, actor)) {
                 return PlaceResult.REJECT;
             }
             source.takeOne(blocksToPlace.getPredicate(), false);
@@ -211,7 +210,7 @@ public interface IStructureElement<T> {
             ItemStack one = stack.copy();
             one.setCount(1);
             if (!source.takeOne(one, true)) continue;
-            if (!placeBlock(context, actor, skipHatches)) {
+            if (!placeBlock(context, actor)) {
                 return PlaceResult.REJECT;
             }
             source.takeOne(one, false);

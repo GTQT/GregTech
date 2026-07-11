@@ -3,34 +3,22 @@ package gregtech.api.pattern;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
 
-import net.minecraft.util.math.Vec3i;
-
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.Collections;
-
 final class StructureOperationContext {
-
-    private static final String SYNTHETIC_SINGLE_PIECE_NAME = "main";
 
     @Nullable
     private final StructureDefinition<?> definition;
-    @Nullable
-    private final PieceRuntimeState state;
-    @Nullable
+    @NotNull
     private final MultiPiecePattern multiPiecePattern;
-    @Nullable
+    @NotNull
     private final PieceRuntimes pieceRuntimes;
-    @Nullable
-    private StructureOperationRuntime syntheticSingleRuntime;
 
     StructureOperationContext(@Nullable StructureDefinition<?> definition,
-                              @Nullable PieceRuntimeState state,
-                              @Nullable MultiPiecePattern multiPiecePattern,
-                              @Nullable PieceRuntimes pieceRuntimes) {
+                              @NotNull MultiPiecePattern multiPiecePattern,
+                              @NotNull PieceRuntimes pieceRuntimes) {
         this.definition = definition;
-        this.state = state;
         this.multiPiecePattern = multiPiecePattern;
         this.pieceRuntimes = pieceRuntimes;
     }
@@ -42,42 +30,10 @@ final class StructureOperationContext {
 
     @NotNull
     StructureOperationRuntime runtime() {
-        if (multiPiecePattern != null && pieceRuntimes != null) {
-            return new StructureOperationRuntime(
-                    multiPiecePattern, pieceRuntimes, false, false,
-                    definition == null ? "v3-typed-pattern" : "definition",
-                    "pieces=" + multiPiecePattern.getPieceCount());
-        }
-        if (state != null) {
-            StructureOperationRuntime runtime = syntheticSingleRuntime;
-            if (runtime == null) {
-                MultiPiecePattern syntheticPattern = new MultiPiecePattern(Collections.singletonList(
-                        new StructurePiece(
-                                SYNTHETIC_SINGLE_PIECE_NAME,
-                                state.getTemplate(),
-                                Vec3i.NULL_VECTOR,
-                                OffsetMode.RELATIVE,
-                                null,
-                                (snap, origin, orientation, prior, pieceRuntime, session) ->
-                                        pieceRuntime.getState().checkPatternAtSnapshotExact(
-                                                snap, origin, orientation, 0, 0, 0, session))));
-                runtime = new StructureOperationRuntime(
-                        syntheticPattern,
-                        PieceRuntimes.singleWithState(syntheticPattern, state),
-                        true, true,
-                        "v3-typed-single",
-                        "pieces=1, source=single-template-state");
-                syntheticSingleRuntime = runtime;
-            }
-            return runtime;
-        }
-        if (multiPiecePattern != null) {
-            return new StructureOperationRuntime(
-                    multiPiecePattern, new PieceRuntimes(multiPiecePattern), true, false,
-                    definition == null ? "v3-typed-pattern" : "definition",
-                    "pieces=" + multiPiecePattern.getPieceCount() + ", source=transient");
-        }
-        throw new IllegalStateException("Structure operation requested without a compiled pattern");
+        return new StructureOperationRuntime(
+                multiPiecePattern, pieceRuntimes,
+                definition == null ? "v3-typed-pattern" : "definition",
+                "pieces=" + multiPiecePattern.getPieceCount());
     }
 
     static boolean supportsSnapshotMatch(@NotNull MultiPiecePattern pattern) {

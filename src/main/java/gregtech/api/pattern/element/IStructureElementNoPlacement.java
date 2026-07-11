@@ -20,7 +20,7 @@ public interface IStructureElementNoPlacement<T> extends IStructureElement<T> {
 
     @Override
     default boolean placeBlock(@NotNull StructureEvaluationContext<T> context,
-                               @NotNull EntityPlayer player, boolean skipHatches) {
+                               @NotNull EntityPlayer player) {
         return false;
     }
 
@@ -36,8 +36,7 @@ public interface IStructureElementNoPlacement<T> extends IStructureElement<T> {
     @Override
     default PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<T> context,
                                            @NotNull ItemStack trigger,
-                                           @NotNull AutoPlaceEnvironment env,
-                                           boolean skipHatches) {
+                                           @NotNull AutoPlaceEnvironment env) {
         return PlaceResult.REJECT;
     }
 

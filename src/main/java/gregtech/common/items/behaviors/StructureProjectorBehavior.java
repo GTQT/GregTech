@@ -53,6 +53,8 @@ import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,13 +72,12 @@ import java.util.Map;
  * <p>This behavior is stateless — all persistent data lives in the ItemStack's NBT.
  * Instance fields are only used as transient working copies within a single method call.
  *
- * <p>Replaces the separate RenderItemBehavior and MultiblockBuilderBehavior.
+ * <p>Combines the former separate preview and auto-build item behaviors.
  */
 public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory {
 
     // --- State keys in ItemStack NBT ---
     private static final String NBT_COMPARE_MODE = "ProjectorCompareMode";
-    private static final String NBT_NO_HATCH = "ProjectorNoHatch";
     private static final String NBT_CHANNELS = "ProjectorChannels";
     private static final String NBT_CHANNEL_RANGES = "ProjectorChannelRanges";
 
@@ -93,15 +94,6 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         NBTTagCompound tag = stack.getTagCompound();
         if (tag == null || !tag.hasKey(NBT_COMPARE_MODE)) return true;
         return tag.getBoolean(NBT_COMPARE_MODE);
-    }
-
-    /**
-     * Read no-hatch mode from ItemStack NBT (defaults to false if absent).
-     */
-    private static boolean readNoHatch(@NotNull ItemStack stack) {
-        NBTTagCompound tag = stack.getTagCompound();
-        if (tag == null) return false;
-        return tag.getBoolean(NBT_NO_HATCH);
     }
 
     /**
@@ -149,14 +141,6 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
     }
 
     /**
-     * Write no-hatch mode to ItemStack NBT.
-     */
-    private static void writeNoHatch(@NotNull ItemStack stack, boolean noHatch) {
-        NBTTagCompound tag = getOrCreateTag(stack);
-        tag.setBoolean(NBT_NO_HATCH, noHatch);
-    }
-
-    /**
      * Write channel values map to ItemStack NBT. Values of 0 are excluded.
      */
     private static void writeChannelValues(@NotNull ItemStack stack, @NotNull Map<String, Integer> channelValues) {
@@ -171,6 +155,18 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             tag.setTag(NBT_CHANNELS, channels);
         } else {
             tag.removeTag(NBT_CHANNELS);
+        }
+    }
+
+    private static boolean isNoHatch(@NotNull Map<String, Integer> channelValues) {
+        return StructureOperationRequest.isNoHatch(channelValues);
+    }
+
+    private static void setNoHatch(@NotNull Map<String, Integer> channelValues, boolean enabled) {
+        if (enabled) {
+            channelValues.put(GTStructureChannels.NO_HATCH.getName(), 1);
+        } else {
+            channelValues.remove(GTStructureChannels.NO_HATCH.getName());
         }
     }
 
@@ -223,7 +219,6 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
         // Read current settings from NBT
         boolean compareMode = readCompareMode(heldStack);
-        boolean noHatch = readNoHatch(heldStack);
         Map<String, Integer> channelValues = readChannelValues(heldStack);
 
         if (player.isSneaking()) {
@@ -235,14 +230,14 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             // Check if a specific piece is requested via STRUCTURE_PIECE channel
             int pieceIndex = channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0);
             if (pieceIndex > 0) {
-                buildPiece(multiblock, player, pieceIndex, channels, noHatch, heldStack);
+                buildPiece(multiblock, player, pieceIndex, channels, heldStack);
                 return EnumActionResult.SUCCESS;
             }
 
             if (!multiblock.isStructureFormed()) {
                 StructureOperationRequest request = StructureOperationRequest.build(
                         player, multiblock, StructureOrientation.fromController(multiblock),
-                        channels, noHatch, heldStack);
+                        channels, heldStack);
                 if (multiblock.autoBuildStructure(request)) {
                     return EnumActionResult.SUCCESS;
                 }
@@ -254,7 +249,6 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             // Right-click: Show hologram preview / error info
             if (world.isRemote) {
                 GhostBlockRenderer.setCompareMode(compareMode);
-                GhostBlockRenderer.setNoHatch(noHatch);
                 GhostBlockRenderer.setChannelValues(channelValues);
                 GhostBlockRenderer.renderGhostPreview(multiblock, 10000);
                 return EnumActionResult.SUCCESS;
@@ -317,14 +311,13 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
                                        @NotNull StructureOperationRequest request) {
         var runtime = multiblock.getOrCreateStructureRuntime();
         StructureBuildResult result = runtime.buildAllPieces(request);
-        logBuildResult(multiblock, 0, request.skipHatches(), result);
+        logBuildResult(multiblock, 0, request.getChannelValues(), result);
     }
 
     private static void buildPiece(@NotNull MultiblockControllerBase multiblock,
                                    @NotNull EntityPlayer player,
                                    int pieceIndex,
                                    Map<String, Integer> channels,
-                                   boolean noHatch,
                                    @NotNull ItemStack triggerStack) {
         var runtime = multiblock.getOrCreateStructureRuntime();
         MultiPiecePattern pattern = runtime.getMultiPiecePattern();
@@ -337,16 +330,17 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         }
         StructureBuildResult result = runtime.buildPiece(StructureOperationRequest.buildPiece(
                 compiledPieceIndex, player, multiblock, StructureOrientation.fromController(multiblock),
-                channels, noHatch, triggerStack));
-        logBuildResult(multiblock, compiledPieceIndex, noHatch, result);
+                channels, triggerStack));
+        logBuildResult(multiblock, compiledPieceIndex, channels, result);
     }
 
     private static void logBuildResult(@NotNull MultiblockControllerBase multiblock,
                                        int pieceIndex,
-                                       boolean noHatch,
+                                       @Nullable Map<String, Integer> channelValues,
                                        @NotNull StructureBuildResult result) {
         GTLog.logger.info("[StructureProjector] build result controller={} pos={} piece={} noHatch={}, {}",
-                multiblock.getMetaName(), multiblock.getPos(), pieceIndex, noHatch, result.describeCounts());
+                multiblock.getMetaName(), multiblock.getPos(), pieceIndex,
+                channelValues != null && isNoHatch(channelValues), result.describeCounts());
     }
 
     private static void spawnStructureHints(@NotNull MultiblockControllerBase multiblock,
@@ -384,7 +378,6 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
         boolean compareMode = readCompareMode(itemStack);
-        boolean noHatch = readNoHatch(itemStack);
         Map<String, Integer> channelValues = readChannelValues(itemStack);
 
         lines.add(I18n.format("gregtech.tool.projector.tooltip1"));
@@ -393,7 +386,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
         if (compareMode) {
             lines.add(TextFormatting.GREEN + I18n.format("gregtech.tool.projector.compare_on"));
         }
-        if (noHatch) {
+        if (isNoHatch(channelValues)) {
             lines.add(TextFormatting.RED + I18n.format("gregtech.tool.projector.no_hatch_on"));
         }
         if (!channelValues.isEmpty()) {
@@ -411,7 +404,6 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
         // Read all state from NBT into local working copies
         boolean[] compareHolder = { readCompareMode(stack) };
-        boolean[] noHatchHolder = { readNoHatch(stack) };
         Map<String, Integer> channelValues = readChannelValues(stack);
         Map<String, int[]> channelRanges = readChannelRanges(stack);
         List<ChannelEntry> entries = buildChannelEntries(channelValues, channelRanges);
@@ -433,10 +425,10 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
 
         // --- No-hatch mode sync ---
         BooleanSyncValue noHatchValue = new BooleanSyncValue(
-                () -> noHatchHolder[0],
+                () -> isNoHatch(channelValues),
                 v -> {
-                    noHatchHolder[0] = v;
-                    writeNoHatch(stack, v);
+                    setNoHatch(channelValues, v);
+                    writeChannelValues(stack, channelValues);
                 });
         guiSyncManager.syncValue("no_hatch", noHatchValue);
 

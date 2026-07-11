@@ -44,7 +44,7 @@ public final class MultiPiecePreviewAssembler {
     public static Result assemble(@NotNull MultiPiecePattern pattern,
                                   @NotNull PieceRuntimes runtimes,
                                   @Nullable Map<String, Integer> channelValues) {
-        return assemble(pattern, runtimes, channelValues, null, false);
+        return assemble(pattern, runtimes, channelValues, null);
     }
 
     @NotNull
@@ -52,7 +52,7 @@ public final class MultiPiecePreviewAssembler {
                                   @NotNull PieceRuntimes runtimes,
                                   @Nullable Map<String, Integer> channelValues,
                                   @Nullable MultiblockControllerBase controller) {
-        return assemble(pattern, runtimes, channelValues, controller, false);
+        return assemble(pattern, runtimes, channelValues, controller, 0);
     }
 
     @NotNull
@@ -60,16 +60,6 @@ public final class MultiPiecePreviewAssembler {
                                   @NotNull PieceRuntimes runtimes,
                                   @Nullable Map<String, Integer> channelValues,
                                   @Nullable MultiblockControllerBase controller,
-                                  boolean skipHatches) {
-        return assemble(pattern, runtimes, channelValues, controller, skipHatches, 0);
-    }
-
-    @NotNull
-    public static Result assemble(@NotNull MultiPiecePattern pattern,
-                                  @NotNull PieceRuntimes runtimes,
-                                  @Nullable Map<String, Integer> channelValues,
-                                  @Nullable MultiblockControllerBase controller,
-                                  boolean skipHatches,
                                   int forcedToolingPieceIndex) {
         Map<BlockPos, BlockInfo> allBlocks = new HashMap<>();
         Map<BlockPos, StructureElementPreviewEntry> allPreviewEntries = new HashMap<>();
@@ -117,7 +107,7 @@ public final class MultiPiecePreviewAssembler {
             }
 
             PieceRuntimeState.PreviewCells preview = runtime.getState().createPreviewCells(
-                    internalRepetitions, channelValues, CANONICAL_PREVIEW_ORIENTATION, null, skipHatches);
+                    internalRepetitions, channelValues, CANONICAL_PREVIEW_ORIENTATION, null);
             Map<BlockPos, BlockInfo> pieceBlocks = new HashMap<>();
             forEachExternalRepeat(piece, externalRepetitions, localShift -> {
                 BlockPos canonicalShift = RelativeDirection.setActualRelativeOffset(

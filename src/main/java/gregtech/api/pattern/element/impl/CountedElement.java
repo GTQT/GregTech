@@ -157,17 +157,16 @@ public final class CountedElement implements IStructureElement<Object> {
 
     @Override
     public boolean placeBlock(@NotNull StructureEvaluationContext<Object> context,
-                              @NotNull EntityPlayer player, boolean skipHatches) {
-        return delegate.placeBlock(context, player, skipHatches);
+                              @NotNull EntityPlayer player) {
+        return delegate.placeBlock(context, player);
     }
 
     @NotNull
     @Override
     public PlaceResult survivalPlaceBlock(@NotNull StructureEvaluationContext<Object> context,
                                           @NotNull ItemStack trigger,
-                                          @NotNull AutoPlaceEnvironment env,
-                                          boolean skipHatches) {
-        return delegate.survivalPlaceBlock(context, trigger, env, skipHatches);
+                                          @NotNull AutoPlaceEnvironment env) {
+        return delegate.survivalPlaceBlock(context, trigger, env);
     }
 
     @NotNull

@@ -42,16 +42,6 @@ final class StructureCheckOperationService {
         this.snapshotOperations = new StructureSnapshotOperationService(operationContext);
     }
 
-    StructureCheckOperationService(@Nullable StructureDefinition<?> definition,
-                                   @Nullable PieceRuntimeState state,
-                                   @Nullable MultiPiecePattern multiPiecePattern,
-                                   @Nullable PieceRuntimes pieceRuntimes) {
-        this.definition = definition;
-        this.operationContext = new StructureOperationContext(
-                definition, state, multiPiecePattern, pieceRuntimes);
-        this.snapshotOperations = new StructureSnapshotOperationService(operationContext);
-    }
-
     @NotNull
     public StructureCheckResult check(
             @NotNull World world,
