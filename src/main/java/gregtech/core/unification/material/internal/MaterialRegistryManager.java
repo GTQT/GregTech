@@ -4,6 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.registry.IMaterialRegistryManager;
 import gregtech.api.unification.material.registry.MaterialRegistry;
+import gregtech.api.util.GTLog;
 
 import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -16,6 +17,9 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public final class MaterialRegistryManager implements IMaterialRegistryManager {
 
@@ -125,7 +129,28 @@ public final class MaterialRegistryManager implements IMaterialRegistryManager {
             collection.addAll(registry.getAllMaterials());
         }
         registeredMaterials = Collections.unmodifiableCollection(collection);
+        logDuplicateMaterialNames(collection);
         registrationPhase = Phase.CLOSED;
+    }
+
+    private static void logDuplicateMaterialNames(Collection<Material> materials) {
+        Map<String, List<Material>> materialsByName = new LinkedHashMap<>();
+        for (Material material : materials) {
+            materialsByName.computeIfAbsent(material.toCamelCaseString(), ignored -> new ArrayList<>()).add(material);
+        }
+
+        List<String> duplicates = new ArrayList<>();
+        for (Map.Entry<String, List<Material>> entry : materialsByName.entrySet()) {
+            if (entry.getValue().size() > 1) {
+                duplicates.add(entry.getKey() + "=" + entry.getValue());
+            }
+        }
+
+        if (!duplicates.isEmpty()) {
+            int sampleCount = Math.min(12, duplicates.size());
+            GTLog.logger.warn("Found {} duplicate material names across registries; first {}: {}",
+                    duplicates.size(), sampleCount, String.join(", ", duplicates.subList(0, sampleCount)));
+        }
     }
 
     public void freezeRegistries() {
