@@ -4,9 +4,6 @@ import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.blocks.BlockMetalCasing;
-import gregtech.common.blocks.BlockSteamCasing;
-import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.metatileentities.multi.BoilerType;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOvenHatch;
@@ -20,6 +17,7 @@ import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
 import gregtech.common.metatileentities.multi.MetaTileEntityPumpHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntitySawMill;
 import gregtech.common.metatileentities.multi.MetaTileEntityTankValve;
+import gregtech.common.metatileentities.multi.TankType;
 import gregtech.common.metatileentities.multi.electric.FluidDrillType;
 import gregtech.common.metatileentities.multi.electric.FusionReactorType;
 import gregtech.common.metatileentities.multi.electric.LargeMinerType;
@@ -95,7 +93,6 @@ import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamGrinder;
 import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamOven;
 
 import net.minecraft.block.SoundType;
-import net.minecraft.block.state.IBlockState;
 
 import static gregtech.api.GTValues.EV;
 import static gregtech.api.GTValues.IV;
@@ -110,14 +107,6 @@ public final class MultiblockRegistration {
                                                              ICubeRenderer texture, SoundType soundType) {
         return registerMetaTileEntity(id, new MetaTileEntityTankValve(gregtechId("tank_valve." + name),
                 material, texture, soundType));
-    }
-
-    private static MetaTileEntityMultiblockTank registerTank(int id, String name, boolean isWood, int capacity,
-                                                             IBlockState casingState, MetaTileEntityTankValve valve,
-                                                             ICubeRenderer texture, SoundType soundType) {
-        MetaTileEntityMultiblockTank.registerTankStructure(name, casingState, valve);
-        return registerMetaTileEntity(id, new MetaTileEntityMultiblockTank(gregtechId("tank." + name), name, isWood,
-                capacity, casingState, valve, texture, soundType));
     }
 
     public static void init() {
@@ -144,21 +133,15 @@ public final class MultiblockRegistration {
         SAW_MILL = registerMetaTileEntity(1007, new MetaTileEntitySawMill(gregtechId("saw_mill")));
 
         WOODEN_TANK_VALVE = registerTankValve(1010, "wood", Materials.Wood, Textures.WOOD_WALL, SoundType.WOOD);
-        WOODEN_TANK = registerTank(1011, "wood", true, 250 * 1000,
-                MetaBlocks.STEAM_CASING.getState(BlockSteamCasing.SteamCasingType.WOOD_WALL), WOODEN_TANK_VALVE,
-                Textures.WOOD_WALL, SoundType.WOOD);
+        BRONZE_TANK_VALVE = registerTankValve(1012, "bronze", Materials.Bronze, Textures.BRONZE_PLATED_BRICKS, SoundType.METAL);
+        STEEL_TANK_VALVE = registerTankValve(1014, "steel", Materials.Steel, Textures.SOLID_STEEL_CASING, SoundType.METAL);
 
-        BRONZE_TANK_VALVE = registerTankValve(1012, "bronze", Materials.Bronze, Textures.BRONZE_PLATED_BRICKS,
-                SoundType.METAL);
-        BRONZE_TANK = registerTank(1013, "bronze", false, 1000 * 1000,
-                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.BRONZE_BRICKS), BRONZE_TANK_VALVE,
-                Textures.BRONZE_PLATED_BRICKS, SoundType.METAL);
-
-        STEEL_TANK_VALVE = registerTankValve(1014, "steel", Materials.Steel, Textures.SOLID_STEEL_CASING,
-                SoundType.METAL);
-        STEEL_TANK = registerTank(1015, "steel", false, 4 * 1000 * 1000,
-                MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID), STEEL_TANK_VALVE,
-                Textures.SOLID_STEEL_CASING, SoundType.METAL);
+        WOODEN_TANK = registerMetaTileEntity(1011, new MetaTileEntityMultiblockTank(
+                gregtechId("tank.wood"), TankType.WOOD));
+        BRONZE_TANK = registerMetaTileEntity(1013, new MetaTileEntityMultiblockTank(
+                gregtechId("tank.bronze"), TankType.BRONZE));
+        STEEL_TANK = registerMetaTileEntity(1015, new MetaTileEntityMultiblockTank(
+                gregtechId("tank.steel"), TankType.STEEL));
     }
 
     private static void registerSteamMultiblocks() {

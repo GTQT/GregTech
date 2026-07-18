@@ -10,8 +10,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
-import gregtech.api.pattern.SoftReferenceHolder;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -42,74 +40,19 @@ import com.cleanroommc.modularui.utils.Alignment;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
 
-    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
-            new HashMap<>();
-    private final String tankTypeName;
-    private final boolean isWood;
-    private final int capacity;
-    private final IBlockState casingState;
-    private final MetaTileEntity valve;
-    private final ICubeRenderer baseTexture;
-    private final SoundType soundType;
+    private static final String STRUCTURE_POOL_KEY = "gregtech:tank";
 
-    public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId, String tankTypeName, boolean isWood,
-                                        int capacity, IBlockState casingState, MetaTileEntity valve,
-                                        ICubeRenderer baseTexture, SoundType soundType) {
+    public final TankType tankType;
+
+    public MetaTileEntityMultiblockTank(ResourceLocation metaTileEntityId, TankType tankType) {
         super(metaTileEntityId);
-        this.tankTypeName = tankTypeName;
-        this.isWood = isWood;
-        this.capacity = capacity;
-        this.casingState = casingState;
-        this.valve = valve;
-        this.baseTexture = baseTexture;
-        this.soundType = soundType;
-        initializeInventory();
-    }
-
-    /**
-     * Register a tank variant structure definition in the global template pool. Called from
-     * {@code MultiblockRegistration} during initialization.
-     *
-     * @param name        tank variant name (e.g. "wood", "bronze", "steel")
-     * @param casingState the casing block state for this variant
-     * @param valve       the valve meta tile entity for this variant
-     */
-    public static void registerTankStructure(@NotNull String name, @NotNull IBlockState casingState,
-                                             @NotNull MetaTileEntity valve) {
-        STRUCTURE_DEFINITIONS.put(name, TemplatePool.getInstance()
-                .registerStructure("gregtech:tank." + name, () -> buildStructureDefinition(casingState, valve)));
-    }
-
-    private static StructureDefinition<?> buildStructureDefinition(@NotNull IBlockState casingState,
-                                                                   @NotNull MetaTileEntity valve) {
-        return DeclarativePatternBuilder.start()
-                .aisle("XXX", "XXX", "XXX")
-                .aisle("XXX", "X X", "XXX")
-                .aisle("XXX", "XSX", "XXX")
-                .self('S', MetaTileEntityMultiblockTank.class)
-                .air(' ')
-                .casing('X', casingState)
-                .custom(Elements.metaTileEntities(0, 2, 2, valve), 2)
-                .buildStructureDefinition();
-    }
-
-    @Override
-    public IBlockState getCasingBlock() {
-        return casingState;
-    }
-
-    @Override
-    protected void initializeInventory() {
-        super.initializeInventory();
-
-        FilteredFluidHandler tank = new FilteredFluidHandler(capacity);
-        if (isWood) {
+        this.tankType = tankType;
+        FilteredFluidHandler tank = new FilteredFluidHandler(tankType.getCapacity());
+        if (tankType.isWood()) {
             tank.setFilter(new PropertyFluidFilter(340, false, false, false, false));
         }
 
@@ -117,10 +60,27 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
         this.fluidInventory = tank;
     }
 
+    private static StructureDefinition<?> buildStructureDefinition(TankType tankType) {
+        return DeclarativePatternBuilder.start()
+                .aisle("XXX", "XXX", "XXX")
+                .aisle("XXX", "X&X", "XXX")
+                .aisle("XXX", "XSX", "XXX")
+                .self('S', MetaTileEntityMultiblockTank.class)
+                .air(' ')
+                .air('&')
+                .casing('X', tankType.getCasingState())
+                .custom(Elements.metaTileEntities(0, 2, 2, tankType.getValve()), 2)
+                .buildStructureDefinition();
+    }
+
+    @Override
+    public IBlockState getCasingBlock() {
+        return tankType.getCasingState();
+    }
+
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityMultiblockTank(metaTileEntityId, tankTypeName, isWood, capacity, casingState, valve,
-                baseTexture, soundType);
+        return new MetaTileEntityMultiblockTank(metaTileEntityId, tankType);
     }
 
     @Override
@@ -129,23 +89,20 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
     @Override
     @NotNull
     protected StructureDefinition<?> createStructureDefinition() {
-        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(tankTypeName);
-        if (definition == null) {
-            throw new IllegalStateException("Unknown tank type: " + tankTypeName);
-        }
-        return definition.get();
+        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, tankType.getName(),
+                () -> buildStructureDefinition(tankType));
     }
 
     @SideOnly(Side.CLIENT)
     @Override
     @NotNull
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        return baseTexture;
+        return tankType.getBaseTexture();
     }
 
     @Override
     public GTGuiTheme getUITheme() {
-        if (!isWood) return GTGuiTheme.STEEL;
+        if (!tankType.isWood()) return GTGuiTheme.STEEL;
         else return GTGuiTheme.PRIMITIVE;
     }
 
@@ -208,7 +165,7 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
         tooltip.add(I18n.format("gregtech.multiblock.tank.tooltip"));
-        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity", capacity));
+        tooltip.add(I18n.format("gregtech.universal.tooltip.fluid_storage_capacity", tankType.getCapacity()));
     }
 
     @Override
@@ -226,6 +183,6 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
     @NotNull
     @Override
     public SoundType getSoundType() {
-        return soundType;
+        return tankType.getSoundType();
     }
 }
