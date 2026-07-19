@@ -17,8 +17,6 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.sync.FixedIntArraySyncValue;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.SoftReferenceHolder;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.element.Elements;
@@ -60,15 +58,6 @@ import java.util.function.UnaryOperator;
 
 public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockController implements ProgressBarMultiblock {
 
-    private static final SoftReferenceHolder<? extends StructureDefinition<?>>[] STRUCTURE_DEFINITIONS = new SoftReferenceHolder[2];
-
-    static {
-        STRUCTURE_DEFINITIONS[0] = TemplatePool.getInstance()
-                .registerStructure("gregtech:large_combustion_engine", () -> buildStructureDefinition(false));
-        STRUCTURE_DEFINITIONS[1] = TemplatePool.getInstance()
-                .registerStructure("gregtech:extreme_combustion_engine", () -> buildStructureDefinition(true));
-    }
-
     private final boolean isExtreme;
     @Getter
     private boolean boostAllowed;
@@ -80,7 +69,8 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
     }
 
-    private static StructureDefinition<?> buildStructureDefinition(boolean isExtreme) {
+    private static StructureDefinition<?> buildStructureDefinition(boolean isExtreme,
+                                                                    ResourceLocation controllerId) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XDX", "XXX")
                 .aisle("XCX", "CGC", "XCX")
@@ -94,7 +84,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                 .where('A', Elements.withTooltips(
                         Elements.block(getIntakeState(isExtreme)),
                         "gregtech.multiblock.pattern.clear_amount_1"))
-                .self('Y', MetaTileEntityLargeCombustionEngine.class)
+                .where('Y', Elements.self(MetaTileEntityLargeCombustionEngine.class, controllerId))
                 .casing('C', getCasingState(isExtreme))
                 .preset(HatchPresets.STANDARD_FLUID_IO)
                 .preset(HatchPresets.MUFFLER_IO)
@@ -204,7 +194,9 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        return STRUCTURE_DEFINITIONS[isExtreme ? 1 : 0].get();
+        String structureKey = isExtreme ? "gregtech:extreme_combustion_engine" : "gregtech:large_combustion_engine";
+        return StructureDefinition.getOrBuild(structureKey,
+                () -> buildStructureDefinition(isExtreme, metaTileEntityId));
     }
 
     @SideOnly(Side.CLIENT)

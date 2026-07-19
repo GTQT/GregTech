@@ -12,6 +12,7 @@ import gregtech.api.pattern.StructureMatchCollector;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.ExteriorFacingBlockInfo;
 
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
@@ -168,6 +169,6 @@ public class HatchElement implements ITypedStructureElement<Object> {
         holder.setMetaTileEntity(tile);
         holder.getMetaTileEntity().onPlacement();
         holder.getMetaTileEntity().setFrontFacing(EnumFacing.SOUTH);
-        return new BlockInfo(tile.getBlock().getDefaultState(), holder);
+        return new ExteriorFacingBlockInfo(tile.getBlock().getDefaultState(), holder);
     }
 }

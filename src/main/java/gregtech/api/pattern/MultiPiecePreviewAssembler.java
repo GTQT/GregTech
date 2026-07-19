@@ -243,25 +243,25 @@ public final class MultiPiecePreviewAssembler {
 
     private static void orientPreviewMetaTileEntities(@NotNull Map<BlockPos, BlockInfo> blocks,
                                                       @Nullable MultiblockControllerBase controller) {
-        blocks.forEach((pos, info) -> {
+        PreviewFacingResolver.orientExteriorFacingMetaTileEntities(blocks);
+
+        // Controller facings come from their explicit declaration. Do not infer
+        // a controller direction from neighboring air blocks.
+        blocks.forEach((ignored, info) -> {
             if (!(info.getTileEntity() instanceof MetaTileEntityHolder holder)) {
                 return;
             }
             MetaTileEntity metaTileEntity = holder.getMetaTileEntity();
-            if (metaTileEntity == null) {
+            if (metaTileEntity == null || controller == null ||
+                    !(metaTileEntity instanceof MultiblockControllerBase) ||
+                    !metaTileEntity.metaTileEntityId.equals(controller.metaTileEntityId)) {
                 return;
             }
-            if (controller != null && metaTileEntity instanceof MultiblockControllerBase
-                    && metaTileEntity.metaTileEntityId.equals(controller.metaTileEntityId)
-                    && metaTileEntity.isValidFrontFacing(controller.getFrontFacing())) {
-                metaTileEntity.setFrontFacing(controller.getFrontFacing());
-                return;
-            }
-            for (EnumFacing facing : RelativeDirection.ALL_FACINGS) {
-                if (metaTileEntity.isValidFrontFacing(facing) && !isOccupied(blocks.get(pos.offset(facing)))) {
-                    metaTileEntity.setFrontFacing(facing);
-                    break;
-                }
+            EnumFacing previewFacing = controller.getWorld() == null
+                    ? controller.getPreviewFrontFacing()
+                    : controller.getFrontFacing();
+            if (metaTileEntity.isValidFrontFacing(previewFacing)) {
+                metaTileEntity.setFrontFacing(previewFacing);
             }
         });
     }

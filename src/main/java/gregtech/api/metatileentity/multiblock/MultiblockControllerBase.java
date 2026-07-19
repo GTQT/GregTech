@@ -658,6 +658,17 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
+     * Get the visual front used by an unplaced structure preview.
+     *
+     * <p>Controllers whose canonical template places the front on another side
+     * should override this instead of relying on geometric inference.</p>
+     */
+    @NotNull
+    public EnumFacing getPreviewFrontFacing() {
+        return getFrontFacing();
+    }
+
+    /**
      * Compute the {@code frontFacing} argument to pass into
      * {@link gregtech.api.util.RelativeDirection#setActualRelativeOffset} so that the
      * template's first aisle (aisle 0) ends up <em>behind</em> the controller.

@@ -22,9 +22,8 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.SoftReferenceHolder;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -71,7 +70,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -80,21 +78,7 @@ import java.util.function.UnaryOperator;
 public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase implements ProgressBarMultiblock,
                                                                                     IControllable, ISteamMachine {
 
-    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
-            new HashMap<>();
-
-    static {
-        STRUCTURE_DEFINITIONS.put("bronze", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_boiler.bronze", () -> buildStructureDefinition(BoilerType.BRONZE)));
-        STRUCTURE_DEFINITIONS.put("steel", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_boiler.steel", () -> buildStructureDefinition(BoilerType.STEEL)));
-        STRUCTURE_DEFINITIONS.put("titanium", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_boiler.titanium",
-                        () -> buildStructureDefinition(BoilerType.TITANIUM)));
-        STRUCTURE_DEFINITIONS.put("tungstensteel", TemplatePool.getInstance()
-                .registerStructure("gregtech:large_boiler.tungstensteel",
-                        () -> buildStructureDefinition(BoilerType.TUNGSTENSTEEL)));
-    }
+    private static final String STRUCTURE_POOL_KEY = "gregtech:large_boiler";
 
     public final IBoilerType boilerType;
     protected BoilerRecipeLogic recipeLogic;
@@ -110,19 +94,20 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
         resetTileAbilities();
     }
 
-    private static StructureDefinition<?> buildStructureDefinition(BoilerType boilerType) {
+    private static StructureDefinition<?> buildStructureDefinition(IBoilerType boilerType,
+                                                                    ResourceLocation controllerId) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "CCC", "CCC", "CCC")
                 .aisle("XXX", "CPC", "CPC", "CCC")
                 .aisle("XXX", "CSC", "CCC", "CCC")
-                .self('S', MetaTileEntityLargeBoiler.class)
-                .block('P', boilerType.pipeState)
-                .casing('X', boilerType.fireboxState)
+                .where('S', Elements.self(MetaTileEntityLargeBoiler.class, controllerId))
+                .block('P', boilerType.getPipeState())
+                .casing('X', boilerType.getFireboxState())
                 .optionalEnergyInput(2)
                 .optionalItemInput(2)
                 .muffler()
                 .maintenance()
-                .casing('C', boilerType.casingState)
+                .casing('C', boilerType.getCasingState())
                 .itemOutput(1, 4)
                 .buildStructureDefinition();
     }
@@ -346,12 +331,8 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(
-                boilerType.getName());
-        if (definition == null) {
-            throw new IllegalStateException("Unknown boiler type: " + boilerType.getName());
-        }
-        return definition.get();
+        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, boilerType.getName(),
+                () -> buildStructureDefinition(boilerType, metaTileEntityId));
     }
 
     @Override

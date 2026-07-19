@@ -12,8 +12,10 @@ import gregtech.api.util.BlockInfo;
 
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,10 +26,25 @@ import java.util.List;
 public class SelfElement implements ITypedStructureElement<Object> {
 
     private final Class<? extends MultiblockControllerBase> controllerClass;
+    @Nullable
+    private final ResourceLocation controllerId;
     private final StructureElementPreview preview;
 
     public SelfElement(Class<? extends MultiblockControllerBase> controllerClass) {
+        this(controllerClass, null);
+    }
+
+    /**
+     * Creates a self element constrained to one controller registration.
+     *
+     * <p>This is needed for controller families that share an implementation class but have
+     * different structure variants. Without the ID constraint, the first registered variant is
+     * used for structure previews.</p>
+     */
+    public SelfElement(Class<? extends MultiblockControllerBase> controllerClass,
+                       @Nullable ResourceLocation controllerId) {
         this.controllerClass = controllerClass;
+        this.controllerId = controllerId;
         this.preview = StructureElementPreview.of(this::getCandidates);
     }
 
@@ -36,7 +53,7 @@ public class SelfElement implements ITypedStructureElement<Object> {
         TileEntity te = context.getTileEntity();
         if (te instanceof IGregTechTileEntity) {
             MetaTileEntity mte = ((IGregTechTileEntity) te).getMetaTileEntity();
-            return controllerClass.isInstance(mte);
+            return matches(mte);
         }
         return false;
     }
@@ -51,7 +68,7 @@ public class SelfElement implements ITypedStructureElement<Object> {
         List<BlockInfo> matches = new ArrayList<>();
         for (var registry : GregTechAPI.mteManager.getRegistries()) {
             for (MetaTileEntity metaTileEntity : registry) {
-                if (controllerClass.isInstance(metaTileEntity)) {
+                if (matches(metaTileEntity)) {
                     matches.add(candidateInfo(metaTileEntity));
                 }
             }
@@ -68,6 +85,11 @@ public class SelfElement implements ITypedStructureElement<Object> {
     @Override
     public boolean isCenter() {
         return true;
+    }
+
+    private boolean matches(@Nullable MetaTileEntity metaTileEntity) {
+        return metaTileEntity != null && controllerClass.isInstance(metaTileEntity) &&
+                (controllerId == null || controllerId.equals(metaTileEntity.metaTileEntityId));
     }
 
     @NotNull

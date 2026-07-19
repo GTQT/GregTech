@@ -6,6 +6,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.util.BlockInfo;
+import gregtech.api.util.ExteriorFacingBlockInfo;
 import gregtech.api.util.ExplicitFrontFacingBlockInfo;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.IStructureElement;
@@ -1639,6 +1640,10 @@ public final class PieceRuntimeState {
             holder.setMetaTileEntity(
                     ((MetaTileEntityHolder) info.getTileEntity()).getMetaTileEntity());
             holder.getMetaTileEntity().onPlacement();
+            if (info instanceof ExteriorFacingBlockInfo) {
+                return new ExteriorFacingBlockInfo(
+                        holder.getMetaTileEntity().getBlock().getDefaultState(), holder);
+            }
             if (info instanceof ExplicitFrontFacingBlockInfo explicitInfo) {
                 return new ExplicitFrontFacingBlockInfo(
                         holder.getMetaTileEntity().getBlock().getDefaultState(), holder,
@@ -1901,7 +1906,7 @@ public final class PieceRuntimeState {
             previewState.record(cell.worldPos, info,
                     StructureElementPreviewEntry.of(preview, previewTooltip(cell.element)));
         });
-        orientPreviewControllers(previewState.blocks);
+        PreviewFacingResolver.orientExteriorFacingMetaTileEntities(previewState.blocks);
         return previewState.toCells(calculatePreviewCenter(repetition, previewOrientation));
     }
 
@@ -1910,40 +1915,6 @@ public final class PieceRuntimeState {
         List<String> tooltip = new ArrayList<>();
         element.addPreviewTooltip(tooltip);
         return tooltip;
-    }
-
-    private static void orientPreviewControllers(@NotNull Map<BlockPos, BlockInfo> blocks) {
-        blocks.forEach((pos, info) -> {
-            if (info.getTileEntity() instanceof MetaTileEntityHolder) {
-                MetaTileEntity metaTileEntity = ((MetaTileEntityHolder) info.getTileEntity()).getMetaTileEntity();
-                // Try to find a boundary direction (no block in that direction).
-                // Boundary directions point outward from the structure, so this is the
-                // preferred front-facing for the previewed controller. If the controller
-                // is fully enclosed (e.g. sits in the middle of a chamber), we keep its
-                // default front-facing: a previous second pass scanned for the first
-                // AIR neighbour and used it as the front-facing, but that direction is
-                // usually *inward* (toward a chamber wall) rather than outward, which
-                // made the projector / JEI preview show the controller facing the
-                // inside of the multiblock. The actual structure check at #checkPatternAt
-                // uses the real controller's front-facing as a hint, but the preview
-                // does not have that information here, so the safe choice is to leave
-                // the default in place.
-                for (EnumFacing enumFacing : RelativeDirection.ALL_FACINGS) {
-                    if (metaTileEntity.isValidFrontFacing(enumFacing) &&
-                            !isOccupied(blocks.get(pos.offset(enumFacing)))) {
-                        metaTileEntity.setFrontFacing(enumFacing);
-                        break;
-                    }
-                }
-            }
-        });
-    }
-
-    private static boolean isOccupied(@Nullable BlockInfo info) {
-        return info != null
-                && info != BlockInfo.EMPTY
-                && info.getBlockState() != null
-                && info.getBlockState().getBlock() != Blocks.AIR;
     }
 
     @NotNull

@@ -61,12 +61,13 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         this.recipeMapWorkable.setMaximumOverclockVoltage(GTValues.V[tier]);
     }
 
-    private static StructureDefinition<?> buildStructureDefinition(ILargeTurbineType type) {
+    private static StructureDefinition<?> buildStructureDefinition(ILargeTurbineType type,
+                                                                   ResourceLocation controllerId) {
         return DeclarativePatternBuilder.start()
                 .aisle("CCCC", "CHHC", "CCCC")
                 .aisle("CHHC", "RGGR", "CHHC")
                 .aisle("CCCC", "CSHC", "CCCC")
-                .self('S', MetaTileEntityLargeTurbine.class)
+                .where('S', Elements.self(MetaTileEntityLargeTurbine.class, controllerId))
                 .block('G', type.getGearboxState())
                 .block('C', type.getCasingState())
                 .where('R', Elements.chain(
@@ -239,7 +240,8 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, type.getName(), () -> buildStructureDefinition(type));
+        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, type.getName(),
+                () -> buildStructureDefinition(type, metaTileEntityId));
     }
 
     @Override

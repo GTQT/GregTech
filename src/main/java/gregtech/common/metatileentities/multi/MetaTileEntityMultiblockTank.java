@@ -60,12 +60,12 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
         this.fluidInventory = tank;
     }
 
-    private static StructureDefinition<?> buildStructureDefinition(TankType tankType) {
+    private static StructureDefinition<?> buildStructureDefinition(TankType tankType, ResourceLocation controllerId) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X&X", "XXX")
                 .aisle("XXX", "XSX", "XXX")
-                .self('S', MetaTileEntityMultiblockTank.class)
+                .where('S', Elements.self(MetaTileEntityMultiblockTank.class, controllerId))
                 .air(' ')
                 .air('&')
                 .casing('X', tankType.getCasingState())
@@ -84,13 +84,19 @@ public class MetaTileEntityMultiblockTank extends MultiblockWithDisplayBase {
     }
 
     @Override
+    @NotNull
+    public EnumFacing getPreviewFrontFacing() {
+        return EnumFacing.NORTH;
+    }
+
+    @Override
     protected void updateFormedValid() {}
 
     @Override
     @NotNull
     protected StructureDefinition<?> createStructureDefinition() {
         return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, tankType.getName(),
-                () -> buildStructureDefinition(tankType));
+                () -> buildStructureDefinition(tankType, metaTileEntityId));
     }
 
     @SideOnly(Side.CLIENT)

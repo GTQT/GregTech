@@ -19,6 +19,7 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.HatchPresets;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
@@ -60,11 +61,9 @@ import static gregtech.api.recipes.logic.OverclockingLogic.subTickNonParallelOC;
 public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         implements IMachineHatchMultiblock {
 
-    private static final StructureDefinition<?>[] STRUCTURE_DEFINITIONS = new StructureDefinition[] {
-            StructureDefinition.getOrBuild("gregtech:processing_array/normal", () -> buildStructureDefinition(
-                    MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST))),
-            StructureDefinition.getOrBuild("gregtech:processing_array/advanced", () -> buildStructureDefinition(
-                    MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.HSSE_STURDY)))
+    private static final String[] STRUCTURE_KEYS = {
+            "gregtech:processing_array/normal",
+            "gregtech:processing_array/advanced"
     };
 
     private final int tier;
@@ -76,12 +75,13 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         this.recipeMapWorkable = new ProcessingArrayWorkable(this);
     }
 
-    private static StructureDefinition<?> buildStructureDefinition(IBlockState casingState) {
+    private static StructureDefinition<?> buildStructureDefinition(IBlockState casingState,
+                                                                    ResourceLocation controllerId) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "XXX", "XXX")
                 .aisle("XXX", "X#X", "XXX")
                 .aisle("XXX", "XSX", "XXX")
-                .self('S', MetaTileEntityProcessingArray.class)
+                .where('S', Elements.self(MetaTileEntityProcessingArray.class, controllerId))
                 .air('#')
                 .casing('X', casingState)
                 .energyInput(1, 4)
@@ -111,7 +111,8 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        return STRUCTURE_DEFINITIONS[tier];
+        return StructureDefinition.getOrBuild(STRUCTURE_KEYS[tier],
+                () -> buildStructureDefinition(getCasingBlock(), metaTileEntityId));
     }
 
     @Override

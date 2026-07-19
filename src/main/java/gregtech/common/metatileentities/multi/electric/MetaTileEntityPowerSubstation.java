@@ -191,6 +191,12 @@ public class MetaTileEntityPowerSubstation extends MultiblockWithDisplayBase
     }
 
     @Override
+    @NotNull
+    public EnumFacing getPreviewFrontFacing() {
+        return EnumFacing.SOUTH;
+    }
+
+    @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         formStructureWithDisplay(formed);
         List<IEnergyContainer> inputs = new ArrayList<>();

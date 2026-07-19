@@ -112,7 +112,8 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
         };
     }
 
-    private static StructureDefinition<?> buildStructureDefinition(IFusionReactorType type) {
+    private static StructureDefinition<?> buildStructureDefinition(IFusionReactorType type,
+                                                                   ResourceLocation controllerId) {
         return DeclarativePatternBuilder.start()
                 .aisle("###############", "######OGO######", "###############")
                 .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
@@ -129,7 +130,7 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
                 .aisle("####CC###CC####", "###EAAOGOAAE###", "####CC###CC####")
                 .aisle("######ICI######", "####GGAAAGG####", "######ICI######")
                 .aisle("###############", "######OSO######", "###############")
-                .self('S', MetaTileEntityFusionReactor.class)
+                .where('S', Elements.self(MetaTileEntityFusionReactor.class, controllerId))
                 .blocks('G', type.getCasingState(), type.getGlassState())
                 .where('E', Elements.metaTileEntitiesAsAbility(MultiblockAbility.INPUT_ENERGY, 0, -1, 16,
                         getAllowedEnergyHatches(type)))
@@ -172,7 +173,8 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, type.getName(), () -> buildStructureDefinition(type));
+        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, type.getName(),
+                () -> buildStructureDefinition(type, metaTileEntityId));
     }
 
     @SideOnly(Side.CLIENT)

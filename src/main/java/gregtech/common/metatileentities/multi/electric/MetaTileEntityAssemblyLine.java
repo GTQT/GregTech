@@ -165,6 +165,12 @@ public class MetaTileEntityAssemblyLine extends RecipeMapMultiblockController {
         return new MetaTileEntityAssemblyLine(metaTileEntityId);
     }
 
+    @Override
+    @NotNull
+    public EnumFacing getPreviewFrontFacing() {
+        return EnumFacing.SOUTH;
+    }
+
     @NotNull
     @Override
     // Migrated to createStructureDefinition(): structure is split into three

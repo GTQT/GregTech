@@ -26,6 +26,7 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.core.sound.GTSoundEvents;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
@@ -118,6 +119,12 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
     @Override
     public boolean allowsExtendedFacing() {
         return false;
+    }
+
+    @Override
+    @NotNull
+    public EnumFacing getPreviewFrontFacing() {
+        return EnumFacing.SOUTH;
     }
 
     @Override

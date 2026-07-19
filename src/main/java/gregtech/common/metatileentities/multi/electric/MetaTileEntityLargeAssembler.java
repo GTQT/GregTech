@@ -21,6 +21,7 @@ import gregtech.common.blocks.MetaBlocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.common.Loader;
@@ -76,6 +77,19 @@ public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblock
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity metaTileEntityHolder) {
         return new MetaTileEntityLargeAssembler(this.metaTileEntityId);
+    }
+
+    @Override
+    @NotNull
+    public EnumFacing getPreviewFrontFacing() {
+        return EnumFacing.WEST;
+    }
+
+    @Override
+    @NotNull
+    public EnumFacing getFrontFacingForStructure() {
+        // In the canonical preview, the structure front is to the controller's left.
+        return LEFT.getRelativeFacing(getFrontFacing(), getUpwardsFacing(), false);
     }
 
     @Override

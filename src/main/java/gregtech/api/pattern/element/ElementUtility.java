@@ -28,6 +28,7 @@ import gregtech.api.util.BlockInfo;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.ResourceLocation;
 
 import java.util.Collections;
 import java.util.function.Consumer;
@@ -83,6 +84,13 @@ public final class ElementUtility {
     public static IStructureElement ofSelf(
             Class<? extends gregtech.api.metatileentity.multiblock.MultiblockControllerBase> clazz) {
         return new SelfElement(clazz);
+    }
+
+    /** Create a self-predicate element matching one controller registration. */
+    public static IStructureElement ofSelf(
+            Class<? extends gregtech.api.metatileentity.multiblock.MultiblockControllerBase> clazz,
+            ResourceLocation controllerId) {
+        return new SelfElement(clazz, controllerId);
     }
 
     /** Create a hatch adder element for the given ability */

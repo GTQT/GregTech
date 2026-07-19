@@ -16,6 +16,7 @@ import gregtech.common.blocks.BlockLargeMultiblockCasing;
 import gregtech.common.blocks.MetaBlocks;
 
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
@@ -59,6 +60,12 @@ public class MetaTileEntityLargeCentrifuge extends GCYMAdvanceRecipeMapMultibloc
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity metaTileEntityHolder) {
         return new MetaTileEntityLargeCentrifuge(this.metaTileEntityId);
+    }
+
+    @Override
+    @NotNull
+    public EnumFacing getPreviewFrontFacing() {
+        return EnumFacing.SOUTH;
     }
 
     @Override

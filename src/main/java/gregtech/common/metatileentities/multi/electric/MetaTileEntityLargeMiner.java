@@ -22,9 +22,8 @@ import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.SoftReferenceHolder;
-import gregtech.api.pattern.TemplatePool;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
@@ -70,9 +69,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static gregtech.api.unification.material.Materials.DrillingFluid;
 
@@ -80,20 +77,6 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
         implements ITieredMetaTileEntity, IMiner, IControllable, IDataInfoProvider {
 
     private static final int CHUNK_LENGTH = 16;
-    private static final Map<String, SoftReferenceHolder<? extends StructureDefinition<?>>> STRUCTURE_DEFINITIONS =
-            new HashMap<>();
-
-    static {
-        STRUCTURE_DEFINITIONS.put("ev", TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(LargeMinerType.BASIC),
-                        () -> buildStructureDefinition(LargeMinerType.BASIC)));
-        STRUCTURE_DEFINITIONS.put("iv", TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(LargeMinerType.NORMAL),
-                        () -> buildStructureDefinition(LargeMinerType.NORMAL)));
-        STRUCTURE_DEFINITIONS.put("luv", TemplatePool.getInstance()
-                .registerStructure(structurePoolKey(LargeMinerType.ADVANCED),
-                        () -> buildStructureDefinition(LargeMinerType.ADVANCED)));
-    }
 
     private final MultiblockMinerLogic minerLogic;
     private final ILargeMinerType type;
@@ -116,12 +99,13 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
         return "gregtech:large_miner." + type.getName();
     }
 
-    private static StructureDefinition<?> buildStructureDefinition(ILargeMinerType type) {
+    private static StructureDefinition<?> buildStructureDefinition(ILargeMinerType type,
+                                                                    ResourceLocation controllerId) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
                 .aisle("XSX", "#F#", "#F#", "#F#", "###", "###", "###")
-                .self('S', MetaTileEntityLargeMiner.class)
+                .where('S', Elements.self(MetaTileEntityLargeMiner.class, controllerId))
                 .block('C', type.getCasingState())
                 .frames('F', type.getFrameMaterial())
                 .any('#')
@@ -339,11 +323,8 @@ public class MetaTileEntityLargeMiner extends MultiblockWithDisplayBase
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        SoftReferenceHolder<? extends StructureDefinition<?>> definition = STRUCTURE_DEFINITIONS.get(type.getName());
-        if (definition == null) {
-            throw new IllegalStateException("Unknown large miner type: " + type.getName());
-        }
-        return definition.get();
+        return StructureDefinition.getOrBuild(structurePoolKey(type),
+                () -> buildStructureDefinition(type, metaTileEntityId));
     }
 
     @SideOnly(Side.CLIENT)

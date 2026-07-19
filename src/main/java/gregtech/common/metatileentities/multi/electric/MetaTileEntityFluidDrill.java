@@ -20,6 +20,7 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
@@ -77,12 +78,13 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         this.minerLogic = new FluidDrillLogic(this);
     }
 
-    private static StructureDefinition<?> buildStructureDefinition(IFluidDrillType type) {
+    private static StructureDefinition<?> buildStructureDefinition(IFluidDrillType type,
+                                                                   ResourceLocation controllerId) {
         return DeclarativePatternBuilder.start()
                 .aisle("XXX", "#F#", "#F#", "#F#", "###", "###", "###")
                 .aisle("XXX", "FCF", "FCF", "FCF", "#F#", "#F#", "#F#")
                 .aisle("XSX", "#F#", "#F#", "#F#", "###", "###", "###")
-                .self('S', MetaTileEntityFluidDrill.class)
+                .where('S', Elements.self(MetaTileEntityFluidDrill.class, controllerId))
                 .block('C', type.getCasingState())
                 .frames('F', type.getFrameMaterial())
                 .any('#')
@@ -148,7 +150,8 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
     @NotNull
     @Override
     protected StructureDefinition<?> createStructureDefinition() {
-        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, type.getName(), () -> buildStructureDefinition(type));
+        return StructureDefinition.getOrBuild(STRUCTURE_POOL_KEY, type.getName(),
+                () -> buildStructureDefinition(type, metaTileEntityId));
     }
 
     @SideOnly(Side.CLIENT)
