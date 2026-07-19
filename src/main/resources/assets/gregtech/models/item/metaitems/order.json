@@ -1,6 +1,6 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gtqtcore:items/metaitems/order"
+    "layer0": "gtqtcore:items/metaitems/tool.order"
   }
 }
