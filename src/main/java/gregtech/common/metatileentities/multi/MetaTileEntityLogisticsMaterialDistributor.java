@@ -18,10 +18,12 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.core.sound.GTSoundEvents;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraftforge.fluids.FluidStack;
@@ -155,23 +157,35 @@ public class MetaTileEntityLogisticsMaterialDistributor extends MultiblockWithDi
                 .aisle("XXX", "OEO")
                 .aisle("XXX", "OEO")
                 .aisle("XXX", "OEO")
-                .repeatablePiece("body", 0, 12)
+                .repeatablePiece("body", 6, 12)
                 .aisle(" F ", "XEX")
                 .withAisleChannel(GTStructureChannels.STRUCTURE_HEIGHT.getName())
                 .self('S', MetaTileEntityLogisticsMaterialDistributor.class)
                 .where('I', Elements.chain(
-                        Elements.block(getCasingState()),
-                        Elements.abilities(MultiblockAbility.IMPORT_ITEMS, MultiblockAbility.IMPORT_FLUIDS)))
+                        Elements.withDefaultCandidate(
+                                Elements.abilities(MultiblockAbility.IMPORT_ITEMS, MultiblockAbility.IMPORT_FLUIDS),
+                                () -> MetaTileEntities.ITEM_IMPORT_BUS[0]),
+                        Elements.block(getCasingState())))
                 .where('O', Elements.chain(
-                        Elements.block(getCasingState()),
-                        Elements.abilities(MultiblockAbility.EXPORT_FLUIDS)))
+                        Elements.withDefaultCandidate(
+                                Elements.abilities(MultiblockAbility.EXPORT_FLUIDS),
+                                () -> MetaTileEntities.FLUID_EXPORT_HATCH[0]),
+                        Elements.block(getCasingState())))
                 .where('E', Elements.chain(
-                        Elements.block(getCasingState()),
-                        Elements.abilities(MultiblockAbility.EXPORT_ITEMS)))
+                        Elements.withDefaultCandidate(
+                                Elements.abilities(MultiblockAbility.EXPORT_ITEMS),
+                                () -> MetaTileEntities.ITEM_EXPORT_BUS[0]),
+                        Elements.block(getCasingState())))
                 .frames('F', Materials.StainlessSteel)
                 .any(' ')
                 .casing('X', getCasingState())
                 .buildStructureDefinition();
+    }
+
+    @Override
+    @NotNull
+    public EnumFacing getPreviewFrontFacing() {
+        return EnumFacing.SOUTH;
     }
 
     @Override

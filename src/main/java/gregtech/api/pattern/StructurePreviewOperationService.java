@@ -64,7 +64,7 @@ final class StructurePreviewOperationService {
         return StructurePreviewResult.multi(MultiPiecePreviewAssembler.assemble(
                 runtime.pattern, runtime.runtimes,
                 request.getChannelValues(), request.getController(),
-                request.getPieceIndex()))
+                request.getPieceIndex(), request.isCumulativeToolingPieceSelection()))
                 .withDiagnostics(runtime.diagnostics(request.getEvaluationOperation()));
     }
 }

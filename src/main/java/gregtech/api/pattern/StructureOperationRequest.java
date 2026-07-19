@@ -71,6 +71,7 @@ public final class StructureOperationRequest {
     private final ItemStack triggerStack;
     private final boolean doRandomCheck;
     private final int pieceIndex;
+    private final boolean cumulativeToolingPieceSelection;
 
     private StructureOperationRequest(@NotNull Kind kind,
                                       @Nullable World world,
@@ -85,6 +86,24 @@ public final class StructureOperationRequest {
                                       @NotNull ItemStack triggerStack,
                                       boolean doRandomCheck,
                                       int pieceIndex) {
+        this(kind, world, snapshot, controllerPos, orientation, controller, player,
+                channelValues, repetitions, abilityTracker, triggerStack, doRandomCheck, pieceIndex, false);
+    }
+
+    private StructureOperationRequest(@NotNull Kind kind,
+                                      @Nullable World world,
+                                      @Nullable IBlockAccess snapshot,
+                                      @Nullable BlockPos controllerPos,
+                                      @Nullable StructureOrientation orientation,
+                                      @Nullable MultiblockControllerBase controller,
+                                      @Nullable EntityPlayer player,
+                                      @Nullable Map<String, Integer> channelValues,
+                                      @Nullable int[] repetitions,
+                                      @Nullable AbilityPlacementTracker abilityTracker,
+                                      @NotNull ItemStack triggerStack,
+                                      boolean doRandomCheck,
+                                      int pieceIndex,
+                                      boolean cumulativeToolingPieceSelection) {
         this.kind = Objects.requireNonNull(kind, "kind");
         this.world = world;
         this.snapshot = snapshot;
@@ -100,6 +119,7 @@ public final class StructureOperationRequest {
         this.triggerStack = triggerStack.isEmpty() ? ItemStack.EMPTY : triggerStack.copy();
         this.doRandomCheck = doRandomCheck;
         this.pieceIndex = pieceIndex;
+        this.cumulativeToolingPieceSelection = cumulativeToolingPieceSelection;
     }
 
     @NotNull
@@ -153,6 +173,28 @@ public final class StructureOperationRequest {
         return new StructureOperationRequest(
                 Kind.PREVIEW, null, null, null, null, controller, null,
                 channelValues, null, null, ItemStack.EMPTY, false, toolingPieceIndex);
+    }
+
+    /**
+     * Creates a progressive multi-piece preview request. A selected tooling piece includes every visible piece before
+     * it, which lets JEI show the structure in construction order.
+     */
+    @NotNull
+    public static StructureOperationRequest previewMultiPieceCumulative(
+            @Nullable Map<String, Integer> channelValues,
+            @Nullable MultiblockControllerBase controller) {
+        return previewMultiPieceCumulative(channelValues, controller, resolveToolingPieceIndex(channelValues));
+    }
+
+    @NotNull
+    public static StructureOperationRequest previewMultiPieceCumulative(
+            @Nullable Map<String, Integer> channelValues,
+            @Nullable MultiblockControllerBase controller,
+            int toolingPieceIndex) {
+        return new StructureOperationRequest(
+                Kind.PREVIEW, null, null, null, null, controller, null,
+                channelValues, null, null, ItemStack.EMPTY, false, toolingPieceIndex,
+                toolingPieceIndex > 0);
     }
 
     private static int resolveToolingPieceIndex(@Nullable Map<String, Integer> channelValues) {
@@ -271,7 +313,8 @@ public final class StructureOperationRequest {
     public StructureOperationRequest withChannelValues(@Nullable Map<String, Integer> channelValues) {
         return new StructureOperationRequest(
                 kind, world, snapshot, controllerPos, orientation, controller, player,
-                channelValues, repetitions, abilityTracker, triggerStack, doRandomCheck, pieceIndex);
+                channelValues, repetitions, abilityTracker, triggerStack, doRandomCheck, pieceIndex,
+                cumulativeToolingPieceSelection);
     }
 
     @NotNull
@@ -416,5 +459,9 @@ public final class StructureOperationRequest {
 
     public int getPieceIndex() {
         return pieceIndex;
+    }
+
+    public boolean isCumulativeToolingPieceSelection() {
+        return cumulativeToolingPieceSelection;
     }
 }

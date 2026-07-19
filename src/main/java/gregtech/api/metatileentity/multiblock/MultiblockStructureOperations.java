@@ -188,7 +188,7 @@ final class MultiblockStructureOperations {
         // one-piece MultiPiecePattern, so this path serves both cases and the
         // fast-path lives inside the assembler, not as a branch here.
         StructurePreviewResult result = runtime.previewMultiPieceResult(
-                StructureOperationRequest.previewMultiPiece(effectiveChannels, controller));
+                StructureOperationRequest.previewMultiPieceCumulative(effectiveChannels, controller));
         MultiPiecePreviewAssembler.Result preview = result.getMultiPieceResult();
         Map<BlockPos, StructureElementPreviewEntry> entries =
                 preview == null ? Collections.emptyMap() : preview.getPreviewEntries();

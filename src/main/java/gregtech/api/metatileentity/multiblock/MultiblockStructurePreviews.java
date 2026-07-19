@@ -52,10 +52,12 @@ final class MultiblockStructurePreviews {
         }
         int pieceIndex = resolveToolingPieceIndex(channelValues);
         if (pieceIndex > 0) {
-            MultiPiecePreviewAssembler.PieceResult preview = getMatchingPreviewPiece(controller,
+            if (pieceIndex > multiPiecePattern.getToolingPieceCount()) {
+                return Collections.emptyList();
+            }
+            MultiPiecePreviewAssembler.Result preview = assembleCumulativeMultiPiecePreview(controller,
                     multiPiecePattern, pieceRuntimes, structureRuntime, pieceIndex, channelValues);
-            MultiblockShapeInfo shape = preview == null ? null : preview.getShape();
-            return shape == null ? Collections.emptyList() : Collections.singletonList(shape);
+            return Collections.singletonList(preview.getShape());
         }
         MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,
                 multiPiecePattern, pieceRuntimes, structureRuntime, channelValues);
@@ -82,9 +84,15 @@ final class MultiblockStructurePreviews {
             @Nullable StructureRuntime structureRuntime,
             @Nullable Map<String, Integer> channelValues) {
         if (multiPiecePattern == null) return new HashMap<>();
-        MultiPiecePreviewAssembler.Result preview = assembleMultiPiecePreview(controller,
-                multiPiecePattern, pieceRuntimes, structureRuntime, channelValues,
-                resolveToolingPieceIndex(channelValues));
+        int pieceIndex = resolveToolingPieceIndex(channelValues);
+        if (pieceIndex > multiPiecePattern.getToolingPieceCount()) {
+            return new HashMap<>();
+        }
+        MultiPiecePreviewAssembler.Result preview = pieceIndex > 0
+                ? assembleCumulativeMultiPiecePreview(controller, multiPiecePattern, pieceRuntimes,
+                        structureRuntime, pieceIndex, channelValues)
+                : assembleMultiPiecePreview(controller, multiPiecePattern, pieceRuntimes,
+                        structureRuntime, channelValues);
         return new HashMap<>(preview.getPreviewEntries());
     }
 
@@ -142,6 +150,22 @@ final class MultiblockStructurePreviews {
                         controller, toolingPieceIndex)
                 : structureRuntime.previewMultiPiece(
                         StructureOperationRequest.previewMultiPiece(
+                                channelValues, controller, toolingPieceIndex));
+    }
+
+    @NotNull
+    private static MultiPiecePreviewAssembler.Result assembleCumulativeMultiPiecePreview(
+            @NotNull MultiblockControllerBase controller,
+            @NotNull MultiPiecePattern multiPiecePattern,
+            @Nullable PieceRuntimes pieceRuntimes,
+            @Nullable StructureRuntime structureRuntime,
+            int toolingPieceIndex,
+            @Nullable Map<String, Integer> channelValues) {
+        return structureRuntime == null
+                ? MultiPiecePreviewAssembler.assemble(multiPiecePattern, pieceRuntimes, channelValues,
+                        controller, toolingPieceIndex, true)
+                : structureRuntime.previewMultiPiece(
+                        StructureOperationRequest.previewMultiPieceCumulative(
                                 channelValues, controller, toolingPieceIndex));
     }
 

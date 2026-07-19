@@ -61,6 +61,20 @@ public final class MultiPiecePreviewAssembler {
                                   @Nullable Map<String, Integer> channelValues,
                                   @Nullable MultiblockControllerBase controller,
                                   int forcedToolingPieceIndex) {
+        return assemble(pattern, runtimes, channelValues, controller, forcedToolingPieceIndex, false);
+    }
+
+    /**
+     * @param cumulativeToolingPieceSelection when true, a positive tooling piece index selects the complete visible
+     *                                         prefix instead of only the named piece.
+     */
+    @NotNull
+    public static Result assemble(@NotNull MultiPiecePattern pattern,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @Nullable Map<String, Integer> channelValues,
+                                  @Nullable MultiblockControllerBase controller,
+                                  int forcedToolingPieceIndex,
+                                  boolean cumulativeToolingPieceSelection) {
         Map<BlockPos, BlockInfo> allBlocks = new HashMap<>();
         Map<BlockPos, StructureElementPreviewEntry> allPreviewEntries = new HashMap<>();
         Map<String, int[]> pieceRepeats = new HashMap<>();
@@ -79,12 +93,17 @@ public final class MultiPiecePreviewAssembler {
                 toolingPieceIndex++;
             }
             boolean defaultToolingSelection = forcedToolingPieceIndex == DEFAULT_TOOLING_PIECES;
-            if (defaultToolingSelection && toolingVisible && toolingPieceIndex > 2) {
+            boolean hasExplicitToolingSelection = forcedToolingPieceIndex > ALL_TOOLING_PIECES;
+            if ((defaultToolingSelection && toolingVisible && toolingPieceIndex > 2) ||
+                    (cumulativeToolingPieceSelection && hasExplicitToolingSelection && toolingVisible &&
+                            toolingPieceIndex > forcedToolingPieceIndex)) {
                 pieceResults.add(PieceResult.empty());
                 continue;
             }
             boolean forcedActive = toolingVisible &&
-                    (toolingPieceIndex == forcedToolingPieceIndex ||
+                    ((cumulativeToolingPieceSelection && hasExplicitToolingSelection &&
+                            toolingPieceIndex <= forcedToolingPieceIndex) ||
+                            (!cumulativeToolingPieceSelection && toolingPieceIndex == forcedToolingPieceIndex) ||
                             (defaultToolingSelection && toolingPieceIndex <= 2));
             if (!forcedActive && !piece.isActive(activation)) {
                 if (toolingVisible) {
