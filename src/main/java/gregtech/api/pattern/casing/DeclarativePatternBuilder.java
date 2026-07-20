@@ -1,6 +1,5 @@
 package gregtech.api.pattern.casing;
 
-import gregtech.api.metatileentity.GCYMMultiblockAbility;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
@@ -1362,12 +1361,12 @@ public class DeclarativePatternBuilder {
         }
 
         public CasingSlot tieredHatch() {
-            return hatch(GCYMMultiblockAbility.TIERED_HATCH, 0,
+            return hatch(MultiblockAbility.TIERED_HATCH, 0,
                     ConfigHolder.globalMultiblocks.enableTieredCasings ? 1 : 0);
         }
 
         public CasingSlot parallelHatch() {
-            return hatch(GCYMMultiblockAbility.PARALLEL_HATCH, 0,1);
+            return hatch(MultiblockAbility.PARALLEL_HATCH, 0,1);
         }
 
         public CasingSlot threadHatch() {

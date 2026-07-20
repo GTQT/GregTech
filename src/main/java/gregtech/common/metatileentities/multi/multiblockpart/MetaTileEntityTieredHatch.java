@@ -1,7 +1,6 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.GTValues;
-import gregtech.api.metatileentity.GCYMMultiblockAbility;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -56,7 +55,7 @@ public class MetaTileEntityTieredHatch extends MetaTileEntityMultiblockPart
 
     @Override
     public MultiblockAbility<ITieredMetaTileEntity> getAbility() {
-        return GCYMMultiblockAbility.TIERED_HATCH;
+        return MultiblockAbility.TIERED_HATCH;
     }
 
     @Override

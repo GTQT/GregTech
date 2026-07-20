@@ -3,9 +3,9 @@ package gregtech.api.capability.impl;
 import gregtech.api.GTValues;
 import gregtech.api.capability.IParallelMultiblock;
 import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
-import gregtech.api.metatileentity.GCYMMultiblockAbility;
 import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.common.ConfigHolder;
 
@@ -74,7 +74,7 @@ public class GCYMMultiblockRecipeLogic extends MultiblockRecipeLogic {
         if (getMetaTileEntity() instanceof GCYMRecipeMapMultiblockController controller && !controller.isTiered())
             return super.getMaxVoltage();
 
-        List<ITieredMetaTileEntity> list = getMetaTileEntity().getAbilities(GCYMMultiblockAbility.TIERED_HATCH);
+        List<ITieredMetaTileEntity> list = getMetaTileEntity().getAbilities(MultiblockAbility.TIERED_HATCH);
 
         if (list.isEmpty())
             return super.getMaxVoltage();

@@ -3,7 +3,6 @@ package gregtech.common.metatileentities.multi.multiblockpart;
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IParallelHatch;
-import gregtech.api.metatileentity.GCYMMultiblockAbility;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
@@ -162,7 +161,7 @@ public class MetaTileEntityParallelHatch extends MetaTileEntityMultiblockPart
 
     @Override
     public MultiblockAbility<IParallelHatch> getAbility() {
-        return GCYMMultiblockAbility.PARALLEL_HATCH;
+        return MultiblockAbility.PARALLEL_HATCH;
     }
 
     @Override

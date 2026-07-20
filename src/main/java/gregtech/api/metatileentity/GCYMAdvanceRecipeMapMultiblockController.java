@@ -3,6 +3,7 @@ package gregtech.api.metatileentity;
 import gregtech.api.capability.IParallelMultiblock;
 import gregtech.api.capability.impl.GCYMMultiblockRecipeLogic;
 import gregtech.api.metatileentity.multiblock.AdvanceMultiMapMultiblockController;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
@@ -153,21 +154,21 @@ public abstract class GCYMAdvanceRecipeMapMultiblockController extends AdvanceMu
 
     @Override
     public int getParallel() {
-        return this.getAbilities(GCYMMultiblockAbility.PARALLEL_HATCH).isEmpty() ? 1 :
-                this.getAbilities(GCYMMultiblockAbility.PARALLEL_HATCH).get(0).getCurrentParallel();
+        return this.getAbilities(MultiblockAbility.PARALLEL_HATCH).isEmpty() ? 1 :
+                this.getAbilities(MultiblockAbility.PARALLEL_HATCH).get(0).getCurrentParallel();
     }
 
     @Override
     public void setParallel(int thread) {
-        if(!this.getAbilities(GCYMMultiblockAbility.PARALLEL_HATCH).isEmpty()){
-            this.getAbilities(GCYMMultiblockAbility.PARALLEL_HATCH).get(0).setCurrentParallel(thread);
+        if(!this.getAbilities(MultiblockAbility.PARALLEL_HATCH).isEmpty()){
+            this.getAbilities(MultiblockAbility.PARALLEL_HATCH).get(0).setCurrentParallel(thread);
         }
     }
 
     @Override
     public int getMaxParallel() {
-        return this.getAbilities(GCYMMultiblockAbility.PARALLEL_HATCH).isEmpty() ? 1 :
-                this.getAbilities(GCYMMultiblockAbility.PARALLEL_HATCH).get(0).getMaxParallel();
+        return this.getAbilities(MultiblockAbility.PARALLEL_HATCH).isEmpty() ? 1 :
+                this.getAbilities(MultiblockAbility.PARALLEL_HATCH).get(0).getMaxParallel();
     }
 
     public boolean isTiered() {

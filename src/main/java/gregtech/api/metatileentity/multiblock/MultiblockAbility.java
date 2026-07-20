@@ -11,9 +11,11 @@ import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.capability.IObjectHolder;
 import gregtech.api.capability.IOpticalComputationHatch;
 import gregtech.api.capability.IOpticalDataAccessHatch;
+import gregtech.api.capability.IParallelHatch;
 import gregtech.api.capability.IRotorHolder;
 import gregtech.api.capability.IThreadHatch;
 import gregtech.api.capability.IWirelessController;
+import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 
 import net.minecraftforge.fluids.IFluidTank;
@@ -118,6 +120,10 @@ public class MultiblockAbility<T> {
     public static final MultiblockAbility<IObjectHolder> OBJECT_HOLDER = ability(
             "object_holder", IObjectHolder.class);
 
+    public static final MultiblockAbility<IParallelHatch> PARALLEL_HATCH = new MultiblockAbility<>("parallel_hatch", IParallelHatch.class);
+
+    public static final MultiblockAbility<ITieredMetaTileEntity> TIERED_HATCH = new MultiblockAbility<>("tiered_hatch",ITieredMetaTileEntity.class);
+
     //无线管理
     public static final MultiblockAbility<IWirelessController> WIRELESS_CONTROLLER = ability(
             "wireless_controller", IWirelessController.class);
@@ -127,7 +133,6 @@ public class MultiblockAbility<T> {
 
     public static final MultiblockAbility<IGodforgeModule> GODFORGE_MODULE = ability(
             "godforge_module", IGodforgeModule.class);
-
 
     public static void registerMultiblockAbility(MultiblockAbility<?> ability, MetaTileEntity part) {
         if (!REGISTRY.containsKey(ability)) {
