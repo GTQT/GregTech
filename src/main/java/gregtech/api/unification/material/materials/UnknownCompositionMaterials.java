@@ -816,14 +816,6 @@ public class UnknownCompositionMaterials {
                 .color(0xC0D0E0)
                 .build();
 
-        // Alumina — Al₂O₃, white ceramic powder; raw material for the Ceramic Exchange Membrane
-        // used by EV/IV/LuV disposable batteries. Shared across all ceramic-membrane tiers.
-        Alumina = Material.builder(1720, gregtechId("alumina"))
-                .dust(1)
-                .color(0xF0F0F0)
-                .components(Aluminium, 2, Oxygen, 3)
-                .build();
-
         // ---- A5/A6 Electrolyte Fluids (replaces PBI/PVDF polymer placeholder) ----
 
         // LithiumBisoxalatoborate — LiB(C₂O₄)₂ (LiBOB), lithium-ion electrolyte salt;

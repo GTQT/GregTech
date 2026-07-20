@@ -56,13 +56,16 @@ public class DisposableBatteryRecipes {
                 .duration(400).EUt(VA[LV])
                 .buildAndRegister();
 
+        /*
         // Ceramic Exchange Membrane: alumina-reinforced PTFE composite
         CHEMICAL_RECIPES.recipeBuilder()
-                .input(dust, Alumina, 4)
+                .input(dust, "Alumina", 4)
                 .fluidInputs(Polytetrafluoroethylene.getFluid(576))
                 .output(MetaItems.CERAMIC_EXCHANGE_MEMBRANE, 2)
                 .duration(500).EUt(VA[EV])
                 .buildAndRegister();
+
+         */
 
         // Graphene Exchange Membrane: CNT-reinforced PBI composite
         CHEMICAL_RECIPES.recipeBuilder()

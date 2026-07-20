@@ -16,26 +16,51 @@ import gregtech.common.blocks.StoneVariantBlock.StoneType;
 import gregtech.common.blocks.StoneVariantBlock.StoneVariant;
 import gregtech.common.blocks.wood.BlockGregPlanks;
 import gregtech.integration.IntegrationSubmodule;
+import gregtech.integration.chisel.loaders.ChiselMachineRegistration;
+import gregtech.integration.chisel.recipes.ChiselBlocksRecipe;
+import gregtech.integration.chisel.recipes.ChiselToolsRecipe;
+import gregtech.integration.chisel.tools.ChiselToolItems;
 import gregtech.modules.GregTechModules;
 
 import net.minecraft.block.Block;
 import net.minecraft.item.EnumDyeColor;
+import net.minecraft.item.crafting.IRecipe;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.IStringSerializable;
+import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLInterModComms;
+import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
+import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 
+import org.jetbrains.annotations.NotNull;
 import team.chisel.common.carving.Carving;
 
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 
 @GregTechModule(
-                moduleID = GregTechModules.MODULE_CHISEL,
-                containerID = GTValues.MODID,
-                modDependencies = Mods.Names.CHISEL,
-                name = "GregTech Chisel Integration",
-                description = "Chisel Integration Module")
+        moduleID = GregTechModules.MODULE_CHISEL,
+        containerID = GTValues.MODID,
+        modDependencies = Mods.Names.CHISEL,
+        name = "GregTech Chisel Integration",
+        description = "Chisel Integration Module")
 public class ChiselModule extends IntegrationSubmodule {
+
+    @NotNull
+    @Override
+    public List<Class<?>> getEventBusSubscribers() {
+        return Collections.singletonList(ChiselModule.class);
+    }
+
+    @SubscribeEvent
+    public static void registerRecipes(RegistryEvent.Register<IRecipe> event) {
+        ChiselToolsRecipe.init();
+        ChiselBlocksRecipe.init();
+        ChiselBlocksRecipe.registerAutoChiselRecipe();
+        ChiselBlocksRecipe.registerAluminiumOreMapping();
+    }
 
     @Override
     public void init(FMLInitializationEvent event) {
@@ -117,4 +142,11 @@ public class ChiselModule extends IntegrationSubmodule {
     private boolean doesGroupExist(String group) {
         return Carving.chisel.getGroup(group) != null;
     }
+
+    @Override
+    public void preInit(@NotNull FMLPreInitializationEvent event) {
+        ChiselMachineRegistration.register();
+        ChiselToolItems.init();
+    }
+
 }

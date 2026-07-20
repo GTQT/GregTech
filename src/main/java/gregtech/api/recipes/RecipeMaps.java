@@ -1875,6 +1875,15 @@ public final class RecipeMaps {
             .sound(GTSoundEvents.COMBUSTION)
             .build();
 
+    @ZenProperty
+    public static final RecipeMap<SimpleRecipeBuilder> AUTO_CHISEL_RECIPES = new RecipeMapBuilder<>(
+            "auto_chisel", new SimpleRecipeBuilder())
+            .itemInputs(2)
+            .itemOutputs(9)
+            .uiBuilder(b -> b
+                    .progressBar(GTGuiTextures.PROGRESS_BAR_CHISEL))
+            .sound(GTSoundEvents.FILE_TOOL)
+            .build();
 
     /**
      * Example:

@@ -822,9 +822,6 @@ public class Materials {
      * IDs: 1700+
      */
 
-    // Shared raw material for exchange membranes
-    public static Material Alumina;
-
     // A0 — Zinc-Manganese intermediates
     public static Material ZincManganeseMix;
     public static Material ZincManganeseElectrolyte;

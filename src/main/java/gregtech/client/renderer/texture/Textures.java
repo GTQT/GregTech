@@ -331,6 +331,7 @@ public class Textures {
     public static final OrientedOverlayRenderer RECYCLER_OVERLAY = new OrientedOverlayRenderer("machines/recycler");
     public static final OrientedOverlayRenderer VULCANIZING_PRESS_OVERLAY = new OrientedOverlayRenderer(
             "machines/vulcanizing_press");
+    public static final OrientedOverlayRenderer AUTO_CHISEL_OVERLAY = new OrientedOverlayRenderer("machines/auto_chisel");
     public static final OrientedOverlayRenderer SCANNER_OVERLAY = new OrientedOverlayRenderer("machines/scanner");
     public static final OrientedOverlayRenderer COMBUSTION_GENERATOR_OVERLAY = new OrientedOverlayRenderer(
             "generators/combustion");

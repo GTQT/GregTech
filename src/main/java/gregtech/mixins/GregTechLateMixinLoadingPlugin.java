@@ -22,7 +22,9 @@ public class GregTechLateMixinLoadingPlugin implements ILateMixinLoader {
         configs.add("mixins.gregtech.mui2.json");
         configs.add("mixins.gregtech.nothirium.json");
         configs.add("mixins.gregtech.forestry.json");
-        configs.add("mixins.gregtech.gtmt.json");
+        configs.add("mixins.gregtech.betterbuilderswands.json");
+        configs.add("mixins.gregtech.chisel.json");
+        configs.add("mixins.gregtech.tconstruct.json");
         return configs;
     }
 
@@ -36,7 +38,9 @@ public class GregTechLateMixinLoadingPlugin implements ILateMixinLoader {
             case "mixins.gregtech.vintagium.json" -> Mods.Vintagium.isModLoaded();
             case "mixins.gregtech.nothirium.json" -> Mods.Nothirium.isModLoaded();
             case "mixins.gregtech.forestry.json" -> Mods.Forestry.isModLoaded();
-            case "mixins.gregtech.gtmt.json" -> Mods.GTMT.isModLoaded();
+            case "mixins.gregtech.betterbuilderswands.json" -> Mods.BetterBuildersWands.isModLoaded();
+            case "mixins.gregtech.chisel.json" -> Mods.Chisel.isModLoaded();
+            case "mixins.gregtech.tconstruct.json" -> Mods.TinkersConstruct.isModLoaded();
             default -> true;
         };
     }

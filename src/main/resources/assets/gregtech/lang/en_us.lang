@@ -1264,6 +1264,9 @@ gt.tool.class.pincers=Pincers
 gt.tool.class.bending_cylinder=Bending Cylinder
 gt.tool.class.bending_cylinder_small=Bending Cylinder Small
 gt.tool.class.tree_tap=Tree Tap
+gt.tool.class.chisel=Chisel
+gt.tool.class.wand=Wand
+
 item.gt.tool.sword.name=%s Sword
 item.gt.tool.pickaxe.name=%s Pickaxe
 item.gt.tool.shovel.name=%s Shovel
@@ -1364,7 +1367,8 @@ item.gt.tool.toolbelt.dye=Can be dyed like leather equipment, and the dye can be
 item.gt.tool.toolbelt.maintenance=Repairs maintenance problems with only inserted tools upon interacting with a maintenance hatch in-world.
 item.gt.tool.toolbelt.tool=§aSlot %s: §f%s
 item.gt.tool.toolbelt.selected=- §aSlot %s: §f%s
-
+item.gt.tool.chisel.name=%s Chisel
+item.gt.tool.wand.name=%s Wand
 
 item.gt.tool.tooltip.crafting_uses=§a%s Crafting Uses
 item.gt.tool.tooltip.general_uses=§b%s Durability
@@ -2866,6 +2870,7 @@ recipemap.godforge_plasma.name=Godforge Plasma
 recipemap.godforge_exotic.name=Godforge Exotic Matter
 recipemap.godforge_upgrade_costs.name=Godforge Upgrade Costs
 recipemap.alloy_blast_smelter.name=Alloy Blast Smelting
+recipemap.auto_chisel.name=Auto Chisel
 
 gregtech.recipe.category.arc_furnace_recycling=Arc Furnace Recycling
 gregtech.recipe.category.macerator_recycling=Macerator Recycling
@@ -4846,6 +4851,23 @@ gregtech.machine.scanner.opv.tooltip=Electron Microscope
 gregtech.scanner.copy_stick_from=§oStick to Copy
 gregtech.scanner.copy_stick_to=§oCopy of Stick
 gregtech.scanner.copy_stick_empty=§oEmpty Stick
+
+gregtech.machine.auto_chisel.lv.name=Basic Auto Chisel
+gregtech.machine.auto_chisel.lv.tooltip=Your ideal, we will sculpt it.
+gregtech.machine.auto_chisel.mv.name=Advanced Auto Chisel
+gregtech.machine.auto_chisel.mv.tooltip=Your ideal, we will sculpt it
+gregtech.machine.auto_chisel.hv.name=Advanced Auto Chisel II
+gregtech.machine.auto_chisel.hv.tooltip=Your ideal, we will sculpt it
+gregtech.machine.auto_chisel.ev.name=Advanced Auto Chisel III
+gregtech.machine.auto_chisel.ev.tooltip=Your ideal, we will sculpt it.
+gregtech.machine.auto_chisel.iv.name=Elite Auto Chisel
+gregtech.machine.auto_chisel.iv.tooltip=Your ideal, we will sculpt it
+gregtech.machine.auto_chisel.luv.name=Elite Auto Chisel II
+gregtech.machine.auto_chisel.luv.tooltip=Your ideal, we will sculpt it
+gregtech.machine.auto_chisel.zpm.name=Elite Auto Chisel III
+gregtech.machine.auto_chisel.zpm.tooltip=Your ideal, we will sculpt it.
+gregtech.machine.auto_chisel.uv.name=Ultimate Auto Chisel
+gregtech.machine.auto_chisel.uv.tooltip=Your ideal, we will sculpt it
 
 gregtech.machine.infinite_energy.name=Infinite GT Energy Unit Emitter
 gregtech.machine.creative_chest.name=Creative Quantum Chest
@@ -8501,6 +8523,23 @@ gregtech.scanner.forestry.pollen=§oScanned Pollen
 
 # Mutation
 gregtech.mutation.block_of=Block of %s
+
+# Tinkers' Construct integration
+modifier.gregtech_heat_resistant.name=Heat Resistant
+modifier.gregtech_heat_resistant.desc=§oJust getting warmed up§r\nMining speed +30% in the Nether.
+modifier.gregtech_anti_corrosion.name=Anti-Corrosion
+modifier.gregtech_anti_corrosion.desc=§oNo rust, no rot, no compromise!§r\n15% chance to negate durability loss.
+modifier.gregtech_cryogenic.name=Cryogenic
+modifier.gregtech_cryogenic.desc=§oChill out!§r\nApplies Slowness on hit.
+modifier.gregtech_heavy_blow.name=Heavy Blow
+modifier.gregtech_heavy_blow.desc=§oSend them flying!§r\nIncreases knockback by 50%.
+modifier.gregtech_piercer.name=Piercer
+modifier.gregtech_piercer.desc=§oThrough steel and bone!§r\nDeals bonus damage against armored targets.
+modifier.gregtech_moonlit.name=Moonlit
+modifier.gregtech_moonlit.desc=§oThe night belongs to us§r\nMining speed +50% and +3 damage at night.
+modifier.gregtech_unbreakable.name=Unbreakable
+modifier.gregtech_unbreakable.desc=§oEternal, Absolute§r\nThis tool will never break.
+gregtech.trait.ench.desc=§o%s§r\nApplies this enchantment permanently.
 
 record.sus=Leonz - Among Us Drip
 

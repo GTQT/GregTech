@@ -29,6 +29,7 @@ public enum Mods {
     AppliedEnergistics2(Names.APPLIED_ENERGISTICS2),
     AE2FluidCraft(Names.AE2_FLUID_CRAFT),
     Baubles(Names.BAUBLES),
+    BetterBuildersWands(Names.BETTER_BUILDERS_WANDS),
     BetterQuestingUnofficial(Names.BETTER_QUESTING, mod -> {
         var container = Loader.instance().getIndexedModList().get(Names.BETTER_QUESTING);
         return container.getVersion().startsWith("4.");
@@ -59,7 +60,6 @@ public enum Mods {
     GregTech(Names.GREGTECH),
     GregTechFoodOption(Names.GREGTECH_FOOD_OPTION),
     GroovyScript(Names.GROOVY_SCRIPT),
-    GTMT(Names.GT_MORE_TOOLS),
     GTCE2OC(Names.GTCE_2_OC),
     HWYLA(Names.HWYLA),
     ImmersiveEngineering(Names.IMMERSIVE_ENGINEERING),
@@ -74,6 +74,7 @@ public enum Mods {
     NuclearCraftOverhauled(Names.NUCLEAR_CRAFT, versionContains("2o")),
     OpenComputers(Names.OPEN_COMPUTERS),
     ProjectRedCore(Names.PROJECT_RED_CORE),
+    ProjectRedIllumination(Names.PROJECT_RED_ILLUMINATION),
     Railcraft(Names.RAILCRAFT),
     RefinedStorage(Names.REFINED_STORAGE),
     TechReborn(Names.TECH_REBORN),
@@ -118,6 +119,7 @@ public enum Mods {
         public static final String APPLIED_ENERGISTICS2 = "appliedenergistics2";
         public static final String AE2_FLUID_CRAFT = "ae2fc";
         public static final String BAUBLES = "baubles";
+        public static final String BETTER_BUILDERS_WANDS = "betterbuilderswands";
         public static final String BETTER_QUESTING = "betterquesting";
         public static final String BINNIE_CORE = "binniecore";
         public static final String BIOMES_O_PLENTY = "biomesoplenty";
@@ -144,7 +146,6 @@ public enum Mods {
         public static final String GREGTECH = GTValues.MODID;
         public static final String GREGTECH_FOOD_OPTION = "gregtechfoodoption";
         public static final String GROOVY_SCRIPT = "groovyscript";
-        public static final String GT_MORE_TOOLS = "gtmt";
         public static final String GTCE_2_OC = "gtce2oc";
         public static final String HWYLA = "hwyla";
         public static final String IMMERSIVE_ENGINEERING = "immersiveengineering";
@@ -158,6 +159,7 @@ public enum Mods {
         public static final String NUCLEAR_CRAFT = "nuclearcraft";
         public static final String OPEN_COMPUTERS = "opencomputers";
         public static final String PROJECT_RED_CORE = "projred-core";
+        public static final String PROJECT_RED_ILLUMINATION = "projred-illumination";
         public static final String RAILCRAFT = "railcraft";
         public static final String REFINED_STORAGE = "refinedstorage";
         public static final String TECH_REBORN = "techreborn";

@@ -331,6 +331,7 @@ public final class MachineRegistration {
         registerSimpleMetaTileEntity(VULCANIZING_PRESS, 905, "vulcanizing_press", RecipeMaps.VULCANIZING_PRESS_RECIPES,
                 Textures.VULCANIZING_PRESS_OVERLAY, true, GTUtility.defaultTankSizeFunction);
 
+
         // Chunk Miner, IDs 920-922
         MINER[0] = registerMetaTileEntity(920, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
         MINER[1] = registerMetaTileEntity(921, new MetaTileEntityMiner(gregtechId("miner.mv"), 2, 80, 16, 2));

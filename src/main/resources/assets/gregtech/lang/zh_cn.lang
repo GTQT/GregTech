@@ -1259,6 +1259,9 @@ gt.tool.class.pincers=火钳
 gt.tool.class.bending_cylinder=弯曲滚筒
 gt.tool.class.bending_cylinder_small=小弯曲滚筒
 gt.tool.class.tree_tap=树脂提取器
+gt.tool.class.chisel=凿子
+gt.tool.class.wand=建筑魔杖
+
 item.gt.tool.sword.name=%s剑
 item.gt.tool.pickaxe.name=%s镐
 item.gt.tool.shovel.name=%s锹
@@ -1358,7 +1361,8 @@ item.gt.tool.toolbelt.dye=可以像皮革装备一样染色和用水桶除去染
 item.gt.tool.toolbelt.maintenance=只需准备好工具，右键与世界内的维护仓互动，即可修复维护问题。
 item.gt.tool.toolbelt.tool=§a%s号槽：§f%s
 item.gt.tool.toolbelt.selected=- §a%s号槽：§f%s
-
+item.gt.tool.chisel.name=%s 凿子
+item.gt.tool.wand.name=%s 建筑魔杖
 
 item.gt.tool.tooltip.crafting_uses=§a合成耐久度：%s
 item.gt.tool.tooltip.general_uses=§b耐久度：%s
@@ -2861,6 +2865,7 @@ recipemap.godforge_plasma.name=神锻等离子体
 recipemap.godforge_exotic.name=神锻奇异物质
 recipemap.godforge_upgrade_costs.name=神锻升级消耗
 recipemap.alloy_blast_smelter.name=合金高炉冶炼
+recipemap.auto_chisel.name=自动凿制
 
 gregtech.recipe.category.arc_furnace_recycling=电弧炉回收
 gregtech.recipe.category.macerator_recycling=研磨机回收
@@ -4842,6 +4847,23 @@ gregtech.machine.scanner.opv.tooltip=电子显微镜
 gregtech.scanner.copy_stick_from=§o要复制的闪存
 gregtech.scanner.copy_stick_to=§o闪存（已复制）
 gregtech.scanner.copy_stick_empty=§o空闪存
+
+gregtech.machine.auto_chisel.lv.name=基础自动凿子
+gregtech.machine.auto_chisel.lv.tooltip=您的理想，我们来雕琢。
+gregtech.machine.auto_chisel.mv.name=进阶自动凿子
+gregtech.machine.auto_chisel.mv.tooltip=您的理想，我们来雕琢。
+gregtech.machine.auto_chisel.hv.name=进阶自动凿子 II
+gregtech.machine.auto_chisel.hv.tooltip=您的理想，我们来雕琢。
+gregtech.machine.auto_chisel.ev.name=进阶自动凿子 III
+gregtech.machine.auto_chisel.ev.tooltip=您的理想，我们来雕琢。
+gregtech.machine.auto_chisel.iv.name=精英自动凿子
+gregtech.machine.auto_chisel.iv.tooltip=您的理想，我们来雕琢。
+gregtech.machine.auto_chisel.luv.name=精英自动凿子 II
+gregtech.machine.auto_chisel.luv.tooltip=您的理想，我们来雕琢。
+gregtech.machine.auto_chisel.zpm.name=精英自动凿子 III
+gregtech.machine.auto_chisel.zpm.tooltip=您的理想，我们来雕琢。
+gregtech.machine.auto_chisel.uv.name=终极自动凿子
+gregtech.machine.auto_chisel.uv.tooltip=您的理想，我们来雕琢。
 
 gregtech.machine.infinite_energy.name=创造模式能量单元
 gregtech.machine.creative_chest.name=创造模式量子箱
@@ -8480,6 +8502,23 @@ gregtech.scanner.forestry.pollen=§o花粉（已扫描）
 
 # Mutation
 gregtech.mutation.block_of=%s块
+
+# Tinkers' Construct
+modifier.gregtech_heat_resistant.name=耐热
+modifier.gregtech_heat_resistant.desc=§o这才刚刚热身§r\n在下界挖掘速度 +30%。
+modifier.gregtech_anti_corrosion.name=抗腐蚀
+modifier.gregtech_anti_corrosion.desc=§o无锈、无腐、无妥协！§r\n15% 概率免除耐久损耗。
+modifier.gregtech_cryogenic.name=低温
+modifier.gregtech_cryogenic.desc=§o冷静一下！§r\n攻击时施加缓慢效果。
+modifier.gregtech_heavy_blow.name=重击
+modifier.gregtech_heavy_blow.desc=§o送他们上天！§r\n击退效果提升 50%。
+modifier.gregtech_piercer.name=穿刺者
+modifier.gregtech_piercer.desc=§o穿透钢铁与骨骼！§r\n对穿戴护甲的目标造成额外伤害。
+modifier.gregtech_moonlit.name=月光
+modifier.gregtech_moonlit.desc=§o夜晚属于我们§r\n夜间挖掘速度 +50%，攻击力 +3。
+modifier.gregtech_unbreakable.name=不朽
+modifier.gregtech_unbreakable.desc=§o永恒，绝对§r\n此工具永不损坏。
+gregtech.trait.ench.desc=§o%s§r\n永久应用此附魔效果。
 
 record.sus=Leonz - Among Us Drip
 

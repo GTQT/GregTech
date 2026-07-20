@@ -328,6 +328,7 @@ public class MetaTileEntities {
     public static final SimpleMachineMetaTileEntity[] RECYCLER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
     public static final SimpleMachineMetaTileEntity[] VULCANIZING_PRESS = new SimpleMachineMetaTileEntity[
             GTValues.V.length - 1];
+
     // GENERATORS SECTION
     public static final SimpleGeneratorMetaTileEntity[] COMBUSTION_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
     public static final SimpleGeneratorMetaTileEntity[] STEAM_TURBINE = new SimpleGeneratorMetaTileEntity[5];

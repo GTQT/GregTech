@@ -731,6 +731,9 @@ public class GTGuiTextures {
     public static final UITexture PROGRESS_BAR_WIREMILL = progressBar(
             "textures/gui/progress_bar/progress_bar_wiremill.png", ColorType.DEFAULT);
 
+    public static final UITexture PROGRESS_BAR_CHISEL = progressBar(
+            "textures/gui/progress_bar/progress_bar_chisel.png", ColorType.DEFAULT);
+
     // more custom progress bars
     // MULTIBLOCK BARS
     // todo these boiler empty bars can probably be replaced by using a resized steam slot texture
