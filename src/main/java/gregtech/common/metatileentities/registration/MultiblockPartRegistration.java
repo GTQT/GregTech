@@ -4,6 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.common.metatileentities.electric.MetaTileEntityDustCollector;
 import gregtech.common.metatileentities.electric.MetaTileEntityElectricHeater;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAccelerateHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAutoMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCleaningMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
@@ -32,6 +33,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMuffl
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiFluidHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityObjectHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalDataHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOverclockHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityParallelHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityPassthroughHatchComputation;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityPassthroughHatchFluid;
@@ -466,26 +468,47 @@ public final class MultiblockPartRegistration {
             THREAD_HATCH[i] = registerMetaTileEntity(3390 + i, new MetaTileEntityThreadHatch(
                     gregtechId(String.format("thread_hatch.%s", voltageName)), tier));
         }
+        for (int i = 0; i < OVERCLOCK_HATCH.length - 1; i++) {
+            int tier = i + 1;
+            if (tier < GTValues.UV) continue;
+            String voltageName = GTValues.VN[tier].toLowerCase();
+            OVERCLOCK_HATCH[i] = registerMetaTileEntity(3405 + tier - 8,
+                    new MetaTileEntityOverclockHatch(gregtechId(String.format("overclock_hatch.%s", voltageName)), tier));
+        }
+        for (int i = 0; i < ACCELERATE_HATCH.length - 1; i++) {
+            int tier = i + 1;
+            String voltageName = GTValues.VN[tier].toLowerCase();
+            ACCELERATE_HATCH[i] = registerMetaTileEntity(3415 + tier - 1,
+                    new MetaTileEntityAccelerateHatch(gregtechId(String.format("accelerate_hatch.%s", voltageName)), tier));
+        }
+
         for (int i = 0; i < HEAT_INPUT_HATCH.length - 1; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
-            HEAT_INPUT_HATCH[i] = registerMetaTileEntity(3405 + i,
+            HEAT_INPUT_HATCH[i] = registerMetaTileEntity(3530 + i,
                     new MetaTileEntityHeatHatch(gregtechId("heat_input_hatch." + voltageName), i, false));
-            HEAT_OUTPUT_HATCH[i] = registerMetaTileEntity(3420 + i,
+            HEAT_OUTPUT_HATCH[i] = registerMetaTileEntity(3545 + i,
                     new MetaTileEntityHeatHatch(gregtechId("heat_output_hatch." + voltageName), i, true));
-            ELECTRIC_HEATER[i] = registerMetaTileEntity(3435 + i,
+            ELECTRIC_HEATER[i] = registerMetaTileEntity(3560 + i,
                     new MetaTileEntityElectricHeater(gregtechId("electric_heater." + voltageName), i));
         }
 
-        HEAT_SENSOR = registerMetaTileEntity(3450, new MetaTileEntityHeatSensor(gregtechId("heat_sensor")));
+        HEAT_SENSOR = registerMetaTileEntity(3580, new MetaTileEntityHeatSensor(gregtechId("heat_sensor")));
 
-        RESERVOIR_HATCH = registerMetaTileEntity(3451, new MetaTileEntityReservoirHatch(gregtechId("reservoir_hatch")));
-        MACHINE_HATCH = registerMetaTileEntity(3552, new MetaTileEntityMachineHatch(gregtechId("machine_hatch"), 2));
+        RESERVOIR_HATCH = registerMetaTileEntity(3585, new MetaTileEntityReservoirHatch(gregtechId("reservoir_hatch")));
+        MACHINE_HATCH = registerMetaTileEntity(3586, new MetaTileEntityMachineHatch(gregtechId("machine_hatch"), 2));
 
-        CREATIVE_PARALLEL_HATCH = registerMetaTileEntity(3560, new MetaTileEntityParallelHatch(
+        CREATIVE_PARALLEL_HATCH = registerMetaTileEntity(3590, new MetaTileEntityParallelHatch(
                 gregtechId("creative_parallel_hatch"), GTValues.MAX, Integer.MAX_VALUE));
-        CREATIVE_INPUT_BUS = registerMetaTileEntity(3561,
+        CREATIVE_OVERCLOCK_HATCH = registerMetaTileEntity(3591, new MetaTileEntityOverclockHatch(
+                gregtechId("creative_overclock_hatch"), GTValues.MAX, Integer.MAX_VALUE));
+        CREATIVE_ACCELERATE_HATCH = registerMetaTileEntity(3592, new MetaTileEntityAccelerateHatch(
+                gregtechId("creative_accelerate_hatch"), GTValues.MAX, 1));
+        CREATIVE_THREAD_HATCH = registerMetaTileEntity(3593, new MetaTileEntityThreadHatch(
+                gregtechId("creative_thread_hatch"), GTValues.MAX, Integer.MAX_VALUE));
+        CREATIVE_INPUT_BUS = registerMetaTileEntity(3594,
                 new MetaTileEntityCreativeInputBus(gregtechId("creative_input_bus")));
-        CREATIVE_INPUT_HATCH = registerMetaTileEntity(3562,
+        CREATIVE_INPUT_HATCH = registerMetaTileEntity(3595,
                 new MetaTileEntityCreativeInputHatch(gregtechId("creative_input_hatch")));
+
     }
 }

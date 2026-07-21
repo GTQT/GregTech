@@ -79,6 +79,8 @@ public class MetaTileEntityMegaAlloyBlastSmelter extends GCYMRecipeMapMultiblock
                     .maintenance()
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .hatch('M', MultiblockAbility.MUFFLER_HATCH)
                     .any(' ')

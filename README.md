@@ -33,4 +33,6 @@ Some code is from **[SussyPatches](https://github.com/MCTian-mi/SussyPatches)**.
 
 Some material and casing textures are from **[zedtech-ceu](https://github.com/brachy84/zedtech-ceu)** (CC BY-NC-SA 4.0), originally by Zerrens for Zederrian Technology GT5U, with additional textures and models by Puzzlebark.
 
+Overclock Hatch and Accelerate Hatch textures are from **[GregTech-Odyssey](https://github.com/GregTech-Odyssey/GregTech-Odyssey)** (CC BY-NC-SA 4.0).
+
 See something we forgot to credit? Reach out to us on Discord, or open an issue and ask for appropriate credit, we will happily mark it here

@@ -34,6 +34,7 @@ import static gregtech.client.renderer.texture.Textures.BRONZE_PLATED_BRICKS;
 public class MetaTileEntitySteamGrinder extends RecipeMapSteamMultiblockController {
 
     private static final int PARALLEL_LIMIT = 8;
+
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:steam_grinder", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")

@@ -312,24 +312,6 @@ gregtech.machine.mold_bus.uxv.name=UXV Mold Bus
 gregtech.machine.mold_bus.opv.name=OpV Mold Bus
 gregtech.machine.mold_bus.max.name=MAX Mold Bus
 
-gregtech.machine.thread_hatch.lv.name=Thread Hatch(LV)
-gregtech.machine.thread_hatch.mv.name=Thread Hatch(MV)
-gregtech.machine.thread_hatch.hv.name=Thread Hatch(HV)
-gregtech.machine.thread_hatch.ev.name=Thread Hatch(EV)
-gregtech.machine.thread_hatch.iv.name=Thread Hatch(IV)
-gregtech.machine.thread_hatch.luv.name=Thread Hatch(LuV)
-gregtech.machine.thread_hatch.zpm.name=Thread Hatch(ZPM)
-gregtech.machine.thread_hatch.uv.name=Thread Hatch(UV)
-gregtech.machine.thread_hatch.uhv.name=Thread Hatch(UHV)
-gregtech.machine.thread_hatch.uev.name=Thread Hatch(UEV)
-gregtech.machine.thread_hatch.uiv.name=Thread Hatch(UIV)
-gregtech.machine.thread_hatch.uxv.name=Thread Hatch(UXV)
-gregtech.machine.thread_hatch.opv.name=Thread Hatch(OPV)
-gregtech.machine.thread_hatch.max.name=Thread Hatch(Max)
-
-gregtech.machine.thread_hatch.tooltip=Can simultaneously process tasks for §b%s§7 cores at maximum.
-gregtech.machine.thread_hatch.display=Adjust independent core count for multiblocks.
-
 gregtech.machine.me_muffler_hatch.ulv.name=ULV ME Muffler Hatch
 gregtech.machine.me_muffler_hatch.lv.name=LV ME Muffler Hatch
 gregtech.machine.me_muffler_hatch.mv.name=MV ME Muffler Hatch

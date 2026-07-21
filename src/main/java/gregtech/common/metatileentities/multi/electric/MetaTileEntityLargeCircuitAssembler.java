@@ -43,6 +43,8 @@ public class MetaTileEntityLargeCircuitAssembler extends GCYMAdvanceRecipeMapMul
                     .energyInput(1)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)

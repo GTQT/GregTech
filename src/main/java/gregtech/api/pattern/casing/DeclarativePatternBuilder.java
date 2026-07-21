@@ -1369,6 +1369,14 @@ public class DeclarativePatternBuilder {
             return hatch(MultiblockAbility.PARALLEL_HATCH, 0,1);
         }
 
+        public CasingSlot overclockHatch() {
+            return hatch(MultiblockAbility.OVERCLOCK_HATCH, 0,1);
+        }
+
+        public CasingSlot accelerationHatch() {
+            return hatch(MultiblockAbility.ACCELERATE_HATCH, 0,1);
+        }
+
         public CasingSlot threadHatch() {
             return hatch(MultiblockAbility.THREAD_HATCH, 0,1);
         }

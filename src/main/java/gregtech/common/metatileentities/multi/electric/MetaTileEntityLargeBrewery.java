@@ -37,6 +37,8 @@ public class MetaTileEntityLargeBrewery extends GCYMAdvanceRecipeMapMultiblockCo
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .threadHatch()
                     .maintenance()
                     .preset(HatchPresets.STANDARD_IO)

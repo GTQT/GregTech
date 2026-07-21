@@ -66,7 +66,9 @@ public class MultiblockUIFactory {
     protected BiFunction<PosGuiData, PanelSyncManager, IWidget> flexButton = (guiData, syncManager) -> null;
     protected BiFunction<PosGuiData, PanelSyncManager, IWidget> gcymButton = (guiData, syncManager) -> null;
     protected BiFunction<PosGuiData, PanelSyncManager, IWidget> parallelButton = (guiData, syncManager) -> null;
-    protected BiFunction<PosGuiData, PanelSyncManager, IWidget>  threadButton = (guiData, syncManager) -> null;
+    protected BiFunction<PosGuiData, PanelSyncManager, IWidget> threadButton = (guiData, syncManager) -> null;
+    protected BiFunction<PosGuiData, PanelSyncManager, IWidget> overclockButton = (guiData, syncManager) -> null;
+    protected BiFunction<PosGuiData, PanelSyncManager, IWidget> accelerateButton = (guiData, syncManager) -> null;
     private int width = 198, height = 202;
     private int screenHeight = 109;
     private ScreenFunction screenFunction;
@@ -265,6 +267,16 @@ public class MultiblockUIFactory {
 
     public MultiblockUIFactory createThreadButton(BiFunction<PosGuiData, PanelSyncManager, IWidget> flexButton) {
         this.threadButton = flexButton;
+        return this;
+    }
+
+    public MultiblockUIFactory createOverclockButton(BiFunction<PosGuiData, PanelSyncManager, IWidget> flexButton) {
+        this.overclockButton = flexButton;
+        return this;
+    }
+
+    public MultiblockUIFactory createAccelerateButton(BiFunction<PosGuiData, PanelSyncManager, IWidget> flexButton) {
+        this.accelerateButton = flexButton;
         return this;
     }
 
@@ -531,6 +543,28 @@ public class MultiblockUIFactory {
                     .addTooltipLine(IKey.lang("无线程可调"));
         }
 
+        //overclockButton
+        IWidget overclockButton = this.overclockButton.apply(guiData, panelSyncManager);
+        if (overclockButton == null) {
+            overclockButton = new ToggleButton()
+                    .name("overclock_none")
+                    .value(ALWAYS_ON)
+                    .size(18)
+                    .overlay(GTGuiTextures.OVERLAY_NO_FLEX)
+                    .addTooltipLine(IKey.lang("无超频可调"));
+        }
+
+        //accelerateButton
+        IWidget accelerateButton = this.accelerateButton.apply(guiData, panelSyncManager);
+        if (accelerateButton == null) {
+            accelerateButton = new ToggleButton()
+                    .name("accelerate_none")
+                    .value(ALWAYS_ON)
+                    .size(18)
+                    .overlay(GTGuiTextures.OVERLAY_NO_FLEX)
+                    .addTooltipLine(IKey.lang("无加速可调"));
+        }
+
         return Flow.row()
                 .name("side_col")
                 .coverChildren()
@@ -542,7 +576,9 @@ public class MultiblockUIFactory {
                 .child(overFlowButton(mainPanel, panelSyncManager))
                 .child(gcymButton)
                 .child(parallelButton)
-                .child(threadButton);
+                .child(threadButton)
+                .child(overclockButton)
+                .child(accelerateButton);
     }
 
 
@@ -637,7 +673,7 @@ public class MultiblockUIFactory {
                                                  @NotNull PanelSyncManager panelSyncManager) {
 
         var throttlePanel = panelSyncManager.syncedPanel("structure_button", true, this::createStructureCheckPanel);
-        // 配置按钮 - 打开线程调整UI
+        // 配置按钮 - 打开结构调整UI
         return new ButtonWidget<>()
                 .size(18)
                 .overlay( new ItemDrawable(mte.getStackForm()).asIcon().size(16))

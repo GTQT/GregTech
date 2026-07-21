@@ -120,6 +120,7 @@ import gregtech.common.metatileentities.multi.electric.godforge.module.MTEExotic
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTEMoltenModule;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTEPlasmaModule;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTESmeltingModule;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAccelerateHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAutoMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCleaningMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
@@ -148,6 +149,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMuffl
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiFluidHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityObjectHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalDataHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOverclockHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityParallelHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityPassthroughHatchComputation;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityPassthroughHatchFluid;
@@ -486,7 +488,12 @@ public class MetaTileEntities {
     public static MetaTileEntityParallelHatch[] PARALLEL_HATCH = new MetaTileEntityParallelHatch[GTValues.V.length - 1];
     public static MetaTileEntityTieredHatch[] TIERED_HATCH = new MetaTileEntityTieredHatch[GTValues.V.length];
     public static MetaTileEntityParallelHatch CREATIVE_PARALLEL_HATCH;
+    public static MetaTileEntityOverclockHatch CREATIVE_OVERCLOCK_HATCH;
+    public static MetaTileEntityAccelerateHatch CREATIVE_ACCELERATE_HATCH;
+    public static MetaTileEntityThreadHatch CREATIVE_THREAD_HATCH;
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length - 1];
+    public static MetaTileEntityOverclockHatch[] OVERCLOCK_HATCH = new MetaTileEntityOverclockHatch[GTValues.V.length - 1];
+    public static MetaTileEntityAccelerateHatch[] ACCELERATE_HATCH = new MetaTileEntityAccelerateHatch[GTValues.V.length - 1];
     public static MetaTileEntityHeatSensor HEAT_SENSOR;
     public static MetaTileEntityCreativeInputBus CREATIVE_INPUT_BUS;
     public static MetaTileEntityCreativeInputHatch CREATIVE_INPUT_HATCH;

@@ -4876,7 +4876,10 @@ gregtech.machine.creative_input_bus.name=Creative Input Bus
 gregtech.machine.creative_input_bus.tooltip=Supplies configured template items infinitely to multiblock recipes.
 gregtech.machine.creative_input_hatch.name=Creative Input Hatch
 gregtech.machine.creative_input_hatch.tooltip=Supplies the configured template fluid infinitely to multiblock recipes.
-gregtech.machine.creative_parallel_hatch.name=创造模式并行控制仓
+gregtech.machine.creative_parallel_hatch.name=Creative Parallel Hatch
+gregtech.machine.creative_overclock_hatch.name=Creative Overclock Hatch
+gregtech.machine.creative_accelerate_hatch.name=Creative Accelerate Hatch
+gregtech.machine.creative_thread_hatch.name=Creative Thread Hatch
 gregtech.creative_tooltip.1=§7You just need
 gregtech.creative_tooltip.2= Creative Mode
 gregtech.creative_tooltip.3=§7 to use this
@@ -7515,6 +7518,54 @@ gregtech.machine.tiered_hatch.opv.name=Legendary Voltage Control Unit
 gregtech.machine.tiered_hatch.max.name=Maximum Voltage Control Unit
 
 gregtech.machine.tiered_hatch.tooltip=Enables up to %s§7 Voltage.
+
+gregtech.machine.thread_hatch.lv.name=Thread Hatch(LV)
+gregtech.machine.thread_hatch.mv.name=Thread Hatch(MV)
+gregtech.machine.thread_hatch.hv.name=Thread Hatch(HV)
+gregtech.machine.thread_hatch.ev.name=Thread Hatch(EV)
+gregtech.machine.thread_hatch.iv.name=Thread Hatch(IV)
+gregtech.machine.thread_hatch.luv.name=Thread Hatch(LuV)
+gregtech.machine.thread_hatch.zpm.name=Thread Hatch(ZPM)
+gregtech.machine.thread_hatch.uv.name=Thread Hatch(UV)
+gregtech.machine.thread_hatch.uhv.name=Thread Hatch(UHV)
+gregtech.machine.thread_hatch.uev.name=Thread Hatch(UEV)
+gregtech.machine.thread_hatch.uiv.name=Thread Hatch(UIV)
+gregtech.machine.thread_hatch.uxv.name=Thread Hatch(UXV)
+gregtech.machine.thread_hatch.opv.name=Thread Hatch(OPV)
+gregtech.machine.thread_hatch.max.name=Thread Hatch(Max)
+
+gregtech.machine.thread_hatch.tooltip=Can simultaneously process tasks for §b%s§7 cores at maximum.
+gregtech.machine.thread_hatch.display=Adjust independent core count for multiblocks.
+
+gregtech.machine.overclock_hatch.uv.name=Overclock Hatch(UV)
+gregtech.machine.overclock_hatch.uhv.name=Overclock Hatch(UHV)
+gregtech.machine.overclock_hatch.uev.name=Overclock Hatch(UEV)
+gregtech.machine.overclock_hatch.uiv.name=Overclock Hatch(UIV)
+gregtech.machine.overclock_hatch.uxv.name=Overclock Hatch(UXV)
+gregtech.machine.overclock_hatch.opv.name=Overclock Hatch(OPV)
+gregtech.machine.overclock_hatch.max.name=Overclock Hatch(Max)
+
+gregtech.machine.overclock_hatch.tooltip.1=The Overclock Hatch adjusts the machine's processing time multiplier each time it overclocks.
+gregtech.machine.overclock_hatch.tooltip.2=Each overclock multiplies the time multiplier by 1/%s, stacking multiplicatively.
+
+gregtech.machine.accelerate_hatch.lv.name=Accelerate Hatch(LV)
+gregtech.machine.accelerate_hatch.mv.name=Accelerate Hatch(MV)
+gregtech.machine.accelerate_hatch.hv.name=Accelerate Hatch(HV)
+gregtech.machine.accelerate_hatch.ev.name=Accelerate Hatch(EV)
+gregtech.machine.accelerate_hatch.iv.name=Accelerate Hatch(IV)
+gregtech.machine.accelerate_hatch.luv.name=Accelerate Hatch(LuV)
+gregtech.machine.accelerate_hatch.zpm.name=Accelerate Hatch(ZPM)
+gregtech.machine.accelerate_hatch.uv.name=Accelerate Hatch(UV)
+gregtech.machine.accelerate_hatch.uhv.name=Accelerate Hatch(UHV)
+gregtech.machine.accelerate_hatch.uev.name=Accelerate Hatch(UEV)
+gregtech.machine.accelerate_hatch.uiv.name=Accelerate Hatch(UIV)
+gregtech.machine.accelerate_hatch.uxv.name=Accelerate Hatch(UXV)
+gregtech.machine.accelerate_hatch.opv.name=Accelerate Hatch(OPV)
+gregtech.machine.accelerate_hatch.max.name=Accelerate Hatch(Max)
+
+gregtech.machine.accelerate_hatch.tooltip.1=The Accelerate Hatch can directly adjust the machine's processing time multiplier, applying a multiplicative factor on top of the original calculation.
+gregtech.machine.accelerate_hatch.tooltip.2=Can provide a processing time multiplier as low as %s%%.
+
 # ME Parts
 gregtech.machine.me_import_item_bus.name=ME Input Bus
 gregtech.machine.me.item_import.tooltip=Extracts specified items from the ME network

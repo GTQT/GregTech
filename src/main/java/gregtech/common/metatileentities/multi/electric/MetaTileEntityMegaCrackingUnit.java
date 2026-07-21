@@ -66,6 +66,8 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
                     .preset(HatchPresets.MUFFLER_IO)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .block('G', getGlassState())
                     .tieredCasing('L', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())

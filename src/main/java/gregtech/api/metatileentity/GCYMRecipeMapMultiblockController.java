@@ -1,5 +1,7 @@
 package gregtech.api.metatileentity;
 
+import gregtech.api.capability.IAccelerateMultiblock;
+import gregtech.api.capability.IOverclockMultiblock;
 import gregtech.api.capability.IParallelMultiblock;
 import gregtech.api.capability.impl.GCYMMultiblockRecipeLogic;
 import gregtech.api.metatileentity.multiblock.MultiMapMultiblockController;
@@ -34,7 +36,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 public abstract class GCYMRecipeMapMultiblockController extends MultiMapMultiblockController
-        implements IParallelMultiblock {
+        implements IParallelMultiblock, IOverclockMultiblock, IAccelerateMultiblock {
 
     public GCYMRecipeMapMultiblockController(ResourceLocation metaTileEntityId, RecipeMap<?> recipeMap) {
         this(metaTileEntityId, new RecipeMap<?>[]{recipeMap});
@@ -65,6 +67,36 @@ public abstract class GCYMRecipeMapMultiblockController extends MultiMapMultiblo
                             .size(18)
                             .overlay(GTGuiTextures.OVERLAY_PARALLEL.asIcon().size(16))
                             .addTooltipLine(IKey.lang("设备并行调整"))
+                            .onMousePressed(mouseButton -> {
+                                if (throttlePanel.isPanelOpen()) {
+                                    throttlePanel.closePanel();
+                                } else {
+                                    throttlePanel.openPanel();
+                                }
+                                return true;
+                            });
+                })
+                .createOverclockButton((guiData, syncManager) -> {
+                    var throttlePanel = syncManager.syncedPanel("overclock_panel", true, this::createOverclockThrottlePanel);
+                    return new ButtonWidget<>()
+                            .size(18)
+                            .overlay(GTGuiTextures.OVERLAY_NO_FLEX.asIcon().size(16))
+                            .addTooltipLine(IKey.lang("设备超频调整"))
+                            .onMousePressed(mouseButton -> {
+                                if (throttlePanel.isPanelOpen()) {
+                                    throttlePanel.closePanel();
+                                } else {
+                                    throttlePanel.openPanel();
+                                }
+                                return true;
+                            });
+                })
+                .createAccelerateButton((guiData, syncManager) -> {
+                    var throttlePanel = syncManager.syncedPanel("accelerate_panel", true, this::createAccelerateThrottlePanel);
+                    return new ButtonWidget<>()
+                            .size(18)
+                            .overlay(GTGuiTextures.OVERLAY_NO_FLEX.asIcon().size(16))
+                            .addTooltipLine(IKey.lang("设备加速调整"))
                             .onMousePressed(mouseButton -> {
                                 if (throttlePanel.isPanelOpen()) {
                                     throttlePanel.closePanel();
@@ -133,6 +165,134 @@ public abstract class GCYMRecipeMapMultiblockController extends MultiMapMultiblo
                 );
     }
 
+    // 超频节流面板
+    protected ModularPanel createOverclockThrottlePanel(PanelSyncManager syncManager, IPanelHandler syncHandler) {
+        IntSyncValue currentDivisorValue = new IntSyncValue(
+                () -> this.getAbilities(MultiblockAbility.OVERCLOCK_HATCH).isEmpty() ? 2 :
+                        this.getAbilities(MultiblockAbility.OVERCLOCK_HATCH).get(0).getCurrentDivisor(),
+                divisor -> {
+                    if (!this.getAbilities(MultiblockAbility.OVERCLOCK_HATCH).isEmpty()) {
+                        this.getAbilities(MultiblockAbility.OVERCLOCK_HATCH).get(0).setCurrentDivisor(divisor);
+                    }
+                });
+        syncManager.syncValue("currentDivisorValue", currentDivisorValue);
+
+        IntSyncValue maxDivisorValue = new IntSyncValue(
+                () -> this.getAbilities(MultiblockAbility.OVERCLOCK_HATCH).isEmpty() ? 2 :
+                        this.getAbilities(MultiblockAbility.OVERCLOCK_HATCH).get(0).getMaxDivisor(),
+                value -> {});
+        syncManager.syncValue("maxDivisorValue", maxDivisorValue);
+
+        return GTGuis.createPopupPanel("overclock_throttle", 200, 60)
+                .child(Flow.row()
+                        .pos(4, 4)
+                        .height(16)
+                        .coverChildrenWidth()
+                        .child(new ItemDrawable(getStackForm())
+                                .asWidget()
+                                .size(16)
+                                .marginRight(4))
+                        .child(IKey.lang("机器超频设置")
+                                .asWidget()
+                                .heightRel(1.0f)))
+
+                .child(Flow.row()
+                        .top(24)
+                        .height(20)
+                        .child(new ButtonWidget<>()
+                                .left(10).widthRel(0.4f)
+                                .height(20)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("减小耗时除数")))
+                                .onMousePressed(mouseButton -> {
+                                    currentDivisorValue.setValue(MathHelper.clamp(
+                                            currentDivisorValue.getValue() -
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)), 2,
+                                            maxDivisorValue.getValue()));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(false)))
+                        )
+                        .child(new ButtonWidget<>()
+                                .left(110).widthRel(0.4f)
+                                .height(20)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("增大耗时除数")))
+                                .onMousePressed(mouseButton -> {
+                                    currentDivisorValue.setValue(MathHelper.clamp(
+                                            currentDivisorValue.getValue() +
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)), 2,
+                                            maxDivisorValue.getValue()));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(true))))
+                );
+    }
+
+    // 加速节流面板
+    protected ModularPanel createAccelerateThrottlePanel(PanelSyncManager syncManager, IPanelHandler syncHandler) {
+        IntSyncValue currentPercentageValue = new IntSyncValue(
+                () -> this.getAbilities(MultiblockAbility.ACCELERATE_HATCH).isEmpty() ? 100 :
+                        this.getAbilities(MultiblockAbility.ACCELERATE_HATCH).get(0).getCurrentPercentage(),
+                percentage -> {
+                    if (!this.getAbilities(MultiblockAbility.ACCELERATE_HATCH).isEmpty()) {
+                        this.getAbilities(MultiblockAbility.ACCELERATE_HATCH).get(0).setCurrentPercentage(percentage);
+                    }
+                });
+        syncManager.syncValue("currentPercentageValue", currentPercentageValue);
+
+        IntSyncValue minPercentageValue = new IntSyncValue(
+                () -> this.getAbilities(MultiblockAbility.ACCELERATE_HATCH).isEmpty() ? 100 :
+                        this.getAbilities(MultiblockAbility.ACCELERATE_HATCH).get(0).getMinPercentage(),
+                value -> {});
+        syncManager.syncValue("minPercentageValue", minPercentageValue);
+
+        return GTGuis.createPopupPanel("accelerate_throttle", 200, 60)
+                .child(Flow.row()
+                        .pos(4, 4)
+                        .height(16)
+                        .coverChildrenWidth()
+                        .child(new ItemDrawable(getStackForm())
+                                .asWidget()
+                                .size(16)
+                                .marginRight(4))
+                        .child(IKey.lang("机器加速设置")
+                                .asWidget()
+                                .heightRel(1.0f)))
+
+                .child(Flow.row()
+                        .top(24)
+                        .height(20)
+                        .child(new ButtonWidget<>()
+                                .left(10).widthRel(0.4f)
+                                .height(20)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("减小耗时百分比")))
+                                .onMousePressed(mouseButton -> {
+                                    currentPercentageValue.setValue(MathHelper.clamp(
+                                            currentPercentageValue.getValue() -
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)),
+                                            minPercentageValue.getValue(), 100));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(false)))
+                        )
+                        .child(new ButtonWidget<>()
+                                .left(110).widthRel(0.4f)
+                                .height(20)
+                                .tooltip(tooltip -> tooltip
+                                        .addLine(IKey.lang("增大耗时百分比")))
+                                .onMousePressed(mouseButton -> {
+                                    currentPercentageValue.setValue(MathHelper.clamp(
+                                            currentPercentageValue.getValue() +
+                                                    GTUtility.getIncrementValue(MouseData.create(mouseButton)),
+                                            minPercentageValue.getValue(), 100));
+                                    return true;
+                                })
+                                .onUpdateListener(widget -> widget.overlay(GTUtility.createAdjustOverlay(true))))
+                );
+    }
+
     @Override
     public boolean isParallel() {
         return true;
@@ -156,6 +316,21 @@ public abstract class GCYMRecipeMapMultiblockController extends MultiMapMultiblo
         return this.getAbilities(MultiblockAbility.PARALLEL_HATCH).isEmpty() ? 1 :
                 this.getAbilities(MultiblockAbility.PARALLEL_HATCH).get(0).getMaxParallel();
     }
+
+    @Override
+    public int getOverclockDurationDivisor() {
+        return this.getAbilities(MultiblockAbility.OVERCLOCK_HATCH).isEmpty() ? 0 :
+                this.getAbilities(MultiblockAbility.OVERCLOCK_HATCH).get(0).getCurrentDivisor();
+    }
+
+    @Override
+    public float getAccelerateMultiplier(int recipeTier) {
+        if (this.getAbilities(MultiblockAbility.ACCELERATE_HATCH).isEmpty()) {
+            return 1.0f;
+        }
+        return this.getAbilities(MultiblockAbility.ACCELERATE_HATCH).get(0).getEffectiveMultiplier(recipeTier);
+    }
+
     public boolean isTiered() {
         return ConfigHolder.globalMultiblocks.enableTieredCasings;
     }

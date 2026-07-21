@@ -1,12 +1,17 @@
 package gregtech.api.capability.impl;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.IAccelerateMultiblock;
+import gregtech.api.capability.IOverclockMultiblock;
 import gregtech.api.capability.IParallelMultiblock;
 import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
+import gregtech.api.recipes.logic.OCResult;
+import gregtech.api.recipes.properties.RecipePropertyStorage;
+import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
 import org.jetbrains.annotations.NotNull;
@@ -25,8 +30,8 @@ public class GCYMMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     public int getParallelLimit() {
-        if (metaTileEntity instanceof IParallelMultiblock iParallelMultiblock && iParallelMultiblock.isParallel()) {
-            return iParallelMultiblock.getParallel();
+        if (metaTileEntity instanceof IParallelMultiblock parallel && parallel.isParallel()) {
+            return parallel.getParallel();
         }
         return 1;
     }
@@ -37,6 +42,27 @@ public class GCYMMultiblockRecipeLogic extends MultiblockRecipeLogic {
     @Override
     protected boolean shouldParallelMultiplyPower() {
         return false;
+    }
+
+    @Override
+    protected double getOverclockingDurationFactor() {
+        if (metaTileEntity instanceof IOverclockMultiblock provider) {
+            int divisor = provider.getOverclockDurationDivisor();
+            if (divisor > 0) return 1.0 / divisor;
+        }
+        return super.getOverclockingDurationFactor();
+    }
+
+    @Override
+    protected void modifyOverclockPost(@NotNull OCResult ocResult, @NotNull RecipePropertyStorage storage) {
+        super.modifyOverclockPost(ocResult, storage);
+        if (metaTileEntity instanceof IAccelerateMultiblock provider) {
+            int recipeTier = GTUtility.getTierByVoltage(ocResult.eut());
+            float multiplier = provider.getAccelerateMultiplier(recipeTier);
+            if (multiplier < 1.0f) {
+                ocResult.setDuration(Math.max(1, (int) (ocResult.duration() * multiplier)));
+            }
+        }
     }
 
     @Override

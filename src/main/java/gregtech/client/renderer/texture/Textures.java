@@ -512,25 +512,80 @@ public class Textures {
 
     // Hatches
     public static final OrientedOverlayRenderer PARALLEL_HATCH_MK1_OVERLAY =
-            new OrientedOverlayRenderer("overlay/machine/parallel_hatch_mk1");
+            new OrientedOverlayRenderer("overlay/machine/parallel_hatch/parallel_hatch_mk1");
     public static final OrientedOverlayRenderer PARALLEL_HATCH_MK2_OVERLAY =
-            new OrientedOverlayRenderer("overlay/machine/parallel_hatch_mk2");
+            new OrientedOverlayRenderer("overlay/machine/parallel_hatch/parallel_hatch_mk2");
     public static final OrientedOverlayRenderer PARALLEL_HATCH_MK3_OVERLAY =
-            new OrientedOverlayRenderer("overlay/machine/parallel_hatch_mk3");
+            new OrientedOverlayRenderer("overlay/machine/parallel_hatch/parallel_hatch_mk3");
     public static final OrientedOverlayRenderer PARALLEL_HATCH_MK4_OVERLAY =
-            new OrientedOverlayRenderer("overlay/machine/parallel_hatch_mk4");
-    public static final OrientedOverlayRenderer TIERED_HATCH_OVERLAY =
-            new OrientedOverlayRenderer("overlay/machine/tiered_hatch");
+            new OrientedOverlayRenderer("overlay/machine/parallel_hatch/parallel_hatch_mk4");
+
 
     //线程仓
     public static final OrientedOverlayRenderer THREAD_HATCH_MK1_OVERLAY = new OrientedOverlayRenderer(
-            "overlay/machine/thread_hatch_mk1");
+            "overlay/machine/thread_hatch/thread_hatch_mk1");
     public static final OrientedOverlayRenderer THREAD_HATCH_MK2_OVERLAY = new OrientedOverlayRenderer(
-            "overlay/machine/thread_hatch_mk2");
+            "overlay/machine/thread_hatch/thread_hatch_mk2");
     public static final OrientedOverlayRenderer THREAD_HATCH_MK3_OVERLAY = new OrientedOverlayRenderer(
-            "overlay/machine/thread_hatch_mk3");
+            "overlay/machine/thread_hatch/thread_hatch_mk3");
     public static final OrientedOverlayRenderer THREAD_HATCH_MK4_OVERLAY = new OrientedOverlayRenderer(
-            "overlay/machine/thread_hatch_mk4");
+            "overlay/machine/thread_hatch/thread_hatch_mk4");
+    public static final OrientedOverlayRenderer THREAD_HATCH_MK5_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/thread_hatch/thread_hatch_mk5");
+    public static final OrientedOverlayRenderer THREAD_HATCH_MK6_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/thread_hatch/thread_hatch_mk6");
+    public static final OrientedOverlayRenderer THREAD_HATCH_MK7_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/thread_hatch/thread_hatch_mk7");
+
+    //超频仓
+    public static final OrientedOverlayRenderer OVERCLOCK_HATCH_MK1_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/overclock_hatch/overclock_hatch_mk1");
+    public static final OrientedOverlayRenderer OVERCLOCK_HATCH_MK2_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/overclock_hatch/overclock_hatch_mk2");
+    public static final OrientedOverlayRenderer OVERCLOCK_HATCH_MK3_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/overclock_hatch/overclock_hatch_mk3");
+    public static final OrientedOverlayRenderer OVERCLOCK_HATCH_MK4_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/overclock_hatch/overclock_hatch_mk4");
+    public static final OrientedOverlayRenderer OVERCLOCK_HATCH_MK5_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/overclock_hatch/overclock_hatch_mk5");
+    public static final OrientedOverlayRenderer OVERCLOCK_HATCH_MK6_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/overclock_hatch/overclock_hatch_mk6");
+    public static final OrientedOverlayRenderer OVERCLOCK_HATCH_MK7_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/overclock_hatch/overclock_hatch_mk7");
+
+    //加速仓
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK1_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk1");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK2_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk2");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK3_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk3");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK4_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk4");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK5_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk5");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK6_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk6");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK7_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk7");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK8_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk8");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK9_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk9");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK10_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk10");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK11_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk11");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK12_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk12");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK13_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk13");
+    public static final OrientedOverlayRenderer ACCELERATE_HATCH_MK14_OVERLAY = new OrientedOverlayRenderer(
+            "overlay/machine/accelerate_hatch/accelerate_hatch_mk14");
+
+    public static final OrientedOverlayRenderer TIERED_HATCH_OVERLAY =
+            new OrientedOverlayRenderer("overlay/machine/tiered_hatch");
+
     //样板总成
     public static final SimpleOverlayRenderer ME_BUFFER_HATCH_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/me_buffer_hatch");

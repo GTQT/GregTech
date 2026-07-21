@@ -35,7 +35,7 @@ import java.util.List;
 
 public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockController {
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:large_chemical_reactor", () ->
                     DeclarativePatternBuilder.start()
                             .aisle("XXX", "XCX", "XXX")

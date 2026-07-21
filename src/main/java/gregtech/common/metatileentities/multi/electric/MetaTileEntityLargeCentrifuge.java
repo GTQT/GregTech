@@ -35,6 +35,8 @@ public class MetaTileEntityLargeCentrifuge extends GCYMAdvanceRecipeMapMultibloc
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)

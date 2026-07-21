@@ -56,6 +56,12 @@ public class MetaTileEntityThreadHatch extends MetaTileEntityMultiblockPart
         this.currentThread = this.maxThread;
     }
 
+    public MetaTileEntityThreadHatch(ResourceLocation metaTileEntityId, int tier, int maxThread) {
+        super(metaTileEntityId, tier);
+        this.maxThread = maxThread;
+        this.currentThread = this.maxThread;
+    }
+
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity metaTileEntityHolder) {
         return new MetaTileEntityThreadHatch(this.metaTileEntityId, this.getTier());
@@ -172,14 +178,20 @@ public class MetaTileEntityThreadHatch extends MetaTileEntityMultiblockPart
         if (shouldRenderOverlay()) {
             OrientedOverlayRenderer overlayRenderer;
 
-            if (getTier() <= GTValues.HV)
+            if (getTier() <= GTValues.MV)
                 overlayRenderer = Textures.THREAD_HATCH_MK1_OVERLAY;
-            else if (getTier() <= GTValues.LuV)
+            else if (getTier() <= GTValues.EV)
                 overlayRenderer = Textures.THREAD_HATCH_MK2_OVERLAY;
-            else if (getTier() <= GTValues.UHV)
+            else if (getTier() <= GTValues.LuV)
                 overlayRenderer = Textures.THREAD_HATCH_MK3_OVERLAY;
-            else
+            else if (getTier() <= GTValues.UV)
                 overlayRenderer = Textures.THREAD_HATCH_MK4_OVERLAY;
+            else if (getTier() <= GTValues.UEV)
+                overlayRenderer = Textures.THREAD_HATCH_MK5_OVERLAY;
+            else if (getTier() <= GTValues.UXV)
+                overlayRenderer = Textures.THREAD_HATCH_MK6_OVERLAY;
+            else
+                overlayRenderer = Textures.THREAD_HATCH_MK7_OVERLAY;
 
             if (getController() != null && getController() instanceof IRecipeMapHolder) {
                 overlayRenderer.renderOrientedState(renderState, translation, pipeline, getFrontFacing(),

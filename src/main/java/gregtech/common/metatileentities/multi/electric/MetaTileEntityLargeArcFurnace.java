@@ -37,6 +37,8 @@ public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultibloc
                     .preset(HatchPresets.STANDARD_IO)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .threadHatch()
                     .block('C', getCasingState2())
                     .hatch('M', MultiblockAbility.MUFFLER_HATCH)

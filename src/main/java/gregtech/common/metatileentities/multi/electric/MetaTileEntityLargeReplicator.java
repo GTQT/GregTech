@@ -36,6 +36,8 @@ public class MetaTileEntityLargeReplicator extends GCYMRecipeMapMultiblockContro
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('C', getCasingState2())

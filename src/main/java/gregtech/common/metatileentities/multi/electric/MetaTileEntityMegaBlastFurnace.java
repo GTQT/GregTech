@@ -78,6 +78,8 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
                     .optionalLaserInput(1)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .maintenance()
                     .preset(HatchPresets.STANDARD_IO)
                     .frames('F', Materials.NaquadahAlloy)

@@ -46,6 +46,8 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
                     .preset(HatchPresets.STANDARD_IO)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .any(' ')
                     .buildStructureDefinition()
     );

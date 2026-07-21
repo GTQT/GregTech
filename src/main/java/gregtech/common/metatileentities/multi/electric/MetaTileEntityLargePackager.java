@@ -36,6 +36,8 @@ public class MetaTileEntityLargePackager extends GCYMAdvanceRecipeMapMultiblockC
                             .tieredHatch()
                             .parallelHatch()
                             .threadHatch()
+                            .overclockHatch()
+                            .accelerationHatch()
                             .preset(HatchPresets.STANDARD_IO)
                             .preset(HatchPresets.MUFFLER_IO)
                             .air('A')

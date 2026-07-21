@@ -22,6 +22,7 @@ import gregtech.common.blocks.MetaBlocks;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -40,6 +41,7 @@ import java.util.Set;
 public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implements IOpticalComputationProvider {
 
     private static final int EUT_PER_HATCH = GTValues.VA[GTValues.IV];
+
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:network_switch", () -> DeclarativePatternBuilder.start()
                     .aisle("XXX", "XXX", "XXX")
@@ -53,6 +55,7 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
                     .hatch(MultiblockAbility.COMPUTATION_DATA_RECEPTION, 1, 8)
                     .hatch(MultiblockAbility.COMPUTATION_DATA_TRANSMISSION, 1, 4)
                     .buildStructureDefinition());
+
     private final MultipleComputationHandler computationHandler = new MultipleComputationHandler();
 
     public MetaTileEntityNetworkSwitch(ResourceLocation metaTileEntityId) {
@@ -70,6 +73,12 @@ public class MetaTileEntityNetworkSwitch extends MetaTileEntityDataBank implemen
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
         return new MetaTileEntityNetworkSwitch(metaTileEntityId);
+    }
+
+    @Override
+    @NotNull
+    public EnumFacing getPreviewFrontFacing() {
+        return EnumFacing.NORTH;
     }
 
     @Override

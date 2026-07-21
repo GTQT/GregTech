@@ -74,6 +74,8 @@ public class MetaTileEntityLargeDistillery extends GCYMRecipeMapMultiblockContro
                             .itemInput(1, 2)
                             .tieredHatch()
                             .parallelHatch()
+                            .overclockHatch()
+                            .accelerationHatch()
                             .maintenance()
                             .casing('X', getCasingState())
                             .custom(Elements.abilitiesPerLayer(0, 1, 1, MultiblockAbility.EXPORT_FLUIDS), 12)

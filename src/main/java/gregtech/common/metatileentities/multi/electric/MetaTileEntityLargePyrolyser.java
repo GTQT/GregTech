@@ -55,6 +55,8 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .maintenance()
                     .tieredCasing('C', GTCasingGroups.heatingCoils().group())

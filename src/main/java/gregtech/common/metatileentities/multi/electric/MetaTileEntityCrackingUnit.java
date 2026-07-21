@@ -44,7 +44,7 @@ import java.util.List;
 
 public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:cracker", () ->
                     DeclarativePatternBuilder.start()
                             .aisle("HCHCH", "HCHCH", "HCHCH")

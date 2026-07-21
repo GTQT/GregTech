@@ -57,6 +57,8 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('P', getCasingState2())

@@ -48,6 +48,8 @@ public class MetaTileEntityMegaVacuumFreezer extends GCYMRecipeMapMultiblockCont
                     .optionalLaserInput(1)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .preset(HatchPresets.MUFFLER_IO)
                     .preset(HatchPresets.STANDARD_IO)
                     .block('G', getCasingState2())

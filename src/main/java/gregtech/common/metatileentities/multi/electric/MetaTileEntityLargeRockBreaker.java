@@ -34,6 +34,8 @@ public class MetaTileEntityLargeRockBreaker extends GCYMAdvanceRecipeMapMultiblo
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
+                    .overclockHatch()
+                    .accelerationHatch()
                     .threadHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .maintenance()

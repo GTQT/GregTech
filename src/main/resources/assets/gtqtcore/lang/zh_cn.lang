@@ -313,24 +313,6 @@ gregtech.machine.mold_bus.uxv.name=§eUXV§r模具仓
 gregtech.machine.mold_bus.opv.name=§9OpV§r模具仓
 gregtech.machine.mold_bus.max.name=§c§lMAX§r模具仓
 
-gregtech.machine.thread_hatch.lv.name=线程控制仓(LV)
-gregtech.machine.thread_hatch.mv.name=线程控制仓(MV)
-gregtech.machine.thread_hatch.hv.name=线程控制仓(HV)
-gregtech.machine.thread_hatch.ev.name=线程控制仓(EV)
-gregtech.machine.thread_hatch.iv.name=线程控制仓(IV)
-gregtech.machine.thread_hatch.luv.name=线程控制仓(LuV)
-gregtech.machine.thread_hatch.zpm.name=线程控制仓(ZPM)
-gregtech.machine.thread_hatch.uv.name=线程控制仓(UV)
-gregtech.machine.thread_hatch.uhv.name=线程控制仓(UHV)
-gregtech.machine.thread_hatch.uev.name=线程控制仓(UEV)
-gregtech.machine.thread_hatch.uiv.name=线程控制仓(UIV)
-gregtech.machine.thread_hatch.uxv.name=线程控制仓(UXV)
-gregtech.machine.thread_hatch.opv.name=线程控制仓(OPV)
-gregtech.machine.thread_hatch.max.name=线程控制仓(Max)
-
-gregtech.machine.thread_hatch.tooltip=最多可同时处理§b%s§7个核心的任务。
-gregtech.machine.thread_hatch.display=调整多方块的独立核心数量。
-
 gregtech.machine.me_muffler_hatch.ulv.name=§8ULV§r ME消声仓
 gregtech.machine.me_muffler_hatch.lv.name=§7LV§r ME消声仓
 gregtech.machine.me_muffler_hatch.mv.name=§bMV§r ME消声仓

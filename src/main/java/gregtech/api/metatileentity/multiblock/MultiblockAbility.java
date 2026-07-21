@@ -1,5 +1,6 @@
 package gregtech.api.metatileentity.multiblock;
 
+import gregtech.api.capability.IAccelerateHatch;
 import gregtech.api.capability.IDataAccessHatch;
 import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.IHPCAComponentHatch;
@@ -11,6 +12,7 @@ import gregtech.api.capability.IMufflerHatch;
 import gregtech.api.capability.IObjectHolder;
 import gregtech.api.capability.IOpticalComputationHatch;
 import gregtech.api.capability.IOpticalDataAccessHatch;
+import gregtech.api.capability.IOverclockHatch;
 import gregtech.api.capability.IParallelHatch;
 import gregtech.api.capability.IRotorHolder;
 import gregtech.api.capability.IThreadHatch;
@@ -124,12 +126,15 @@ public class MultiblockAbility<T> {
 
     public static final MultiblockAbility<ITieredMetaTileEntity> TIERED_HATCH = new MultiblockAbility<>("tiered_hatch",ITieredMetaTileEntity.class);
 
+    public static final MultiblockAbility<IThreadHatch> THREAD_HATCH = new MultiblockAbility<>("thread_hatch", IThreadHatch.class);
+
+    public static final MultiblockAbility<IOverclockHatch> OVERCLOCK_HATCH = new MultiblockAbility<>("overclock_hatch", IOverclockHatch.class);
+
+    public static final MultiblockAbility<IAccelerateHatch> ACCELERATE_HATCH = new MultiblockAbility<>("accelerate_hatch", IAccelerateHatch.class);
+
     //无线管理
     public static final MultiblockAbility<IWirelessController> WIRELESS_CONTROLLER = ability(
             "wireless_controller", IWirelessController.class);
-
-
-    public static final MultiblockAbility<IThreadHatch> THREAD_HATCH = new MultiblockAbility<>("thread_hatch", IThreadHatch.class);
 
     public static final MultiblockAbility<IGodforgeModule> GODFORGE_MODULE = ability(
             "godforge_module", IGodforgeModule.class);
