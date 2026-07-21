@@ -8919,3 +8919,44 @@ gregtech.multiblock.missing_ability_header=缺少结构成型所需舱室：
 gregtech.multiblock.missing_ability=  %1$d× %2$s
 gt.blockmachines.multimachine.FOG.thanks=非常感谢这些了不起的人帮助将这一切变为现实！-Cloud
 gt.blockmachines.multimachine.FOG.clickstat=点击查看数值分解
+
+# 无线能量网络 GUI
+gregtech.wireless.gui.tab.home=主页
+gregtech.wireless.gui.tab.selection=频道选择
+gregtech.wireless.gui.tab.wireless=无线充能
+gregtech.wireless.gui.tab.statistics=网络统计
+gregtech.wireless.gui.tab.settings=频道设置
+gregtech.wireless.gui.tab.create=创建频道
+gregtech.wireless.channel.main=主频道
+gregtech.wireless.gui.voltage=电压：%s EU/t
+gregtech.wireless.gui.amperage=安培数：%s
+gregtech.wireless.gui.mode=模式：%s
+gregtech.wireless.gui.mode.input=输入
+gregtech.wireless.gui.mode.output=输出
+gregtech.wireless.gui.energy=能量：%s EU
+gregtech.wireless.gui.input_rate=输入：%s EU/s
+gregtech.wireless.gui.output_rate=输出：%s EU/s
+gregtech.wireless.gui.pss_transfer=PSS 传输：%s EU/t
+gregtech.wireless.gui.channel_id=频道：%s
+gregtech.wireless.gui.sort.name=排序：名称
+gregtech.wireless.gui.total=总计：%s
+gregtech.wireless.gui.wireless_charging=无线充能
+gregtech.wireless.gui.enable_wireless=启用无线充能
+gregtech.wireless.gui.channel_name=频道名称：
+gregtech.wireless.gui.apply=应用
+gregtech.wireless.gui.create=创建
+gregtech.wireless.gui.delete=删除
+gregtech.wireless.gui.delete_hint=双击 Shift 键以启用删除
+gregtech.wireless.gui.transfer_1m=转账 1M EU
+gregtech.wireless.cover.channel=无线频道：%s
+gregtech.machine.wireless_controller.tooltip.1=安装在已成形的 PSS 上后，PSS 将通过无线网络与其他设备交换能量。
+gregtech.machine.wireless_controller.tooltip.2=PSS 的存储能量将定期与无线网络进行双向重平衡：
+gregtech.machine.wireless_controller.tooltip.3=· 本地能量超出阈值 -> 自动推入无线网络供远程使用
+gregtech.machine.wireless_controller.tooltip.4=· 本地能量低于阈值 -> 自动从无线网络提取补充
+gregtech.machine.wireless_controller.tooltip.5=§e传输速率公式：
+gregtech.machine.wireless_controller.tooltip.6=§f  7 * Σ(N_i * V_i * 2^(T_i - UHV) * 5^(C - UHV)) EU/t
+gregtech.machine.wireless_controller.tooltip.7=§7  N_i = 该等级电容数量，V_i = 电容电压
+gregtech.machine.wireless_controller.tooltip.8=§7  T_i = 电容等级，C = 监控器等级
+gregtech.machine.wireless_controller.tooltip.9=§7  仅 UHV 及以上等级的电容参与计算
+gregtech.machine.wireless_controller.tooltip.retention=§b本地保留比例：§f%s%%
+gregtech.machine.wireless_controller.tooltip.team=FTB 同组玩家自动共享同一网络，无需额外操作。

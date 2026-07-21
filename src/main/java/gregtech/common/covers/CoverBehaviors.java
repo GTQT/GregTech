@@ -150,6 +150,8 @@ public final class CoverBehaviors {
         registerBehavior(gregtechId("ender_item_link"), MetaItems.COVER_ENDER_ITEM_LINK, CoverEnderItemLink::new);
         registerBehavior(gregtechId("cover.digital"), MetaItems.COVER_DIGITAL_INTERFACE, CoverDigitalInterface::new);
 
+        registerWirelessEnergyCovers();
+
         // Custom cover behaviour
         MetaItems.COVER_DIGITAL_INTERFACE_WIRELESS.addComponents(
                 new CoverDigitalInterfaceWirelessPlaceBehaviour(registerCover(gregtechId("cover.digital.wireless"),
@@ -242,6 +244,34 @@ public final class CoverBehaviors {
         registerBehavior(gregtechId("storage_huge"), MetaItems.COVER_STORAGE_HUGE,   (def, tile, side) -> new CoverStorage(def, tile, side,36));
 
 
+    }
+
+    private static void registerWirelessEnergyCovers() {
+        MetaValueItem[] inputCovers = {
+                MetaItems.WIRELESS_ENERGY_COVER_INPUT_ULV, MetaItems.WIRELESS_ENERGY_COVER_INPUT_LV,
+                MetaItems.WIRELESS_ENERGY_COVER_INPUT_MV, MetaItems.WIRELESS_ENERGY_COVER_INPUT_HV,
+                MetaItems.WIRELESS_ENERGY_COVER_INPUT_EV, MetaItems.WIRELESS_ENERGY_COVER_INPUT_IV,
+                MetaItems.WIRELESS_ENERGY_COVER_INPUT_LUV, MetaItems.WIRELESS_ENERGY_COVER_INPUT_ZPM,
+                MetaItems.WIRELESS_ENERGY_COVER_INPUT_UV, MetaItems.WIRELESS_ENERGY_COVER_INPUT_UHV,
+                MetaItems.WIRELESS_ENERGY_COVER_INPUT_UEV, MetaItems.WIRELESS_ENERGY_COVER_INPUT_UIV,
+                MetaItems.WIRELESS_ENERGY_COVER_INPUT_UXV, MetaItems.WIRELESS_ENERGY_COVER_INPUT_OPV,
+                MetaItems.WIRELESS_ENERGY_COVER_INPUT_MAX };
+        MetaValueItem[] outputCovers = {
+                MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_ULV, MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_LV,
+                MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_MV, MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_HV,
+                MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_EV, MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_IV,
+                MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_LUV, MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_ZPM,
+                MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UV, MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UHV,
+                MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UEV, MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UIV,
+                MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_UXV, MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_OPV,
+                MetaItems.WIRELESS_ENERGY_COVER_OUTPUT_MAX };
+        for (int tier = 0; tier < inputCovers.length; tier++) {
+            int currentTier = tier;
+            registerBehavior(gregtechId("wireless_energy_cover_input." + VN[tier].toLowerCase()), inputCovers[tier],
+                    (def, tile, side) -> new CoverWirelessEnergy(def, tile, side, currentTier, true));
+            registerBehavior(gregtechId("wireless_energy_cover_output." + VN[tier].toLowerCase()), outputCovers[tier],
+                    (def, tile, side) -> new CoverWirelessEnergy(def, tile, side, currentTier, false));
+        }
     }
 
     /**

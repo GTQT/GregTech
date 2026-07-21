@@ -125,7 +125,6 @@ public final class NetworkHandler implements INetworkHandler {
     }
 
     @SubscribeEvent
-    @SideOnly(Side.SERVER)
     public void onServerPacket(FMLNetworkEvent.@NotNull ServerCustomPacketEvent event) throws Exception {
         IPacket packet = toGTPacket(event.getPacket());
         if (IServerExecutor.class.isAssignableFrom(packet.getClass())) {

@@ -1,6 +1,7 @@
 package gregtech.api.wireless;
 
 import java.math.BigInteger;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -32,6 +33,24 @@ public interface WirelessEnergyService {
      */
     WirelessNetworkView getView(UUID actor);
 
+    WirelessNetworkView getView(UUID actor, int channelId);
+
+    List<WirelessNetworkView> getChannels(UUID actor);
+
+    int createChannel(UUID actor, String name);
+
+    boolean renameChannel(UUID actor, int channelId, String name);
+
+    boolean deleteChannel(UUID actor, int channelId);
+
+    boolean setWirelessCharging(UUID actor, int channelId, boolean enabled, int slotMask);
+
+    void updateEndpoint(UUID actor, int channelId, String key, String type, int dimension, long position,
+                        boolean chunkLoaded, boolean forceLoaded, long gameTime);
+
+    TransferResult transfer(UUID actor, int sourceChannelId, int targetChannelId, BigInteger amount,
+                            TransferContext context);
+
     // ==================== Transfer (long fast-path) ====================
 
     /**
@@ -44,6 +63,8 @@ public interface WirelessEnergyService {
      */
     TransferResult insert(UUID actor, long amount, TransferContext context);
 
+    TransferResult insert(UUID actor, int channelId, long amount, TransferContext context);
+
     /**
      * Extracts energy from the actor's wireless network.
      * Atomic: if the network has less than the requested amount, NO energy is extracted.
@@ -54,6 +75,8 @@ public interface WirelessEnergyService {
      * @return result indicating success/failure and actual amount transferred
      */
     TransferResult extract(UUID actor, long amount, TransferContext context);
+
+    TransferResult extract(UUID actor, int channelId, long amount, TransferContext context);
 
     /**
      * Extracts up to the requested amount from the actor's wireless network.
@@ -66,11 +89,19 @@ public interface WirelessEnergyService {
      */
     TransferResult extractUpTo(UUID actor, long amount, TransferContext context);
 
+    TransferResult extractUpTo(UUID actor, int channelId, long amount, TransferContext context);
+
     // ==================== Transfer (BigInteger path) ====================
 
     TransferResult insert(UUID actor, BigInteger amount, TransferContext context);
 
+    TransferResult insert(UUID actor, int channelId, BigInteger amount, TransferContext context);
+
     TransferResult extract(UUID actor, BigInteger amount, TransferContext context);
 
+    TransferResult extract(UUID actor, int channelId, BigInteger amount, TransferContext context);
+
     TransferResult extractUpTo(UUID actor, BigInteger amount, TransferContext context);
+
+    TransferResult extractUpTo(UUID actor, int channelId, BigInteger amount, TransferContext context);
 }

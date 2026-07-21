@@ -8941,3 +8941,44 @@ gregtech.multiblock.missing_ability_header=Missing required structure hatches:
 gregtech.multiblock.missing_ability=  %1$dx %2$s
 gt.blockmachines.multimachine.FOG.thanks=A huge thank you to these incredible people for helping to make this a reality! -Cloud
 gt.blockmachines.multimachine.FOG.clickstat=Click to view value breakdown
+
+# Wireless energy network GUI
+gregtech.wireless.gui.tab.home=Home
+gregtech.wireless.gui.tab.selection=Channel Selection
+gregtech.wireless.gui.tab.wireless=Wireless Charging
+gregtech.wireless.gui.tab.statistics=Network Statistics
+gregtech.wireless.gui.tab.settings=Channel Settings
+gregtech.wireless.gui.tab.create=Create Channel
+gregtech.wireless.channel.main=Main Channel
+gregtech.wireless.gui.voltage=Voltage: %s EU/t
+gregtech.wireless.gui.amperage=Amperage: %s
+gregtech.wireless.gui.mode=Mode: %s
+gregtech.wireless.gui.mode.input=Input
+gregtech.wireless.gui.mode.output=Output
+gregtech.wireless.gui.energy=Energy: %s EU
+gregtech.wireless.gui.input_rate=Input: %s EU/s
+gregtech.wireless.gui.output_rate=Output: %s EU/s
+gregtech.wireless.gui.pss_transfer=PSS Transfer: %s EU/t
+gregtech.wireless.gui.channel_id=Channel: %s
+gregtech.wireless.gui.sort.name=Sort: Name
+gregtech.wireless.gui.total=Total: %s
+gregtech.wireless.gui.wireless_charging=Wireless Charging
+gregtech.wireless.gui.enable_wireless=Enable Wireless Charging
+gregtech.wireless.gui.channel_name=Channel Name:
+gregtech.wireless.gui.apply=Apply
+gregtech.wireless.gui.create=Create
+gregtech.wireless.gui.delete=Delete
+gregtech.wireless.gui.delete_hint=Press Shift twice to enable deletion
+gregtech.wireless.gui.transfer_1m=Transfer 1M EU
+gregtech.wireless.cover.channel=Wireless channel: %s
+gregtech.machine.wireless_controller.tooltip.1=When attached to a formed PSS, the PSS exchanges energy with other devices through the wireless network.
+gregtech.machine.wireless_controller.tooltip.2=The PSS periodically rebalances its stored energy with the wireless network:
+gregtech.machine.wireless_controller.tooltip.3=· Local energy above the threshold -> send excess energy to the wireless network
+gregtech.machine.wireless_controller.tooltip.4=· Local energy below the threshold -> draw energy from the wireless network
+gregtech.machine.wireless_controller.tooltip.5=§eTransfer rate formula:
+gregtech.machine.wireless_controller.tooltip.6=§f  7 * Σ(N_i * V_i * 2^(T_i - UHV) * 5^(C - UHV)) EU/t
+gregtech.machine.wireless_controller.tooltip.7=§7  N_i = capacitor count at the tier, V_i = capacitor voltage
+gregtech.machine.wireless_controller.tooltip.8=§7  T_i = capacitor tier, C = controller tier
+gregtech.machine.wireless_controller.tooltip.9=§7  Only UHV-tier and higher capacitors are counted
+gregtech.machine.wireless_controller.tooltip.retention=§bLocal retention ratio: §f%s%%
+gregtech.machine.wireless_controller.tooltip.team=Players in the same FTB team automatically share one network.

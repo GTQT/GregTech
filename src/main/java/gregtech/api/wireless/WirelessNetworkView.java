@@ -13,27 +13,38 @@ import java.util.UUID;
 public final class WirelessNetworkView {
 
     public static final WirelessNetworkView EMPTY = new WirelessNetworkView(
-            null, "No Network", BigInteger.ZERO,
-            BigInteger.ZERO, BigInteger.ZERO);
+            null, -1, "No Network", BigInteger.ZERO,
+            BigInteger.ZERO, BigInteger.ZERO, false, 0);
 
     private final UUID networkId;
+    private final int channelId;
     private final String networkName;
     private final BigInteger stored;
     private final BigInteger inputPerSecond;
     private final BigInteger outputPerSecond;
+    private final boolean wirelessChargingEnabled;
+    private final int wirelessChargingSlots;
 
-    public WirelessNetworkView(UUID networkId, String networkName,
+    public WirelessNetworkView(UUID networkId, int channelId, String networkName,
                                BigInteger stored,
-                               BigInteger inputPerSecond, BigInteger outputPerSecond) {
+                               BigInteger inputPerSecond, BigInteger outputPerSecond,
+                               boolean wirelessChargingEnabled, int wirelessChargingSlots) {
         this.networkId = networkId;
+        this.channelId = channelId;
         this.networkName = networkName;
         this.stored = stored;
         this.inputPerSecond = inputPerSecond;
         this.outputPerSecond = outputPerSecond;
+        this.wirelessChargingEnabled = wirelessChargingEnabled;
+        this.wirelessChargingSlots = wirelessChargingSlots;
     }
 
     public UUID getNetworkId() {
         return networkId;
+    }
+
+    public int getChannelId() {
+        return channelId;
     }
 
     public String getNetworkName() {
@@ -52,6 +63,14 @@ public final class WirelessNetworkView {
     /** Average output EU per second over the rolling statistics window. */
     public BigInteger getOutputPerSecond() {
         return outputPerSecond;
+    }
+
+    public boolean isWirelessChargingEnabled() {
+        return wirelessChargingEnabled;
+    }
+
+    public int getWirelessChargingSlots() {
+        return wirelessChargingSlots;
     }
 
     public boolean isEmpty() {

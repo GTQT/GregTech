@@ -59,6 +59,7 @@ import gregtech.common.items.ToolItems;
 import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.metatileentities.electric.MetaTileEntityAlarm;
 import gregtech.common.worldgen.LootTableHelper;
+import gregtech.common.wireless.WirelessEnergyServiceImpl;
 import gregtech.core.advancement.AdvancementTriggers;
 import gregtech.core.advancement.internal.AdvancementManager;
 import gregtech.core.command.internal.CommandManager;
@@ -119,6 +120,7 @@ import static gregtech.api.GregTechAPI.*;
 public class CoreModule implements IGregTechModule {
 
     public static final Logger logger = LogManager.getLogger("GregTech Core");
+    private final WirelessEnergyServiceImpl wirelessEnergyService = new WirelessEnergyServiceImpl();
 
     @SidedProxy(modId = GTValues.MODID,
                 clientSide = "gregtech.client.ClientProxy",
@@ -142,6 +144,7 @@ public class CoreModule implements IGregTechModule {
 
     @Override
     public void preInit(FMLPreInitializationEvent event) {
+        MinecraftForge.EVENT_BUS.register(wirelessEnergyService);
         GregTechAPIInternal.preInit();
         GregTechAPI.advancementManager = AdvancementManager.getInstance();
         AdvancementTriggers.register();
@@ -252,6 +255,7 @@ public class CoreModule implements IGregTechModule {
 
     @Override
     public void registerPackets() {
+        gregtech.common.network.NetworkHandler.registerMessages();
         GregTechAPI.networkHandler.registerPacket(PacketUIOpen.class);
         GregTechAPI.networkHandler.registerPacket(PacketUIWidgetUpdate.class);
         GregTechAPI.networkHandler.registerPacket(PacketUIClientAction.class);

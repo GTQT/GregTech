@@ -2,6 +2,21 @@ package gregtech.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.IWirelessController;
+import gregtech.api.gui.ModularUI;
+import gregtech.api.gui.widgets.AdvancedTextWidget;
+import gregtech.api.gui.resources.FluxWirelessTextures;
+import gregtech.api.gui.resources.IGuiTexture;
+import gregtech.api.gui.widgets.FluxActionButtonWidget;
+import gregtech.api.gui.widgets.FluxChannelListWidget;
+import gregtech.api.gui.widgets.FluxChannelSelectorWidget;
+import gregtech.api.gui.widgets.FluxInventoryRangeWidget;
+import gregtech.api.gui.widgets.FluxSwitchWidget;
+import gregtech.api.gui.widgets.FluxTabGroup;
+import gregtech.api.gui.widgets.FluxTabListRenderer;
+import gregtech.api.gui.widgets.FluxTextFieldWidget;
+import gregtech.api.gui.widgets.FluxWirelessBackgroundWidget;
+import gregtech.api.gui.widgets.WidgetGroup;
+import gregtech.api.gui.widgets.tab.IGuiTextureTabInfo;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
@@ -14,12 +29,15 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.wireless.WirelessEnergyServiceImpl;
+import gregtech.common.wireless.WirelessChannelUi;
 
 import net.minecraft.client.resources.I18n;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -57,6 +75,7 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     private static final long TRANSFER_RATE_BASE_MULTIPLIER = 7;
 
     private int priority;
+    private int channelId;
     private int rebalanceTimer = 0;
     private long lastLocalStored;
 
@@ -105,20 +124,20 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
 
     @Override
     public void addInformation(ItemStack stack, @Nullable World world, List<String> tooltip, boolean advanced) {
-        tooltip.add(I18n.format("安装在已成形的PSS上后，PSS将通过无线网络与其他设备交换能量。"));
-        tooltip.add(I18n.format("PSS的存储能量将定期与无线网络进行双向重平衡："));
-        tooltip.add(I18n.format("· 本地能量超出阈值 → 自动推入无线网络供远程使用"));
-        tooltip.add(I18n.format("· 本地能量不足阈值 → 自动从无线网络提取补充"));
-        tooltip.add(I18n.format("§e传输速率公式:"));
-        tooltip.add(I18n.format("§f  7 * Σ(N_i * V_i * 2^(T_i - UHV) * 5^(C - UHV)) EU/t"));
-        tooltip.add(I18n.format("§7  N_i = 该等级电容数量, V_i = 电容电压"));
-        tooltip.add(I18n.format("§7  T_i = 电容等级, C = 监控器等级"));
-        tooltip.add(I18n.format("§7  仅UHV及以上等级的电容参与计算"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.1"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.2"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.3"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.4"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.5"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.6"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.7"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.8"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.9"));
         int tier = getTier();
         int index = Math.min(tier - GTValues.UHV, RETENTION_RATIOS.length - 1);
         double ratio = RETENTION_RATIOS[Math.max(index, 0)];
-        tooltip.add(I18n.format("§b本地保留比例: §f" + (int) (ratio * 100) + "%%"));
-        tooltip.add(I18n.format("FTB同组玩家自动共享同一网络，无需额外操作。"));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.retention", (int) (ratio * 100)));
+        tooltip.add(I18n.format("gregtech.machine.wireless_controller.tooltip.team"));
     }
 
     @Override
@@ -165,6 +184,9 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
 
         WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
         if (service == null) return;
+        int effectiveChannel = getEffectiveChannelId(service, ownerId);
+        service.updateEndpoint(ownerId, effectiveChannel, "pss:" + getPos().toLong(), "pss_controller",
+                getWorld().provider.getDimension(), getPos().toLong(), true, false, getWorld().getTotalWorldTime());
 
         BigInteger capacity = pss.getCapacityByBigInteger();
         if (capacity.signum() == 0) return;
@@ -189,7 +211,8 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
                 excess = BigInteger.valueOf(maxTransfer);
             }
             if (excess.signum() <= 0) return;
-            TransferResult result = service.insert(ownerId, excess.longValue(), TransferContext.PSS_REBALANCE);
+            TransferResult result = service.insert(ownerId, effectiveChannel, excess.longValue(),
+                    TransferContext.PSS_REBALANCE);
             if (result.isSuccess()) {
                 pss.externalDrain(result.getAmountLong());
                 lastLocalStored = pss.getStoredLong();
@@ -201,7 +224,8 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
                 deficit = BigInteger.valueOf(maxTransfer);
             }
             if (deficit.signum() <= 0) return;
-            TransferResult result = service.extractUpTo(ownerId, deficit.longValue(), TransferContext.PSS_REBALANCE);
+            TransferResult result = service.extractUpTo(ownerId, effectiveChannel,
+                    deficit.longValue(), TransferContext.PSS_REBALANCE);
             if (result.isSuccess() && result.getAmountLong() > 0) {
                 pss.externalFill(result.getAmountLong());
                 lastLocalStored = pss.getStoredLong();
@@ -292,11 +316,207 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
         this.priority = priority;
     }
 
+    public int getChannelId() {
+        return channelId;
+    }
+
+    public void setChannelId(int channelId) {
+        this.channelId = Math.max(0, channelId);
+        markDirty();
+    }
+
+    @Override
+    protected ModularUI createUI(EntityPlayer player) {
+        UUID playerId = player.getUniqueID();
+        String[] editedChannelName = { getChannelName(playerId) };
+        String[] newChannelName = { "" };
+        boolean[] wirelessEnabled = { isWirelessCharging(playerId) };
+        int[] wirelessRange = { getWirelessSlotMask(playerId) };
+        FluxTabGroup<WidgetGroup> tabs = new FluxTabGroup<>(0, 0,
+                new FluxTabListRenderer(0, 1, 2, 4, 6, 7));
+
+        WidgetGroup home = new WidgetGroup(0, 0, 176, 166);
+        home.addWidget(new FluxChannelSelectorWidget(20, 8, () -> getChannelName(playerId)));
+        home.addWidget(translatedLabel(20, 30, "gregtech.wireless.gui.pss_transfer",
+                () -> new Object[] { getMaxTransferPerTick() }, 0xFFB4B4B4));
+        home.addWidget(translatedLabel(20, 42, "gregtech.wireless.gui.energy",
+                () -> new Object[] { getStored(playerId) }, 0xFFB4B4B4));
+        home.addWidget(translatedLabel(20, 54, "gregtech.wireless.gui.input_rate",
+                () -> new Object[] { getInput(playerId) }, 0xFFB4B4B4));
+        home.addWidget(translatedLabel(20, 66, "gregtech.wireless.gui.output_rate",
+                () -> new Object[] { getOutput(playerId) }, 0xFFB4B4B4));
+
+        WidgetGroup selection = new WidgetGroup(0, 0, 176, 166);
+        selection.addWidget(translatedLabel(19, 10, "gregtech.wireless.gui.sort.name",
+                () -> new Object[0], 0xFFB4B4B4));
+        selection.addWidget(translatedLabel(122, 10, "gregtech.wireless.gui.total",
+                () -> new Object[] { WirelessChannelUi.getChannels(playerId).size() }, 0xFFB4B4B4));
+        selection.addWidget(new FluxChannelListWidget(15, 22, () -> WirelessChannelUi.getChannels(playerId),
+                () -> channelId, this::setChannelId));
+
+        WidgetGroup wireless = new WidgetGroup(0, 0, 176, 166);
+        wireless.addWidget(translatedLabel(68, 12, "gregtech.wireless.gui.wireless_charging",
+                () -> new Object[0], 0xFFB4B4B4));
+        wireless.addWidget(new FluxInventoryRangeWidget(() -> wirelessRange[0], range -> wirelessRange[0] = range));
+        wireless.addWidget(translatedLabel(20, 156, "gregtech.wireless.gui.enable_wireless",
+                () -> new Object[0], FluxWirelessTextures.NETWORK_COLOR));
+        wireless.addWidget(new FluxSwitchWidget(140, 156, () -> wirelessEnabled[0],
+                enabled -> wirelessEnabled[0] = enabled));
+        wireless.addWidget(new FluxActionButtonWidget(70, 130, 36, "gregtech.wireless.gui.apply",
+                data -> setWirelessCharging(playerId, wirelessEnabled[0], wirelessRange[0])));
+
+        WidgetGroup statistics = new WidgetGroup(0, 0, 176, 166);
+        statistics.addWidget(new FluxChannelSelectorWidget(20, 8, () -> getChannelName(playerId)));
+        statistics.addWidget(translatedLabel(12, 30, "gregtech.wireless.gui.channel_id",
+                () -> new Object[] { channelId }, 0xFFB4B4B4));
+        statistics.addWidget(translatedLabel(12, 42, "gregtech.wireless.gui.energy",
+                () -> new Object[] { getStored(playerId) }, 0xFFB4B4B4));
+        statistics.addWidget(translatedLabel(12, 54, "gregtech.wireless.gui.input_rate",
+                () -> new Object[] { getInput(playerId) }, 0xFFB4B4B4));
+        statistics.addWidget(translatedLabel(12, 66, "gregtech.wireless.gui.output_rate",
+                () -> new Object[] { getOutput(playerId) }, 0xFFB4B4B4));
+
+        WidgetGroup settings = new WidgetGroup(0, 0, 176, 166);
+        settings.addWidget(translatedLabel(14, 18, "gregtech.wireless.gui.channel_name",
+                () -> new Object[0], 0xFF606060));
+        FluxTextFieldWidget channelName = new FluxTextFieldWidget(16, 28, 144, 12,
+                () -> editedChannelName[0], name -> editedChannelName[0] = name);
+        channelName.setValidator(value -> true);
+        settings.addWidget(channelName);
+        FluxActionButtonWidget deleteButton = new FluxActionButtonWidget(18, 140, 36,
+                "gregtech.wireless.gui.delete", data -> {
+                    if (deleteChannel(playerId)) tabs.selectTabFromServer(0);
+                }).requireDoubleShift();
+        deleteButton.setTooltipText("gregtech.wireless.gui.delete_hint");
+        settings.addWidget(deleteButton);
+        settings.addWidget(new FluxActionButtonWidget(62, 140, 52, "gregtech.wireless.gui.transfer_1m",
+                data -> transferToNextChannel(playerId)));
+        FluxActionButtonWidget applyName = new FluxActionButtonWidget(122, 140, 36,
+                "gregtech.wireless.gui.apply", data -> renameChannel(playerId, editedChannelName[0]));
+        applyName.setEnabledSupplier(() -> hasText(channelName));
+        settings.addWidget(applyName);
+
+        WidgetGroup create = new WidgetGroup(0, 0, 176, 166);
+        create.addWidget(translatedLabel(14, 18, "gregtech.wireless.gui.channel_name",
+                () -> new Object[0], 0xFF606060));
+        FluxTextFieldWidget createdName = new FluxTextFieldWidget(16, 28, 144, 12,
+                () -> newChannelName[0], name -> newChannelName[0] = name);
+        createdName.setValidator(value -> true);
+        create.addWidget(createdName);
+        FluxActionButtonWidget createButton = new FluxActionButtonWidget(70, 150, 36,
+                "gregtech.wireless.gui.create", data -> {
+                    if (createChannel(playerId, newChannelName[0])) tabs.selectTabFromServer(1);
+                });
+        createButton.setEnabledSupplier(() -> hasText(createdName));
+        create.addWidget(createButton);
+
+        tabs.addTab(new IGuiTextureTabInfo(IGuiTexture.EMPTY, "gregtech.wireless.gui.tab.home"), home);
+        tabs.addTab(new IGuiTextureTabInfo(IGuiTexture.EMPTY, "gregtech.wireless.gui.tab.selection"), selection);
+        tabs.addTab(new IGuiTextureTabInfo(IGuiTexture.EMPTY, "gregtech.wireless.gui.tab.wireless"), wireless);
+        tabs.addTab(new IGuiTextureTabInfo(IGuiTexture.EMPTY, "gregtech.wireless.gui.tab.statistics"), statistics);
+        tabs.addTab(new IGuiTextureTabInfo(IGuiTexture.EMPTY, "gregtech.wireless.gui.tab.settings"), settings);
+        tabs.addTab(new IGuiTextureTabInfo(IGuiTexture.EMPTY, "gregtech.wireless.gui.tab.create"), create);
+        tabs.setOnTabChanged((oldTab, newTab) -> {
+            if (newTab == 2) {
+                wirelessEnabled[0] = isWirelessCharging(playerId);
+                wirelessRange[0] = getWirelessSlotMask(playerId);
+            } else if (newTab == 4) {
+                editedChannelName[0] = getChannelName(playerId);
+            } else if (newTab == 5) {
+                newChannelName[0] = "";
+            }
+        });
+
+        return ModularUI.builder(IGuiTexture.EMPTY, 176, 166)
+                .shouldColor(false)
+                .widget(new FluxWirelessBackgroundWidget())
+                .widget(tabs)
+                .build(getHolder(), player);
+    }
+
+    private String getStored(UUID owner) {
+        return WirelessEnergyServiceImpl.getService() == null ? "0" :
+                WirelessEnergyServiceImpl.getService().getView(owner, channelId).getStored().toString();
+    }
+
+    private String getInput(UUID owner) {
+        return WirelessEnergyServiceImpl.getService() == null ? "0" :
+                WirelessEnergyServiceImpl.getService().getView(owner, channelId).getInputPerSecond().toString();
+    }
+
+    private String getOutput(UUID owner) {
+        return WirelessEnergyServiceImpl.getService() == null ? "0" :
+                WirelessEnergyServiceImpl.getService().getView(owner, channelId).getOutputPerSecond().toString();
+    }
+
+    private AdvancedTextWidget translatedLabel(int x, int y, String key,
+                                               java.util.function.Supplier<Object[]> args, int color) {
+        return new AdvancedTextWidget(x, y, lines -> lines.add(new TextComponentTranslation(key, args.get())), color);
+    }
+
+    private String getChannelName(UUID owner) {
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service == null) return "Main";
+        String name = service.getView(owner, channelId).getNetworkName();
+        return name == null || name.isEmpty() || "No Network".equals(name) ? "Main" : name;
+    }
+
+    private void renameChannel(UUID owner, String name) {
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service != null) service.renameChannel(owner, channelId, name);
+    }
+
+    private boolean createChannel(UUID owner, String name) {
+        if (name == null || name.trim().isEmpty()) return false;
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        int createdChannel = service == null ? -1 : service.createChannel(owner, name);
+        if (createdChannel >= 0) setChannelId(createdChannel);
+        return createdChannel >= 0;
+    }
+
+    private boolean deleteChannel(UUID owner) {
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service == null || !service.deleteChannel(owner, channelId)) return false;
+        setChannelId(WirelessChannelUi.channelIdAt(owner, 0));
+        return true;
+    }
+
+    private void transferToNextChannel(UUID owner) {
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service != null) service.transfer(owner, channelId, WirelessChannelUi.nextChannelId(owner, channelId),
+                BigInteger.valueOf(1_000_000L), TransferContext.ADMIN);
+    }
+
+    private boolean isWirelessCharging(UUID owner) {
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        return service != null && service.getView(owner, channelId).isWirelessChargingEnabled();
+    }
+
+    private int getWirelessSlotMask(UUID owner) {
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        return service == null ? 0 : service.getView(owner, channelId).getWirelessChargingSlots();
+    }
+
+    private void setWirelessCharging(UUID owner, boolean enabled, int slotMask) {
+        WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
+        if (service != null) service.setWirelessCharging(owner, channelId, enabled, slotMask);
+    }
+
+    private static boolean hasText(FluxTextFieldWidget textField) {
+        String text = textField.getCurrentString();
+        return text != null && !text.trim().isEmpty();
+    }
+
+    private int getEffectiveChannelId(WirelessEnergyService service, UUID ownerId) {
+        return service.getView(ownerId, channelId).isEmpty() ? 0 : channelId;
+    }
+
     // ==================== Persistence ====================
 
     @Override
     public NBTTagCompound writeToNBT(@NotNull NBTTagCompound data) {
         data.setInteger("priority", this.priority);
+        data.setInteger("wirelessChannel", this.channelId);
         data.setLong("lastLocalStored", this.lastLocalStored);
         return super.writeToNBT(data);
     }
@@ -305,6 +525,7 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
         this.priority = data.getInteger("priority");
+        this.channelId = Math.max(0, data.getInteger("wirelessChannel"));
         this.lastLocalStored = data.getLong("lastLocalStored");
     }
 
@@ -312,11 +533,13 @@ public class MetaTileEntityWirelessController extends MetaTileEntityMultiblockPa
     public void writeInitialSyncData(PacketBuffer buf) {
         super.writeInitialSyncData(buf);
         buf.writeInt(this.priority);
+        buf.writeVarInt(this.channelId);
     }
 
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
         this.priority = buf.readInt();
+        this.channelId = buf.readVarInt();
     }
 }

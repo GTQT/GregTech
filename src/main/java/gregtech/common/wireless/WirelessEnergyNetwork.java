@@ -1,208 +1,144 @@
 package gregtech.common.wireless;
 
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 
 import java.math.BigInteger;
+import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
- * A single team/player wireless energy account.
- * <p>
- * Truly unbounded — no capacity limit, no per-node tracking.
- * The wireless pool is a pure "bank account": insert adds, extract removes,
- * and balance can never drop below zero.
- * <p>
- * Physical storage (PSS) periodically rebalances against this pool via
- * {@code WirelessController}, pushing excess in and pulling deficit out.
+ * A team's wireless account. Energy is partitioned into named channels, each
+ * with an independent unbounded {@link BigInteger} balance and statistics.
  */
 public class WirelessEnergyNetwork {
 
-    private static final int STATS_WINDOW_TICKS = 20;
+    public static final int DEFAULT_CHANNEL_ID = 0;
+    private static final String NBT_CHANNELS = "channels";
 
     private final UUID networkId;
     private String networkName;
-
-    private BigInteger stored = BigInteger.ZERO;
-
-    // Rolling throughput statistics (per-second window)
-    private BigInteger inputThisWindow = BigInteger.ZERO;
-    private BigInteger outputThisWindow = BigInteger.ZERO;
-    private BigInteger inputPerSecond = BigInteger.ZERO;
-    private BigInteger outputPerSecond = BigInteger.ZERO;
-    private int windowTickCounter = 0;
-
-    private boolean dirty = false;
+    private final Map<Integer, WirelessEnergyChannel> channels = new LinkedHashMap<>();
+    private int nextChannelId = 1;
 
     public WirelessEnergyNetwork(UUID networkId, String networkName) {
         this.networkId = networkId;
         this.networkName = networkName;
+        channels.put(DEFAULT_CHANNEL_ID, new WirelessEnergyChannel(DEFAULT_CHANNEL_ID, "Main"));
     }
 
-    // ==================== Energy Operations (long fast-path) ====================
-
-    public long insert(long amount) {
-        if (amount <= 0) return 0;
-        stored = stored.add(BigInteger.valueOf(amount));
-        recordInput(amount);
-        markDirty();
-        return amount;
+    public WirelessEnergyChannel getDefaultChannel() {
+        return channels.get(DEFAULT_CHANNEL_ID);
     }
 
-    public long extract(long amount) {
-        if (amount <= 0) return 0;
-        BigInteger biAmount = BigInteger.valueOf(amount);
-        if (stored.compareTo(biAmount) < 0) return 0;
-        stored = stored.subtract(biAmount);
-        recordOutput(amount);
-        markDirty();
-        return amount;
+    public WirelessEnergyChannel getChannel(int channelId) {
+        return channels.get(channelId);
     }
 
-    public long extractUpTo(long amount) {
-        if (amount <= 0) return 0;
-        BigInteger biAmount = BigInteger.valueOf(amount);
-        long available;
-        if (stored.compareTo(biAmount) >= 0) {
-            available = amount;
-        } else {
-            available = stored.longValue();
+    public Collection<WirelessEnergyChannel> getChannels() {
+        return channels.values();
+    }
+
+    public WirelessEnergyChannel createChannel(String name) {
+        int id = nextChannelId++;
+        WirelessEnergyChannel channel = new WirelessEnergyChannel(id, normalizeChannelName(name, id));
+        channels.put(id, channel);
+        return channel;
+    }
+
+    public boolean renameChannel(int channelId, String name) {
+        WirelessEnergyChannel channel = channels.get(channelId);
+        if (channel == null) return false;
+        channel.setName(normalizeChannelName(name, channelId));
+        return true;
+    }
+
+    /**
+     * Deletes a channel only when another channel remains. Its balance is
+     * divided evenly across the remaining channels; any remainder is assigned
+     * in stable channel-id order.
+     */
+    public boolean deleteChannel(int channelId) {
+        if (channels.size() <= 1 || !channels.containsKey(channelId)) return false;
+        WirelessEnergyChannel deleted = channels.remove(channelId);
+        BigInteger[] division = deleted.getStored().divideAndRemainder(BigInteger.valueOf(channels.size()));
+        int remainder = division[1].intValue();
+        for (WirelessEnergyChannel channel : channels.values()) {
+            BigInteger allocation = division[0];
+            if (remainder-- > 0) allocation = allocation.add(BigInteger.ONE);
+            channel.insert(allocation);
         }
-        if (available <= 0) return 0;
-        stored = stored.subtract(BigInteger.valueOf(available));
-        recordOutput(available);
-        markDirty();
-        return available;
+        return true;
     }
-
-    // ==================== Energy Operations (BigInteger path) ====================
-
-    public BigInteger insert(BigInteger amount) {
-        if (amount.signum() <= 0) return BigInteger.ZERO;
-        stored = stored.add(amount);
-        recordInput(amount);
-        markDirty();
-        return amount;
-    }
-
-    public BigInteger extract(BigInteger amount) {
-        if (amount.signum() <= 0) return BigInteger.ZERO;
-        if (stored.compareTo(amount) < 0) return BigInteger.ZERO;
-        stored = stored.subtract(amount);
-        recordOutput(amount);
-        markDirty();
-        return amount;
-    }
-
-    public BigInteger extractUpTo(BigInteger amount) {
-        if (amount.signum() <= 0) return BigInteger.ZERO;
-        BigInteger available = amount.min(stored);
-        if (available.signum() <= 0) return BigInteger.ZERO;
-        stored = stored.subtract(available);
-        recordOutput(available);
-        markDirty();
-        return available;
-    }
-
-    // ==================== Statistics ====================
 
     public void tickStats() {
-        windowTickCounter++;
-        if (windowTickCounter >= STATS_WINDOW_TICKS) {
-            inputPerSecond = inputThisWindow;
-            outputPerSecond = outputThisWindow;
-            inputThisWindow = BigInteger.ZERO;
-            outputThisWindow = BigInteger.ZERO;
-            windowTickCounter = 0;
-        }
+        channels.values().forEach(WirelessEnergyChannel::tickStats);
     }
-
-    private void recordInput(long amount) {
-        inputThisWindow = inputThisWindow.add(BigInteger.valueOf(amount));
-    }
-
-    private void recordInput(BigInteger amount) {
-        inputThisWindow = inputThisWindow.add(amount);
-    }
-
-    private void recordOutput(long amount) {
-        outputThisWindow = outputThisWindow.add(BigInteger.valueOf(amount));
-    }
-
-    private void recordOutput(BigInteger amount) {
-        outputThisWindow = outputThisWindow.add(amount);
-    }
-
-    // ==================== Persistence ====================
 
     public NBTTagCompound writeToNBT() {
         NBTTagCompound tag = new NBTTagCompound();
         tag.setString("id", networkId.toString());
         tag.setString("name", networkName);
-        tag.setByteArray("stored", stored.toByteArray());
-        tag.setByteArray("inputPerSec", inputPerSecond.toByteArray());
-        tag.setByteArray("outputPerSec", outputPerSecond.toByteArray());
+        tag.setInteger("nextChannelId", nextChannelId);
+
+        NBTTagList channelList = new NBTTagList();
+        channels.values().forEach(channel -> channelList.appendTag(channel.writeToNBT()));
+        tag.setTag(NBT_CHANNELS, channelList);
         return tag;
     }
 
     public static WirelessEnergyNetwork readFromNBT(NBTTagCompound tag) {
         UUID id = UUID.fromString(tag.getString("id"));
-        String name = tag.getString("name");
-        WirelessEnergyNetwork network = new WirelessEnergyNetwork(id, name);
-        if (tag.hasKey("stored")) {
-            network.stored = new BigInteger(tag.getByteArray("stored"));
+        WirelessEnergyNetwork network = new WirelessEnergyNetwork(id, tag.getString("name"));
+        network.channels.clear();
+
+        if (tag.hasKey(NBT_CHANNELS)) {
+            NBTTagList channelList = tag.getTagList(NBT_CHANNELS, 10);
+            for (NBTBase entry : channelList) {
+                WirelessEnergyChannel channel = WirelessEnergyChannel.readFromNBT((NBTTagCompound) entry);
+                network.channels.put(channel.getChannelId(), channel);
+                network.nextChannelId = Math.max(network.nextChannelId, channel.getChannelId() + 1);
+            }
+            network.nextChannelId = Math.max(network.nextChannelId, tag.getInteger("nextChannelId"));
+        } else {
+            // Version 1 stored its account directly on the team network.
+            WirelessEnergyChannel legacy = new WirelessEnergyChannel(DEFAULT_CHANNEL_ID, "Main");
+            if (tag.hasKey("stored")) legacy.insert(new BigInteger(tag.getByteArray("stored")));
+            network.channels.put(DEFAULT_CHANNEL_ID, legacy);
         }
-        if (tag.hasKey("inputPerSec")) {
-            network.inputPerSecond = new BigInteger(tag.getByteArray("inputPerSec"));
-        }
-        if (tag.hasKey("outputPerSec")) {
-            network.outputPerSecond = new BigInteger(tag.getByteArray("outputPerSec"));
+
+        if (network.channels.isEmpty()) {
+            network.channels.put(DEFAULT_CHANNEL_ID, new WirelessEnergyChannel(DEFAULT_CHANNEL_ID, "Main"));
         }
         return network;
     }
 
-    // ==================== Dirty Management ====================
-
-    private void markDirty() {
-        dirty = true;
+    private static String normalizeChannelName(String name, int id) {
+        String normalized = name == null ? "" : name.trim();
+        if (normalized.isEmpty()) return "Channel " + id;
+        return normalized.length() > 32 ? normalized.substring(0, 32) : normalized;
     }
 
     public boolean checkAndClearDirty() {
-        boolean wasDirty = dirty;
-        dirty = false;
-        return wasDirty;
+        boolean dirty = false;
+        for (WirelessEnergyChannel channel : channels.values()) {
+            dirty |= channel.checkAndClearDirty();
+        }
+        return dirty;
     }
 
-    // ==================== Getters/Setters ====================
-
-    public UUID getNetworkId() {
-        return networkId;
-    }
-
-    public String getNetworkName() {
-        return networkName;
-    }
-
-    public void setNetworkName(String networkName) {
-        this.networkName = networkName;
-    }
-
-    public BigInteger getStored() {
-        return stored;
-    }
-
-    public BigInteger getInputPerSecond() {
-        return inputPerSecond;
-    }
-
-    public BigInteger getOutputPerSecond() {
-        return outputPerSecond;
-    }
-
-    /**
-     * Sets stored energy directly. Used for migration and admin operations only.
-     */
+    public UUID getNetworkId() { return networkId; }
+    public String getNetworkName() { return networkName; }
+    public void setNetworkName(String networkName) { this.networkName = networkName; }
+    public BigInteger getStored() { return getDefaultChannel().getStored(); }
+    public BigInteger getInputPerSecond() { return getDefaultChannel().getInputPerSecond(); }
+    public BigInteger getOutputPerSecond() { return getDefaultChannel().getOutputPerSecond(); }
     public void setStored(BigInteger stored) {
-        this.stored = stored;
-        markDirty();
+        BigInteger current = getDefaultChannel().getStored();
+        if (stored.compareTo(current) >= 0) getDefaultChannel().insert(stored.subtract(current));
+        else getDefaultChannel().extractUpTo(current.subtract(stored));
     }
 }
