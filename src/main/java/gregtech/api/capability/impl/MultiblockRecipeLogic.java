@@ -4,11 +4,12 @@ import gregtech.api.GTValues;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IEnergyContainer;
-import gregtech.api.capability.IRecipeMapBoundInput;
 import gregtech.api.capability.IMultiblockController;
 import gregtech.api.capability.IMultipleNotifiableHandler;
 import gregtech.api.capability.IMultipleRecipeMaps;
 import gregtech.api.capability.IMultipleTankHandler;
+import gregtech.api.capability.IPatternBufferIsolatedHandler;
+import gregtech.api.capability.IRecipeMapBoundInput;
 import gregtech.api.capability.IRecipeMapHolder;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
@@ -26,7 +27,7 @@ import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.logic.ParallelLogic;
 import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
-
+import gregtech.api.util.GTQTUtility;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
@@ -37,8 +38,6 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
-import gregtech.api.util.GTQTUtility;
-import gregtech.api.capability.IPatternBufferIsolatedHandler;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -130,6 +129,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     public void updateWorkable() {
         super.update();
+    }
+
+    /**
+     * 控制并行是否将电力需求乘以并行数。
+     * {@link #overclockAndStartSlot}。
+     */
+    protected boolean shouldParallelMultiplyPower() {
+        return true;
     }
 
     // ==================== Cross-Recipe Parallel Scheduler Integration ====================
@@ -463,7 +470,13 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (remainingBasePower < baseEUt) return null;
 
         // Parallel is limited by: min(parallelBudget, remainingBasePower / baseEUt)
-        int maxInputParallel = (int) Math.min(maxParallelBudget, remainingBasePower / Math.max(1, baseEUt));
+        // When shouldParallelMultiplyPower() is false, power does not constrain parallel
+        int maxInputParallel;
+        if (shouldParallelMultiplyPower()) {
+            maxInputParallel = (int) Math.min(maxParallelBudget, remainingBasePower / Math.max(1, baseEUt));
+        } else {
+            maxInputParallel = maxParallelBudget;
+        }
         maxInputParallel = Math.max(1, maxInputParallel);
 
         int inputParallel = ParallelLogic.getMaxRecipeMultiplier(
@@ -481,8 +494,13 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         inputParallel = outputParallel;
 
-        return new SlotAllocation(slot, trimmed, recipeMap, importInventory, importFluids,
+        SlotAllocation alloc = new SlotAllocation(slot, trimmed, recipeMap, importInventory, importFluids,
                 baseEUt, baseDuration, inputParallel);
+        // When power doesn't multiply with parallel, reserve only single-recipe EU/t
+        if (!shouldParallelMultiplyPower()) {
+            alloc.basePowerDemand = baseEUt;
+        }
+        return alloc;
     }
 
     /**
@@ -503,7 +521,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // --- Overclock ---
         // OC tier count is based on single-recipe baseEUt vs getMaximumOverclockVoltage()
         // OC execution is bounded by the allocated power budget for this slot
-        long totalBaseEUt = baseEUt * inputParallel;
+        // When shouldParallelMultiplyPower() is false, OC starts from single-recipe EU/t
+        // and uses the machine's real max voltage instead of the inflated power budget
+        long totalBaseEUt = shouldParallelMultiplyPower() ? baseEUt * inputParallel : baseEUt;
         OCParams params = new OCParams();
         OCResult result = new OCResult();
         params.initialize(totalBaseEUt, baseDuration, getNumberOfOCs(baseEUt));
@@ -512,7 +532,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (params.ocAmount() <= 0) {
             result.init(params.eut(), params.duration());
         } else {
-            runOverclockingLogic(params, result, trimmed.propertyStorage(), ocPowerBudget);
+            runOverclockingLogic(params, result, trimmed.propertyStorage(),
+                    shouldParallelMultiplyPower() ? ocPowerBudget : getMaximumOverclockVoltage());
         }
         modifyOverclockPost(result, trimmed.propertyStorage());
 
@@ -525,8 +546,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         long totalSlotEUt = result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt;
 
-        // Clamp totalSlotEUt to the allocated power budget
-        if (totalSlotEUt > ocPowerBudget) {
+        // Clamp totalSlotEUt to the allocated power budget (only when power multiplies with parallel)
+        if (shouldParallelMultiplyPower() && totalSlotEUt > ocPowerBudget) {
             long perParallelEUt = Math.max(1, totalSlotEUt / inputParallel);
             inputParallel = (int) (ocPowerBudget / Math.max(1, perParallelEUt));
             if (inputParallel <= 0) return false;

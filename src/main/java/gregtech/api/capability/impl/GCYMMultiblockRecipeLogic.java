@@ -30,33 +30,14 @@ public class GCYMMultiblockRecipeLogic extends MultiblockRecipeLogic {
         }
         return 1;
     }
-    /*
-    @Override
-    protected void modifyOverclockPost(@NotNull OCResult ocResult, @NotNull RecipePropertyStorage storage) {
-        super.modifyOverclockPost(ocResult, storage);
-        ocResult.setDuration(ocResult.duration() / getDurationMultiplier());
-    }
 
-    private int getDurationMultiplier() {
-        if (metaTileEntity instanceof IParallelMultiblock parallelMultiblock && parallelMultiblock.isParallel()) {
-            int maxParallel = parallelMultiblock.getParallel();
-            if (maxParallel <= 16) {
-                return maxParallel;
-            }
-            if (maxParallel <= 64) {
-                return maxParallel / 4;
-            }
-            if (maxParallel <= 256) {
-                return maxParallel / 64;
-            }
-            if (maxParallel <= 1024) {
-                return maxParallel / 512;
-            }
-        }
-        return 1;
-    }
-
+    /**
+     * 并行：不增加耗电。
      */
+    @Override
+    protected boolean shouldParallelMultiplyPower() {
+        return false;
+    }
 
     @Override
     public @NotNull RecipeMapMultiblockController getMetaTileEntity() {
