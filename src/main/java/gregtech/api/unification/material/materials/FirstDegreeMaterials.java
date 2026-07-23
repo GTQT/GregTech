@@ -1612,10 +1612,16 @@ public class FirstDegreeMaterials {
                         .vacuumStats(VA[EV], 300))
                 .build();
 
-        AntimonyTelluride = Material.builder(455, gregtechId("antimony_telluride"))
+        AntimonyTelluride = Material.builder(454, gregtechId("antimony_telluride"))
                 .dust()
                 .color(0xA3A68E).iconSet(METALLIC)
                 .components(Antimony, 2, Tellurium, 3)
+                .build();
+
+        Alumina = Material.builder(455, gregtechId("alumina"))
+                .dust(1)
+                .color(0xF0F0F0)
+                .components(Aluminium, 2, Oxygen, 3)
                 .build();
 
         //蒸汽废气 200:1
@@ -1629,7 +1635,7 @@ public class FirstDegreeMaterials {
                 .build();
 
         //高压蒸汽 80:1
-        HighPressureSteam = Material.builder(673, gregtechId("high_pressure_steam"))
+        HighPressureSteam = Material.builder(457, gregtechId("high_pressure_steam"))
                 .gas(new FluidBuilder()
                         .block()
                         .temperature(373)

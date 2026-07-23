@@ -2246,6 +2246,7 @@ gregtech.material.zircaloy_4=锆-4合金
 gregtech.material.inconel_718=因科镍-718
 gregtech.material.high_grade_soldering_alloy=高级焊接合金
 gregtech.material.antimony_telluride=碲化锑
+gregtech.material.alumina=氧化铝
 # Organic Chemistry Materials
 gregtech.material.silicone_rubber=硅橡胶
 gregtech.material.raw_rubber=生橡胶
@@ -8954,9 +8955,9 @@ gregtech.machine.wireless_controller.tooltip.2=PSS 的存储能量将定期与�
 gregtech.machine.wireless_controller.tooltip.3=· 本地能量超出阈值 -> 自动推入无线网络供远程使用
 gregtech.machine.wireless_controller.tooltip.4=· 本地能量低于阈值 -> 自动从无线网络提取补充
 gregtech.machine.wireless_controller.tooltip.5=§e传输速率公式：
-gregtech.machine.wireless_controller.tooltip.6=§f  7 * Σ(N_i * V_i * 2^(T_i - UHV) * 5^(C - UHV)) EU/t
-gregtech.machine.wireless_controller.tooltip.7=§7  N_i = 该等级电容数量，V_i = 电容电压
-gregtech.machine.wireless_controller.tooltip.8=§7  T_i = 电容等级，C = 监控器等级
-gregtech.machine.wireless_controller.tooltip.9=§7  仅 UHV 及以上等级的电容参与计算
+gregtech.machine.wireless_controller.tooltip.6=§f 7*Σ(Ni*Vi*2^(Ti-UHV)*5^(C-UHV)) EU/t
+gregtech.machine.wireless_controller.tooltip.7=§7 Ni = 该等级电容数量，Vi = 电容电压
+gregtech.machine.wireless_controller.tooltip.8=§7 Ti = 电容等级，C = 监控器等级
+gregtech.machine.wireless_controller.tooltip.9=§7 仅 UHV 及以上等级的电容参与计算
 gregtech.machine.wireless_controller.tooltip.retention=§b本地保留比例：§f%s%%
 gregtech.machine.wireless_controller.tooltip.team=FTB 同组玩家自动共享同一网络，无需额外操作。

@@ -2252,6 +2252,7 @@ gregtech.material.zircaloy_4=Zircaloy-4
 gregtech.material.inconel_718=Inconel-718
 gregtech.material.high_grade_soldering_alloy=High-Grade Soldering Alloy
 gregtech.material.antimony_telluride=Antimony Telluride
+gregtech.material.alumina=Alumina
 # Organic Chemistry Materials
 gregtech.material.silicone_rubber=Silicone Rubber
 gregtech.material.raw_rubber=Raw Rubber

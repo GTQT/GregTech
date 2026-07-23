@@ -464,6 +464,7 @@ public class Materials {
     public static Material Inconel718;
     public static Material HighGradeSolderingAlloy;
     public static Material AntimonyTelluride;
+    public static Material Alumina;
 
     /**
      * Organic chemistry
