@@ -1388,7 +1388,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
-     * @return the current recipe's EU/t for TOP/Waila/Tricorder
+     * @return the current recipe's EU/t for TOP/Tricorder
      */
     public long getInfoProviderEUt() {
         return getRecipeEUt();

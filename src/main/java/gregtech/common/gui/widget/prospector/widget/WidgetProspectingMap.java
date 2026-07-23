@@ -51,7 +51,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-import java.util.TreeSet;
+
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
@@ -330,7 +330,7 @@ public class WidgetProspectingMap extends Widget {
                 }
             }
 
-            if (Mods.JourneyMap.isModLoaded() || Mods.VoxelMap.isModLoaded() || Mods.XaerosMinimap.isModLoaded()) {
+            if (Mods.XaerosMinimap.isModLoaded()) {
                 tooltips.add(I18n.format("terminal.prospector.waypoint.add"));
             }
             this.drawHoveringText(ItemStack.EMPTY, tooltips, 300, mouseX, mouseY);
@@ -359,11 +359,7 @@ public class WidgetProspectingMap extends Widget {
             boolean added = false;
             trimHoveredNames();
 
-            if (Mods.JourneyMap.isModLoaded()) {
-                added = addJourneymapWaypoint(b);
-            } else if (Mods.VoxelMap.isModLoaded()) {
-                added = addVoxelMapWaypoint(b);
-            } else if (Mods.XaerosMinimap.isModLoaded()) {
+            if (Mods.XaerosMinimap.isModLoaded()) {
                 added = addXaeroMapWaypoint(b);
             }
             if (added) {
@@ -403,49 +399,6 @@ public class WidgetProspectingMap extends Widget {
         // remove the [] surrounding the array
         String s = hoveredNames.toString();
         return s.substring(1, s.length() - 1);
-    }
-
-    @Optional.Method(modid = Mods.Names.JOURNEY_MAP)
-    private boolean addJourneymapWaypoint(BlockPos b) {
-        journeymap.client.model.Waypoint journeyMapWaypoint = new journeymap.client.model.Waypoint(createVeinName(),
-                b,
-                new Color(color),
-                journeymap.client.model.Waypoint.Type.Normal,
-                Minecraft.getMinecraft().world.provider.getDimension());
-        if (!journeymap.client.waypoint.WaypointStore.INSTANCE.getAll().contains(journeyMapWaypoint)) {
-            journeymap.client.waypoint.WaypointStore.INSTANCE.save(journeyMapWaypoint);
-            return true;
-        }
-        return false;
-    }
-
-    @Optional.Method(modid = Mods.Names.VOXEL_MAP)
-    private boolean addVoxelMapWaypoint(@NotNull BlockPos b) {
-        Color c = new Color(color);
-        TreeSet<Integer> world = new TreeSet<>();
-        world.add(Minecraft.getMinecraft().world.provider.getDimension());
-
-        com.mamiyaotaru.voxelmap.interfaces.IWaypointManager waypointManager = com.mamiyaotaru.voxelmap.interfaces.AbstractVoxelMap
-                .getInstance().getWaypointManager();
-        com.mamiyaotaru.voxelmap.util.Waypoint voxelMapWaypoint = new com.mamiyaotaru.voxelmap.util.Waypoint(
-                createVeinName(),
-                b.getX(),
-                b.getZ(),
-                b.getY(),
-                true,
-                c.getRed() / 255F,
-                c.getGreen() / 255F,
-                c.getBlue() / 255F,
-                Minecraft.getMinecraft().world.provider.getDimensionType().getSuffix(),
-                Minecraft.getMinecraft().world.provider.getDimensionType().getName(),
-                world);
-
-        if (!waypointManager.getWaypoints().contains(voxelMapWaypoint)) {
-            waypointManager.addWaypoint(voxelMapWaypoint);
-            waypointManager.saveWaypoints();
-            return true;
-        }
-        return false;
     }
 
     @Optional.Method(modid = Mods.Names.XAEROS_MINIMAP)

@@ -32,7 +32,6 @@ import gregtech.api.unification.material.event.MaterialRegistryEvent;
 import gregtech.api.unification.material.event.PostMaterialEvent;
 import gregtech.api.unification.material.registry.MarkerMaterialRegistry;
 import gregtech.api.util.CapesRegistry;
-import gregtech.api.util.Mods;
 import gregtech.api.util.oreglob.OreGlob;
 import gregtech.api.util.virtualregistry.VirtualEnderRegistry;
 import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinHandler;
@@ -58,8 +57,8 @@ import gregtech.common.items.MetaItems;
 import gregtech.common.items.ToolItems;
 import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.metatileentities.electric.MetaTileEntityAlarm;
-import gregtech.common.worldgen.LootTableHelper;
 import gregtech.common.wireless.WirelessEnergyServiceImpl;
+import gregtech.common.worldgen.LootTableHelper;
 import gregtech.core.advancement.AdvancementTriggers;
 import gregtech.core.advancement.internal.AdvancementManager;
 import gregtech.core.command.internal.CommandManager;
@@ -82,7 +81,6 @@ import gregtech.core.sound.GTSoundEvents;
 import gregtech.core.sound.internal.SoundManager;
 import gregtech.core.unification.material.internal.MaterialRegistryManager;
 import gregtech.datafix.command.CommandDataFix;
-import gregtech.integration.bq.BQuDataFixer;
 import gregtech.loaders.dungeon.DungeonLootLoader;
 import gregtech.modules.GregTechModules;
 
@@ -367,10 +365,6 @@ public class CoreModule implements IGregTechModule {
         GregTechAPI.commandManager.addCommand(new CommandDataFix());
         GregTechAPI.commandManager.addCommand(new CommandWireless());
         CapesRegistry.load();
-
-        if (Mods.BetterQuestingUnofficial.isModLoaded()) {
-            BQuDataFixer.onServerStarting(event.getServer());
-        }
     }
 
     @Override

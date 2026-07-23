@@ -202,14 +202,6 @@ option.gregtech.steam_boiler=蒸汽锅炉
 option.gregtech.transformer=变压器
 option.gregtech.workable=机器工作状态
 
-gregtech.waila.energy_stored=能量：%s EU / %s EU
-gregtech.waila.energy_input=输入：%s EU/t
-gregtech.waila.energy_output=输出：%s EU/t
-gregtech.waila.progress_idle=闲置
-gregtech.waila.progress_tick=进度：%d t / %d t
-gregtech.waila.progress_sec=进度：%d s / %d s
-gregtech.waila.progress_computation=计算进度：%s / %s
-gregtech.waila.active_transformer.average_io=平均I/O：%s EU/t
 
 gregtech.multiblock.title=多方块结构
 gregtech.multiblock.primitive_blast_furnace.bronze.description=土高炉是（PBF）是个多方块结构。尽管它不是很快，却能在游戏前期为你的发展提供钢材。
@@ -8192,12 +8184,7 @@ gregtech.command.copy.copied_and_click=已复制至剪贴板。点击以再次�
 gregtech.command.copy.click_to_copy=点击以复制
 gregtech.command.copy.copied_start=已复制[
 gregtech.command.copy.copied_end=]至剪贴板
-gregtech.command.datafix.usage=用法：/gregtech datafix <bqu>
-gregtech.command.datafix.bqu.usage=用法：/gregtech datafix <bqu> [confirm]
-gregtech.command.datafix.bqu.backup=备份你的存档和BQu配置文件，然后使用“confirm”参数重新运行
-gregtech.command.datafix.bqu.start=开始迁移BQu任务数据库…
-gregtech.command.datafix.bqu.complete=BQu任务数据库迁移完成
-gregtech.command.datafix.bqu.failed=BQu任务数据库迁移失败。恢复你的备份！
+gregtech.command.datafix.usage=用法：/gregtech datafix
 
 gregtech.chat.cape=§5恭喜你：你刚刚解锁了一件新披风！查看终端应用程序“披风选择器”来使用它。§r
 
@@ -8582,6 +8569,9 @@ modifier.gregtech_moonlit.name=月光
 modifier.gregtech_moonlit.desc=§o夜晚属于我们§r\n夜间挖掘速度 +50%，攻击力 +3。
 modifier.gregtech_unbreakable.name=不朽
 modifier.gregtech_unbreakable.desc=§o永恒，绝对§r\n此工具永不损坏。
+modifier.gregtech_electric.name=电力驱动
+modifier.gregtech_electric.desc=§o插电即用！§r\n消耗GTEU电力代替耐久。\n可在GT电池缓冲器或充电器中充电。
+gregtech.trait.electric.tooltip=%s / %s EU (%s)
 gregtech.trait.ench.desc=§o%s§r\n永久应用此附魔效果。
 
 record.sus=Leonz - Among Us Drip

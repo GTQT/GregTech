@@ -456,7 +456,7 @@ public class MetaTileEntityQuantumChest extends MetaTileEntityQuantumStorage<IIt
             return null;
         } else if (capability == CapabilityItemHandler.ITEM_HANDLER_CAPABILITY) {
 
-            // for TOP/Waila
+            // for TOP
             if (side == null) return CapabilityItemHandler.ITEM_HANDLER_CAPABILITY.cast(combinedInventory);
 
             // try fix being able to insert through output hole when input on output is disabled

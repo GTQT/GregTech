@@ -30,10 +30,6 @@ public enum Mods {
     AE2FluidCraft(Names.AE2_FLUID_CRAFT),
     Baubles(Names.BAUBLES),
     BetterBuildersWands(Names.BETTER_BUILDERS_WANDS),
-    BetterQuestingUnofficial(Names.BETTER_QUESTING, mod -> {
-        var container = Loader.instance().getIndexedModList().get(Names.BETTER_QUESTING);
-        return container.getVersion().startsWith("4.");
-    }),
     BinnieCore(Names.BINNIE_CORE),
     BiomesOPlenty(Names.BIOMES_O_PLENTY),
     BuildCraftCore(Names.BUILD_CRAFT_CORE),
@@ -61,11 +57,11 @@ public enum Mods {
     GregTechFoodOption(Names.GREGTECH_FOOD_OPTION),
     GroovyScript(Names.GROOVY_SCRIPT),
     GTCE2OC(Names.GTCE_2_OC),
-    HWYLA(Names.HWYLA),
+
     ImmersiveEngineering(Names.IMMERSIVE_ENGINEERING),
     IndustrialCraft2(Names.INDUSTRIAL_CRAFT2),
     InventoryTweaks(Names.INVENTORY_TWEAKS),
-    JourneyMap(Names.JOURNEY_MAP),
+
     JustEnoughItems(Names.JUST_ENOUGH_ITEMS),
     LittleTiles(Names.LITTLE_TILES),
     MagicBees(Names.MAGIC_BEES),
@@ -81,7 +77,7 @@ public enum Mods {
     TheOneProbe(Names.THE_ONE_PROBE),
     TinkersConstruct(Names.TINKERS_CONSTRUCT),
     TOPAddons(Names.TOP_ADDONS),
-    VoxelMap(Names.VOXEL_MAP),
+
     XaerosMinimap(Names.XAEROS_MINIMAP),
     Vintagium(Names.VINTAGIUM),
     GTQT_TEST(Names.GTQT_TEST),
@@ -120,7 +116,7 @@ public enum Mods {
         public static final String AE2_FLUID_CRAFT = "ae2fc";
         public static final String BAUBLES = "baubles";
         public static final String BETTER_BUILDERS_WANDS = "betterbuilderswands";
-        public static final String BETTER_QUESTING = "betterquesting";
+
         public static final String BINNIE_CORE = "binniecore";
         public static final String BIOMES_O_PLENTY = "biomesoplenty";
         public static final String BUILD_CRAFT_CORE = "buildcraftcore";
@@ -147,11 +143,11 @@ public enum Mods {
         public static final String GREGTECH_FOOD_OPTION = "gregtechfoodoption";
         public static final String GROOVY_SCRIPT = "groovyscript";
         public static final String GTCE_2_OC = "gtce2oc";
-        public static final String HWYLA = "hwyla";
+
         public static final String IMMERSIVE_ENGINEERING = "immersiveengineering";
         public static final String INDUSTRIAL_CRAFT2 = "ic2";
         public static final String INVENTORY_TWEAKS = "inventorytweaks";
-        public static final String JOURNEY_MAP = "journeymap";
+
         public static final String JUST_ENOUGH_ITEMS = "jei";
         public static final String LITTLE_TILES = "littletiles";
         public static final String MAGIC_BEES = "magicbees";
@@ -166,7 +162,7 @@ public enum Mods {
         public static final String THE_ONE_PROBE = "theoneprobe";
         public static final String TINKERS_CONSTRUCT = "tconstruct";
         public static final String TOP_ADDONS = "topaddons";
-        public static final String VOXEL_MAP = "voxelmap";
+
         public static final String XAEROS_MINIMAP = "xaerominimap";
         public static final String VINTAGIUM = "vintagium";
         public static final String GTQT_TEST = "test_gtqt";

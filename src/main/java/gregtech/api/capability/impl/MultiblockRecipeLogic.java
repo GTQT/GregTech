@@ -1324,7 +1324,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     /**
      * In cross-recipe mode, returns the display slot's progress time for external consumers
-     * (TOP, HWYLA, GUI progress bar, etc.) instead of the internal sentinel value (1).
+     * (TOP, GUI progress bar, etc.) instead of the internal sentinel value (1).
      */
     @Override
     public int getProgress() {

@@ -202,14 +202,6 @@ option.gregtech.steam_boiler=Steam Boilers
 option.gregtech.transformer=Transformers
 option.gregtech.workable=Workable Machines
 
-gregtech.waila.energy_stored=Energy: %s EU / %s EU
-gregtech.waila.energy_input=Input: %s EU/t
-gregtech.waila.energy_output=Output: %s EU/t
-gregtech.waila.progress_idle=Idle
-gregtech.waila.progress_tick=Progress: %d t / %d t
-gregtech.waila.progress_sec=Progress: %d s / %d s
-gregtech.waila.progress_computation=Computation: %s / %s
-gregtech.waila.active_transformer.average_io=Average I/O: %s EU/t
 
 gregtech.multiblock.title=Multiblock Pattern
 gregtech.multiblock.primitive_blast_furnace.bronze.description=The Primitive Blast Furnace (PBF) is a multiblock structure used for cooking steel in the early game. Although not very fast, it will provide you with steel for your first setups.
@@ -8209,12 +8201,7 @@ gregtech.command.copy.copied_and_click=copied to clipboard. Click to copy again
 gregtech.command.copy.click_to_copy=Click to copy
 gregtech.command.copy.copied_start=Copied [
 gregtech.command.copy.copied_end=] to the clipboard
-gregtech.command.datafix.usage=Usage: /gregtech datafix <bqu>
-gregtech.command.datafix.bqu.usage=Usage: /gregtech datafix bqu [confirm]
-gregtech.command.datafix.bqu.backup=Backup your save and BQu config dir, then rerun with the 'confirm' arg
-gregtech.command.datafix.bqu.start=Started Migrating BQu Quest Database...
-gregtech.command.datafix.bqu.complete=Finished Migrating BQu Quest Database
-gregtech.command.datafix.bqu.failed=Failed Migrating BQu Quest Database. Restore your backups!
+gregtech.command.datafix.usage=Usage: /gregtech datafix
 
 gregtech.chat.cape=§5Congrats: you just unlocked a new cape! See the Cape Selector terminal app to use it.§r
 
@@ -8604,6 +8591,9 @@ modifier.gregtech_moonlit.name=Moonlit
 modifier.gregtech_moonlit.desc=§oThe night belongs to us§r\nMining speed +50% and +3 damage at night.
 modifier.gregtech_unbreakable.name=Unbreakable
 modifier.gregtech_unbreakable.desc=§oEternal, Absolute§r\nThis tool will never break.
+modifier.gregtech_electric.name=Electric
+modifier.gregtech_electric.desc=§oPlugin and play!§r\nConsumes GTEU instead of durability.\nCharge the tool in a GT battery buffer.
+gregtech.trait.electric.tooltip=%s / %s EU (%s)
 gregtech.trait.ench.desc=§o%s§r\nApplies this enchantment permanently.
 
 record.sus=Leonz - Among Us Drip

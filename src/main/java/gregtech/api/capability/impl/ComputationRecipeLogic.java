@@ -154,7 +154,7 @@ public class ComputationRecipeLogic extends MultiblockRecipeLogic {
     }
 
     /**
-     * @return Whether TOP / WAILA should show the recipe progress as duration or as total computation.
+     * @return Whether TOP should show the recipe progress as duration or as total computation.
      */
     public boolean shouldShowDuration() {
         return !isDurationTotalCWU;
