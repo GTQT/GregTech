@@ -52,8 +52,7 @@ public class MetaTileEntityCrackingUnit extends RecipeMapMultiblockController {
                             .aisle("HCHCH", "HCOCH", "HCHCH")
                             .self('O', MetaTileEntityCrackingUnit.class)
                             .air('#')
-                            .casing('H',
-                                    MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN))
+                            .casing('H', getCasingState())
                             .preset(HatchPresets.ELECTRIC_STANDARD)
                             .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                             .withChannel(GTCasingGroups.heatingCoils().channel())
