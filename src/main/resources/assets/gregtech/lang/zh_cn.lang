@@ -778,6 +778,19 @@ gregtech.tool.projector.structure_height=高度
 gregtech.tool.projector.structure_width=宽度
 gregtech.tool.projector.structure_length=长度
 
+# Structure Builder
+gregtech.tool.builder.tooltip1=§7Shift+右键多方块控制器：自动建造结构
+gregtech.tool.builder.tooltip2=§7右键空气：打开配置GUI填写信道
+gregtech.tool.builder.no_hatch_on=§c禁止放置舱室：开启
+gregtech.tool.builder.channels_set=§e信道配置：%s个
+gregtech.tool.builder.channel_config_hint=§8右键控制器自动填入支持的信道，右键空气打开GUI配置
+gregtech.tool.builder.gui_title=多方块构建器配置
+gregtech.tool.builder.no_hatch_tooltip=切换禁止放置舱室模式（自动建造时不放置任何舱室）
+gregtech.tool.builder.clear=清空信道
+gregtech.tool.builder.structure_height=高度
+gregtech.tool.builder.structure_width=宽度
+gregtech.tool.builder.structure_length=长度
+
 # Structure Channels
 gregtech.structure_channel.heating_coil=加热线圈等级
 gregtech.structure_channel.wire_coil=线圈等级

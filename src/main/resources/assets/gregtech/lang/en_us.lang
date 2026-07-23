@@ -781,6 +781,19 @@ gregtech.tool.projector.structure_height=Height
 gregtech.tool.projector.structure_width=Width
 gregtech.tool.projector.structure_length=Length
 
+# Structure Builder
+gregtech.tool.builder.tooltip1=§7Shift+Right-click Controller: Auto-build structure
+gregtech.tool.builder.tooltip2=§7Right-click Air: Open config GUI for channels
+gregtech.tool.builder.no_hatch_on=§cNo Hatch Mode: ON
+gregtech.tool.builder.channels_set=§eChannels: %s set
+gregtech.tool.builder.channel_config_hint=§8Right-click controller to auto-fill channels, right-click air to open GUI
+gregtech.tool.builder.gui_title=Multiblock Builder Config
+gregtech.tool.builder.no_hatch_tooltip=Toggle No Hatch Mode (skip hatch placement during auto-build)
+gregtech.tool.builder.clear=Clear Channels
+gregtech.tool.builder.structure_height=Height
+gregtech.tool.builder.structure_width=Width
+gregtech.tool.builder.structure_length=Length
+
 # Structure Channels
 gregtech.structure_channel.heating_coil=Heating Coil Tier
 gregtech.structure_channel.wire_coil=Wire Coil Tier
