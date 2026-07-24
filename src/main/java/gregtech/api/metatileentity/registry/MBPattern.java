@@ -19,6 +19,7 @@ public class MBPattern {
     final WorldSceneRenderer sceneRenderer;
     final List<ItemStack> parts;
     final Map<BlockPos, StructureElementPreviewEntry> previewEntries;
+    private boolean disposed;
 
     public MBPattern(final WorldSceneRenderer sceneRenderer, final List<ItemStack> parts) {
         this(sceneRenderer, parts, Collections.emptyMap());
@@ -37,6 +38,21 @@ public class MBPattern {
 
     public WorldSceneRenderer getSceneRenderer() {
         return sceneRenderer;
+    }
+
+    /**
+     * Release the renderer's GPU resources. JEI preview patterns are replaced as
+     * the active recipe or channel configuration changes, so relying on GC here
+     * would leave FBO/VBO allocations alive indefinitely.
+     */
+    public void dispose() {
+        if (disposed) return;
+        disposed = true;
+        sceneRenderer.dispose();
+    }
+
+    public boolean isDisposed() {
+        return disposed;
     }
 
     @Nullable

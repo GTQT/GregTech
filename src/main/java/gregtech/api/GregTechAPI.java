@@ -73,13 +73,38 @@ public class GregTechAPI {
     private static boolean highTierInitialized;
 
     private static final Map<ResourceLocation, MBPattern[]> MULTIBLOCK_INFO_CACHE = new ConcurrentHashMap<>();
+    private static final Map<ResourceLocation, Integer> MULTIBLOCK_INFO_PATTERN_COUNTS = new ConcurrentHashMap<>();
 
     public static MBPattern[] getPatterns(ResourceLocation key) {
         return MULTIBLOCK_INFO_CACHE.get(key);
     }
 
     public static void addPatterns(ResourceLocation key, MBPattern[] patterns) {
-        MULTIBLOCK_INFO_CACHE.put(key, patterns);
+        MBPattern[] previous = MULTIBLOCK_INFO_CACHE.put(key, patterns);
+        MULTIBLOCK_INFO_PATTERN_COUNTS.put(key, patterns.length);
+        if (previous != null && previous != patterns) {
+            disposePatterns(previous);
+        }
+    }
+
+    /**
+     * Remove a preview entry only when it is still the expected value. The
+     * pattern count deliberately remains available to structure tooltips.
+     */
+    public static void removePatterns(ResourceLocation key, MBPattern[] patterns) {
+        MULTIBLOCK_INFO_CACHE.remove(key, patterns);
+    }
+
+    public static int getPatternCount(ResourceLocation key) {
+        return MULTIBLOCK_INFO_PATTERN_COUNTS.getOrDefault(key, 0);
+    }
+
+    private static void disposePatterns(MBPattern[] patterns) {
+        for (MBPattern pattern : patterns) {
+            if (pattern != null) {
+                pattern.dispose();
+            }
+        }
     }
 
     public static final GTControlledRegistry<ResourceLocation, UIFactory> UI_FACTORY_REGISTRY = new GTControlledRegistry<>(

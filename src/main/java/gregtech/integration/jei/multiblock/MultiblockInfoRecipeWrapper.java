@@ -110,13 +110,16 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private static MultiblockInfoRecipeWrapper lastWrapper;
     private final MultiblockControllerBase controller;
     private final Map<GuiButton, Runnable> buttons = new HashMap<>();
-    private final List<ItemStack> allItemStackInputs = new ArrayList<>();
+    private final List<ItemStack> ingredientInputs = new ArrayList<>();
     private final GuiButton nextLayerButton;
     private final List<PreviewCandidate> previewCandidates;
     private final Map<String, Integer> channelValues = new HashMap<>();
-    private final List<StructureChannel> supportedChannels;
-    private final int[][] channelRanges; // [channelIdx][0=min, 1=max]
+    private List<StructureChannel> supportedChannels = Collections.emptyList();
+    private int[][] channelRanges = new int[0][]; // [channelIdx][0=min, 1=max]
+    @Nullable
     private MBPattern[] patterns;
+    private boolean previewMetadataInitialized;
+    private boolean ingredientInputsInitialized;
     private RecipeLayout recipeLayout;
     private int layerIndex = -1;
     private int lastMouseX;
@@ -134,33 +137,86 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private int candidateCycleIndex = 0;
     private long lastCandidateCycleTime = 0L;
 
-
-    @SuppressWarnings("NewExpressionSideOnly")
     public MultiblockInfoRecipeWrapper(@NotNull MultiblockControllerBase controller) {
         this.controller = controller;
+        this.nextLayerButton = new GuiButton(0, 176 - (ICON_SIZE + RIGHT_PADDING), LAYER_BUTTON_Y, ICON_SIZE,
+                ICON_SIZE, "");
+        this.buttons.put(nextLayerButton, this::toggleNextLayer);
+        this.previewCandidates = new ArrayList<>();
+    }
+
+    /**
+     * JEI creates every wrapper while registering recipes. Keep that phase free
+     * of structure compilation, DummyWorld allocation and FBO creation; those
+     * are needed only after this specific recipe page is opened.
+     */
+    private void ensurePreviewInitialized() {
+        if (hasLivePreview()) return;
+
+        initializePreviewMetadata();
+        rebuildPreviewPatterns();
+        GTLog.logger.debug("[JEIMultiblockPreview] lazily initialized controller={} channels={} patterns={}",
+                controller.metaTileEntityId, supportedChannels.size(), patterns.length);
+    }
+
+    private boolean hasLivePreview() {
+        return patterns != null && patterns.length > 0 && !patterns[0].isDisposed();
+    }
+
+    private void initializePreviewMetadata() {
+        if (previewMetadataInitialized) return;
+
         this.supportedChannels = controller.getSupportedChannels();
-        // Precompute ranges from the pattern template
         this.channelRanges = new int[supportedChannels.size()][];
         for (int i = 0; i < supportedChannels.size(); i++) {
             channelRanges[i] = controller.getChannelRange(supportedChannels.get(i));
         }
+        this.previewMetadataInitialized = true;
+    }
 
-        Set<ItemStack> drops = new ObjectOpenCustomHashSet<>(ItemStackHashStrategy.comparingAllButCount());
-        this.patterns = controller.getMatchingShapes(channelValues).stream()
-                .map(it -> initializePattern(it, drops))
+    private void rebuildPreviewPatterns() {
+        releasePreviewPatterns();
+
+        MBPattern[] rebuilt = controller.getMatchingShapes(channelValues).stream()
+                .map(this::initializePattern)
                 .toArray(MBPattern[]::new);
-        allItemStackInputs.addAll(drops);
-        this.nextLayerButton = new GuiButton(0, 176 - (ICON_SIZE + RIGHT_PADDING), LAYER_BUTTON_Y, ICON_SIZE,
-                ICON_SIZE, "");
+        if (rebuilt.length == 0) {
+            throw new IllegalStateException("No JEI preview shapes for " + controller.metaTileEntityId);
+        }
 
-        this.buttons.put(nextLayerButton, this::toggleNextLayer);
-        this.previewCandidates = new ArrayList<>();
-        GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
+        this.patterns = rebuilt;
+        GregTechAPI.addPatterns(controller.metaTileEntityId, rebuilt);
+    }
+
+    private void releasePreviewResources() {
+        selected = null;
+        previewCandidates.clear();
+        previewTips = null;
+        candidateCycleIndex = 0;
+        lastCandidateCycleTime = 0L;
+        releasePreviewPatterns();
+        if (lastWrapper == this) {
+            lastWrapper = null;
+        }
+    }
+
+    private void releasePreviewPatterns() {
+        MBPattern[] previous = this.patterns;
+        this.patterns = null;
+        if (previous == null) return;
+
+        GregTechAPI.removePatterns(controller.metaTileEntityId, previous);
+        for (MBPattern pattern : previous) {
+            if (pattern != null) {
+                pattern.dispose();
+            }
+        }
+        GTLog.logger.debug("[JEIMultiblockPreview] released renderer resources for controller={}",
+                controller.metaTileEntityId);
     }
 
     @NotNull
-    private static Collection<PartInfo> gatherStructureBlocks(World world, @NotNull Map<BlockPos, BlockInfo> blocks,
-                                                              Set<ItemStack> parts) {
+    private static Collection<PartInfo> gatherStructureBlocks(World world, @NotNull Map<BlockPos, BlockInfo> blocks) {
         Map<ItemStack, PartInfo> partsMap = new Object2ObjectOpenCustomHashMap<>(
                 ItemStackHashStrategy.comparingAllButCount());
         for (Entry<BlockPos, BlockInfo> entry : blocks.entrySet()) {
@@ -199,10 +255,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 }
             }
 
-            // if we got a stack, add it to the set and map
+            // if we got a stack, add it to the parts map
             if (!stack.isEmpty()) {
-                parts.add(stack);
-
                 PartInfo partInfo = partsMap.get(stack);
                 if (partInfo == null) {
                     partInfo = new PartInfo(stack, entry.getValue());
@@ -312,8 +366,50 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     @Override
     public void getIngredients(IIngredients ingredients) {
-        ingredients.setInputs(VanillaTypes.ITEM, allItemStackInputs);
+        // JEI calls this while building its recipe index. Use the uncompiled
+        // definition so structure parts stay searchable without constructing a
+        // DummyWorld, compiled pattern or 3D renderer for every multiblock.
+        initializeIngredientInputs();
+        ingredients.setInputs(VanillaTypes.ITEM, ingredientInputs);
         ingredients.setOutput(VanillaTypes.ITEM, getControllerStack());
+    }
+
+    private void initializeIngredientInputs() {
+        if (ingredientInputsInitialized) {
+            return;
+        }
+
+        Set<ItemStack> inputs = new ObjectOpenCustomHashSet<>(ItemStackHashStrategy.comparingAllButCount());
+        controller.getStructureDefinitionForTooling().forEachToolingPreviewGroup(group -> {
+            for (BlockInfo info : group.getCandidates()) {
+                ItemStack stack = getIngredientStack(info);
+                if (!stack.isEmpty()) {
+                    inputs.add(stack);
+                }
+            }
+        });
+        ingredientInputs.addAll(inputs);
+        ingredientInputsInitialized = true;
+        GTLog.logger.debug("[JEIMultiblockPreview] indexed uncompiled structure inputs controller={} inputs={}",
+                controller.metaTileEntityId, ingredientInputs.size());
+    }
+
+    @NotNull
+    private static ItemStack getIngredientStack(@Nullable BlockInfo info) {
+        if (info == null) {
+            return ItemStack.EMPTY;
+        }
+        TileEntity tileEntity = info.getTileEntity();
+        if (tileEntity instanceof IGregTechTileEntity) {
+            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            if (metaTileEntity != null) {
+                ItemStack stack = metaTileEntity.getStackForm();
+                if (!stack.isEmpty()) {
+                    return stack;
+                }
+            }
+        }
+        return GTUtility.toItem(info.getBlockState());
     }
 
 
@@ -342,6 +438,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     public void setRecipeLayout(RecipeLayout layout, IGuiHelper guiHelper) {
         this.recipeLayout = layout;
+        if (lastWrapper != null && lastWrapper != this) {
+            lastWrapper.releasePreviewResources();
+        }
+        ensurePreviewInitialized();
 
         this.slot = guiHelper.drawableBuilder(GuiTextures.SLOT.imageLocation, 0, 0, SLOT_SIZE, SLOT_SIZE)
                 .setTextureSize(SLOT_SIZE, SLOT_SIZE).build();
@@ -377,6 +477,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     public WorldSceneRenderer getCurrentRenderer() {
+        ensurePreviewInitialized();
         return patterns[0].getSceneRenderer();
     }
 
@@ -491,14 +592,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private void regeneratePatterns() {
         clearPreviewSelection();
-        Set<ItemStack> drops = new ObjectOpenCustomHashSet<>(ItemStackHashStrategy.comparingAllButCount());
-        this.patterns = controller.getMatchingShapes(channelValues).stream()
-                .map(it -> initializePattern(it, drops))
-                .toArray(MBPattern[]::new);
-        allItemStackInputs.clear();
-        allItemStackInputs.addAll(drops);
-        // Update the global pattern cache so tooltips reflect the current channel state
-        GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
+        initializePreviewMetadata();
+        rebuildPreviewPatterns();
         setNextLayer(-1);
         updateParts();
         getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch),
@@ -551,6 +646,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
     @Override
     public void drawInfo(@NotNull Minecraft minecraft, int recipeWidth, int recipeHeight, int mouseX, int mouseY) {
+        ensurePreviewInitialized();
         WorldSceneRenderer renderer = getCurrentRenderer();
         // Full-screen 3D scene (GT5 style: scene covers entire area, UI overlaid on top)
         int sceneX = 0;
@@ -800,6 +896,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     @Override
     public boolean handleClick(@NotNull Minecraft minecraft, int mouseX, int mouseY, int mouseButton) {
+        ensurePreviewInitialized();
         // Handle channel slider clicks
         if (mouseButton == 0 && !supportedChannels.isEmpty()) {
             int sliderStartY = 184 - (supportedChannels.size() * 16 + 6);
@@ -1053,7 +1150,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     @SuppressWarnings("NewExpressionSideOnly")
     @NotNull
-    private MBPattern initializePattern(@NotNull MultiblockShapeInfo shapeInfo, @NotNull Set<ItemStack> parts) {
+    private MBPattern initializePattern(@NotNull MultiblockShapeInfo shapeInfo) {
         Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
         MultiblockControllerBase controllerBase = null;
         BlockPos controllerBlockPos = null;
@@ -1167,7 +1264,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         logTypedPreviewEntrySource(controllerBase, blockMap.size(), sourcePreviewEntries.size(),
                 previewEntries.size());
 
-        List<ItemStack> sortedParts = gatherStructureBlocks(worldSceneRenderer.world, blockMap, parts).stream()
+        List<ItemStack> sortedParts = gatherStructureBlocks(worldSceneRenderer.world, blockMap).stream()
                 .sorted((one, two) -> {
                     if (one.isController) return -1;
                     if (two.isController) return +1;

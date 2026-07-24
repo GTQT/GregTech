@@ -709,6 +709,19 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return structureDefinition;
     }
 
+    /**
+     * Resolve the canonical definition for metadata-only tooling without
+     * constructing the compiled pattern or per-controller runtime state.
+     *
+     * <p>JEI uses this while it builds its ingredient index. Keeping this path
+     * separate from {@link #getStructureDefinition()} preserves the latter's
+     * established runtime-initialization behaviour.</p>
+     */
+    @NotNull
+    public StructureDefinition<?> getStructureDefinitionForTooling() {
+        return structureDefinition == null ? resolveStructureDefinition() : structureDefinition;
+    }
+
     @NotNull
     public Map<String, Integer> getMissingStructureAbilities() {
         return structureRuntime == null ? Collections.emptyMap() : structureRuntime.getMissingAbilities();

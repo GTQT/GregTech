@@ -32,9 +32,11 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -325,6 +327,79 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
 
     public boolean hasRuntimeDetector() {
         return getRuntimeDetector() != null;
+    }
+
+    /**
+     * Visit every distinct candidate group exposed by tooling-visible pieces
+     * without compiling this definition into a {@link MultiPiecePattern}.
+     *
+     * <p>This is intentionally a raw-definition API for recipe indexes such as
+     * JEI. It avoids allocating compiled piece state just to discover which
+     * blocks may appear in a structure. Preview rendering and structure
+     * checking must continue to use {@link #getCompiledPattern()}.</p>
+    */
+    public void forEachToolingPreviewGroup(
+            @NotNull Consumer<StructureElementPreview.CandidateGroup> consumer) {
+        if (delegate != null) {
+            delegate.get().forEachToolingPreviewGroup(consumer);
+            return;
+        }
+
+        Set<IStructureElement<?>> visited = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (PieceEntry entry : pieceEntries) {
+            IStructurePiece piece = entry.piece;
+            if (!piece.isToolingVisible()) {
+                continue;
+            }
+
+            if (piece instanceof MutablePiece mutablePiece && mutablePiece.template != null) {
+                visitTemplatePreviewGroups(mutablePiece.template, visited, consumer);
+                continue;
+            }
+
+            String[][] pattern = piece.getPattern();
+            if (pattern == null) {
+                continue;
+            }
+            Map<Character, IStructureElement> symbols = piece.getSymbolMap();
+            for (String[] aisle : pattern) {
+                if (aisle == null) continue;
+                for (String row : aisle) {
+                    if (row == null) continue;
+                    for (int column = 0; column < row.length(); column++) {
+                        addPreviewGroups(symbols.get(row.charAt(column)), visited, consumer);
+                    }
+                }
+            }
+        }
+    }
+
+    private static void visitTemplatePreviewGroups(
+            @NotNull PieceTemplate template,
+            @NotNull Set<IStructureElement<?>> visited,
+            @NotNull Consumer<StructureElementPreview.CandidateGroup> consumer) {
+        for (IStructureElement<?>[][] aisle : template.getElements()) {
+            for (IStructureElement<?>[] row : aisle) {
+                for (IStructureElement<?> element : row) {
+                    addPreviewGroups(element, visited, consumer);
+                }
+            }
+        }
+    }
+
+    private static void addPreviewGroups(@Nullable IStructureElement<?> element,
+                                         @NotNull Set<IStructureElement<?>> visited,
+                                         @NotNull Consumer<StructureElementPreview.CandidateGroup> consumer) {
+        if (element == null || !visited.add(element)) {
+            return;
+        }
+        StructureElementPreview preview = element.getPreview();
+        for (StructureElementPreview.CandidateGroup group : preview.getCommon()) {
+            consumer.accept(group);
+        }
+        for (StructureElementPreview.CandidateGroup group : preview.getLimited()) {
+            consumer.accept(group);
+        }
     }
 
     /**

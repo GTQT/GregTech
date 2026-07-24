@@ -108,6 +108,12 @@ public abstract class WorldSceneRenderer {
         this.world = world;
     }
 
+    /**
+     * Release renderer-owned resources when a preview is no longer active.
+     * Base renderers do not own GPU buffers; VBO/FBO implementations override this.
+     */
+    public void dispose() {}
+
     public WorldSceneRenderer setBeforeWorldRender(Consumer<WorldSceneRenderer> callback) {
         this.beforeRender = callback;
         return this;

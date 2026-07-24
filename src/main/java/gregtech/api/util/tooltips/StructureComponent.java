@@ -3,7 +3,6 @@ package gregtech.api.util.tooltips;
 import gregtech.api.GregTechAPI;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.metatileentity.registry.MBPattern;
 import gregtech.api.pattern.StructureSizeDescriptor;
 import gregtech.api.pattern.element.StructureDefinition;
 
@@ -21,9 +20,9 @@ public class StructureComponent extends AbstractTooltipComponent {
                     size.getFormattedPalm(),
                     size.getFormattedThumb(),
                     size.getFormattedFinger()));
-            MBPattern[] patterns = GregTechAPI.getPatterns(metaTileEntity.metaTileEntityId);
-            if (patterns != null && patterns.length > 1) {
-                tooltip.add(I18n.format("gregtech.multiblock.structure_tier.tooltip", patterns.length));
+            int patternCount = GregTechAPI.getPatternCount(metaTileEntity.metaTileEntityId);
+            if (patternCount > 1) {
+                tooltip.add(I18n.format("gregtech.multiblock.structure_tier.tooltip", patternCount));
             }
         }
     }

@@ -37,6 +37,7 @@ public class VBOWorldSceneRenderer extends ImmediateWorldSceneRenderer {
      * Release GPU resources held by this renderer's VBOs.
      * Should be called when the renderer is no longer needed.
      */
+    @Override
     public void dispose() {
         for (int i = 0; i < vbos.length; i++) {
             if (vbos[i] != null) {

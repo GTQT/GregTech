@@ -41,6 +41,7 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
     private int resolutionWidth = 1080;
     private int resolutionHeight = 1080;
     private Framebuffer fbo;
+    private boolean fboAllocationFailed;
 
     // Dirty flag: when true, the FBO content needs to be re-rendered
     private boolean fboDirty = true;
@@ -85,15 +86,14 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
         this.resolutionWidth = resolutionWidth;
         this.resolutionHeight = resolutionHeight;
         releaseFBO();
-        try {
-            fbo = new Framebuffer(resolutionWidth, resolutionHeight, true);
-        } catch (Exception e) {
-            GTLog.logger.error(e);
-        }
+        fboAllocationFailed = false;
         this.fboDirty = true;
     }
 
     public RayTraceResult screenPos2BlockPosFace(int mouseX, int mouseY) {
+        if (!ensureFBO()) {
+            return null;
+        }
         int lastID = bindFBO();
         RayTraceResult looking = super.screenPos2BlockPosFace(mouseX, mouseY, 0, 0, this.resolutionWidth,
                 this.resolutionHeight);
@@ -102,6 +102,9 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
     }
 
     public Vector3f blockPos2ScreenPos(BlockPos pos, boolean depth) {
+        if (!ensureFBO()) {
+            return null;
+        }
         int lastID = bindFBO();
         Vector3f winPos = super.blockPos2ScreenPos(pos, depth, 0, 0, this.resolutionWidth, this.resolutionHeight);
         unbindFBO(lastID);
@@ -119,6 +122,10 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
      * Hit test is only performed on dirty frames (when depth buffer is freshly written).
      */
     public void render(float x, float y, float width, float height, float mouseX, float mouseY) {
+        if (!ensureFBO()) {
+            super.render(x, y, width, height, (int) mouseX, (int) mouseY);
+            return;
+        }
         if (fboDirty) {
             // Re-render scene into FBO
             float localMouseX = mouseX - x;
@@ -133,6 +140,29 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
 
         // Draw cached FBO texture as a screen-aligned quad
         drawFBOQuad(x, y, width, height);
+    }
+
+    /**
+     * Allocate the framebuffer only when the preview is actually rendered or
+     * queried. JEI may construct a recipe layout before that recipe becomes
+     * visible, so eager allocation here would retain one texture per wrapper.
+     */
+    private boolean ensureFBO() {
+        if (fbo != null) {
+            return true;
+        }
+        if (fboAllocationFailed) {
+            return false;
+        }
+        try {
+            fbo = new Framebuffer(resolutionWidth, resolutionHeight, true);
+            GTLog.logger.debug("[JEIMultiblockPreview] allocated FBO {}x{}", resolutionWidth, resolutionHeight);
+            return true;
+        } catch (Exception e) {
+            fboAllocationFailed = true;
+            GTLog.logger.error(e);
+            return false;
+        }
     }
 
     @Override
