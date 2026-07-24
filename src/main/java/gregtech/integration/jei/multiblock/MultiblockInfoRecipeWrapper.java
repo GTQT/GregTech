@@ -526,6 +526,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     public void setRecipeLayout(RecipeLayout layout, IGuiHelper guiHelper) {
+        boolean layoutChanged = this.recipeLayout != layout;
         this.recipeLayout = layout;
         boolean switchedWrapper = lastWrapper != this;
         if (lastWrapper != null && lastWrapper != this) {
@@ -539,6 +540,11 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         IDrawable border = layout.getRecipeCategory().getBackground();
         preparePlaceForParts(border.getHeight());
+        if (layoutChanged) {
+            // JEI recreates the item-stack group while handling wheel input. Its slots are empty even when the
+            // preview renderer remains valid, so the layout must be populated again below.
+            previewLayoutInitialized = false;
+        }
         pendingMouseWheel = Mouse.getEventDWheel();
         resetViewWhenPreviewReady = pendingMouseWheel == 0 || switchedWrapper;
         this.nextLayerButton.x = border.getWidth() - (ICON_SIZE + RIGHT_PADDING);
@@ -550,6 +556,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         ensurePreviewLoadStarted();
         configureLoadedPreviewLayout();
+        if (hasLivePreview()) {
+            updateParts();
+        }
     }
 
     private void configureLoadedPreviewLayout() {

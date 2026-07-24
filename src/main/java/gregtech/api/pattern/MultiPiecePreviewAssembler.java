@@ -403,7 +403,47 @@ public final class MultiPiecePreviewAssembler {
             }
 
             orientPreviewMetaTileEntities(blocks, controller);
+            normalizePreviewCoordinates();
             complete = true;
+        }
+
+        /**
+         * Match the dense preview API's origin convention. In particular, DummyWorld cannot retain blocks below
+         * Y=0, while canonical controller-relative coordinates commonly contain negative Y values.
+         */
+        private void normalizePreviewCoordinates() {
+            if (blocks.isEmpty()) {
+                return;
+            }
+
+            int minX = Integer.MAX_VALUE;
+            int minY = Integer.MAX_VALUE;
+            int minZ = Integer.MAX_VALUE;
+            for (BlockPos pos : blocks.keySet()) {
+                minX = Math.min(minX, pos.getX());
+                minY = Math.min(minY, pos.getY());
+                minZ = Math.min(minZ, pos.getZ());
+            }
+            if (minX == 0 && minY == 0 && minZ == 0) {
+                return;
+            }
+
+            Map<BlockPos, BlockInfo> normalizedBlocks = new HashMap<>(blocks.size());
+            for (Map.Entry<BlockPos, BlockInfo> entry : blocks.entrySet()) {
+                BlockPos pos = entry.getKey();
+                normalizedBlocks.put(new BlockPos(pos.getX() - minX, pos.getY() - minY, pos.getZ() - minZ),
+                        entry.getValue());
+            }
+            Map<BlockPos, StructureElementPreviewEntry> normalizedEntries = new HashMap<>(previewEntries.size());
+            for (Map.Entry<BlockPos, StructureElementPreviewEntry> entry : previewEntries.entrySet()) {
+                BlockPos pos = entry.getKey();
+                normalizedEntries.put(new BlockPos(pos.getX() - minX, pos.getY() - minY, pos.getZ() - minZ),
+                        entry.getValue());
+            }
+            blocks.clear();
+            blocks.putAll(normalizedBlocks);
+            previewEntries.clear();
+            previewEntries.putAll(normalizedEntries);
         }
 
         @NotNull
