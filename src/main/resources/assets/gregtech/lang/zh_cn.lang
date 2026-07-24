@@ -8005,6 +8005,14 @@ gregtech.multiblock.structure_tier.tooltip=§7结构总等级:§e %s
 gregtech.multiblock.preview.zoom=鼠标滚轮：缩放
 gregtech.multiblock.preview.rotate=左键拖拽：旋转视角
 gregtech.multiblock.preview.select=右键拖拽：平移 | 右键单击方块：查看可选替代品
+gregtech.multiblock.preview.loading_prepare=正在准备结构预览
+gregtech.multiblock.preview.loading_progress=%s：%d%%
+gregtech.multiblock.preview.loading_assemble=正在组装结构
+gregtech.multiblock.preview.loading_world=正在构建预览世界
+gregtech.multiblock.preview.loading_parts=正在统计部件
+gregtech.multiblock.preview.loading_mesh=正在上传渲染数据
+gregtech.multiblock.preview.loading_complete=预览已就绪
+gregtech.multiblock.preview.loading_failed=结构预览加载失败
 
 gregtech.multiblock.pattern.error_message_header=潜在的结构错误：
 gregtech.multiblock.pattern.no_errors=没有发现结构错误！

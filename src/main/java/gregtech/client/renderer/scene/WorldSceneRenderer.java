@@ -477,20 +477,27 @@ public abstract class WorldSceneRenderer {
 
         BufferBuilder buffer = Tessellator.getInstance().getBuffer();
         buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-        BlockRendererDispatcher blockrendererdispatcher = Minecraft.getMinecraft().getBlockRendererDispatcher();
 
         for (BlockPos pos : renderedBlocks) {
-            IBlockState state = world.getBlockState(pos);
-            Block block = state.getBlock();
-            state = state.getActualState(world, pos);
-            if (block == Blocks.AIR) continue;
-            if (block.canRenderInLayer(state, layer)) {
-                if (block.getRenderType(state) == MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
-                    MetaTileEntityRenderer.INSTANCE.renderBlock(world, pos, state, buffer);
-                } else {
-                    blockrendererdispatcher.renderBlock(state, pos, world, buffer);
-                }
-            }
+            renderBlock(layer, pos, buffer);
+        }
+    }
+
+    /**
+     * Appends one block to a supplied render buffer. VBO previews use this to spread an initial mesh upload across
+     * several JEI frames while retaining the same rendering path as immediate scenes.
+     */
+    protected void renderBlock(BlockRenderLayer layer, BlockPos pos, BufferBuilder buffer) {
+        IBlockState state = world.getBlockState(pos);
+        Block block = state.getBlock();
+        state = state.getActualState(world, pos);
+        if (block == Blocks.AIR || !block.canRenderInLayer(state, layer)) {
+            return;
+        }
+        if (block.getRenderType(state) == MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
+            MetaTileEntityRenderer.INSTANCE.renderBlock(world, pos, state, buffer);
+        } else {
+            Minecraft.getMinecraft().getBlockRendererDispatcher().renderBlock(state, pos, world, buffer);
         }
     }
 

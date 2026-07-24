@@ -64,6 +64,24 @@ final class MultiblockStructurePreviews {
         return Collections.singletonList(preview.getShape());
     }
 
+    @NotNull
+    static MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable MultiPiecePattern multiPiecePattern,
+            @Nullable PieceRuntimes pieceRuntimes,
+            @Nullable Map<String, Integer> channelValues) {
+        if (multiPiecePattern == null || pieceRuntimes == null) {
+            throw new IllegalStateException("Cannot build a preview before the multi-piece pattern is initialized");
+        }
+        int pieceIndex = resolveToolingPieceIndex(channelValues);
+        if (pieceIndex > multiPiecePattern.getToolingPieceCount()) {
+            throw new IllegalArgumentException("Invalid tooling piece index " + pieceIndex);
+        }
+        return MultiPiecePreviewAssembler.beginIncrementalPreview(
+                multiPiecePattern, pieceRuntimes, channelValues, controller,
+                pieceIndex, pieceIndex > 0);
+    }
+
     @Nullable
     static MultiPiecePreviewAssembler.Result getMatchingMultiPiecePreview(
             @NotNull MultiblockControllerBase controller,

@@ -160,6 +160,16 @@ final class MultiblockStructureOperations {
     }
 
     @NotNull
+    static MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable Map<String, Integer> channelValues) {
+        Map<String, Integer> effectiveChannels = emptyToNull(channelValues);
+        ensureMultiPiecePatternInitialized(controller);
+        return MultiblockStructurePreviews.beginIncrementalMultiPiecePreview(
+                controller, controller.multiPiecePattern, controller.pieceRuntimes, effectiveChannels);
+    }
+
+    @NotNull
     static List<MultiblockShapeInfo> buildMultiPieceShapes(
             @NotNull MultiblockControllerBase controller,
             @Nullable Map<String, Integer> channelValues) {

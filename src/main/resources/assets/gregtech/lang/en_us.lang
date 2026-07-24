@@ -8022,6 +8022,14 @@ gregtech.multiblock.preview.channel_range=Range: %d ~ %d
 gregtech.multiblock.preview.channel_current=Current: %s
 gregtech.multiblock.preview.channel_auto=Auto (shows all variants)
 gregtech.multiblock.preview.channel_click=Click slider to change tier
+gregtech.multiblock.preview.loading_prepare=Preparing structure preview
+gregtech.multiblock.preview.loading_progress=%s: %d%%
+gregtech.multiblock.preview.loading_assemble=Assembling structure
+gregtech.multiblock.preview.loading_world=Building preview world
+gregtech.multiblock.preview.loading_parts=Collecting components
+gregtech.multiblock.preview.loading_mesh=Uploading render data
+gregtech.multiblock.preview.loading_complete=Preview ready
+gregtech.multiblock.preview.loading_failed=Failed to load structure preview
 
 gregtech.multiblock.pattern.error_message_header=Potential structure error:
 gregtech.multiblock.pattern.no_errors=No errors in structure found!

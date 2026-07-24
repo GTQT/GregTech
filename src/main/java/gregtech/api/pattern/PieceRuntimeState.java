@@ -1910,6 +1910,171 @@ public final class PieceRuntimeState {
         return previewState.toCells(calculatePreviewCenter(repetition, previewOrientation));
     }
 
+    /**
+     * Creates a resumable traversal for tooling previews. Unlike
+     * {@link #createPreviewCells(int[], Map, StructureOrientation, AbilityPlacementTracker)}, this keeps the
+     * preview sparse and lets callers stop between small batches of template cells.
+     */
+    @NotNull
+    public PreviewCellTask createPreviewCellTask(@NotNull int[] repetition,
+                                                 @Nullable Map<String, Integer> channelValues,
+                                                 @NotNull StructureOrientation previewOrientation) {
+        return new PreviewCellTask(repetition, channelValues, previewOrientation);
+    }
+
+    @FunctionalInterface
+    public interface PreviewCellConsumer {
+
+        void accept(@NotNull BlockPos pos,
+                    @NotNull BlockInfo info,
+                    @NotNull StructureElementPreviewEntry previewEntry);
+    }
+
+    /**
+     * Main-thread-only cursor used by large JEI previews. It intentionally keeps the same candidate selection
+     * semantics as {@link #createPreviewCells(int[], Map, StructureOrientation, AbilityPlacementTracker)} while
+     * avoiding a dense intermediate array for mostly-empty structures.
+     */
+    public final class PreviewCellTask {
+
+        @NotNull
+        private final int[] repetition;
+        @Nullable
+        private final Map<String, Integer> channelValues;
+        @NotNull
+        private final StructureOrientation previewOrientation;
+        @NotNull
+        private final PreviewTraversalState previewState = new PreviewTraversalState();
+        private final int palmLength = template.getXLength();
+        private final int thumbLength = template.getYLength();
+        private final int fingerLength = template.getZLength();
+        private final int centerX = template.getCenterOffset().x();
+        private final int centerY = template.getCenterOffset().y();
+        private int aisleIndex;
+        private int repetitionIndex;
+        private int elementX;
+        private int elementY;
+        private int localZ = -template.getCenterOffset().maxZ();
+        @NotNull
+        private Map<StructureElementPreview.CandidateGroup, Integer> previewLayerCounts = new HashMap<>();
+        private long processedCellCount;
+        private final long totalCellCount;
+        private boolean complete;
+
+        private PreviewCellTask(@NotNull int[] repetition,
+                                @Nullable Map<String, Integer> channelValues,
+                                @NotNull StructureOrientation previewOrientation) {
+            this.repetition = repetition.clone();
+            this.channelValues = channelValues;
+            this.previewOrientation = previewOrientation;
+
+            long total = 0L;
+            long cellsPerSlice = (long) palmLength * thumbLength;
+            for (int i = 0; i < fingerLength; i++) {
+                int repetitions = i < this.repetition.length ? this.repetition[i] : 0;
+                total += Math.max(0, repetitions) * cellsPerSlice;
+            }
+            this.totalCellCount = total;
+            this.complete = total == 0L;
+        }
+
+        /**
+         * Processes up to {@code maximumCells} template cells and invokes the consumer only for visible blocks.
+         *
+         * @return the number of processed template cells
+         */
+        public int advance(int maximumCells, @NotNull PreviewCellConsumer consumer) {
+            if (complete || maximumCells <= 0) {
+                return 0;
+            }
+
+            int processed = 0;
+            while (processed < maximumCells && !complete) {
+                skipFinishedAisles();
+                if (aisleIndex >= fingerLength) {
+                    complete = true;
+                    break;
+                }
+
+                IStructureElement<?> element = template.getElements()[aisleIndex][elementY][elementX];
+                StructureElementPreview preview = element.getPreview();
+                if (!preview.isEmpty()) {
+                    BlockInfo info = selectPreviewBlockInfo(
+                            preview, previewLayerCounts, previewState, channelValues, null);
+                    if (isVisiblePreviewBlock(info)) {
+                        int localX = elementX - centerX;
+                        int localY = elementY - centerY;
+                        BlockPos pos = RelativeDirection.setActualRelativeOffset(
+                                localX, localY, localZ,
+                                previewOrientation.getStructureFront(), previewOrientation.getUp(),
+                                previewOrientation.isFlipped(), template.getStructureDir());
+                        consumer.accept(pos, info,
+                                StructureElementPreviewEntry.of(preview, previewTooltip(element)));
+                    }
+                }
+
+                advancePosition();
+                processed++;
+                processedCellCount++;
+            }
+            return processed;
+        }
+
+        public boolean isComplete() {
+            return complete;
+        }
+
+        public long getProcessedCellCount() {
+            return processedCellCount;
+        }
+
+        public long getTotalCellCount() {
+            return totalCellCount;
+        }
+
+        public float getProgress() {
+            if (totalCellCount == 0L) {
+                return 1.0F;
+            }
+            return Math.min(1.0F, (float) processedCellCount / totalCellCount);
+        }
+
+        private void skipFinishedAisles() {
+            while (aisleIndex < fingerLength) {
+                int repetitions = aisleIndex < repetition.length ? repetition[aisleIndex] : 0;
+                if (repetitionIndex < Math.max(0, repetitions)) {
+                    return;
+                }
+                aisleIndex++;
+                repetitionIndex = 0;
+                elementX = 0;
+                elementY = 0;
+            }
+        }
+
+        private void advancePosition() {
+            elementX++;
+            if (elementX < palmLength) {
+                return;
+            }
+            elementX = 0;
+            elementY++;
+            if (elementY < thumbLength) {
+                return;
+            }
+            elementY = 0;
+            repetitionIndex++;
+            localZ++;
+            previewLayerCounts = new HashMap<>();
+        }
+    }
+
+    private static boolean isVisiblePreviewBlock(@Nullable BlockInfo info) {
+        return info != null
+                && info.getBlockState() != null
+                && info.getBlockState().getBlock() != Blocks.AIR;
+    }
+
     @NotNull
     private static List<String> previewTooltip(@NotNull IStructureElement<?> element) {
         List<String> tooltip = new ArrayList<>();

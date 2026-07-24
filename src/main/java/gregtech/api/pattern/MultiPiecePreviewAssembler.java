@@ -201,6 +201,314 @@ public final class MultiPiecePreviewAssembler {
     }
 
     /**
+     * Starts a sparse, resumable tooling preview build. This is intended for client UIs such as JEI where constructing
+     * a very large multiblock in one render frame would otherwise make the game appear hung.
+     *
+     * <p>The normal {@link #assemble(MultiPiecePattern, PieceRuntimes, Map, MultiblockControllerBase, int, boolean)}
+     * path remains the canonical synchronous API for callers that need dense per-piece shapes. This cursor only emits
+     * the combined visible blocks and their typed preview metadata.
+     */
+    @NotNull
+    public static IncrementalPreview beginIncrementalPreview(@NotNull MultiPiecePattern pattern,
+                                                              @NotNull PieceRuntimes runtimes,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                              @Nullable MultiblockControllerBase controller,
+                                                              int forcedToolingPieceIndex,
+                                                              boolean cumulativeToolingPieceSelection) {
+        return new IncrementalPreview(pattern, runtimes, channelValues, controller,
+                forcedToolingPieceIndex, cumulativeToolingPieceSelection);
+    }
+
+    /**
+     * Main-thread cursor that emits a sparse combined preview in bounded batches. It deliberately does not create the
+     * dense {@code BlockInfo[][][]} used by legacy tooling because a mostly-empty structure such as the Forge of Gods
+     * can otherwise allocate several large temporary arrays before it draws its first JEI frame.
+     */
+    public static final class IncrementalPreview {
+
+        @NotNull
+        private final MultiPiecePattern pattern;
+        @NotNull
+        private final PieceRuntimes runtimes;
+        @Nullable
+        private final Map<String, Integer> channelValues;
+        @Nullable
+        private final MultiblockControllerBase controller;
+        private final int forcedToolingPieceIndex;
+        private final boolean cumulativeToolingPieceSelection;
+        @NotNull
+        private final Map<BlockPos, BlockInfo> blocks = new HashMap<>();
+        @NotNull
+        private final Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
+        @NotNull
+        private final Map<String, int[]> pieceRepeats = new HashMap<>();
+        @NotNull
+        private final Map<String, BlockPos> pieceCenters = new HashMap<>();
+        @NotNull
+        private final AbilityPlacementTracker abilityTracker;
+        private int nextPieceIndex;
+        private int toolingPieceIndex;
+        @Nullable
+        private ActivePiece activePiece;
+        private long processedWork;
+        private long totalKnownWork;
+        private boolean complete;
+
+        private IncrementalPreview(@NotNull MultiPiecePattern pattern,
+                                   @NotNull PieceRuntimes runtimes,
+                                   @Nullable Map<String, Integer> channelValues,
+                                   @Nullable MultiblockControllerBase controller,
+                                   int forcedToolingPieceIndex,
+                                   boolean cumulativeToolingPieceSelection) {
+            this.pattern = pattern;
+            this.runtimes = runtimes;
+            this.channelValues = channelValues == null ? null : new HashMap<>(channelValues);
+            this.controller = controller;
+            this.forcedToolingPieceIndex = forcedToolingPieceIndex;
+            this.cumulativeToolingPieceSelection = cumulativeToolingPieceSelection;
+            this.abilityTracker = pattern.createAbilityPlacementTracker();
+        }
+
+        /**
+         * Advances the build by at most {@code maximumWorkUnits}. A work unit is one template cell after external
+         * repetitions are applied, so callers can use a small fixed budget per render frame.
+         *
+         * @return the number of processed work units
+         */
+        public int advance(int maximumWorkUnits) {
+            if (complete || maximumWorkUnits <= 0) {
+                return 0;
+            }
+
+            int remaining = maximumWorkUnits;
+            int processed = 0;
+            while (remaining > 0 && !complete) {
+                if (activePiece == null) {
+                    startNextPiece();
+                    continue;
+                }
+
+                int repeats = activePiece.canonicalShifts.size();
+                if (repeats == 0) {
+                    finishActivePiece();
+                    continue;
+                }
+                int sourceBudget = Math.max(1, remaining / repeats);
+                int sourceProcessed = activePiece.cellTask.advance(sourceBudget, activePiece::accept);
+                int workProcessed = sourceProcessed * repeats;
+                processed += workProcessed;
+                processedWork += workProcessed;
+                remaining -= workProcessed;
+
+                if (activePiece.cellTask.isComplete()) {
+                    finishActivePiece();
+                } else if (sourceProcessed == 0) {
+                    break;
+                }
+            }
+            return processed;
+        }
+
+        public boolean isComplete() {
+            return complete;
+        }
+
+        public float getProgress() {
+            int pieceCount = pattern.getPieceList().size();
+            if (complete || pieceCount == 0) {
+                return 1.0F;
+            }
+            float completedPieces = nextPieceIndex;
+            if (activePiece != null) {
+                completedPieces = nextPieceIndex - 1 + activePiece.cellTask.getProgress();
+            }
+            return Math.min(1.0F, Math.max(0.0F, completedPieces / pieceCount));
+        }
+
+        public long getProcessedWork() {
+            return processedWork;
+        }
+
+        public long getTotalKnownWork() {
+            return totalKnownWork;
+        }
+
+        @NotNull
+        public Map<BlockPos, BlockInfo> getBlocks() {
+            requireComplete();
+            return Collections.unmodifiableMap(blocks);
+        }
+
+        @NotNull
+        public Map<BlockPos, StructureElementPreviewEntry> getPreviewEntries() {
+            requireComplete();
+            return Collections.unmodifiableMap(previewEntries);
+        }
+
+        private void startNextPiece() {
+            List<StructurePiece> pieces = pattern.getPieceList();
+            while (nextPieceIndex < pieces.size()) {
+                StructurePiece piece = pieces.get(nextPieceIndex++);
+                FormedStructureMetadata prior = FormedStructureMetadata.fromCheckResult(
+                        new HashMap<>(pieceRepeats), Collections.emptyMap(), new HashMap<>(pieceCenters));
+                StructureActivationContext<MultiblockControllerBase> activation =
+                        new StructureActivationContext<>(controller, null, BlockPos.ORIGIN, prior, null);
+                boolean toolingVisible = piece.isToolingVisible();
+                if (toolingVisible) {
+                    toolingPieceIndex++;
+                }
+                boolean defaultToolingSelection = forcedToolingPieceIndex == DEFAULT_TOOLING_PIECES;
+                boolean hasExplicitToolingSelection = forcedToolingPieceIndex > ALL_TOOLING_PIECES;
+                if ((defaultToolingSelection && toolingVisible && toolingPieceIndex > 2) ||
+                        (cumulativeToolingPieceSelection && hasExplicitToolingSelection && toolingVisible &&
+                                toolingPieceIndex > forcedToolingPieceIndex)) {
+                    continue;
+                }
+                boolean forcedActive = toolingVisible &&
+                        ((cumulativeToolingPieceSelection && hasExplicitToolingSelection &&
+                                toolingPieceIndex <= forcedToolingPieceIndex) ||
+                                (!cumulativeToolingPieceSelection && toolingPieceIndex == forcedToolingPieceIndex) ||
+                                (defaultToolingSelection && toolingPieceIndex <= 2));
+                if (!forcedActive && !piece.isActive(activation)) {
+                    continue;
+                }
+
+                BlockPos pieceCenter = piece.getCenterPos(
+                        BlockPos.ORIGIN, CANONICAL_PREVIEW_ORIENTATION, prior);
+                PieceTemplate template = piece.getTemplate();
+                int[] internalRepetitions = resolveInternalRepetitions(template, channelValues);
+                int[] externalRepetitions = resolveExternalRepetitions(piece, channelValues);
+
+                if (!toolingVisible) {
+                    recordPieceMetadata(piece, pieceCenter, internalRepetitions, externalRepetitions);
+                    continue;
+                }
+
+                PieceRuntime runtime = runtimes.get(piece);
+                if (runtime == null) {
+                    continue;
+                }
+                List<BlockPos> shifts = createCanonicalShifts(piece, externalRepetitions, template);
+                if (shifts.isEmpty()) {
+                    recordPieceMetadata(piece, pieceCenter, internalRepetitions, externalRepetitions);
+                    continue;
+                }
+                PieceRuntimeState.PreviewCellTask cellTask = runtime.getState().createPreviewCellTask(
+                        internalRepetitions, channelValues, CANONICAL_PREVIEW_ORIENTATION);
+                long work = cellTask.getTotalCellCount() * shifts.size();
+                totalKnownWork += work;
+                activePiece = new ActivePiece(piece, pieceCenter, internalRepetitions,
+                        externalRepetitions, shifts, cellTask);
+                return;
+            }
+
+            orientPreviewMetaTileEntities(blocks, controller);
+            complete = true;
+        }
+
+        @NotNull
+        private List<BlockPos> createCanonicalShifts(@NotNull StructurePiece piece,
+                                                      @NotNull int[] externalRepetitions,
+                                                      @NotNull PieceTemplate template) {
+            List<BlockPos> shifts = new ArrayList<>();
+            forEachExternalRepeat(piece, externalRepetitions, localShift -> shifts.add(
+                    RelativeDirection.setActualRelativeOffset(
+                            localShift.getX(), localShift.getY(), localShift.getZ(),
+                            CANONICAL_PREVIEW_ORIENTATION.getStructureFront(),
+                            CANONICAL_PREVIEW_ORIENTATION.getUp(),
+                            CANONICAL_PREVIEW_ORIENTATION.isFlipped(), template.getStructureDir())));
+            return shifts;
+        }
+
+        private void finishActivePiece() {
+            ActivePiece finished = activePiece;
+            if (finished == null) {
+                return;
+            }
+            recordPieceMetadata(finished.piece, finished.pieceCenter,
+                    finished.internalRepetitions, finished.externalRepetitions);
+            activePiece = null;
+        }
+
+        private void recordPieceMetadata(@NotNull StructurePiece piece,
+                                         @NotNull BlockPos pieceCenter,
+                                         @NotNull int[] internalRepetitions,
+                                         @NotNull int[] externalRepetitions) {
+            if (externalRepetitions.length > 0) {
+                pieceRepeats.put(piece.getName(), externalRepetitions.clone());
+            } else if (internalRepetitions.length > 0) {
+                pieceRepeats.put(piece.getName(), internalRepetitions.clone());
+            }
+            pieceCenters.put(piece.getName(), pieceCenter);
+        }
+
+        private void mergePreviewCell(@NotNull ActivePiece active,
+                                      @NotNull BlockPos previewPos,
+                                      @NotNull BlockInfo info,
+                                      @NotNull StructureElementPreviewEntry previewEntry) {
+            for (BlockPos canonicalShift : active.canonicalShifts) {
+                BlockInfo selected = info;
+                if (!abilityTracker.canPlace(selected)) {
+                    selected = findFallback(previewEntry, abilityTracker);
+                }
+                if (!isOccupied(selected)) {
+                    continue;
+                }
+                abilityTracker.record(selected);
+                BlockPos global = active.pieceCenter.add(
+                        previewPos.subtract(active.previewCenter).add(canonicalShift));
+                blocks.put(global, selected);
+                previewEntries.put(global, previewEntry);
+            }
+        }
+
+        private void requireComplete() {
+            if (!complete) {
+                throw new IllegalStateException("Incremental preview has not completed yet");
+            }
+        }
+
+        private final class ActivePiece {
+
+            @NotNull
+            private final StructurePiece piece;
+            @NotNull
+            private final BlockPos pieceCenter;
+            @NotNull
+            private final BlockPos previewCenter;
+            @NotNull
+            private final int[] internalRepetitions;
+            @NotNull
+            private final int[] externalRepetitions;
+            @NotNull
+            private final List<BlockPos> canonicalShifts;
+            @NotNull
+            private final PieceRuntimeState.PreviewCellTask cellTask;
+
+            private ActivePiece(@NotNull StructurePiece piece,
+                                @NotNull BlockPos pieceCenter,
+                                @NotNull int[] internalRepetitions,
+                                @NotNull int[] externalRepetitions,
+                                @NotNull List<BlockPos> canonicalShifts,
+                                @NotNull PieceRuntimeState.PreviewCellTask cellTask) {
+                this.piece = piece;
+                this.pieceCenter = pieceCenter;
+                this.previewCenter = calculatePreviewCenter(piece.getTemplate(), internalRepetitions);
+                this.internalRepetitions = internalRepetitions;
+                this.externalRepetitions = externalRepetitions;
+                this.canonicalShifts = canonicalShifts;
+                this.cellTask = cellTask;
+            }
+
+            private void accept(@NotNull BlockPos previewPos,
+                                @NotNull BlockInfo info,
+                                @NotNull StructureElementPreviewEntry previewEntry) {
+                mergePreviewCell(this, previewPos, info, previewEntry);
+            }
+        }
+    }
+
+    /**
      * Resolve a preview piece center in an actual controller coordinate frame.
      * Preview metadata stores canonical centers for array assembly, so only its
      * repeat counts are reused here; centers are rebuilt in the target frame.
@@ -258,6 +566,21 @@ public final class MultiPiecePreviewAssembler {
                             value, aisle.minRepeat(), aisle.maxRepeat());
         }
         return repetitions;
+    }
+
+    @NotNull
+    private static BlockPos calculatePreviewCenter(@NotNull PieceTemplate template,
+                                                   @NotNull int[] repetitions) {
+        PieceTemplate.CenterOffset centerOffset = template.getCenterOffset();
+        int finger = -centerOffset.maxZ();
+        for (int i = 0; i < centerOffset.z() && i < repetitions.length; i++) {
+            finger += repetitions[i];
+        }
+        return RelativeDirection.setActualRelativeOffset(
+                0, 0, finger,
+                CANONICAL_PREVIEW_ORIENTATION.getStructureFront(),
+                CANONICAL_PREVIEW_ORIENTATION.getUp(),
+                CANONICAL_PREVIEW_ORIENTATION.isFlipped(), template.getStructureDir());
     }
 
     private static void orientPreviewMetaTileEntities(@NotNull Map<BlockPos, BlockInfo> blocks,

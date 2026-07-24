@@ -1134,6 +1134,16 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     }
 
     /**
+     * Starts a main-thread, resumable sparse preview build for large client tooling surfaces such as JEI.
+     * Callers must advance the returned cursor on the client render thread.
+     */
+    @NotNull
+    public MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
+            @Nullable Map<String, Integer> channelValues) {
+        return MultiblockStructureOperations.beginIncrementalMultiPiecePreview(this, channelValues);
+    }
+
+    /**
      * Build preview shapes for multi-piece structures (StructureDefinition with multiple pieces).
      * Merges all pieces' previews into a single combined shape by offsetting each piece
      * along the aisle direction (the repeat axis for repeatable pieces).

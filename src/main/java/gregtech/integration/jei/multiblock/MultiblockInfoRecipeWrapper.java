@@ -7,6 +7,7 @@ import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
+import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.element.StructureElementPreview;
@@ -76,6 +77,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -103,6 +105,11 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private static final int MAX_CANDIDATES = CANDIDATES_COLUMNS * CANDIDATES_PER_COL;
     // Candidate cycling interval in milliseconds
     private static final long CANDIDATE_CYCLE_INTERVAL_MS = 1000L;
+    private static final long PREVIEW_LOADING_FRAME_BUDGET_NANOS = 6_000_000L;
+    private static final int PREVIEW_ASSEMBLY_BATCH_SIZE = 512;
+    private static final int PREVIEW_WORLD_BATCH_SIZE = 256;
+    private static final int PREVIEW_PARTS_BATCH_SIZE = 64;
+    private static final int PREVIEW_VBO_BATCH_SIZE = 128;
     private static final Set<String> MISSING_TYPED_PREVIEW_DIAGNOSTICS = new HashSet<>();
     private static final Set<String> TYPED_PREVIEW_ENTRY_DIAGNOSTICS = new HashSet<>();
     private static ItemStack tooltipBlockStack;
@@ -118,8 +125,16 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private int[][] channelRanges = new int[0][]; // [channelIdx][0=min, 1=max]
     @Nullable
     private MBPattern[] patterns;
+    @Nullable
+    private PreviewLoadTask previewLoadTask;
+    @Nullable
+    private String previewLoadFailure;
     private boolean previewMetadataInitialized;
     private boolean ingredientInputsInitialized;
+    private boolean previewLayoutInitialized;
+    private boolean rendererContainsFullStructure;
+    private boolean resetViewWhenPreviewReady = true;
+    private int pendingMouseWheel;
     private RecipeLayout recipeLayout;
     private int layerIndex = -1;
     private int lastMouseX;
@@ -146,17 +161,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     /**
-     * JEI creates every wrapper while registering recipes. Keep that phase free
-     * of structure compilation, DummyWorld allocation and FBO creation; those
-     * are needed only after this specific recipe page is opened.
+     * JEI creates every wrapper while registering recipes. Keep that phase free of preview allocation; once a recipe
+     * page is opened, the actual preview is built in bounded client-thread batches so the UI can show progress.
      */
-    private void ensurePreviewInitialized() {
-        if (hasLivePreview()) return;
-
-        initializePreviewMetadata();
-        rebuildPreviewPatterns();
-        GTLog.logger.debug("[JEIMultiblockPreview] lazily initialized controller={} channels={} patterns={}",
-                controller.metaTileEntityId, supportedChannels.size(), patterns.length);
+    private void ensurePreviewLoadStarted() {
+        if (hasLivePreview() || previewLoadTask != null || previewLoadFailure != null) {
+            return;
+        }
+        startPreviewLoading();
     }
 
     private boolean hasLivePreview() {
@@ -174,18 +186,47 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         this.previewMetadataInitialized = true;
     }
 
-    private void rebuildPreviewPatterns() {
+    private void startPreviewLoading() {
+        long preparationStart = System.nanoTime();
         releasePreviewPatterns();
+        cancelPreviewLoading();
+        previewLoadFailure = null;
+        previewLayoutInitialized = false;
+        rendererContainsFullStructure = false;
+        clearParts();
+        initializePreviewMetadata();
+        previewLoadTask = new PreviewLoadTask(controller.beginIncrementalMultiPiecePreview(channelValues));
+        GTLog.logger.debug("[JEIMultiblockPreview] started incremental loading controller={} channels={} preparationMs={}",
+                controller.metaTileEntityId, new TreeMap<>(channelValues),
+                (System.nanoTime() - preparationStart) / 1_000_000L);
+    }
 
-        MBPattern[] rebuilt = controller.getMatchingShapes(channelValues).stream()
-                .map(this::initializePattern)
-                .toArray(MBPattern[]::new);
-        if (rebuilt.length == 0) {
-            throw new IllegalStateException("No JEI preview shapes for " + controller.metaTileEntityId);
+    private void advancePreviewLoading() {
+        PreviewLoadTask task = previewLoadTask;
+        if (task == null) {
+            return;
         }
+        try {
+            task.advance(System.nanoTime() + PREVIEW_LOADING_FRAME_BUDGET_NANOS);
+            if (!task.isComplete()) {
+                return;
+            }
 
-        this.patterns = rebuilt;
-        GregTechAPI.addPatterns(controller.metaTileEntityId, rebuilt);
+            MBPattern loaded = task.takePattern();
+            this.patterns = new MBPattern[] { loaded };
+            this.rendererContainsFullStructure = true;
+            GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
+            previewLoadTask = null;
+            GTLog.logger.debug("[JEIMultiblockPreview] incrementally initialized controller={} channels={} blocks={} ms={}",
+                    controller.metaTileEntityId, new TreeMap<>(channelValues), task.getBlockCount(),
+                    task.getElapsedMillis());
+        } catch (RuntimeException e) {
+            task.dispose();
+            previewLoadTask = null;
+            previewLoadFailure = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
+            GTLog.logger.error("[JEIMultiblockPreview] failed to incrementally initialize controller={}",
+                    controller.metaTileEntityId, e);
+        }
     }
 
     private void releasePreviewResources() {
@@ -194,9 +235,20 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         previewTips = null;
         candidateCycleIndex = 0;
         lastCandidateCycleTime = 0L;
+        cancelPreviewLoading();
+        previewLoadFailure = null;
+        previewLayoutInitialized = false;
+        rendererContainsFullStructure = false;
         releasePreviewPatterns();
         if (lastWrapper == this) {
             lastWrapper = null;
+        }
+    }
+
+    private void cancelPreviewLoading() {
+        if (previewLoadTask != null) {
+            previewLoadTask.dispose();
+            previewLoadTask = null;
         }
     }
 
@@ -220,52 +272,58 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         Map<ItemStack, PartInfo> partsMap = new Object2ObjectOpenCustomHashMap<>(
                 ItemStackHashStrategy.comparingAllButCount());
         for (Entry<BlockPos, BlockInfo> entry : blocks.entrySet()) {
-            BlockPos pos = entry.getKey();
-            IBlockState state = world.getBlockState(pos);
-            Block block = state.getBlock();
-
-            ItemStack stack = ItemStack.EMPTY;
-
-            // first check if the block is a GT machine
-            TileEntity tileEntity = world.getTileEntity(pos);
-            if (tileEntity instanceof IGregTechTileEntity) {
-                MetaTileEntity mte = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
-                // For parametric controllers, include variant NBT so the correct
-                // variant item is shown in the JEI parts list
-                stack = mte.getStackForm();
-            }
-            if (stack.isEmpty()) {
-                // first, see what the block has to say for itself before forcing it to use a particular meta value
-                stack = block.getPickBlock(state, new RayTraceResult(Vec3d.ZERO, EnumFacing.UP, pos), world, pos,
-                        new GregFakePlayer(world));
-            }
-            if (stack.isEmpty()) {
-                // try the default itemstack constructor if we're not a GT machine
-                stack = GTUtility.toItem(state);
-            }
-            if (stack.isEmpty()) {
-                // add the first of the block's drops if the others didn't work
-                NonNullList<ItemStack> list = NonNullList.create();
-                state.getBlock().getDrops(list, world, pos, state, 0);
-                if (!list.isEmpty()) {
-                    ItemStack is = list.get(0);
-                    if (!is.isEmpty()) {
-                        stack = is;
-                    }
-                }
-            }
-
-            // if we got a stack, add it to the parts map
-            if (!stack.isEmpty()) {
-                PartInfo partInfo = partsMap.get(stack);
-                if (partInfo == null) {
-                    partInfo = new PartInfo(stack, entry.getValue());
-                    partsMap.put(stack, partInfo);
-                }
-                partInfo.amount++;
-            }
+            collectStructureBlock(world, entry.getKey(), entry.getValue(), partsMap);
         }
         return partsMap.values();
+    }
+
+    private static void collectStructureBlock(@NotNull World world,
+                                              @NotNull BlockPos pos,
+                                              @NotNull BlockInfo blockInfo,
+                                              @NotNull Map<ItemStack, PartInfo> partsMap) {
+        IBlockState state = world.getBlockState(pos);
+        Block block = state.getBlock();
+
+        ItemStack stack = ItemStack.EMPTY;
+
+        // first check if the block is a GT machine
+        TileEntity tileEntity = world.getTileEntity(pos);
+        if (tileEntity instanceof IGregTechTileEntity) {
+            MetaTileEntity mte = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
+            // For parametric controllers, include variant NBT so the correct
+            // variant item is shown in the JEI parts list
+            stack = mte.getStackForm();
+        }
+        if (stack.isEmpty()) {
+            // first, see what the block has to say for itself before forcing it to use a particular meta value
+            stack = block.getPickBlock(state, new RayTraceResult(Vec3d.ZERO, EnumFacing.UP, pos), world, pos,
+                    new GregFakePlayer(world));
+        }
+        if (stack.isEmpty()) {
+            // try the default itemstack constructor if we're not a GT machine
+            stack = GTUtility.toItem(state);
+        }
+        if (stack.isEmpty()) {
+            // add the first of the block's drops if the others didn't work
+            NonNullList<ItemStack> list = NonNullList.create();
+            state.getBlock().getDrops(list, world, pos, state, 0);
+            if (!list.isEmpty()) {
+                ItemStack is = list.get(0);
+                if (!is.isEmpty()) {
+                    stack = is;
+                }
+            }
+        }
+
+        // if we got a stack, add it to the parts map
+        if (!stack.isEmpty()) {
+            PartInfo partInfo = partsMap.get(stack);
+            if (partInfo == null) {
+                partInfo = new PartInfo(stack, blockInfo);
+                partsMap.put(stack, partInfo);
+            }
+            partInfo.amount++;
+        }
     }
 
     @SideOnly(Side.CLIENT)
@@ -436,12 +494,43 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 copy.getBlock().getDefaultState(), holder));
     }
 
+    @Nullable
+    private MultiblockControllerBase correctPreviewController(@NotNull Map<BlockPos, BlockInfo> blockMap) {
+        MultiblockControllerBase controllerBase = null;
+        BlockPos controllerBlockPos = null;
+        MultiblockControllerBase controllerClassFallback = null;
+        BlockPos controllerClassFallbackPos = null;
+        for (Entry<BlockPos, BlockInfo> entry : blockMap.entrySet()) {
+            TileEntity tileEntity = entry.getValue().getTileEntity();
+            if (!(tileEntity instanceof IGregTechTileEntity gregTechTile) ||
+                    !(gregTechTile.getMetaTileEntity() instanceof MultiblockControllerBase previewController)) {
+                continue;
+            }
+            if (controllerBlockPos == null && controller.metaTileEntityId.equals(previewController.metaTileEntityId)) {
+                controllerBase = previewController;
+                controllerBlockPos = entry.getKey();
+            } else if (controllerClassFallbackPos == null && controller.getClass().isInstance(previewController)) {
+                controllerClassFallback = previewController;
+                controllerClassFallbackPos = entry.getKey();
+            }
+        }
+        if (controllerBlockPos == null) {
+            controllerBase = controllerClassFallback;
+            controllerBlockPos = controllerClassFallbackPos;
+        }
+        if (controllerBlockPos != null && controllerBase != null &&
+                !controller.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
+            replaceControllerInPreview(blockMap, controllerBlockPos, controllerBase);
+        }
+        return controllerBase;
+    }
+
     public void setRecipeLayout(RecipeLayout layout, IGuiHelper guiHelper) {
         this.recipeLayout = layout;
+        boolean switchedWrapper = lastWrapper != this;
         if (lastWrapper != null && lastWrapper != this) {
             lastWrapper.releasePreviewResources();
         }
-        ensurePreviewInitialized();
 
         this.slot = guiHelper.drawableBuilder(GuiTextures.SLOT.imageLocation, 0, 0, SLOT_SIZE, SLOT_SIZE)
                 .setTextureSize(SLOT_SIZE, SLOT_SIZE).build();
@@ -450,35 +539,56 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         IDrawable border = layout.getRecipeCategory().getBackground();
         preparePlaceForParts(border.getHeight());
-        if (Mouse.getEventDWheel() == 0 || lastWrapper != this) {
+        pendingMouseWheel = Mouse.getEventDWheel();
+        resetViewWhenPreviewReady = pendingMouseWheel == 0 || switchedWrapper;
+        this.nextLayerButton.x = border.getWidth() - (ICON_SIZE + RIGHT_PADDING);
+        this.nextLayerButton.y = LAYER_BUTTON_Y;
+        if (resetViewWhenPreviewReady) {
             selected = null;
             this.previewCandidates.clear();
             lastWrapper = this;
-            this.nextLayerButton.x = border.getWidth() - (ICON_SIZE + RIGHT_PADDING);
-            this.nextLayerButton.y = LAYER_BUTTON_Y;
-            Vector3f size = ((TrackedDummyWorld) getCurrentRenderer().world).getSize();
-            float max = Math.max(Math.max(Math.max(size.x, size.y), size.z), 1);
-            this.zoom = (float) (3.5 * Math.sqrt(max));
-            this.rotationYaw = 20.0f;
-            this.rotationPitch = getDefaultHorizontalCameraAngle();
-            setNextLayer(-1);
-        } else {
-            zoom = (float) MathHelper.clamp(zoom + (Mouse.getEventDWheel() < 0 ? 0.5 : -0.5), 3, 999);
+        }
+        ensurePreviewLoadStarted();
+        configureLoadedPreviewLayout();
+    }
+
+    private void configureLoadedPreviewLayout() {
+        WorldSceneRenderer renderer = getCurrentRenderer();
+        if (renderer == null || recipeLayout == null) {
+            return;
+        }
+        if (!previewLayoutInitialized || resetViewWhenPreviewReady) {
+            if (resetViewWhenPreviewReady) {
+                Vector3f size = ((TrackedDummyWorld) renderer.world).getSize();
+                float max = Math.max(Math.max(Math.max(size.x, size.y), size.z), 1);
+                this.zoom = (float) (3.5 * Math.sqrt(max));
+                this.rotationYaw = 20.0f;
+                this.rotationPitch = getDefaultHorizontalCameraAngle();
+                setNextLayer(-1);
+            } else {
+                zoom = (float) MathHelper.clamp(zoom + (pendingMouseWheel < 0 ? 0.5 : -0.5), 3, 999);
+                setNextLayer(getLayerIndex());
+                if (!previewCandidates.isEmpty()) {
+                    setItemStackGroup();
+                }
+            }
+            resetCenter((TrackedDummyWorld) renderer.world, renderer);
+            updateParts();
+            previewLayoutInitialized = true;
+        } else if (pendingMouseWheel != 0) {
+            zoom = (float) MathHelper.clamp(zoom + (pendingMouseWheel < 0 ? 0.5 : -0.5), 3, 999);
             setNextLayer(getLayerIndex());
             if (!previewCandidates.isEmpty()) {
                 setItemStackGroup();
             }
         }
-        if (getCurrentRenderer() != null) {
-            TrackedDummyWorld world = (TrackedDummyWorld) getCurrentRenderer().world;
-            resetCenter(world);
-        }
-        updateParts();
+        resetViewWhenPreviewReady = false;
+        pendingMouseWheel = 0;
     }
 
+    @Nullable
     public WorldSceneRenderer getCurrentRenderer() {
-        ensurePreviewInitialized();
-        return patterns[0].getSceneRenderer();
+        return hasLivePreview() ? patterns[0].getSceneRenderer() : null;
     }
 
     public int getLayerIndex() {
@@ -487,6 +597,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private void toggleNextLayer() {
         WorldSceneRenderer renderer = getCurrentRenderer();
+        if (renderer == null) {
+            return;
+        }
         int height = (int) ((TrackedDummyWorld) renderer.world).getSize().getY() - 1;
         if (++this.layerIndex > height) {
             // if current layer index is more than max height, reset it
@@ -502,8 +615,11 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         WorldSceneRenderer renderer = getCurrentRenderer();
         if (renderer != null) {
             TrackedDummyWorld world = ((TrackedDummyWorld) renderer.world);
-            resetCenter(world);
+            resetCenter(world, renderer);
             renderer.disableClipPlanes();
+            if (newLayer == -1 && rendererContainsFullStructure) {
+                return;
+            }
             renderer.renderedBlocks.clear();
             int minY = (int) world.getMinPos().getY();
             Collection<BlockPos> renderBlocks;
@@ -515,17 +631,18 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                         .collect(Collectors.toSet());
             }
             renderer.addRenderedBlocks(renderBlocks);
+            rendererContainsFullStructure = newLayer == -1;
         }
     }
 
-    private void resetCenter(TrackedDummyWorld world) {
+    private void resetCenter(TrackedDummyWorld world, WorldSceneRenderer renderer) {
         Vector3f size = world.getSize();
         Vector3f minPos = world.getMinPos();
         center = new Vector3f(minPos.x + size.x / 2, minPos.y + size.y / 2, minPos.z + size.z / 2);
         if (layerIndex != -1) {
             center.y = minPos.y + layerIndex + 0.5f;
         }
-        getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch), Math.toRadians(rotationYaw));
+        renderer.setCameraLookAt(center, zoom, Math.toRadians(rotationPitch), Math.toRadians(rotationYaw));
     }
 
     private float getDefaultHorizontalCameraAngle() {
@@ -543,6 +660,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private EnumFacing getPreviewControllerFacing() {
         MultiblockControllerBase classFallback = null;
         WorldSceneRenderer renderer = getCurrentRenderer();
+        if (renderer == null) {
+            return EnumFacing.SOUTH;
+        }
         for (BlockPos pos : renderer.renderedBlocks) {
             TileEntity tileEntity = renderer.world.getTileEntity(pos);
             if (!(tileEntity instanceof IGregTechTileEntity gregTechTile)) continue;
@@ -593,14 +713,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private void regeneratePatterns() {
         clearPreviewSelection();
         initializePreviewMetadata();
-        rebuildPreviewPatterns();
-        setNextLayer(-1);
-        updateParts();
-        getCurrentRenderer().setCameraLookAt(center, zoom, Math.toRadians(rotationPitch),
-                Math.toRadians(rotationYaw));
-        if (getCurrentRenderer() instanceof FBOWorldSceneRenderer fboRenderer) {
-            fboRenderer.markFBODirty();
-        }
+        resetViewWhenPreviewReady = true;
+        startPreviewLoading();
     }
 
     private void clearPreviewSelection() {
@@ -644,10 +758,35 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             itemStackGroup.set(i, (ItemStack) null);
         }
     }
+
+    private void clearParts() {
+        if (recipeLayout == null) {
+            return;
+        }
+        IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
+        for (int i = 0; i < MAX_PARTS; i++) {
+            itemStackGroup.set(i, (ItemStack) null);
+        }
+    }
     @Override
     public void drawInfo(@NotNull Minecraft minecraft, int recipeWidth, int recipeHeight, int mouseX, int mouseY) {
-        ensurePreviewInitialized();
+        ensurePreviewLoadStarted();
+        advancePreviewLoading();
+        if (!hasLivePreview()) {
+            drawPreviewLoading(minecraft, recipeWidth, recipeHeight);
+            tooltipBlockStack = null;
+            this.previewTips = null;
+            lastRender = System.currentTimeMillis();
+            this.lastMouseX = mouseX;
+            this.lastMouseY = mouseY;
+            return;
+        }
+        configureLoadedPreviewLayout();
         WorldSceneRenderer renderer = getCurrentRenderer();
+        if (renderer == null) {
+            drawPreviewLoading(minecraft, recipeWidth, recipeHeight);
+            return;
+        }
         // Full-screen 3D scene (GT5 style: scene covers entire area, UI overlaid on top)
         int sceneX = 0;
         int sceneWidth = recipeWidth;
@@ -800,6 +939,34 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         RenderHelper.disableStandardItemLighting();
     }
 
+    private void drawPreviewLoading(@NotNull Minecraft minecraft, int recipeWidth, int recipeHeight) {
+        drawMultiblockName(recipeWidth);
+        FontRenderer fontRenderer = minecraft.fontRenderer;
+        int barWidth = Math.min(132, Math.max(80, recipeWidth - 44));
+        int barHeight = 8;
+        int barX = (recipeWidth - barWidth) / 2;
+        int barY = Math.max(42, (recipeHeight - barHeight) / 2);
+        PreviewLoadTask task = previewLoadTask;
+        float progress = task == null ? 0.0F : task.getProgress();
+        int percent = Math.max(0, Math.min(100, Math.round(progress * 100.0F)));
+        String status;
+        if (previewLoadFailure != null) {
+            status = I18n.format("gregtech.multiblock.preview.loading_failed");
+        } else if (task != null) {
+            status = I18n.format("gregtech.multiblock.preview.loading_progress",
+                    I18n.format(task.getStageTranslationKey()), percent);
+        } else {
+            status = I18n.format("gregtech.multiblock.preview.loading_prepare");
+        }
+
+        drawRect(barX - 1, barY - 1, barX + barWidth + 1, barY + barHeight + 1, 0xFF1C1C1C);
+        drawRect(barX, barY, barX + barWidth, barY + barHeight, 0xFF595959);
+        drawRect(barX, barY, barX + Math.round(barWidth * progress), barY + barHeight, 0xFF4A9F5A);
+        fontRenderer.drawString(status, (recipeWidth - fontRenderer.getStringWidth(status)) / 2,
+                barY - fontRenderer.FONT_HEIGHT - 4, 0xF0F0F0);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+    }
+
     private void drawMultiblockName(int recipeWidth) {
         String localizedName = I18n.format(controller.getMetaFullName());
         FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
@@ -896,7 +1063,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     @Override
     public boolean handleClick(@NotNull Minecraft minecraft, int mouseX, int mouseY, int mouseButton) {
-        ensurePreviewInitialized();
+        ensurePreviewLoadStarted();
+        if (!hasLivePreview()) {
+            return false;
+        }
+        WorldSceneRenderer renderer = getCurrentRenderer();
+        if (renderer == null) {
+            return false;
+        }
         // Handle channel slider clicks
         if (mouseButton == 0 && !supportedChannels.isEmpty()) {
             int sliderStartY = 184 - (supportedChannels.size() * 16 + 6);
@@ -926,7 +1100,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             }
         }
         if (mouseButton == 1) {
-            if (getCurrentRenderer().getLastTraceResult() == null) {
+            if (renderer.getLastTraceResult() == null) {
                 if (this.selected != null) {
                     this.selected = null;
                     // Clear predicates without directly accessing item stacks
@@ -938,7 +1112,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 }
                 return false;
             }
-            BlockPos selected = getCurrentRenderer().getLastTraceResult().getBlockPos();
+            BlockPos selected = renderer.getLastTraceResult().getBlockPos();
             if (!Objects.equals(this.selected, selected)) {
                 // Clear old predicates without accessing item stacks directly
                 // The item stacks will be properly cleared in setItemStackGroup when new slots are initialized
@@ -953,7 +1127,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     setItemStackGroup();
                 }
                 // Mark FBO dirty so scene re-renders with candidate block cycling
-                if (getCurrentRenderer() instanceof FBOWorldSceneRenderer fboRenderer) {
+                if (renderer instanceof FBOWorldSceneRenderer fboRenderer) {
                     fboRenderer.markFBODirty();
                 }
                 return true;
@@ -1084,6 +1258,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @NotNull
     @Override
     public List<String> getTooltipStrings(int mouseX, int mouseY) {
+        if (!hasLivePreview()) {
+            return Collections.emptyList();
+        }
         // Channel slider tooltips
         if (!supportedChannels.isEmpty()) {
             int sliderStartY = 184 - (supportedChannels.size() * 16 + 6);
@@ -1293,6 +1470,245 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     controller.metaTileEntityId, previewControllerId,
                     controller.getStructureDefinition().getCompiledPattern().getPieceCount(),
                     new TreeMap<>(channelValues), blockCount, sourceEntryCount, retainedEntryCount);
+        }
+    }
+
+    private enum PreviewLoadStage {
+        ASSEMBLING("gregtech.multiblock.preview.loading_assemble"),
+        POPULATING_WORLD("gregtech.multiblock.preview.loading_world"),
+        COLLECTING_PARTS("gregtech.multiblock.preview.loading_parts"),
+        UPLOADING_MESH("gregtech.multiblock.preview.loading_mesh"),
+        COMPLETE("gregtech.multiblock.preview.loading_complete");
+
+        @NotNull
+        private final String translationKey;
+
+        PreviewLoadStage(@NotNull String translationKey) {
+            this.translationKey = translationKey;
+        }
+    }
+
+    /**
+     * JEI's render callback is the only safe place to build this preview: blocks, MetaTileEntities and OpenGL buffers
+     * are all client-thread objects. Each stage is intentionally bounded so the loading indicator can be redrawn.
+     */
+    private final class PreviewLoadTask {
+
+        @NotNull
+        private final MultiPiecePreviewAssembler.IncrementalPreview previewBuild;
+        private final long startedNanos = System.nanoTime();
+        @NotNull
+        private PreviewLoadStage stage = PreviewLoadStage.ASSEMBLING;
+        @Nullable
+        private Map<BlockPos, BlockInfo> blockMap;
+        @Nullable
+        private Map<BlockPos, StructureElementPreviewEntry> previewEntries;
+        @Nullable
+        private Iterator<Entry<BlockPos, BlockInfo>> worldBlocks;
+        @Nullable
+        private Iterator<Entry<BlockPos, BlockInfo>> partBlocks;
+        @Nullable
+        private TrackedDummyWorld world;
+        @Nullable
+        private FBOWorldSceneRenderer renderer;
+        @Nullable
+        private MultiblockControllerBase previewController;
+        @NotNull
+        private final Map<ItemStack, PartInfo> partsMap = new Object2ObjectOpenCustomHashMap<>(
+                ItemStackHashStrategy.comparingAllButCount());
+        private int populatedBlocks;
+        private int collectedParts;
+        @Nullable
+        private MBPattern pattern;
+
+        private PreviewLoadTask(@NotNull MultiPiecePreviewAssembler.IncrementalPreview previewBuild) {
+            this.previewBuild = previewBuild;
+        }
+
+        private void advance(long deadlineNanos) {
+            while (System.nanoTime() < deadlineNanos && !isComplete()) {
+                switch (stage) {
+                    case ASSEMBLING -> advanceAssembly();
+                    case POPULATING_WORLD -> advanceWorld(deadlineNanos);
+                    case COLLECTING_PARTS -> advanceParts(deadlineNanos);
+                    case UPLOADING_MESH -> advanceMesh();
+                    case COMPLETE -> { return; }
+                }
+                if (stage == PreviewLoadStage.ASSEMBLING || stage == PreviewLoadStage.UPLOADING_MESH) {
+                    // One bounded assembly/mesh batch per frame keeps worst-case render work predictable.
+                    return;
+                }
+            }
+        }
+
+        private void advanceAssembly() {
+            previewBuild.advance(PREVIEW_ASSEMBLY_BATCH_SIZE);
+            if (!previewBuild.isComplete()) {
+                return;
+            }
+
+            blockMap = new HashMap<>(previewBuild.getBlocks());
+            previewEntries = new HashMap<>(previewBuild.getPreviewEntries());
+            previewController = correctPreviewController(blockMap);
+            world = new TrackedDummyWorld();
+            renderer = new FBOWorldSceneRenderer(world, 512, 512);
+            renderer.setClearColor(ConfigHolder.client.multiblockPreviewColor);
+            worldBlocks = blockMap.entrySet().iterator();
+            transitionTo(PreviewLoadStage.POPULATING_WORLD);
+        }
+
+        private void advanceWorld(long deadlineNanos) {
+            if (worldBlocks == null || world == null) {
+                throw new IllegalStateException("Preview world was not initialized");
+            }
+            int batch = 0;
+            while (worldBlocks.hasNext() && batch < PREVIEW_WORLD_BATCH_SIZE && System.nanoTime() < deadlineNanos) {
+                Entry<BlockPos, BlockInfo> entry = worldBlocks.next();
+                world.addBlock(entry.getKey(), entry.getValue());
+                populatedBlocks++;
+                batch++;
+            }
+            if (worldBlocks.hasNext()) {
+                return;
+            }
+
+            configureRenderer();
+            if (previewEntries == null || blockMap == null) {
+                throw new IllegalStateException("Preview metadata was not initialized");
+            }
+            logTypedPreviewEntrySource(previewController, blockMap.size(), previewEntries.size(), previewEntries.size());
+            partBlocks = blockMap.entrySet().iterator();
+            transitionTo(PreviewLoadStage.COLLECTING_PARTS);
+        }
+
+        private void configureRenderer() {
+            if (world == null || renderer == null) {
+                throw new IllegalStateException("Preview renderer was not initialized");
+            }
+            int totalBlocks = world.renderedBlocks.size();
+            if (totalBlocks > 50) {
+                renderer.setCullInternalBlocks(true);
+            }
+            renderer.addRenderedBlocks(world.renderedBlocks);
+            renderer.setOnLookingAt(ray -> {});
+
+            if (renderer.renderedBlocks.size() > 100) {
+                renderer.setTileEntityFilter(te ->
+                        te instanceof IGregTechTileEntity gtte &&
+                                gtte.getMetaTileEntity() instanceof MultiblockControllerBase);
+                renderer.setHitTestInterval(5);
+            } else if (renderer.renderedBlocks.size() > 50) {
+                renderer.setMaxTileEntityRenderers(8);
+                renderer.setMaxTileEntityRenderDistance(16.0);
+                renderer.setHitTestInterval(3);
+            }
+
+            renderer.setAfterWorldRender(ignored -> {
+                BlockPos look = renderer.getLastTraceResult() == null ? null :
+                        renderer.getLastTraceResult().getBlockPos();
+                if (look != null && look.equals(selected)) {
+                    renderBlockOverLay(selected, 200, 75, 75);
+                } else {
+                    renderBlockOverLay(look, 150, 150, 150);
+                    renderBlockOverLay(selected, 255, 0, 0);
+                }
+                if (selected != null && !previewCandidates.isEmpty()) {
+                    renderCandidateBlockAtPosition(world, selected);
+                }
+            });
+            world.updateEntities();
+            world.setRenderFilter(renderer.renderedBlocks::contains);
+        }
+
+        private void advanceParts(long deadlineNanos) {
+            if (partBlocks == null || world == null) {
+                throw new IllegalStateException("Preview part collection was not initialized");
+            }
+            int batch = 0;
+            while (partBlocks.hasNext() && batch < PREVIEW_PARTS_BATCH_SIZE && System.nanoTime() < deadlineNanos) {
+                Entry<BlockPos, BlockInfo> entry = partBlocks.next();
+                collectStructureBlock(world, entry.getKey(), entry.getValue(), partsMap);
+                collectedParts++;
+                batch++;
+            }
+            if (partBlocks.hasNext()) {
+                return;
+            }
+            transitionTo(PreviewLoadStage.UPLOADING_MESH);
+        }
+
+        private void advanceMesh() {
+            if (renderer == null || world == null || previewEntries == null) {
+                throw new IllegalStateException("Preview mesh upload was not initialized");
+            }
+            if (!renderer.uploadVBOChunk(PREVIEW_VBO_BATCH_SIZE)) {
+                return;
+            }
+
+            List<ItemStack> sortedParts = partsMap.values().stream()
+                    .sorted((one, two) -> {
+                        if (one.isController) return -1;
+                        if (two.isController) return +1;
+                        if (one.isTile && !two.isTile) return -1;
+                        if (two.isTile && !one.isTile) return +1;
+                        if (one.blockId != two.blockId) return two.blockId - one.blockId;
+                        return two.amount - one.amount;
+                    })
+                    .map(PartInfo::getItemStack)
+                    .collect(Collectors.toList());
+            pattern = new MBPattern(renderer, sortedParts, previewEntries);
+            transitionTo(PreviewLoadStage.COMPLETE);
+        }
+
+        private void transitionTo(@NotNull PreviewLoadStage newStage) {
+            stage = newStage;
+            GTLog.logger.debug("[JEIMultiblockPreview] loading stage controller={} stage={} blocks={} parts={} ms={}",
+                    controller.metaTileEntityId, stage, populatedBlocks, collectedParts, getElapsedMillis());
+        }
+
+        private boolean isComplete() {
+            return stage == PreviewLoadStage.COMPLETE && pattern != null;
+        }
+
+        @NotNull
+        private MBPattern takePattern() {
+            if (pattern == null) {
+                throw new IllegalStateException("Preview loading task has not completed");
+            }
+            return pattern;
+        }
+
+        private int getBlockCount() {
+            return blockMap == null ? 0 : blockMap.size();
+        }
+
+        private long getElapsedMillis() {
+            return (System.nanoTime() - startedNanos) / 1_000_000L;
+        }
+
+        @NotNull
+        private String getStageTranslationKey() {
+            return stage.translationKey;
+        }
+
+        private float getProgress() {
+            return switch (stage) {
+                case ASSEMBLING -> 0.55F * previewBuild.getProgress();
+                case POPULATING_WORLD -> 0.55F + 0.20F * fraction(populatedBlocks, getBlockCount());
+                case COLLECTING_PARTS -> 0.75F + 0.12F * fraction(collectedParts, getBlockCount());
+                case UPLOADING_MESH -> 0.87F + 0.12F * (renderer == null ? 0.0F : renderer.getVBOUploadProgress());
+                case COMPLETE -> 1.0F;
+            };
+        }
+
+        private static float fraction(int completed, int total) {
+            return total == 0 ? 1.0F : Math.min(1.0F, (float) completed / total);
+        }
+
+        private void dispose() {
+            if (pattern == null && renderer != null) {
+                renderer.dispose();
+            }
         }
     }
 
