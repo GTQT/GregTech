@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/titan/front",
+    "back": "gregtech:items/metaitems/display/titan/back",
+    "left": "gregtech:items/metaitems/display/titan/left",
+    "right": "gregtech:items/metaitems/display/titan/right",
+    "top": "gregtech:items/metaitems/display/titan/top",
+    "bottom": "gregtech:items/metaitems/display/titan/bottom"
+  }
+}

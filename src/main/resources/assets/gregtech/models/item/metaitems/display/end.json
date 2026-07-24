@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/end/front",
+    "back": "gregtech:items/metaitems/display/end/back",
+    "left": "gregtech:items/metaitems/display/end/left",
+    "right": "gregtech:items/metaitems/display/end/right",
+    "top": "gregtech:items/metaitems/display/end/top",
+    "bottom": "gregtech:items/metaitems/display/end/bottom"
+  }
+}

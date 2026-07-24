@@ -803,12 +803,16 @@ public final class MetaItems {
 
     public static GregTechMetaItem GT_META_ITEM;
     public static MetaArmor GT_ARMOR;
+    public static OrbItems GT_ORB_ITEMS;
 
     public static void init() {
         GT_META_ITEM = new GregTechMetaItem();
         GT_META_ITEM.setRegistryName("meta_item_1");
         GT_ARMOR = new MetaArmor();
         GT_ARMOR.setRegistryName("gt_armor");
+        GT_ORB_ITEMS = new OrbItems();
+        GT_ORB_ITEMS.setRegistryName("gt_orb_items");
+
         for (OrePrefix prefix : orePrefixes) {
             for (MaterialRegistry registry : GregTechAPI.materialManager.getRegistries()) {
                 String regName = CaseFormat.UPPER_CAMEL.to(CaseFormat.LOWER_UNDERSCORE, prefix.name());

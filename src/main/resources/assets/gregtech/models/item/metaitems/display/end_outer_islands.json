@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/end_outer_islands/front",
+    "back": "gregtech:items/metaitems/display/end_outer_islands/back",
+    "left": "gregtech:items/metaitems/display/end_outer_islands/left",
+    "right": "gregtech:items/metaitems/display/end_outer_islands/right",
+    "top": "gregtech:items/metaitems/display/end_outer_islands/top",
+    "bottom": "gregtech:items/metaitems/display/end_outer_islands/bottom"
+  }
+}

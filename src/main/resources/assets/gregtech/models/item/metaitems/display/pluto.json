@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/pluto/front",
+    "back": "gregtech:items/metaitems/display/pluto/back",
+    "left": "gregtech:items/metaitems/display/pluto/left",
+    "right": "gregtech:items/metaitems/display/pluto/right",
+    "top": "gregtech:items/metaitems/display/pluto/top",
+    "bottom": "gregtech:items/metaitems/display/pluto/bottom"
+  }
+}

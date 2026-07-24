@@ -8359,6 +8359,21 @@ metaitem.electrode.orchid.name=Orchid Electrode
 metaitem.electrode.rubber.name=Rubberised Electrode
 metaitem.electrode.tin.name=Tin Electrode
 
+# Dimension Display Items
+metaitem.display.overworld.name=Overworld
+metaitem.display.nether.name=Nether
+metaitem.display.end.name=End
+metaitem.display.end_main_island.name=End Main Island
+metaitem.display.end_outer_islands.name=End Outer Islands
+metaitem.display.moon.name=Moon
+metaitem.display.mercury.name=Mercury
+metaitem.display.mars.name=Mars
+metaitem.display.deimos.name=Deimos
+metaitem.display.phobos.name=Phobos
+metaitem.display.pluto.name=Pluto
+metaitem.display.titan.name=Titan
+metaitem.display.deep_dark.name=Deep Dark
+
 # Scoop
 item.gt.tool.scoop.name=%s Scoop
 item.gt.tool.behavior.scoop=§dArborist: §fCatches Butterflies on Left-Click

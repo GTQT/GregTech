@@ -4,14 +4,17 @@ import gregtech.api.GTValues;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.util.GTStringUtils;
 import gregtech.api.worldgen.config.WorldGenRegistry;
+import gregtech.common.items.OrbItems;
 import gregtech.integration.jei.utils.JEIResourceDepositCategoryUtils;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
+import net.minecraft.item.ItemStack;
 
 import mezz.jei.api.IGuiHelper;
 import mezz.jei.api.gui.IDrawable;
 import mezz.jei.api.gui.IGuiFluidStackGroup;
+import mezz.jei.api.gui.IGuiItemStackGroup;
 import mezz.jei.api.gui.IRecipeLayout;
 import mezz.jei.api.ingredients.IIngredients;
 import mezz.jei.api.recipe.IRecipeWrapper;
@@ -27,21 +30,26 @@ public class GTFluidVeinCategory extends BasicRecipeCategory<GTFluidVeinInfo, GT
     private static final int SLOT_CENTER = 79;
     private static final int TEXT_START_X = 5;
     private static final int START_POS_Y = 40;
+    private static final int SLOT_WIDTH = 18;
+    private static final int SLOT_HEIGHT = 18;
+    private static final int DIM_DISPLAY_PER_ROW = 7;
 
     protected final IDrawable slot;
     private String veinName;
     private int weight;
     private int[] yields; // the [minimum, maximum) yields
-    private int depletionAmount; // amount of fluid the vein gets drained by
-    private int depletionChance; // the chance [0, 100] that the vein will deplete by 1
-    private int depletedYield; // yield after the vein is depleted
-    private int[] dimensions;
+    private int depletionAmount;
+    private int depletionChance;
+    private int depletedYield;
+    private int[] dimensionIDs;
     private int weightLength;
     private int minYieldLength;
     private int maxYieldLength;
     private int depletionChanceLength;
     private int depletionAmountLength;
     private int depletedYieldLength;
+    private int dimDisplayCount;
+    private int dimDisplayBaseYPos;
 
     public GTFluidVeinCategory(IGuiHelper guiHelper) {
         super("fluid_spawn_location",
@@ -70,8 +78,27 @@ public class GTFluidVeinCategory extends BasicRecipeCategory<GTFluidVeinInfo, GT
         this.depletionChance = gtFluidVeinInfo.getDepletionChance();
         this.depletedYield = gtFluidVeinInfo.getDepletedYield();
 
-        this.dimensions = JEIResourceDepositCategoryUtils.getAllRegisteredDimensions(
+        this.dimensionIDs = JEIResourceDepositCategoryUtils.getAllRegisteredDimensions(
                 gtFluidVeinInfo.getDefinition().getDimensionFilter());
+
+        // ========== Dimension display item slots ==========
+        IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
+        int dimSlotStartIndex = 1;
+        int dimBaseY = START_POS_Y + 7 * FONT_HEIGHT + 1; // one row below "Dimensions:" text
+        this.dimDisplayBaseYPos = dimBaseY;
+
+        int j = 0;
+        for (int dimId : dimensionIDs) {
+            ItemStack displayStack = OrbItems.getDisplayItem(dimId);
+            if (displayStack.isEmpty()) continue;
+
+            itemStackGroup.init(dimSlotStartIndex + j, true,
+                    TEXT_START_X + (j % DIM_DISPLAY_PER_ROW) * SLOT_WIDTH,
+                    dimBaseY + (j / DIM_DISPLAY_PER_ROW) * SLOT_HEIGHT);
+            itemStackGroup.set(dimSlotStartIndex + j, displayStack);
+            j++;
+        }
+        this.dimDisplayCount = j;
     }
 
     @NotNull
@@ -123,12 +150,22 @@ public class GTFluidVeinCategory extends BasicRecipeCategory<GTFluidVeinInfo, GT
         int dimensionLength = minecraft.fontRenderer.getStringWidth(veinDimension);
         minecraft.fontRenderer.drawString(veinDimension, TEXT_START_X, START_POS_Y + 6 * FONT_HEIGHT + 1, 0x111111);
 
-        JEIResourceDepositCategoryUtils.drawMultiLineCommaSeparatedDimensionList(WorldGenRegistry.getNamedDimensions(),
-                dimensions,
-                minecraft.fontRenderer,
-                TEXT_START_X,
-                START_POS_Y + 6 * FONT_HEIGHT + 1,
-                TEXT_START_X + dimensionLength);
+        // Dimension display: use icons if available, otherwise fall back to text
+        if (dimDisplayCount > 0) {
+            for (int j = 0; j < dimDisplayCount; j++) {
+                int slotX = TEXT_START_X + (j % DIM_DISPLAY_PER_ROW) * SLOT_WIDTH;
+                int slotY = dimDisplayBaseYPos + (j / DIM_DISPLAY_PER_ROW) * SLOT_HEIGHT;
+                this.slot.draw(minecraft, slotX, slotY);
+            }
+        } else {
+            JEIResourceDepositCategoryUtils.drawMultiLineCommaSeparatedDimensionList(
+                    WorldGenRegistry.getNamedDimensions(),
+                    dimensionIDs,
+                    minecraft.fontRenderer,
+                    TEXT_START_X,
+                    START_POS_Y + 6 * FONT_HEIGHT + 1,
+                    TEXT_START_X + dimensionLength);
+        }
     }
 
     @NotNull
@@ -154,23 +191,13 @@ public class GTFluidVeinCategory extends BasicRecipeCategory<GTFluidVeinInfo, GT
                             } else
                         if (isPointWithinRange(TEXT_START_X, START_POS_Y + 5 * FONT_HEIGHT + 1, depletedYieldLength,
                                 FONT_HEIGHT + 1, mouseX, mouseY)) {
-                                    return Collections.singletonList(I18n.format("gregtech.jei.fluid.dep_yield_hover"));
+                                    return Collections.singletonList(
+                                            I18n.format("gregtech.jei.fluid.dep_yield_hover"));
                                 }
 
         return Collections.emptyList();
     }
 
-    /**
-     * Checks if an (X,Y) point is within a defined box range
-     *
-     * @param initialX The initial X point of the box
-     * @param initialY The initial Y point of the box
-     * @param width    The width of the box
-     * @param height   The height of the box
-     * @param pointX   The X value of the point to check
-     * @param pointY   The Y value of the point to check
-     * @return True if the provided (X,Y) point is within the described box, else false
-     */
     private static boolean isPointWithinRange(int initialX, int initialY, int width, int height, int pointX,
                                               int pointY) {
         return initialX <= pointX && pointX <= initialX + width && initialY <= pointY && pointY <= initialY + height;

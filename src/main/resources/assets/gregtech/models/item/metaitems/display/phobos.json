@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/phobos/front",
+    "back": "gregtech:items/metaitems/display/phobos/back",
+    "left": "gregtech:items/metaitems/display/phobos/left",
+    "right": "gregtech:items/metaitems/display/phobos/right",
+    "top": "gregtech:items/metaitems/display/phobos/top",
+    "bottom": "gregtech:items/metaitems/display/phobos/bottom"
+  }
+}

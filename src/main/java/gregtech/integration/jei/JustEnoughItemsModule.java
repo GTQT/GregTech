@@ -41,6 +41,7 @@ import gregtech.integration.jei.basic.MaterialTree;
 import gregtech.integration.jei.basic.MaterialTreeCategory;
 import gregtech.integration.jei.basic.OreByProduct;
 import gregtech.integration.jei.basic.OreByProductCategory;
+import gregtech.integration.jei.basic.OreVeinInfoPlugin;
 import gregtech.integration.jei.multiblock.MultiblockInfoCategory;
 import gregtech.integration.jei.recipe.FacadeRegistryPlugin;
 import gregtech.integration.jei.recipe.GTRecipeWrapper;
@@ -231,6 +232,7 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
         registry.addRecipes(IntCircuitRecipeWrapper.create(), IntCircuitCategory.UID);
         MultiblockInfoCategory.registerRecipes(registry);
         registry.addRecipeRegistryPlugin(new FacadeRegistryPlugin());
+        registry.addRecipeRegistryPlugin(new OreVeinInfoPlugin());
 
         // register transfer handler for all categories, but not for the crafting station
         ModularUIGuiHandler modularUIGuiHandler = new ModularUIGuiHandler(jeiHelpers.recipeTransferHandlerHelper());

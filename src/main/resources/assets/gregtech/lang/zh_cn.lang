@@ -8337,6 +8337,21 @@ metaitem.electrode.orchid.name=兰花电极
 metaitem.electrode.rubber.name=橡胶电极
 metaitem.electrode.tin.name=锡电极
 
+# Dimension Display Items
+metaitem.display.overworld.name=主世界
+metaitem.display.nether.name=下界
+metaitem.display.end.name=末地
+metaitem.display.end_main_island.name=末地主岛
+metaitem.display.end_outer_islands.name=末地外岛
+metaitem.display.moon.name=月球
+metaitem.display.mercury.name=水星
+metaitem.display.mars.name=火星
+metaitem.display.deimos.name=火卫二
+metaitem.display.phobos.name=火卫一
+metaitem.display.pluto.name=冥王星
+metaitem.display.titan.name=土卫六
+metaitem.display.deep_dark.name=深暗之地
+
 # Scoop
 item.gt.tool.scoop.name=%s捕蜂网
 item.gt.tool.behavior.scoop=§d植物学家：§f左击捕捉蝴蝶

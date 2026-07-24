@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/overworld/front",
+    "back": "gregtech:items/metaitems/display/overworld/back",
+    "left": "gregtech:items/metaitems/display/overworld/left",
+    "right": "gregtech:items/metaitems/display/overworld/right",
+    "top": "gregtech:items/metaitems/display/overworld/top",
+    "bottom": "gregtech:items/metaitems/display/overworld/bottom"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/deimos/front",
+    "back": "gregtech:items/metaitems/display/deimos/back",
+    "left": "gregtech:items/metaitems/display/deimos/left",
+    "right": "gregtech:items/metaitems/display/deimos/right",
+    "top": "gregtech:items/metaitems/display/deimos/top",
+    "bottom": "gregtech:items/metaitems/display/deimos/bottom"
+  }
+}
