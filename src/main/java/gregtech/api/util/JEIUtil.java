@@ -1,7 +1,6 @@
 package gregtech.api.util;
 
 import gregtech.integration.jei.JustEnoughItemsModule;
-import gregtech.mixins.jei.GuiIngredientGroupAccessor;
 
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
@@ -16,6 +15,7 @@ import mezz.jei.api.gui.IGuiIngredientGroup;
 import mezz.jei.api.gui.IGuiItemStackGroup;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashSet;
 import java.util.Set;
 
 public class JEIUtil {
@@ -139,7 +139,13 @@ public class JEIUtil {
     }
 
     private static Set<Integer> getInputIndexes(IGuiIngredientGroup<?> ingredientGroup) {
-        return ((GuiIngredientGroupAccessor) ingredientGroup).getInputSlotIndexes();
+        Set<Integer> inputIndexes = new HashSet<>();
+        for (var entry : ingredientGroup.getGuiIngredients().entrySet()) {
+            if (entry.getValue().isInput()) {
+                inputIndexes.add(entry.getKey());
+            }
+        }
+        return inputIndexes;
     }
 
     /**

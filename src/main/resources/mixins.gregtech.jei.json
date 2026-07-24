@@ -8,7 +8,6 @@
     "BasicRecipeTransferHandlerServerMixin",
     "DragManagerAccessor",
     "GhostDragAccessor",
-    "GuiIngredientGroupAccessor",
     "IngredientGridMixin",
     "ItemStackHelperMixin",
     "ItemStackRendererMixin",
