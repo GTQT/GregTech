@@ -21,6 +21,7 @@ import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.material.properties.ToolProperty;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.UnificationEntry;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.Mods;
 import gregtech.api.util.TextFormattingUtil;
@@ -91,7 +92,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -726,20 +730,54 @@ public interface IGTTool extends ItemUIFactory, IToolWrench, IToolHammer, ITool,
     }
 
     default void definition$getSubItems(@NotNull NonNullList<ItemStack> items) {
-        if (getMarkerItem() != null) {
-            items.add(getMarkerItem().get());
-        } else if (isElectric()) {
-            for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
+        Supplier<ItemStack> markerItem = getMarkerItem();
+        if (markerItem != null) {
+            items.add(markerItem.get());
+            return;
+        }
+
+        items.addAll(ToolSubItemCache.get(this));
+    }
+
+    /**
+     * Tool sub-items are descriptors, not inventory stacks. Sharing them prevents recipe viewers from rebuilding a
+     * full NBT tool set every time an ore-dictionary ingredient is expanded.
+     */
+    final class ToolSubItemCache {
+
+        private static final Map<IGTTool, List<ItemStack>> CACHED_SUB_ITEMS = new IdentityHashMap<>();
+        private static int cachedMaterialCount = -1;
+
+        private ToolSubItemCache() {}
+
+        @NotNull
+        private static synchronized List<ItemStack> get(@NotNull IGTTool tool) {
+            Collection<Material> materials = GregTechAPI.materialManager.getRegisteredMaterials();
+            int materialCount = materials.size();
+
+            // Late material registration must be reflected in the creative tab and recipe viewers.
+            if (cachedMaterialCount != materialCount) {
+                CACHED_SUB_ITEMS.clear();
+                cachedMaterialCount = materialCount;
+                GTLog.logger.debug("Initializing GT tool sub-item cache for {} registered materials", materialCount);
+            }
+
+            List<ItemStack> cachedItems = CACHED_SUB_ITEMS.get(tool);
+            if (cachedItems != null) {
+                return cachedItems;
+            }
+
+            List<ItemStack> generatedItems = new ArrayList<>();
+            boolean electric = tool.isElectric();
+            for (Material material : materials) {
                 if (material.hasProperty(PropertyKey.TOOL)) {
-                    items.add(get(material, Long.MAX_VALUE));
+                    generatedItems.add(electric ? tool.get(material, Long.MAX_VALUE) : tool.get(material));
                 }
             }
-        } else {
-            for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
-                if (material.hasProperty(PropertyKey.TOOL)) {
-                    items.add(get(material));
-                }
-            }
+
+            cachedItems = Collections.unmodifiableList(generatedItems);
+            CACHED_SUB_ITEMS.put(tool, cachedItems);
+            return cachedItems;
         }
     }
 

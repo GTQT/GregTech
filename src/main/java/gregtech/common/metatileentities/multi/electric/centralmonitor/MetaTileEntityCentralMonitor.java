@@ -674,6 +674,14 @@ public class MetaTileEntityCentralMonitor extends MultiblockWithDisplayBase impl
         return this.height;
     }
 
+    @NotNull
+    @Override
+    protected StructureRuntime createToolingPreviewRuntime(
+            @Nullable Map<String, Integer> channelValues) {
+        return createDynamicStructureRuntime(
+                buildToolingDefinition(resolvePreviewHeight(channelValues)));
+    }
+
     /**
      * Expose width and height channels so the structure projector can configure preview size and auto-build dimensions
      * for the central monitor. The runtime structure definition is a minimal runtime-detected piece and does not carry

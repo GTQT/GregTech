@@ -45,6 +45,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -84,13 +85,11 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
     public void getIngredients(@NotNull IIngredients ingredients) {
         // Inputs
         if (!sortedInputs.isEmpty()) {
-            List<List<ItemStack>> list = new ArrayList<>();
+            List<List<ItemStack>> list = new ArrayList<>(sortedInputs.size());
             for (GTRecipeInput input : sortedInputs) {
-                List<ItemStack> stacks = new ArrayList<>();
-                for (ItemStack stack : input.getInputStacks()) {
-                    stacks.add(stack.copy());
-                }
-                list.add(stacks);
+                // Recipe inputs are immutable after registration. Copying them here makes HEI retain a
+                // distinct, deep-NBT ItemStack in its hash cache for every recipe occurrence.
+                list.add(Arrays.asList(input.getInputStacks()));
             }
             ingredients.setInputLists(VanillaTypes.ITEM, list);
         }
@@ -106,9 +105,7 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
 
         // Outputs
         if (!recipe.getOutputs().isEmpty() || !recipe.getChancedOutputs().getChancedEntries().isEmpty()) {
-            List<ItemStack> recipeOutputs = recipe.getOutputs()
-                    .stream().map(ItemStack::copy)
-                    .collect(Collectors.toList());
+            List<ItemStack> recipeOutputs = new ArrayList<>(recipe.getOutputs());
 
             List<ItemStack> scannerPossibilities = null;
             if (this.recipeMap instanceof IScannerRecipeMap) {

@@ -864,6 +864,13 @@ public class MetaTileEntityCleanroom extends MultiblockWithDisplayBase
     }
 
     @NotNull
+    @Override
+    protected StructureRuntime createToolingPreviewRuntime(
+            @Nullable Map<String, Integer> channelValues) {
+        return createToolingRuntime(channelValues);
+    }
+
+    @NotNull
     private StructureDefinition<MetaTileEntityCleanroom> buildToolingDefinition(
             @Nullable Map<String, Integer> channelValues) {
         return StructureDefinition.<MetaTileEntityCleanroom>builder(

@@ -304,6 +304,13 @@ public class MetaTileEntityCharcoalPileIgniter extends MultiblockControllerBase 
     }
 
     @NotNull
+    @Override
+    protected StructureRuntime createToolingPreviewRuntime(
+            @Nullable Map<String, Integer> channelValues) {
+        return createToolingRuntime(channelValues);
+    }
+
+    @NotNull
     private StructureDefinition<MetaTileEntityCharcoalPileIgniter> buildToolingDefinition(
             @Nullable Map<String, Integer> channelValues) {
         return StructureDefinition.<MetaTileEntityCharcoalPileIgniter>builder(

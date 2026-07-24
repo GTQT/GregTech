@@ -822,6 +822,18 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         return MultiblockStructureOperations.createDynamicStructureRuntime(pieceName, template);
     }
 
+    /**
+     * Creates the disposable runtime that client tooling should use to preview a
+     * structure whose complete template is derived from the requested channels or
+     * controller state. Returning {@code null} uses this controller's canonical
+     * structure runtime.
+     */
+    @Nullable
+    protected StructureRuntime createToolingPreviewRuntime(
+            @Nullable Map<String, Integer> channelValues) {
+        return null;
+    }
+
     @NotNull
     protected StructureCheckResult checkDynamicStructure(@NotNull StructureOperationRequest request,
                                                         @NotNull String pieceName,
@@ -1140,6 +1152,12 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @NotNull
     public MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
             @Nullable Map<String, Integer> channelValues) {
+        StructureRuntime toolingRuntime = createToolingPreviewRuntime(channelValues);
+        if (toolingRuntime != null) {
+            return MultiblockStructurePreviews.beginIncrementalMultiPiecePreview(
+                    this, toolingRuntime.getMultiPiecePattern(), toolingRuntime.getPieceRuntimes(),
+                    channelValues);
+        }
         return MultiblockStructureOperations.beginIncrementalMultiPiecePreview(this, channelValues);
     }
 
