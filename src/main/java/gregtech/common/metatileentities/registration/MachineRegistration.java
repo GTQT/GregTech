@@ -334,61 +334,62 @@ public final class MachineRegistration {
         registerSimpleMetaTileEntity(VULCANIZING_PRESS, 905, "vulcanizing_press", RecipeMaps.VULCANIZING_PRESS_RECIPES,
                 Textures.VULCANIZING_PRESS_OVERLAY, true, GTUtility.defaultTankSizeFunction);
 
-
-        // Chunk Miner, IDs 920-922
-        MINER[0] = registerMetaTileEntity(920, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
-        MINER[1] = registerMetaTileEntity(921, new MetaTileEntityMiner(gregtechId("miner.mv"), 2, 80, 16, 2));
-        MINER[2] = registerMetaTileEntity(922, new MetaTileEntityMiner(gregtechId("miner.hv"), 3, 40, 24, 3));
-
-        // Decay Chamber, IDs 980-993
-        registerSimpleMetaTileEntity(DECAY_CHAMBER, 980, "decay_chamber", SCRecipeMaps.DECAY_CHAMBER_RECIPES,
+        // Decay Chamber, IDs 920-935
+        registerSimpleMetaTileEntity(DECAY_CHAMBER, 920, "decay_chamber", SCRecipeMaps.DECAY_CHAMBER_RECIPES,
                 Textures.CHEMICAL_BATH_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
+
+        // Chunk Miner, IDs 935-940
+        MINER[0] = registerMetaTileEntity(935, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
+        MINER[1] = registerMetaTileEntity(936, new MetaTileEntityMiner(gregtechId("miner.mv"), 2, 80, 16, 2));
+        MINER[2] = registerMetaTileEntity(937, new MetaTileEntityMiner(gregtechId("miner.hv"), 3, 40, 24, 3));
+
+
     }
 
     private static void registerGenerators() {
-        // Diesel Generator, IDs 935-939
-        registerSimpleGeneratorMetaTileEntity(COMBUSTION_GENERATOR, 935, "combustion_generator",
+        // Diesel Generator, IDs 950-
+        registerSimpleGeneratorMetaTileEntity(COMBUSTION_GENERATOR, 950, "combustion_generator",
                 RecipeMaps.COMBUSTION_GENERATOR_FUELS, Textures.COMBUSTION_GENERATOR_OVERLAY,
                 MetaTileEntitySingleCombustion.class, GTUtility.genericGeneratorTankSizeFunction,
                 GTUtility.genericGeneratorEfficiencyFunction);
 
-        // Steam Turbine, IDs 940-944
-        registerSimpleGeneratorMetaTileEntity(STEAM_TURBINE, 940, "steam_turbine",
+        // Steam Turbine, IDs 955-
+        registerSimpleGeneratorMetaTileEntity(STEAM_TURBINE, 955, "steam_turbine",
                 RecipeMaps.STEAM_TURBINE_FUELS, Textures.STEAM_TURBINE_OVERLAY,
                 MetaTileEntitySingleTurbine.class, GTUtility.steamGeneratorTankSizeFunction,
                 GTUtility.genericGeneratorEfficiencyFunction);
 
-        // Gas Turbine, IDs 945-949
-        registerSimpleGeneratorMetaTileEntity(GAS_TURBINE, 945, "gas_turbine",
+        // Gas Turbine, IDs 960-
+        registerSimpleGeneratorMetaTileEntity(GAS_TURBINE, 960, "gas_turbine",
                 RecipeMaps.GAS_TURBINE_FUELS, Textures.GAS_TURBINE_OVERLAY,
                 MetaTileEntitySingleTurbine.class, GTUtility.genericGeneratorTankSizeFunction,
                 GTUtility.genericGeneratorEfficiencyFunction);
 
-        // Semi-Fluid Generator, IDs 950-954
-        registerSimpleGeneratorMetaTileEntity(SEMI_FLUID_GENERATOR, 950, "semi_fluid_generator",
+        // Semi-Fluid Generator, IDs 965-
+        registerSimpleGeneratorMetaTileEntity(SEMI_FLUID_GENERATOR, 965, "semi_fluid_generator",
                 RecipeMaps.SEMI_FLUID_GENERATOR_FUELS, Textures.SEMI_FLUID_OVERLAY,
                 MetaTileEntitySingleCombustion.class, GTUtility.genericGeneratorTankSizeFunction,
                 GTUtility.genericGeneratorEfficiencyFunction);
 
-        // Plasma Generator, IDs 955-959
-        PLASMA_GENERATOR[0] = registerMetaTileEntity(955,
+        // Plasma Generator, IDs 970-
+        PLASMA_GENERATOR[0] = registerMetaTileEntity(970,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.ev"), RecipeMaps.PLASMA_GENERATOR_FUELS,
                         Textures.PLASMA_TURBINE_OVERLAY, 4, GTUtility.genericGeneratorTankSizeFunction, 1));
-        PLASMA_GENERATOR[1] = registerMetaTileEntity(956,
+        PLASMA_GENERATOR[1] = registerMetaTileEntity(971,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.iv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
                         Textures.PLASMA_TURBINE_OVERLAY, 5, GTUtility.genericGeneratorTankSizeFunction, 1));
-        PLASMA_GENERATOR[2] = registerMetaTileEntity(957,
+        PLASMA_GENERATOR[2] = registerMetaTileEntity(972,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.luv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
                         Textures.PLASMA_TURBINE_OVERLAY, 6, GTUtility.genericGeneratorTankSizeFunction, 1));
-        PLASMA_GENERATOR[3] = registerMetaTileEntity(958,
+        PLASMA_GENERATOR[3] = registerMetaTileEntity(973,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.zpm"), RecipeMaps.PLASMA_GENERATOR_FUELS,
                         Textures.PLASMA_TURBINE_OVERLAY, 7, GTUtility.genericGeneratorTankSizeFunction, 1));
-        PLASMA_GENERATOR[4] = registerMetaTileEntity(959,
+        PLASMA_GENERATOR[4] = registerMetaTileEntity(974,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.uv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
                         Textures.PLASMA_TURBINE_OVERLAY, 8, GTUtility.genericGeneratorTankSizeFunction, 1));
 
-        // Radioisotope Thermoelectric Generators, IDs 960-962
-        RTG[0] = registerMetaTileEntity(960,
+        // Radioisotope Thermoelectric Generators, IDs 975-
+        RTG[0] = registerMetaTileEntity(975,
                 new SimpleGeneratorMetaTileEntity(gregtechId("rtg.lv"), SCRecipeMaps.RTG_RECIPES, SCTextures.RTG_OVERLAY,
                         1, GTUtility.genericGeneratorTankSizeFunction, 1) {
                     @Override
@@ -396,7 +397,7 @@ public final class MachineRegistration {
                         return 0;
                     }
                 });
-        RTG[1] = registerMetaTileEntity(961,
+        RTG[1] = registerMetaTileEntity(976,
                 new SimpleGeneratorMetaTileEntity(gregtechId("rtg.mv"), SCRecipeMaps.RTG_RECIPES, SCTextures.RTG_OVERLAY,
                         2, GTUtility.genericGeneratorTankSizeFunction, 1) {
                     @Override
@@ -404,7 +405,7 @@ public final class MachineRegistration {
                         return 0;
                     }
                 });
-        RTG[2] = registerMetaTileEntity(962,
+        RTG[2] = registerMetaTileEntity(977,
                 new SimpleGeneratorMetaTileEntity(gregtechId("rtg.hv"), SCRecipeMaps.RTG_RECIPES, SCTextures.RTG_OVERLAY,
                         3, GTUtility.genericGeneratorTankSizeFunction, 1) {
                     @Override

@@ -1,4 +1,4 @@
-package gregtech.common.metatileentities.multi;
+package gregtech.common.metatileentities.multi.electric;
 
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -8,11 +8,15 @@ import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.recipes.SCRecipeMaps;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.client.renderer.textures.SCTextures;
 import gregtech.common.blocks.BlockMetalCasing;
+import gregtech.common.blocks.BlockNuclearCasing;
 import gregtech.common.blocks.MetaBlocks;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -25,12 +29,9 @@ import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import gregtech.api.recipes.SCRecipeMaps;
-import gregtech.client.renderer.textures.SCTextures;
-import gregtech.common.blocks.BlockNuclearCasing;
-import gregtech.common.blocks.MetaBlocks;
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -64,7 +65,7 @@ public class MetaTileEntitySpentFuelPool extends RecipeMapMultiblockController {
                     .blocks('C', MetaBlocks.PANELLING)
                     .where('W', fluidElement(FluidRegistry.WATER))
                     .block('R', getRodState())
-                    .casing('T', getMetalCasingState())
+                    .casing('T', getCasingState())
                     .optionalItemInput(4)
                     .optionalItemOutput(4)
                     .optionalFluidInput(4)
@@ -89,7 +90,7 @@ public class MetaTileEntitySpentFuelPool extends RecipeMapMultiblockController {
         return MetaBlocks.NUCLEAR_CASING.getState(BlockNuclearCasing.NuclearCasingType.SPENT_FUEL_CASING);
     }
 
-    private static IBlockState getMetalCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STAINLESS_CLEAN);
     }
 

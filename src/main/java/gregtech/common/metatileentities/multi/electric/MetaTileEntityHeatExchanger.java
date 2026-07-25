@@ -7,16 +7,19 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.NoEnergyMultiblockController;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.recipes.SCRecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.client.renderer.textures.SCTextures;
 import gregtech.common.blocks.BlockBoilerCasing.BoilerCasingType;
 import gregtech.common.blocks.BlockMetalCasing.MetalCasingType;
 import gregtech.common.blocks.MetaBlocks;
+
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.ResourceLocation;
+
 import org.jetbrains.annotations.NotNull;
-import gregtech.api.recipes.SCRecipeMaps;
-import gregtech.client.renderer.textures.SCTextures;
 
 public class MetaTileEntityHeatExchanger extends NoEnergyMultiblockController {
 
@@ -27,19 +30,23 @@ public class MetaTileEntityHeatExchanger extends NoEnergyMultiblockController {
                     .aisle("CCC", "BSB", "AEA")
                     .self('S', MetaTileEntityHeatExchanger.class)
                     .frames('A', Materials.Steel)
-                    .casing('B', MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID))
+                    .casing('B', getCasingState())
                     .fluidInput(1, 3)
                     .fluidOutput(1, 3)
                     .done()
-                    .casing('C', MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID))
+                    .casing('C', getCasingState())
                     .maintenance()
                     .done()
                     .block('D', MetaBlocks.BOILER_CASING.getState(BoilerCasingType.STEEL_PIPE))
-                    .casing('E', MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID))
+                    .casing('E', getCasingState())
                     .itemInput(1, 3)
                     .done()
                     .buildStructureDefinition()
     );
+
+    public static IBlockState getCasingState() {
+        return MetaBlocks.METAL_CASING.getState(MetalCasingType.STEEL_SOLID);
+    }
 
     public MetaTileEntityHeatExchanger(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, SCRecipeMaps.HEAT_EXCHANGER_RECIPES);

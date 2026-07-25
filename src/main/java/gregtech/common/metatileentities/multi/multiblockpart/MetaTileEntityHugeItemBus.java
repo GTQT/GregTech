@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
-import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
@@ -75,12 +74,16 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     private boolean workingEnabled;
     private boolean autoCollapse;
 
+    private final int slotCount;
+
     @Nullable
     private ItemFilterContainer itemFilterContainer;
     private IItemHandlerModifiable filteredExportHandler;
 
-    public MetaTileEntityHugeItemBus(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
+    public MetaTileEntityHugeItemBus(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch,
+                                     int slotCount) {
         super(metaTileEntityId, tier, isExportHatch);
+        this.slotCount = slotCount;
         this.workingEnabled = true;
         if (this.isExportHatch) {
             this.itemFilterContainer = new ItemFilterContainer(this::markDirty);
@@ -90,13 +93,13 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityHugeItemBus(metaTileEntityId, getTier(), isExportHatch);
+        return new MetaTileEntityHugeItemBus(metaTileEntityId, getTier(), isExportHatch, slotCount);
     }
 
     @Override
     protected void initializeInventory() {
         this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getInventorySize(), null, false,
-                () -> Integer.MAX_VALUE);
+                this::getSlotCapacity);
 
         if (this.hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
@@ -190,11 +193,15 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     }
 
     public int getInventorySize() {
-        return getTankSize() * getTankSize();
+        return slotCount;
     }
 
-    protected int getTankSize() {
-        return 1 + Math.min(GTValues.UHV, getTier());
+    protected int getRowSize() {
+        return (int) Math.sqrt(slotCount);
+    }
+
+    protected int getSlotCapacity() {
+        return 64 << (2 * getTier());
     }
 
     @Override
@@ -205,7 +212,8 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     @Override
     protected IItemHandlerModifiable createImportItemHandler() {
         return isExportHatch ? new GTItemStackHandler(this, 0) :
-                new LargeSlotItemStackHandler(this, getInventorySize(), getController(), false);
+                new LargeSlotItemStackHandler(this, getInventorySize(), getController(), false,
+                        this::getSlotCapacity);
     }
 
     @Override
@@ -296,7 +304,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
-        int rowSize = getTankSize();
+        int rowSize = getRowSize();
         panelSyncManager.registerSlotGroup("item_inv", rowSize);
 
         boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
@@ -364,7 +372,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
                                     @Override
                                     public int getSlotStackLimit() {
-                                        return Integer.MAX_VALUE;
+                                        return getSlotCapacity();
                                     }
                                 }
                                         .ignoreMaxStackSize(true)

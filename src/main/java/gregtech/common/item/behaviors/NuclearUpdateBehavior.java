@@ -2,15 +2,11 @@ package gregtech.common.item.behaviors;
 
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
-import gregtech.api.items.metaitem.stats.IItemDurabilityManager;
-import gregtech.api.items.metaitem.stats.IItemMaxStackSizeProvider;
-import gregtech.common.items.behaviors.AbstractMaterialPartBehavior;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.item.ItemStack;
-import org.jetbrains.annotations.Nullable;
-import gregtech.common.metatileentities.multi.nuclearReactor.NuclearAbility;
+import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.NuclearAbility;
 
-import java.util.List;
+import net.minecraft.item.ItemStack;
+
+import org.jetbrains.annotations.Nullable;
 
 public class NuclearUpdateBehavior implements IItemBehaviour {
 

@@ -1,6 +1,6 @@
 package gregtech.api.capability;
 
-import gregtech.common.metatileentities.multi.nuclearReactor.NuclearAbility;
+import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.NuclearAbility;
 
 import java.util.List;
 

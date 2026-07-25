@@ -1628,12 +1628,7 @@ public class MachineRecipeLoader {
                         ITEM_EXPORT_BUS[i].getStackForm(),
                         "d", "B", 'B', ITEM_IMPORT_BUS[i].getStackForm());
 
-                ModHandler.addShapedRecipe("huge_item_bus_output_to_input_" + HUGE_ITEM_IMPORT_BUS[i].getTier(),
-                        HUGE_ITEM_IMPORT_BUS[i].getStackForm(),
-                        "d", "B", 'B', HUGE_ITEM_EXPORT_BUS[i].getStackForm());
-                ModHandler.addShapedRecipe("huge_item_bus_input_to_output_" + HUGE_ITEM_EXPORT_BUS[i].getTier(),
-                        HUGE_ITEM_EXPORT_BUS[i].getStackForm(),
-                        "d", "B", 'B', HUGE_ITEM_IMPORT_BUS[i].getStackForm());
+                // 巨型总线的IO互转已在 HatchHandlers 中处理 (2D数组)
             }
         }
 

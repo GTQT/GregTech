@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
-import gregtech.api.GTValues;
 import gregtech.api.capability.DualHandler;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
@@ -93,13 +92,17 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
     private boolean workingEnabled = true;
     private boolean autoCollapse = false;
 
+    private final int slotCount;
+
     @Nullable
     private ItemFilterContainer itemFilterContainer;
     @Nullable
     private FluidFilterContainer fluidFilterContainer;
 
-    public MetaTileEntityHugeDualHatch(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch) {
+    public MetaTileEntityHugeDualHatch(ResourceLocation metaTileEntityId, int tier, boolean isExportHatch,
+                                       int slotCount) {
         super(metaTileEntityId, tier, isExportHatch);
+        this.slotCount = slotCount;
         if (this.isExportHatch) {
             this.itemFilterContainer = new ItemFilterContainer(this::markDirty);
             this.fluidFilterContainer = new FluidFilterContainer(this::markDirty);
@@ -112,7 +115,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
 
     @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-        return new MetaTileEntityHugeDualHatch(metaTileEntityId, getTier(), isExportHatch);
+        return new MetaTileEntityHugeDualHatch(metaTileEntityId, getTier(), isExportHatch, slotCount);
     }
 
     @Override
@@ -120,7 +123,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         super.initializeInventory();
 
         this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getItemSize(), null, false,
-                () -> Integer.MAX_VALUE);
+                this::getSlotCapacity);
 
         if (hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);
@@ -150,27 +153,35 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         return tanks;
     }
 
+    protected int getRowSize() {
+        return (int) Math.sqrt(slotCount);
+    }
+
     protected int getTankSize() {
-        return 1 + Math.min(GTValues.UHV, getTier());
+        return getRowSize();
     }
 
     protected int getItemSize() {
-        return getTankSize() * getTankSize();
+        return slotCount;
+    }
+
+    protected int getSlotCapacity() {
+        return 64 << (2 * getTier());
     }
 
     protected int getTankCapacity() {
-        return Integer.MAX_VALUE;
+        return 8000 << getTier();
     }
 
     @Override
     protected IItemHandlerModifiable createImportItemHandler() {
         return isExportHatch ? new GTItemStackHandler(this, 0) :
-                new LargeSlotItemStackHandler(this, getItemSize(), null, false);
+                new LargeSlotItemStackHandler(this, getItemSize(), null, false, this::getSlotCapacity);
     }
 
     @Override
     protected IItemHandlerModifiable createExportItemHandler() {
-        return isExportHatch ? new LargeSlotItemStackHandler(this, getItemSize(), null, true) :
+        return isExportHatch ? new LargeSlotItemStackHandler(this, getItemSize(), null, true, this::getSlotCapacity) :
                 new GTItemStackHandler(this, 0);
     }
 
@@ -283,7 +294,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
 
                                     @Override
                                     public int getSlotStackLimit() {
-                                        return Integer.MAX_VALUE;
+                                        return getSlotCapacity();
                                     }
                                 }
                                         .ignoreMaxStackSize(true)

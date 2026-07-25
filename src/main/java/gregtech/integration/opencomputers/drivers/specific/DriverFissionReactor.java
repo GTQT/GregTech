@@ -1,18 +1,19 @@
 package gregtech.integration.opencomputers.drivers.specific;
 
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.MetaTileEntityFissionReactor;
+import gregtech.integration.opencomputers.drivers.EnvironmentMetaTileEntity;
+
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.integration.opencomputers.drivers.EnvironmentMetaTileEntity;
 import li.cil.oc.api.machine.Arguments;
 import li.cil.oc.api.machine.Callback;
 import li.cil.oc.api.machine.Context;
 import li.cil.oc.api.network.ManagedEnvironment;
 import li.cil.oc.api.prefab.DriverSidedTileEntity;
-import gregtech.common.metatileentities.multi.MetaTileEntityFissionReactor;
 
 public class DriverFissionReactor extends DriverSidedTileEntity {
 

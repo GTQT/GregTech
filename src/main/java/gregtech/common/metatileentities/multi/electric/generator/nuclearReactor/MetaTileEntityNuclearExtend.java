@@ -1,4 +1,26 @@
-package gregtech.common.metatileentities.multi.nuclearReactor;
+package gregtech.common.metatileentities.multi.electric.generator.nuclearReactor;
+
+import gregtech.api.capability.INuclearExtend;
+import gregtech.api.items.itemhandlers.GTItemStackHandler;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
+import gregtech.api.mui.GTGuis;
+import gregtech.client.renderer.ICubeRenderer;
+import gregtech.client.renderer.textures.SCTextures;
+import gregtech.common.item.behaviors.NuclearUpdateBehavior;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
+
+import net.minecraft.client.resources.I18n;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
+import net.minecraftforge.items.ItemStackHandler;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
@@ -12,27 +34,7 @@ import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import gregtech.api.items.itemhandlers.GTItemStackHandler;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.AbilityInstances;
-import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
-import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.api.mui.GTGuis;
-import gregtech.client.renderer.ICubeRenderer;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
-import net.minecraftforge.items.ItemStackHandler;
 import org.jetbrains.annotations.NotNull;
-import gregtech.api.capability.INuclearExtend;
-import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
-import gregtech.client.renderer.textures.SCTextures;
-import gregtech.common.item.behaviors.NuclearUpdateBehavior;
 
 import java.util.ArrayList;
 import java.util.List;

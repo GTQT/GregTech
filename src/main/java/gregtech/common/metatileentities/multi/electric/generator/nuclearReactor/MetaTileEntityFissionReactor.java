@@ -1,4 +1,86 @@
-package gregtech.common.metatileentities.multi;
+package gregtech.common.metatileentities.multi.electric.generator.nuclearReactor;
+
+import gregtech.SCValues;
+import gregtech.api.capability.ICoolantHandler;
+import gregtech.api.capability.IFuelRodHandler;
+import gregtech.api.capability.IMaintenanceHatch;
+import gregtech.api.cover.ICustomEnergyCover;
+import gregtech.api.metatileentity.IDataInfoProvider;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.IFissionReactorHatch;
+import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.IProgressBarMultiblock;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
+import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
+import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
+import gregtech.api.nuclear.fission.CoolantRegistry;
+import gregtech.api.nuclear.fission.FissionFuelRegistry;
+import gregtech.api.nuclear.fission.FissionReactor;
+import gregtech.api.nuclear.fission.ICoolantStats;
+import gregtech.api.nuclear.fission.IModeratorStats;
+import gregtech.api.nuclear.fission.ModeratorRegistry;
+import gregtech.api.nuclear.fission.components.ControlRod;
+import gregtech.api.nuclear.fission.components.CoolantChannel;
+import gregtech.api.nuclear.fission.components.FuelRod;
+import gregtech.api.nuclear.fission.components.Moderator;
+import gregtech.api.pattern.CountLimitError;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.PatternError;
+import gregtech.api.pattern.PatternStringError;
+import gregtech.api.pattern.StructureElementPreviewEntry;
+import gregtech.api.pattern.StructureEvaluationContext;
+import gregtech.api.pattern.StructureFailureTrace;
+import gregtech.api.pattern.StructureHintResult;
+import gregtech.api.pattern.StructureOperationRequest;
+import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructureRuntime;
+import gregtech.api.pattern.casing.GTStructureChannels;
+import gregtech.api.pattern.casing.StructureChannel;
+import gregtech.api.pattern.element.Elements;
+import gregtech.api.pattern.element.IStructureElement;
+import gregtech.api.pattern.element.ITypedStructureElement;
+import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.unification.material.SCMaterials;
+import gregtech.api.unification.material.properties.IFissionFuelStats;
+import gregtech.api.util.BlockInfo;
+import gregtech.api.util.GTLog;
+import gregtech.api.util.GTUtility;
+import gregtech.api.util.RelativeDirection;
+import gregtech.api.util.SCUtility;
+import gregtech.api.util.TextComponentUtil;
+import gregtech.api.util.TextFormattingUtil;
+import gregtech.client.renderer.ICubeRenderer;
+import gregtech.client.renderer.textures.SCTextures;
+import gregtech.common.ConfigHolder;
+import gregtech.common.blocks.BlockFissionCasing;
+import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityControlRodPort;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityModeratorPort;
+import gregtech.common.mui.widget.ScrollableTextWidget;
+
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3i;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
@@ -17,70 +99,18 @@ import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
-import gregtech.api.capability.IMaintenanceHatch;
-import gregtech.api.metatileentity.IDataInfoProvider;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.*;
-import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
-import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.mui.GTGuis;
-import gregtech.api.pattern.*;
-import gregtech.api.pattern.casing.GTStructureChannels;
-import gregtech.api.pattern.casing.StructureChannel;
-import gregtech.api.pattern.element.Elements;
-import gregtech.api.pattern.element.IStructureElement;
-import gregtech.api.pattern.element.ITypedStructureElement;
-import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.unification.material.properties.IFissionFuelStats;
-import gregtech.api.util.*;
-import gregtech.client.renderer.ICubeRenderer;
-import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.mui.widget.ScrollableTextWidget;
 import it.unimi.dsi.fastutil.Hash;
 import it.unimi.dsi.fastutil.objects.Object2BooleanOpenCustomHashMap;
 import lombok.Getter;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3i;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextComponentTranslation;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import gregtech.SCValues;
-import gregtech.api.capability.ICoolantHandler;
-import gregtech.api.capability.IFuelRodHandler;
-import gregtech.api.cover.ICustomEnergyCover;
-import gregtech.api.metatileentity.multiblock.IFissionReactorHatch;
-import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
-import gregtech.api.nuclear.fission.*;
-import gregtech.api.nuclear.fission.components.ControlRod;
-import gregtech.api.nuclear.fission.components.CoolantChannel;
-import gregtech.api.nuclear.fission.components.FuelRod;
-import gregtech.api.nuclear.fission.components.Moderator;
-import gregtech.api.unification.material.SCMaterials;
-import gregtech.api.util.SCUtility;
-import gregtech.client.renderer.textures.SCTextures;
-import gregtech.common.ConfigHolder;
-import gregtech.common.blocks.BlockFissionCasing;
-import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityControlRodPort;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityModeratorPort;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
         implements IDataInfoProvider, IProgressBarMultiblock, ICustomEnergyCover {
@@ -174,9 +204,10 @@ public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
     }
 
     @NotNull
-    protected static IBlockState getVesselState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.FISSION_CASING.getState(BlockFissionCasing.FissionCasingType.REACTOR_VESSEL);
     }
+
     @Override
     public double getFillPercentage(int index) {
         if (index == 0) {
@@ -878,13 +909,13 @@ public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
                         Elements.blocks(getFuelChannelState(), getControlRodChannelState(), getCoolantChannelState()),
                         Elements.air(),
                         moderatorElement()))
-                .where('I', Elements.chain(Elements.block(getVesselState()), importHatchElement()))
+                .where('I', Elements.chain(Elements.block(getCasingState()), importHatchElement()))
                 .where('O', Elements.chain(
-                        Elements.block(getVesselState()),
+                        Elements.block(getCasingState()),
                         Elements.abilities(SCMultiblockAbility.EXPORT_COOLANT,
                                 SCMultiblockAbility.EXPORT_FUEL_ROD)))
                 .where('B', Elements.chain(
-                        Elements.block(getVesselState()),
+                        Elements.block(getCasingState()),
                         Elements.hatch(MultiblockAbility.MAINTENANCE_HATCH)))
                 .where(' ', Elements.any())
                 .build();

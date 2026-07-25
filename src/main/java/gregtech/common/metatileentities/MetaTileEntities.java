@@ -40,18 +40,15 @@ import gregtech.common.metatileentities.electric.MetaTileEntityTransformer;
 import gregtech.common.metatileentities.electric.MetaTileEntityWorldAccelerator;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOvenHatch;
-import gregtech.common.metatileentities.multi.MetaTileEntityFissionReactor;
 import gregtech.common.metatileentities.multi.MetaTileEntityHugeTransformer;
 import gregtech.common.metatileentities.multi.MetaTileEntityLargeBoiler;
 import gregtech.common.metatileentities.multi.MetaTileEntityLogisticsMaterialDistributor;
 import gregtech.common.metatileentities.multi.MetaTileEntityMultiblockTank;
-import gregtech.common.metatileentities.multi.MetaTileEntityNaturalDraftCoolingTower;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveBlastFurnace;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveBlastFurnaceHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
 import gregtech.common.metatileentities.multi.MetaTileEntityPumpHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntitySawMill;
-import gregtech.common.metatileentities.multi.MetaTileEntitySpentFuelPool;
 import gregtech.common.metatileentities.multi.MetaTileEntityTankValve;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityActiveTransformer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityAlloyBlastSmelter;
@@ -109,24 +106,27 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityMegaCrackin
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMegaVacuumFreezer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiAlloyFurnace;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiSmelter;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityNaturalDraftCoolingTower;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwitch;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityProcessingArray;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPyrolyseOven;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityResearchStation;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntitySpentFuelPool;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityVacuumFreezer;
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityCentralMonitor;
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityMonitorScreen;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeCombustionEngine;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntityLargeTurbine;
 import gregtech.common.metatileentities.multi.electric.generator.MetaTileEntitySteamEngine;
+import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.MetaTileEntityFissionReactor;
+import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.MetaTileEntityNuclearExtend;
+import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.MetaTileEntityNuclearReactor;
 import gregtech.common.metatileentities.multi.electric.godforge.MetaTileEntityForgeOfGods;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTEExoticModule;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTEMoltenModule;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTEPlasmaModule;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTESmeltingModule;
-import gregtech.common.metatileentities.multi.nuclearReactor.MetaTileEntityNuclearExtend;
-import gregtech.common.metatileentities.multi.nuclearReactor.MetaTileEntityNuclearReactor;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAccelerateHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAutoMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCleaningMaintenanceHatch;
@@ -146,7 +146,6 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityFuelR
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityGasHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatSensor;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeComplexDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHugeItemBus;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityISO1CleaningMaintenanceHatch;
@@ -156,8 +155,8 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityItemB
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityLaserHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMachineHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMaintenanceHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMoldItemBus;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityModeratorPort;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMoldItemBus;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMufflerHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiFluidHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityObjectHolder;
@@ -350,6 +349,8 @@ public class MetaTileEntities {
     public static final SimpleGeneratorMetaTileEntity[] GAS_TURBINE = new SimpleGeneratorMetaTileEntity[5];
     public static final SimpleGeneratorMetaTileEntity[] SEMI_FLUID_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
     public static final SimpleGeneratorMetaTileEntity[] PLASMA_GENERATOR = new SimpleGeneratorMetaTileEntity[5];
+    public static final SimpleGeneratorMetaTileEntity[] RTG = new SimpleGeneratorMetaTileEntity[3];
+
     // MULTIBLOCK PARTS SECTION
     public static final MetaTileEntityItemBus[] ITEM_IMPORT_BUS = new MetaTileEntityItemBus[GTValues.V.length -
             1]; // All tiers but MAX
@@ -379,16 +380,10 @@ public class MetaTileEntities {
     public static final MetaTileEntityMoldItemBus[] MOLD_ITEM_BUS = new MetaTileEntityMoldItemBus[GTValues.V.length -
             1];
 
-    public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_IMPORT_BUS = new MetaTileEntityHugeItemBus[
-            GTValues.V.length - 1];
-    public static final MetaTileEntityHugeItemBus[] HUGE_ITEM_EXPORT_BUS = new MetaTileEntityHugeItemBus[
-            GTValues.V.length - 1];
-    public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_IMPORT_HATCH = new MetaTileEntityHugeDualHatch[
-            GTValues.V.length - 1];
-    public static final MetaTileEntityHugeDualHatch[] HUGE_DUAL_EXPORT_HATCH = new MetaTileEntityHugeDualHatch[
-            GTValues.V.length - 1];
-    public static final MetaTileEntityHugeComplexDualHatch[] HUGE_COMPLEX_DUAL_HATCH = new MetaTileEntityHugeComplexDualHatch[
-            GTValues.V.length - 1];
+    public static final MetaTileEntityHugeItemBus[][] HUGE_ITEM_IMPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.IV][4];
+    public static final MetaTileEntityHugeItemBus[][] HUGE_ITEM_EXPORT_BUS = new MetaTileEntityHugeItemBus[GTValues.IV][4];
+    public static final MetaTileEntityHugeDualHatch[][] HUGE_DUAL_IMPORT_HATCH = new MetaTileEntityHugeDualHatch[GTValues.IV][4];
+    public static final MetaTileEntityHugeDualHatch[][] HUGE_DUAL_EXPORT_HATCH = new MetaTileEntityHugeDualHatch[GTValues.IV][4];
 
     public static final MetaTileEntityEnergyHatch[] ENERGY_INPUT_HATCH = new MetaTileEntityEnergyHatch[GTValues.V.length];
     public static final MetaTileEntityEnergyHatch[] ENERGY_INPUT_HATCH_4A = new MetaTileEntityEnergyHatch[GTValues.V.length];
@@ -451,6 +446,18 @@ public class MetaTileEntities {
     public static final MetaTileEntityElectricHeater[] ELECTRIC_HEATER = new MetaTileEntityElectricHeater[10];
     public static final MetaTileEntityQuantumMultiTank[] MULTI_QUANTUM_TANK = new MetaTileEntityQuantumMultiTank[10];
     public static final MetaTileEntityHugeBuffer[] HUGE_BUFFER = new MetaTileEntityHugeBuffer[5];
+
+    public static MetaTileEntityFuelRodImportBus FUEL_ROD_INPUT;
+    public static MetaTileEntityFuelRodExportBus FUEL_ROD_OUTPUT;
+    public static MetaTileEntityCoolantImportHatch COOLANT_INPUT;
+    public static MetaTileEntityCoolantExportHatch COOLANT_OUTPUT;
+    public static MetaTileEntityControlRodPort CONTROL_ROD;
+    public static MetaTileEntityControlRodPort CONTROL_ROD_MODERATED;
+    public static MetaTileEntityModeratorPort MODERATOR_PORT;
+
+    public static MetaTileEntityNuclearExtend NUCLEAR_EXTEND_HATCH;
+
+
     // Used for addons if they wish to disable certain tiers of machines
     private static final Map<String, Boolean> MID_TIER = new HashMap<>();
     private static final Map<String, Boolean> HIGH_TIER = new HashMap<>();
@@ -573,6 +580,9 @@ public class MetaTileEntities {
     public static MetaTileEntitySawMill SAW_MILL;
     public static MetaTileEntityLargeCombustionEngine LARGE_COMBUSTION_ENGINE;
     public static MetaTileEntityLargeCombustionEngine EXTREME_COMBUSTION_ENGINE;
+    public static MetaTileEntityFissionReactor FISSION_REACTOR;
+    public static MetaTileEntityNuclearReactor NUCLEAR_REACTOR;
+
     public static MetaTileEntityLargeTurbine LARGE_STEAM_TURBINE;
     public static MetaTileEntityLargeTurbine LARGE_GAS_TURBINE;
     public static MetaTileEntityLargeTurbine LARGE_PLASMA_TURBINE;
@@ -601,6 +611,12 @@ public class MetaTileEntities {
     public static MetaTileEntityPowerSubstation POWER_SUBSTATION;
     public static MetaTileEntityActiveTransformer ACTIVE_TRANSFORMER;
     public static MetaTileEntityBatteryAccumulator BATTERY_ACCUMULATOR;
+    public static MetaTileEntityHeatExchanger HEAT_EXCHANGER;
+
+    public static MetaTileEntitySpentFuelPool SPENT_FUEL_POOL;
+    public static MetaTileEntityGasCentrifuge GAS_CENTRIFUGE;
+    public static MetaTileEntityNaturalDraftCoolingTower NATURAL_DRAFT_COOLING_TOWER;
+
     public static MetaTileEntityLargeMacerator LARGE_MACERATOR;
     public static MetaTileEntityAlloyBlastSmelter ALLOY_BLAST_SMELTER;
     public static MetaTileEntityLargeArcFurnace LARGE_ARC_FURNACE;
@@ -711,22 +727,10 @@ public class MetaTileEntities {
     public static MetaTileEntityAlarm ALARM;
     public static MetaTileEntityProgrammingProvider PROGRAMMING_PROVIDER;
 
-    public static final SimpleGeneratorMetaTileEntity[] RTG = new SimpleGeneratorMetaTileEntity[3];
+
     public static final SimpleMachineMetaTileEntity[] DECAY_CHAMBER = new SimpleMachineMetaTileEntity[GTValues.V.length - 1];
-    public static MetaTileEntityHeatExchanger HEAT_EXCHANGER;
-    public static MetaTileEntityFissionReactor FISSION_REACTOR;
-    public static MetaTileEntityFuelRodImportBus FUEL_ROD_INPUT;
-    public static MetaTileEntityFuelRodExportBus FUEL_ROD_OUTPUT;
-    public static MetaTileEntityCoolantImportHatch COOLANT_INPUT;
-    public static MetaTileEntityCoolantExportHatch COOLANT_OUTPUT;
-    public static MetaTileEntityControlRodPort CONTROL_ROD;
-    public static MetaTileEntityControlRodPort CONTROL_ROD_MODERATED;
-    public static MetaTileEntitySpentFuelPool SPENT_FUEL_POOL;
-    public static MetaTileEntityGasCentrifuge GAS_CENTRIFUGE;
-    public static MetaTileEntityNaturalDraftCoolingTower NATURAL_DRAFT_COOLING_TOWER;
-    public static MetaTileEntityModeratorPort MODERATOR_PORT;
-    public static MetaTileEntityNuclearReactor NUCLEAR_REACTOR;
-    public static MetaTileEntityNuclearExtend NUCLEAR_EXTEND_HATCH;
+
+
 
     // todo
     public static MetaTileEntityConverter[][] ENERGY_CONVERTER = new MetaTileEntityConverter[4][GTValues.V.length];

@@ -11,23 +11,24 @@ import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.recipes.SCRecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.client.renderer.textures.SCTextures;
 import gregtech.common.blocks.BlockBoilerCasing;
+import gregtech.common.blocks.BlockGasCentrifugeCasing;
+import gregtech.common.blocks.BlockNuclearCasing;
 import gregtech.common.blocks.MetaBlocks;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import gregtech.api.recipes.SCRecipeMaps;
-import gregtech.client.renderer.textures.SCTextures;
-import gregtech.common.blocks.BlockGasCentrifugeCasing;
-import gregtech.common.blocks.BlockNuclearCasing;
-import gregtech.common.blocks.MetaBlocks;
 
 import java.util.List;
 
@@ -49,7 +50,7 @@ public class MetaTileEntityGasCentrifuge extends RecipeMapMultiblockController {
                     .self('S', MetaTileEntityGasCentrifuge.class)
                     .block('P', getPipeState())
                     .block('H', getHeaterState())
-                    .block('C', getCentrifugeState())
+                    .block('C', getColumnState())
                     .where('I', Elements.chain(
                             Elements.block(getPipeState()),
                             Elements.hatch(MultiblockAbility.IMPORT_FLUIDS)))
@@ -74,18 +75,16 @@ public class MetaTileEntityGasCentrifuge extends RecipeMapMultiblockController {
         return getFrontFacing().getOpposite();
     }
 
-    private static IBlockState getPipeState() {
+    public static IBlockState getPipeState() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.POLYTETRAFLUOROETHYLENE_PIPE);
     }
 
     private static IBlockState getHeaterState() {
-        return MetaBlocks.NUCLEAR_CASING.getState(
-                BlockNuclearCasing.NuclearCasingType.GAS_CENTRIFUGE_HEATER);
+        return MetaBlocks.NUCLEAR_CASING.getState(BlockNuclearCasing.NuclearCasingType.GAS_CENTRIFUGE_HEATER);
     }
 
-    private static IBlockState getCentrifugeState() {
-        return MetaBlocks.GAS_CENTRIFUGE_CASING
-                .getState(BlockGasCentrifugeCasing.GasCentrifugeCasingType.GAS_CENTRIFUGE_COLUMN);
+    private static IBlockState getColumnState() {
+        return MetaBlocks.GAS_CENTRIFUGE_CASING.getState(BlockGasCentrifugeCasing.GasCentrifugeCasingType.GAS_CENTRIFUGE_COLUMN);
     }
 
     @Override

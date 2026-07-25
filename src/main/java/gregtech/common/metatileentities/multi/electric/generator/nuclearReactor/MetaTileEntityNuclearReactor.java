@@ -1,4 +1,46 @@
-package gregtech.common.metatileentities.multi.nuclearReactor;
+package gregtech.common.metatileentities.multi.electric.generator.nuclearReactor;
+
+import gregtech.api.capability.INuclearExtend;
+import gregtech.api.items.itemhandlers.GTItemStackHandler;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MetaTileEntityBaseWithControl;
+import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
+import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
+import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
+import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
+import gregtech.api.nuclear.ic.NuclearReactorSimulator;
+import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.casing.DeclarativePatternBuilder;
+import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.util.GTLog;
+import gregtech.api.util.GTTransferUtils;
+import gregtech.api.util.tooltips.InformationHandler;
+import gregtech.client.renderer.ICubeRenderer;
+import gregtech.client.renderer.textures.SCTextures;
+import gregtech.common.blocks.BlockNuclearReactorCasing;
+import gregtech.common.blocks.MetaBlocks;
+import gregtech.common.item.behaviors.NuclearComponentBehavior;
+import gregtech.common.items.behaviors.AbstractMaterialPartBehavior;
+import gregtech.core.sound.GTSoundEvents;
+
+import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundEvent;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
+import net.minecraftforge.fml.relauncher.Side;
+import net.minecraftforge.fml.relauncher.SideOnly;
 
 import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
@@ -15,57 +57,17 @@ import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import gregtech.api.items.itemhandlers.GTItemStackHandler;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.IMultiblockPart;
-import gregtech.api.metatileentity.multiblock.MetaTileEntityBaseWithControl;
-import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
-import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
-import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
-import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
-import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.mui.GTGuis;
-import gregtech.api.pattern.FormedStructureView;
-import gregtech.api.pattern.casing.DeclarativePatternBuilder;
-import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.util.GTLog;
-import gregtech.api.util.GTTransferUtils;
-import gregtech.api.util.tooltips.InformationHandler;
-import gregtech.client.renderer.ICubeRenderer;
-import gregtech.common.items.behaviors.AbstractMaterialPartBehavior;
-import gregtech.core.sound.GTSoundEvents;
 import lombok.Getter;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.client.resources.I18n;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.SoundEvent;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 import org.jetbrains.annotations.NotNull;
-import gregtech.api.capability.INuclearExtend;
-import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
-import gregtech.api.nuclear.ic.NuclearReactorSimulator;
-import gregtech.client.renderer.textures.SCTextures;
-import gregtech.common.blocks.BlockNuclearReactorCasing;
-import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.item.behaviors.NuclearComponentBehavior;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-import static net.minecraftforge.common.util.Constants.NBT.TAG_COMPOUND;
 import static gregtech.SCValues.SYNC_REACTOR_STATE;
-import static gregtech.common.metatileentities.multi.nuclearReactor.NuclearAbility.STOP_WORK;
+import static gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.NuclearAbility.STOP_WORK;
+import static net.minecraftforge.common.util.Constants.NBT.TAG_COMPOUND;
 
 public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl implements ProgressBarMultiblock {
 
@@ -114,7 +116,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         initializeReactor(reactorWidth, reactorHeight);
     }
 
-    private static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.NUCLEAR_REACTOR_CASING.getState(BlockNuclearReactorCasing.NuclearReactorType.NUCLEAR_REACTOR_CASING);
     }
 

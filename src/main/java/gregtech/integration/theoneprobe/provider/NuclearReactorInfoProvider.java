@@ -1,17 +1,25 @@
 package gregtech.integration.theoneprobe.provider;
 
+import gregtech.SCValues;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import mcjty.theoneprobe.api.*;
+import gregtech.common.item.behaviors.NuclearComponentBehavior;
+import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.MetaTileEntityNuclearReactor;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
-import gregtech.SCValues;
-import gregtech.common.item.behaviors.NuclearComponentBehavior;
-import gregtech.common.metatileentities.multi.nuclearReactor.MetaTileEntityNuclearReactor;
+
+import mcjty.theoneprobe.api.ElementAlignment;
+import mcjty.theoneprobe.api.IProbeHitData;
+import mcjty.theoneprobe.api.IProbeInfo;
+import mcjty.theoneprobe.api.IProbeInfoProvider;
+import mcjty.theoneprobe.api.IProgressStyle;
+import mcjty.theoneprobe.api.NumberFormat;
+import mcjty.theoneprobe.api.ProbeMode;
 
 public class NuclearReactorInfoProvider implements IProbeInfoProvider {
 

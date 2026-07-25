@@ -1,14 +1,15 @@
-package gregtech.common.metatileentities.multi;
-
+package gregtech.common.metatileentities.multi.electric;
 
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.CachedPatternRecipeMapMultiblock;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
+import gregtech.api.recipes.SCRecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.api.util.tooltips.TooltipBuilder;
@@ -18,6 +19,7 @@ import gregtech.common.blocks.BlockBoilerCasing.BoilerCasingType;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.StoneVariantBlock;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
@@ -31,10 +33,9 @@ import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import gregtech.api.metatileentity.multiblock.CachedPatternRecipeMapMultiblock;
-import gregtech.api.recipes.SCRecipeMaps;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -150,7 +151,7 @@ public class MetaTileEntityNaturalDraftCoolingTower extends CachedPatternRecipeM
         super(metaTileEntityId, SCRecipeMaps.NATURAL_DRAFT_COOLING_TOWER);
     }
 
-    protected static IBlockState getCasingState() {
+    public static IBlockState getCasingState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.STEEL_SOLID);
     }
 
