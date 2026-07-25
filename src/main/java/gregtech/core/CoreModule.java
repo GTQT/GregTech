@@ -213,13 +213,13 @@ public class CoreModule implements IGregTechModule {
 
         OreDictUnifier.init();
 
+        GTFluidRegistration.INSTANCE.register();
         MetaBlocks.init();
         logger.info("Registering Coils");
         MinecraftForge.EVENT_BUS.post(new CoilManager.CoilRegistryEvent());
 
         MetaItems.init();
         ToolItems.init();
-        GTFluidRegistration.INSTANCE.register();
 
         /* Start CEu MetaTileEntity Registration */
         for (MTERegistry registry : mteManager.getRegistries()) {
