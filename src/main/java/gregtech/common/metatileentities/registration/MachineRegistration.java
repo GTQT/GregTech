@@ -1,10 +1,13 @@
 package gregtech.common.metatileentities.registration;
 
 import gregtech.api.GTValues;
+import gregtech.api.metatileentity.SimpleGeneratorMetaTileEntity;
 import gregtech.api.recipes.RecipeMaps;
+import gregtech.api.recipes.SCRecipeMaps;
 import gregtech.api.util.GTUtility;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.texture.Textures;
+import gregtech.client.renderer.textures.SCTextures;
 import gregtech.common.metatileentities.electric.MetaTileEntityGasCollector;
 import gregtech.common.metatileentities.electric.MetaTileEntityMiner;
 import gregtech.common.metatileentities.electric.MetaTileEntityRockBreaker;
@@ -336,6 +339,10 @@ public final class MachineRegistration {
         MINER[0] = registerMetaTileEntity(920, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
         MINER[1] = registerMetaTileEntity(921, new MetaTileEntityMiner(gregtechId("miner.mv"), 2, 80, 16, 2));
         MINER[2] = registerMetaTileEntity(922, new MetaTileEntityMiner(gregtechId("miner.hv"), 3, 40, 24, 3));
+
+        // Decay Chamber, IDs 980-993
+        registerSimpleMetaTileEntity(DECAY_CHAMBER, 980, "decay_chamber", SCRecipeMaps.DECAY_CHAMBER_RECIPES,
+                Textures.CHEMICAL_BATH_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
     }
 
     private static void registerGenerators() {
@@ -379,5 +386,31 @@ public final class MachineRegistration {
         PLASMA_GENERATOR[4] = registerMetaTileEntity(959,
                 new MetaTileEntitySingleTurbine(gregtechId("plasma_generator.uv"), RecipeMaps.PLASMA_GENERATOR_FUELS,
                         Textures.PLASMA_TURBINE_OVERLAY, 8, GTUtility.genericGeneratorTankSizeFunction, 1));
+
+        // Radioisotope Thermoelectric Generators, IDs 960-962
+        RTG[0] = registerMetaTileEntity(960,
+                new SimpleGeneratorMetaTileEntity(gregtechId("rtg.lv"), SCRecipeMaps.RTG_RECIPES, SCTextures.RTG_OVERLAY,
+                        1, GTUtility.genericGeneratorTankSizeFunction, 1) {
+                    @Override
+                    public double getPollutionAmount() {
+                        return 0;
+                    }
+                });
+        RTG[1] = registerMetaTileEntity(961,
+                new SimpleGeneratorMetaTileEntity(gregtechId("rtg.mv"), SCRecipeMaps.RTG_RECIPES, SCTextures.RTG_OVERLAY,
+                        2, GTUtility.genericGeneratorTankSizeFunction, 1) {
+                    @Override
+                    public double getPollutionAmount() {
+                        return 0;
+                    }
+                });
+        RTG[2] = registerMetaTileEntity(962,
+                new SimpleGeneratorMetaTileEntity(gregtechId("rtg.hv"), SCRecipeMaps.RTG_RECIPES, SCTextures.RTG_OVERLAY,
+                        3, GTUtility.genericGeneratorTankSizeFunction, 1) {
+                    @Override
+                    public double getPollutionAmount() {
+                        return 0;
+                    }
+                });
     }
 }

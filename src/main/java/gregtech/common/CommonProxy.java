@@ -61,6 +61,7 @@ import gregtech.loaders.OreDictionaryLoader;
 import gregtech.loaders.recipe.CraftingComponent;
 import gregtech.loaders.recipe.GTRecipeManager;
 import gregtech.loaders.recipe.RecipeManager;
+import gregtech.loaders.recipe.SCRecipeManager;
 import gregtech.modules.GregTechModules;
 
 import net.minecraft.block.Block;
@@ -237,6 +238,12 @@ public class CommonProxy {
         for (BlockSheet block : SHEET_BLOCKS) registry.register(block);
         for (BlockSurfaceRock block : SURFACE_ROCK_BLOCKS) registry.register(block);
         for (BlockOre block : ORES) registry.register(block);
+
+        registry.register(FISSION_CASING);
+        registry.register(NUCLEAR_CASING);
+        registry.register(GAS_CENTRIFUGE_CASING);
+        registry.register(PANELLING);
+        registry.register(NUCLEAR_REACTOR_CASING);
     }
 
     private static void createOreBlock(Material material) {
@@ -396,6 +403,12 @@ public class CommonProxy {
         for (BlockOre block : ORES) {
             registry.register(createItemBlock(block, OreItemBlock::new));
         }
+
+        registry.register(createItemBlock(FISSION_CASING, VariantItemBlock::new));
+        registry.register(createItemBlock(NUCLEAR_CASING, VariantItemBlock::new));
+        registry.register(createItemBlock(GAS_CENTRIFUGE_CASING, VariantItemBlock::new));
+        registry.register(createItemBlock(PANELLING, VariantItemBlock::new));
+        registry.register(createItemBlock(NUCLEAR_REACTOR_CASING, VariantItemBlock::new));
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -433,6 +446,7 @@ public class CommonProxy {
         GTRecipeManager.load();
         RecipeManager.register();
         VillagerHandler.registerTrade();
+        SCRecipeManager.load();
     }
 
     // this is called almost last, to make sure all mods registered their ore dictionary
@@ -451,6 +465,7 @@ public class CommonProxy {
         GTLog.logger.info("Running late material handlers...");
         OrePrefix.runMaterialHandlers();
         GTRecipeManager.loadLatest();
+        SCRecipeManager.loadLatest();
 
         // On initial load we need to postpone cache flushing until FMLPostInitializationEvent
         // to account for post-init recipe registration

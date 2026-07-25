@@ -35,6 +35,7 @@ import gregtech.integration.theoneprobe.provider.MultiblockCleanroomProvider;
 import gregtech.integration.theoneprobe.provider.MultiblockFaceProvider;
 import gregtech.integration.theoneprobe.provider.MultiblockInfoProvider;
 import gregtech.integration.theoneprobe.provider.MultiblockPSSProvider;
+import gregtech.integration.theoneprobe.provider.NuclearReactorInfoProvider;
 import gregtech.integration.theoneprobe.provider.MultiblockThreadProvider;
 import gregtech.integration.theoneprobe.provider.PollutionInfoProvider;
 import gregtech.integration.theoneprobe.provider.PrimitivePumpInfoProvider;
@@ -104,6 +105,7 @@ public class TheOneProbeModule extends IntegrationSubmodule {
         oneProbe.registerProvider(new CableInfoProvider());
         oneProbe.registerProvider(new ComputationProvider());
         oneProbe.registerProvider(new FusionReactorProvider());
+        oneProbe.registerProvider(new NuclearReactorInfoProvider());
         oneProbe.registerProvider(new MetaTileEntityIOInfoProvider());
         oneProbe.registerProvider(new MultiblockCleanroomProvider());
         oneProbe.registerProvider(new MultiblockFaceProvider());

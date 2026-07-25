@@ -7,15 +7,18 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.common.metatileentities.multi.BoilerType;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOven;
 import gregtech.common.metatileentities.multi.MetaTileEntityCokeOvenHatch;
+import gregtech.common.metatileentities.multi.MetaTileEntityFissionReactor;
 import gregtech.common.metatileentities.multi.MetaTileEntityHugeTransformer;
 import gregtech.common.metatileentities.multi.MetaTileEntityLargeBoiler;
 import gregtech.common.metatileentities.multi.MetaTileEntityLogisticsMaterialDistributor;
 import gregtech.common.metatileentities.multi.MetaTileEntityMultiblockTank;
+import gregtech.common.metatileentities.multi.MetaTileEntityNaturalDraftCoolingTower;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveBlastFurnace;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveBlastFurnaceHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntityPrimitiveWaterPump;
 import gregtech.common.metatileentities.multi.MetaTileEntityPumpHatch;
 import gregtech.common.metatileentities.multi.MetaTileEntitySawMill;
+import gregtech.common.metatileentities.multi.MetaTileEntitySpentFuelPool;
 import gregtech.common.metatileentities.multi.MetaTileEntityTankValve;
 import gregtech.common.metatileentities.multi.TankType;
 import gregtech.common.metatileentities.multi.electric.FluidDrillType;
@@ -32,7 +35,9 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityElectricBla
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityElectricImplosionCompressor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityFluidDrill;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityFusionReactor;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityGasCentrifuge;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityHPCA;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityHeatExchanger;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityImplosionCompressor;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeArcFurnace;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityLargeAssembler;
@@ -89,6 +94,7 @@ import gregtech.common.metatileentities.multi.electric.godforge.module.MTEExotic
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTEMoltenModule;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTEPlasmaModule;
 import gregtech.common.metatileentities.multi.electric.godforge.module.MTESmeltingModule;
+import gregtech.common.metatileentities.multi.nuclearReactor.MetaTileEntityNuclearReactor;
 import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamGrinder;
 import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamOven;
 
@@ -174,6 +180,11 @@ public final class MultiblockRegistration {
                 new MetaTileEntityLargeCombustionEngine(gregtechId("large_combustion_engine"), EV));
         EXTREME_COMBUSTION_ENGINE = registerMetaTileEntity(1109,
                 new MetaTileEntityLargeCombustionEngine(gregtechId("extreme_combustion_engine"), IV));
+
+        FISSION_REACTOR = registerMetaTileEntity(1110,
+                new MetaTileEntityFissionReactor(gregtechId("fission_reactor")));
+        NUCLEAR_REACTOR = registerMetaTileEntity(1111,
+                new MetaTileEntityNuclearReactor(gregtechId("nuclear_reactor")));
     }
 
     private static void registerElectricMultiblocks() {
@@ -331,6 +342,15 @@ public final class MultiblockRegistration {
 
         //BATTERY_ACCUMULATOR = registerMetaTileEntity(1273,
         //        new MetaTileEntityBatteryAccumulator(gregtechId("battery_accumulator")));
+
+        HEAT_EXCHANGER = registerMetaTileEntity(1274,
+                new MetaTileEntityHeatExchanger(gregtechId("heat_exchanger")));
+        SPENT_FUEL_POOL = registerMetaTileEntity(1275,
+                new MetaTileEntitySpentFuelPool(gregtechId("spent_fuel_pool")));
+        GAS_CENTRIFUGE = registerMetaTileEntity(1276,
+                new MetaTileEntityGasCentrifuge(gregtechId("gas_centrifuge")));
+        NATURAL_DRAFT_COOLING_TOWER = registerMetaTileEntity(1277,
+                new MetaTileEntityNaturalDraftCoolingTower(gregtechId("natural_draft_cooling_tower")));
 
     }
 

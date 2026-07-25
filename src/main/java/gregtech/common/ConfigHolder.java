@@ -50,6 +50,72 @@ public class ConfigHolder {
     @Config.Name("Global Multiblock Options")
     public static GlobalMultiblocks globalMultiblocks = new GlobalMultiblocks();
 
+    @Config.Comment("Config options for integrated nuclear features")
+    @Config.Name("Nuclear Options")
+    @Config.RequiresMcRestart
+    public static NuclearOptions nuclear = new NuclearOptions();
+
+    @Config.Comment("Miscellaneous options for integrated nuclear features")
+    @Config.Name("Nuclear Misc Options")
+    @Config.RequiresMcRestart
+    public static NuclearMiscOptions nuclearMisc = new NuclearMiscOptions();
+
+    public static class NuclearOptions {
+
+        @Config.Comment({ "Nuclear max power multiplier for balancing purposes.", "Default: 0.1" })
+        @Config.RangeDouble(min = 0, max = 10000)
+        public double nuclearPowerMultiplier = 0.1;
+
+        @Config.Comment({ "How much the power required to boil a coolant is divided by.", "Default: 14" })
+        @Config.RangeDouble(min = 0.1, max = 1000)
+        public double fissionCoolantDivisor = 14;
+
+        @Config.Comment({
+                "Fission coolant throughput and turbine output multiplier.",
+                "Default: 40"
+        })
+        @Config.RangeDouble(min = 0.1, max = 10000)
+        public double fissionPowerMultiplier = 40;
+
+        @Config.Comment({
+                "The level of detail used to analyze fission reactors.",
+                "Higher values may cause more lag. Default: 100"
+        })
+        @Config.RangeInt(min = 5, max = 10000)
+        public double fissionReactorResolution = 100;
+
+        @Config.Comment({
+                "The number of neutron multiplication calculations.",
+                "Higher values may cause more lag. Default: 6"
+        })
+        public int fissionReactorPowerIterations = 6;
+
+        @Config.Comment({ "Nuclear coolant heat exchanger recipe efficiency multiplier.", "Default: 0.25" })
+        @Config.RangeDouble(min = 0, max = 1000)
+        public double heatExchangerEfficiencyMultiplier = 0.25;
+
+        @Config.Comment({ "Whether to enable meltdowns and associated explosions.", "Default: true" })
+        public boolean enableMeltdown = true;
+    }
+
+    public static class NuclearMiscOptions {
+
+        @Config.Comment({ "Apply nuclear material flag and property modifications.", "Default: true" })
+        public boolean enableMaterialModifications = true;
+
+        @Config.Comment({ "Whether to register heat exchangers.", "Default: true" })
+        public boolean enableHX = true;
+
+        @Config.Comment({ "Disable all integrated nuclear recipes.", "Default: false" })
+        public boolean disableAllRecipes = false;
+
+        @Config.Comment({ "Disable all integrated nuclear materials except Corium.", "Default: false" })
+        public boolean disableAllMaterials = false;
+
+        @Config.Comment({ "Allow extended facing for fission reactors.", "Default: false" })
+        public boolean allowExtendedFacingForFissionReactor = false;
+    }
+
     public static class VanillaOptimizeOptions {
         @Config.Comment({"对林业的蝴蝶进行立即处死", })
         @Config.Name("林业蝴蝶处死优化")

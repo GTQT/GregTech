@@ -1,0 +1,7 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "gregtech:items/metaitems/fuel_rod.1x",
+    "layer1": "gregtech:items/metaitems/plutonium.1x"
+  }
+}

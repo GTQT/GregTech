@@ -1,0 +1,7 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "gregtech:items/metaitems/heat_vent",
+    "layer1": "gregtech:items/metaitems/heat_vent.ultimate.overlay"
+  }
+}

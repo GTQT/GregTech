@@ -5,6 +5,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.modules.ModuleContainerRegistryEvent;
 import gregtech.api.persistence.PersistentData;
 import gregtech.client.renderer.texture.GCYMTextures;
+import gregtech.client.renderer.textures.SCTextures;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.common.ConfigHolder;
 import gregtech.common.Difficulty;
@@ -79,6 +80,7 @@ public class GregTechMod {
 
         if (FMLCommonHandler.instance().getSide().isClient()) {
             GCYMTextures.preInit();
+            SCTextures.preInit();
         }
         GCYMMaterialRecipeHandler.register();
 

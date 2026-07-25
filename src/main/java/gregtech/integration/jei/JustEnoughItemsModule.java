@@ -12,6 +12,9 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.SteamMetaTileEntity;
 import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.modules.GregTechModule;
+import gregtech.api.nuclear.fission.CoolantRegistry;
+import gregtech.api.nuclear.fission.FissionFuelRegistry;
+import gregtech.api.nuclear.fission.ModeratorRegistry;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.category.GTRecipeCategory;
@@ -32,13 +35,20 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.ToolItems;
 import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.integration.IntegrationSubmodule;
 import gregtech.integration.jei.basic.GTFluidVeinCategory;
 import gregtech.integration.jei.basic.GTFluidVeinInfo;
+import gregtech.integration.jei.basic.CoolantCategory;
+import gregtech.integration.jei.basic.CoolantInfo;
+import gregtech.integration.jei.basic.FissionFuelCategory;
+import gregtech.integration.jei.basic.FissionFuelInfo;
 import gregtech.integration.jei.basic.GTOreCategory;
 import gregtech.integration.jei.basic.GTOreInfo;
 import gregtech.integration.jei.basic.MaterialTree;
 import gregtech.integration.jei.basic.MaterialTreeCategory;
+import gregtech.integration.jei.basic.ModeratorCategory;
+import gregtech.integration.jei.basic.ModeratorInfo;
 import gregtech.integration.jei.basic.OreByProduct;
 import gregtech.integration.jei.basic.OreByProductCategory;
 import gregtech.integration.jei.basic.OreVeinInfoPlugin;
@@ -223,6 +233,9 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
         registry.addRecipeCategories(new GTOreCategory(registry.getJeiHelpers().getGuiHelper()));
         registry.addRecipeCategories(new GTFluidVeinCategory(registry.getJeiHelpers().getGuiHelper()));
         registry.addRecipeCategories(new MaterialTreeCategory(registry.getJeiHelpers().getGuiHelper()));
+        registry.addRecipeCategories(new CoolantCategory(registry.getJeiHelpers().getGuiHelper()));
+        registry.addRecipeCategories(new FissionFuelCategory(registry.getJeiHelpers().getGuiHelper()));
+        registry.addRecipeCategories(new ModeratorCategory(registry.getJeiHelpers().getGuiHelper()));
     }
 
     @Override
@@ -233,6 +246,7 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
         MultiblockInfoCategory.registerRecipes(registry);
         registry.addRecipeRegistryPlugin(new FacadeRegistryPlugin());
         registry.addRecipeRegistryPlugin(new OreVeinInfoPlugin());
+        registerNuclearRecipes(registry);
 
         // register transfer handler for all categories, but not for the crafting station
         ModularUIGuiHandler modularUIGuiHandler = new ModularUIGuiHandler(jeiHelpers.recipeTransferHandlerHelper());
@@ -426,6 +440,33 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
         GTRecipeOreInput.refreshStackCache();
 
         transferHelper = jeiHelpers.recipeTransferHandlerHelper();
+    }
+
+    private static void registerNuclearRecipes(IModRegistry registry) {
+        Collection<ItemStack> fissionFuels = FissionFuelRegistry.getAllFissionableRods();
+        List<FissionFuelInfo> fissionFuelInfos = new ArrayList<>();
+        for (ItemStack fuel : fissionFuels) {
+            fissionFuelInfos.add(new FissionFuelInfo(fuel));
+        }
+        registry.addRecipes(fissionFuelInfos, FissionFuelCategory.UID);
+        registry.addRecipeCatalyst(MetaTileEntities.FISSION_REACTOR.getStackForm(), FissionFuelCategory.UID);
+
+        Collection<net.minecraftforge.fluids.Fluid> coolants = CoolantRegistry.getAllCoolants();
+        List<CoolantInfo> coolantInfos = new ArrayList<>();
+        for (net.minecraftforge.fluids.Fluid coolant : coolants) {
+            coolantInfos.add(new CoolantInfo(coolant, CoolantRegistry.getCoolant(coolant).getHotCoolant()));
+        }
+        registry.addRecipes(coolantInfos, CoolantCategory.UID);
+        registry.addRecipeCatalyst(MetaTileEntities.FISSION_REACTOR.getStackForm(), CoolantCategory.UID);
+
+        Collection<ModeratorRegistry.ModeratorInfo> moderators = ModeratorRegistry.getAllModerators();
+        List<ModeratorInfo> moderatorInfos = new ArrayList<>();
+        for (ModeratorRegistry.ModeratorInfo moderator : moderators) {
+            moderatorInfos.add(new ModeratorInfo(moderator.getRegistryName(), moderator.getMeta()));
+        }
+        registry.addRecipes(moderatorInfos, ModeratorCategory.UID);
+        registry.addRecipeCatalyst(MetaTileEntities.FISSION_REACTOR.getStackForm(), ModeratorCategory.UID);
+        registry.addRecipeCatalyst(MetaTileEntities.MODERATOR_PORT.getStackForm(), ModeratorCategory.UID);
     }
 
     private void setupInputHandler() {

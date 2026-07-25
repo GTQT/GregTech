@@ -9009,3 +9009,382 @@ gregtech.machine.wireless_controller.tooltip.8=§7  T_i = capacitor tier, C = co
 gregtech.machine.wireless_controller.tooltip.9=§7  Only UHV-tier and higher capacitors are counted
 gregtech.machine.wireless_controller.tooltip.retention=§bLocal retention ratio: §f%s%%
 gregtech.machine.wireless_controller.tooltip.team=Players in the same FTB team automatically share one network.
+
+# Integrated nuclear content
+tile.fission_casing.reactor_vessel.name=Reactor Vessel
+tile.fission_casing.fuel_channel.name=Fuel Channel
+tile.fission_casing.control_rod_channel.name=Control Rod Channel
+tile.fission_casing.coolant_channel.name=Coolant Channel
+gregtech.machine.fuel_rod_input.name=Fuel Rod Input Port
+gregtech.machine.fuel_rod_input.tooltip=Requires §fFuel Channels§7 below itself to function and form.
+gregtech.machine.fuel_rod_output.name=Fuel Rod Output Port
+gregtech.machine.fuel_rod_output.tooltip=Requires §fFuel Channels§7 above itself to function and form.
+gregtech.machine.coolant_input.name=Coolant Input Port
+gregtech.machine.coolant_input.tooltip=Requires §fCoolant Channels§7 below itself to function and form.
+gregtech.machine.coolant_output.name=Coolant Output Port
+gregtech.machine.coolant_output.tooltip=Requires §fCoolant Channels§7 above itself to function and form.
+gregtech.machine.control_rod.name=Control Rod Port
+gregtech.machine.control_rod.tooltip=Requires §fControl Rod Channels§7 below itself to function and form.
+gregtech.machine.control_rod.tooltip.1=Lowers neutron multiplication as it is inserted when placed between fuel rods!
+gregtech.machine.control_rod_moderated.name=Graphite-Tipped Control Rod Port
+gregtech.machine.control_rod_moderated.tooltip=Requires §fControl Rod Channels§7 below itself to function and form.
+gregtech.machine.control_rod_moderated.tooltip.1=Increases neutron multiplication when placed between fuel rods when inserted around 30%%!
+gregtech.machine.nuclear.locking.item=Locks when the reactor is turned on; the held item cannot change type when locked.
+gregtech.machine.nuclear.locking.fluid=Locks when the reactor is turned on; the held fluid cannot change type when locked.
+gregtech.machine.moderator_port.name=Moderator Port
+gregtech.machine.moderator_port.tooltip=Requires §fModerator Blocks§7 below itself (like graphite) to function and form.
+
+gregtech.machine.nuclear_reactor.name=Nuclear Reactor
+gregtech.machine.nuclear_extend_hatch.name=Reactor Expansion Hatch
+
+gregtech.multiblock.fission_reactor.description=Fission Reactors use fuel rods placed together to create a sustained chain of fission reactions. These reactions generate heat (power) that may be soaked up by coolants, which can then be used inside turbines. For example, using distilled water as a coolant, each channel soaks up about 2 EU/t of heat per degree Kelvin and block of internal reactor depth.  The reactor can take on a variety of shapes. Its cross sections can be seen in JEI, and the reactor may extend 7 blocks up and down from the controller. Reactors can import and export fuel rods/coolants through special pairs of hatches on the top and bottom layers, respectively. Control rod hatches may also be placed on the top layer, and they give the user more control over the reactor. Inserting them more decreases the neutron multiplication rate "effective K" (shown as k_eff), a factor by which the power is continually multiplied by until it reaches the approximate max power. If k_eff is over 1, the reactor's power will eventually increase; if it's below 1, it will eventually decrease; and if it's around 1, it will stay stable. In fact, the reactor automatically shifts this over time, attempting to reach a stable equilibrium. This may be overridden manually, which you may want to do if the k_eff is over 1.05 to avoid it spiralling out of control and melting down. K_eff is also affected by neutron poisons inside the reactor, which will increase in concentration over time as the reactor runs (and still remain in a fairly high concentration for a while after). The rate at which k_eff "acts" is dependent on the mean generation time, which is how long it takes for the next generation of neutrons to be produced. This depends on the fuel rod (and can be seen in their tooltips), and it is mostly affected by delayed neutrons produced from decaying fission products. The power may then be modeled using an exponential function with a time constant of the mean generation time divided by (k_eff - 1). Control rods, fuel hatches, and coolant hatches all require special tubing beneath them to form correctly; check their tooltips to see which blocks to use. Once a reactor's hatches are filled, the reactor can be locked to begin operation, meaning that the types of items/fluids in the hatches can not be changed while the reactor operates. The placement of the fuel rods and coolant channels within the reactor is quite important. Neutrons produced by decaying atoms in the fuel rods can cause fissions in other fuel rods; therefore, reactors work far more effectively with more than one fuel rod channel. The chance that a neutron interacts with a fuel rod is increased if it is slowed down by a moderator, such as distilled water inside a coolant channel. As such, it can be helpful to put coolant channels between fuel rods to increase k_eff (and control rods do much the opposite). Fuel rods also decay at a rate proportional to the power; a 600 MJ fuel rod will deplete after 600 seconds of 1 MW, or alternatively 1 second of 600 MW. Note: if this multiblock receives maintenance problems, the coolant systems will occasionally seize up and stop working. However, coolant channels only operate when the hot coolant fluid is actually hotter than the reactor itself, and they can also only altogether export as much heat as the max power.
+gregtech.multiblock.fission_reactor.description.minimal.title=§bMinimal runnable example
+gregtech.multiblock.fission_reactor.description.minimal.dimensions=§7JEI settings: width 7, height 1, length 1 (7x7x3 overall).
+gregtech.multiblock.fission_reactor.description.minimal.layout=§7Top-down core map. F/W/R are one vertical path; . is outside the core:
+gregtech.multiblock.fission_reactor.description.minimal.row_1=§f. F W F .
+gregtech.multiblock.fission_reactor.description.minimal.row_2=§fF W R W F
+gregtech.multiblock.fission_reactor.description.minimal.row_3=§fW R W R W
+gregtech.multiblock.fission_reactor.description.minimal.row_4=§fF W R W F
+gregtech.multiblock.fission_reactor.description.minimal.row_5=§f. F W F .
+gregtech.multiblock.fission_reactor.description.minimal.top=§7Top: F = fuel rod input (8 LEU-235 fuel rods), W = distilled-water coolant input, R = normal control rod port.
+gregtech.multiblock.fission_reactor.description.minimal.middle=§7Middle: replace F/W/R with fuel channels, coolant channels, and control rod channels.
+gregtech.multiblock.fission_reactor.description.minimal.bottom=§7Bottom: replace F/W with fuel rod outputs and coolant outputs; use reactor vessels below R.
+gregtech.multiblock.fission_reactor.description.minimal.shell=§7Use reactor vessels for the remaining shell. Put the controller in the middle outer wall and exactly one maintenance hatch in the shell.
+gregtech.multiblock.fission_reactor.description.minimal.operation=§7Leave automatic control rod regulation enabled and keep coolant outputs clear. Initial k_eff is about 1.07 and settles toward 1.00.
+gregtech.multiblock.gas_centrifuge.description=The Gas Centrifuge can help in the purification process of isotopes, especially those of uranium. By repeatedly putting uranium hexafluoride into a gas centrifuge, one can obtain highly enriched uranium hexafluoride, which has a purity high enough to make nuclear fuels. Each block of length makes it perform one more recipe in parallel.
+gregtech.multiblock.heat_exchanger.description=The Heat Exchanger can be used to take heat out from one fluid by either radiating it out into its surrounding environment or by transferring it into another fluid. This can be used with hot coolant from fission reactors to help generate steam for steam turbines.
+gregtech.multiblock.spent_fuel_pool.description=The Spent Fuel Pool takes hot depleted fuel rods fresh from a fission reactor and cools them down to be processed later. It only works when the structure is fulled with water, you can do this by fill an input water with water, or place water blocks manually. Each block of length makes it perform 32 more recipes in parallel.
+gregtech.multiblock.nuclear_reactor.description=The nuclear reactor is an advanced multi-block structure that replicates and enhances IC's classic nuclear power system. It constitutes an efficient and high-risk energy output matrix by precisely arranging various fuel rods (such as uranium rods, MOX rods), heat sinks, heat exchangers, neutron reflectors and other core components. The core of the system is dynamic balance: fuel rods will release a large amount of heat while generating huge amounts of electricity, and must rely on the surrounding heat dissipation elements (such as heat sinks, cooling units, heat exchangers) to absorb and dissipate in time, otherwise the accumulated heat will cause the reactor to overheat, causing widespread environmental damage (such as fire, evaporation of water bodies, block melting) and even catastrophic explosions. Reactor partitions increase their overall heat capacity limit and suppress explosion power, while special components such as condensation modules provide enhanced instantaneous heat dissipation. Allowing players to build a variety of nuclear power solutions from safe and robust to extreme performance with extremely high risk, it is a key facility in GregTech mods that combines the charm of complex engineering with great energy returns.
+metaitem.nuclear.tooltip.radioactive=§cEmits dangerous radiation
+metaitem.nuclear.tooltip.duration=Total heat energy: %d MJ
+metaitem.nuclear.tooltip.temperature=Melting point: %d K
+metaitem.nuclear.tooltip.cross_section_fast=Fast neutron prob: %d barn
+metaitem.nuclear.tooltip.cross_section_slow=Slow neutron prob: %d barn
+metaitem.nuclear.tooltip.neutron_time.0=Avg. neutron: %ds (§1Safe§r)
+metaitem.nuclear.tooltip.neutron_time.1=Avg. neutron: %ds (§2Safer§r)
+metaitem.nuclear.tooltip.neutron_time.2=Avg. neutron: %ds (§cUnsafe§r)
+metaitem.nuclear.tooltip.neutron_time.3=Avg. neutron: %ds (§4Very unsafe§r)
+metaitem.nuclear.tooltip.moderation_factor=Moderation strength: %d
+metaitem.nuclear.tooltip.absorption_factor=Absorption strength: %d
+
+item.material.oreprefix.fuelRod=%s Fuel Rod
+item.material.oreprefix.fuelRodDepleted=%s Depleted Fuel Rod
+item.material.oreprefix.fuelRodHotDepleted=%s Hot Depleted Fuel Rod
+item.material.oreprefix.fuelPelletRaw=%s Raw Fuel Pellet
+item.material.oreprefix.fuelPellet=%s Fuel Pellet
+item.material.oreprefix.fuelPelletDepleted=%s Depleted Fuel Pellet
+item.material.oreprefix.dustSpentFuel=%s Spent Fuel Dust
+item.material.oreprefix.dustBredFuel=%s Bred Fuel Dust
+item.material.oreprefix.dustFissionByproduct=%s Fission Byproduct Dust
+item.material.oreprefix.fuelPebble=%s Concentrated Fuel Pellets
+item.material.oreprefix.fuelPebbleDepleted=%s Depleted Concentrated Fuel Pellets
+
+# 基础元素
+# 镭同位素
+gregtech.material.radium_225=Radium-225
+gregtech.material.radium_226=Radium-226
+# 镤同位素
+gregtech.material.protactinium_231=Protactinium-231
+gregtech.material.protactinium_233=Protactinium-233
+# 铀同位素
+gregtech.material.uranium_232=Uranium-232
+gregtech.material.uranium_233=Uranium-233
+gregtech.material.uranium_234=Uranium-234
+gregtech.material.uranium_236=Uranium-236
+gregtech.material.uranium_237=Uranium-237
+gregtech.material.uranium_239=Uranium-239
+# 镎同位素
+gregtech.material.neptunium_235=Neptunium-235
+gregtech.material.neptunium_236=Neptunium-236
+gregtech.material.neptunium_237=Neptunium-237
+gregtech.material.neptunium_238=Neptunium-238
+gregtech.material.neptunium_239=Neptunium-239
+# 钚同位素
+gregtech.material.plutonium_236=Plutonium-236
+gregtech.material.plutonium_237=Plutonium-237
+gregtech.material.plutonium_238=Plutonium-238
+gregtech.material.plutonium_240=Plutonium-240
+gregtech.material.plutonium_242=Plutonium-242
+gregtech.material.plutonium_243=Plutonium-243
+gregtech.material.plutonium_244=Plutonium-244
+# 钍同位素
+gregtech.material.thorium_228=Thorium-228
+gregtech.material.thorium_229=Thorium-229
+gregtech.material.thorium_230=Thorium-230
+gregtech.material.thorium_232=Thorium-232
+gregtech.material.thorium_233=Thorium-233
+# 镅同位素
+gregtech.material.americium_240=Americium-240
+gregtech.material.americium_241=Americium-241
+gregtech.material.americium_242=Americium-242
+gregtech.material.americium_243=Americium-243
+# 锔同位素
+gregtech.material.curium_242=Curium-242
+gregtech.material.curium_243=Curium-243
+gregtech.material.curium_244=Curium-244
+gregtech.material.curium_245=Curium-245
+gregtech.material.curium_246=Curium-246
+gregtech.material.curium_247=Curium-247
+gregtech.material.curium_248=Curium-248
+gregtech.material.curium_250=Curium-250
+# 锫同位素
+gregtech.material.berkelium_249=Berkelium-249
+# 锎同位素
+gregtech.material.californium_249=Californium-249
+gregtech.material.californium_252=Californium-252
+
+gregtech.material.high_enriched_uranium_hexafluoride=Highly Enriched Uranium Hexafluoride
+gregtech.material.high_enriched_uranium_dioxide=Highly Enriched Uranium Dioxide
+gregtech.material.low_enriched_uranium_dioxide=Low Enriched Uranium Dioxide
+gregtech.material.depleted_uranium_dioxide=Depleted Uranium Dioxide
+gregtech.material.fissile_plutonium_dioxide=Fissile Plutonium Dioxide
+gregtech.material.inconel=Inconel
+gregtech.material.corium=Corium
+gregtech.material.zircaloy=Zircaloy
+gregtech.material.boron_trioxide=Boron Trioxide
+gregtech.material.boron_carbide=Boron Carbide
+gregtech.material.heavy_water=Heavy Water
+gregtech.material.high_pressure_heavy_water=High Pressure Heavy Water
+
+gregtech.material.spent_uranium_fuel_solution=Spent Uranium Fuel Solution
+gregtech.material.radon_rich_gas_mixture=Radon Rich Gas Mixture
+
+gregtech.material.leu_235=LEU-235
+gregtech.material.heu_235=HEU-235
+gregtech.material.low_grade_mox=Low Grade MOX
+gregtech.material.high_grade_mox=High Grade MOX
+gregtech.material.fbr=Fast Reactor Fuel
+gregtech.material.thor=Molten Salt Reactor Fuel
+
+recipemap.heat_exchanger.name=Heat Exchanger
+recipemap.gas_centrifuge.name=Gas Centrifuge
+recipemap.spent_fuel_pool.name=Spent Fuel Pool
+recipemap.rtg_recipes.name=RTG
+recipemap.decay_chamber_recipes.name=Decay Chamber
+recipemap.natural_draft_cooling_tower.name=冷却塔
+
+gregtech.machine.decay_chamber.lv.name=Basic Decay Chamber
+gregtech.machine.decay_chamber.lv.tooltip=Radiant Glow
+gregtech.machine.decay_chamber.mv.name=Advanced Decay Chamber
+gregtech.machine.decay_chamber.mv.tooltip=Radiant Glow
+gregtech.machine.decay_chamber.hv.name=Advanced Decay Chamber II
+gregtech.machine.decay_chamber.hv.tooltip=Radiant Glow
+gregtech.machine.decay_chamber.ev.name=Advanced Decay Chamber III
+gregtech.machine.decay_chamber.ev.tooltip=Radiant Glow
+gregtech.machine.decay_chamber.iv.name=Elite Decay Chamber
+gregtech.machine.decay_chamber.iv.tooltip=Decay Accelerator
+gregtech.machine.decay_chamber.luv.name=Elite Decay Chamber II
+gregtech.machine.decay_chamber.luv.tooltip=Decay Accelerator
+gregtech.machine.decay_chamber.zpm.name=Elite Decay Chamber III
+gregtech.machine.decay_chamber.zpm.tooltip=Decay Accelerator
+gregtech.machine.decay_chamber.uv.name=Ultimate Decay Chamber
+gregtech.machine.decay_chamber.uv.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.uhv.name=Epic Decay Chamber
+gregtech.machine.decay_chamber.uhv.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.uev.name=Epic Decay Chamber II
+gregtech.machine.decay_chamber.uev.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.uiv.name=Epic Decay Chamber III
+gregtech.machine.decay_chamber.uiv.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.uxv.name=Epic Decay Chamber IV
+gregtech.machine.decay_chamber.uxv.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.opv.name=Legendary Decay Chamber
+gregtech.machine.decay_chamber.opv.tooltip=Zero Process Decay
+
+gregtech.machine.rtg.lv.name=Radioisotope Thermoelectric Generator-MKI
+gregtech.machine.rtg.mv.name=Radioisotope Thermoelectric Generator-MKII
+gregtech.machine.rtg.hv.name=Radioisotope Thermoelectric Generator-MKIII
+
+fission.coolant.name=Coolant Heating
+fission.fuel.name=Fission Reactor
+fission.moderator.name=Neutron Moderation
+
+metaitem.basket.anode.name=Anode Basket
+metaitem.cladding.fuel.name=Fuel Cladding
+
+metaitem.fuel_rod.1x.name=Empty Fuel Rod
+metaitem.fuel_rod.2x.name=Empty Double Fuel Rod
+metaitem.fuel_rod.4x.name=Empty Quad Fuel Rod
+
+metaitem.fuel_rod.uranium.1x.depleted.name=Depleted Uranium Fuel Rod
+metaitem.fuel_rod.uranium.2x.depleted.name=Depleted Double Uranium Fuel Rod
+metaitem.fuel_rod.uranium.4x.depleted.name=Depleted Quad Uranium Fuel Rod
+metaitem.fuel_rod.thorium.1x.depleted.name=Depleted Thorium Fuel Rod
+metaitem.fuel_rod.thorium.2x.depleted.name=Depleted Double Thorium Fuel Rod
+metaitem.fuel_rod.thorium.4x.depleted.name=Depleted Quad Thorium Fuel Rod
+metaitem.fuel_rod.plutonium.1x.depleted.name=Depleted Plutonium Fuel Rod
+metaitem.fuel_rod.plutonium.2x.depleted.name=Depleted Double Plutonium Fuel Rod
+metaitem.fuel_rod.plutonium.4x.depleted.name=Depleted Quad Plutonium Fuel Rod
+metaitem.fuel_rod.naquadah.1x.depleted.name=Depleted Naquadah Fuel Rod
+metaitem.fuel_rod.naquadah.2x.depleted.name=Depleted Double Naquadah Fuel Rod
+metaitem.fuel_rod.naquadah.4x.depleted.name=Depleted Quad Naquadah Fuel Rod
+
+metaitem.fuel_rod.uranium.1x.name=Uranium Fuel Rod
+metaitem.fuel_rod.uranium.2x.name=Double Uranium Fuel Rod
+metaitem.fuel_rod.uranium.4x.name=Quad Uranium Fuel Rod
+metaitem.fuel_rod.thorium.1x.name=Thorium Fuel Rod
+metaitem.fuel_rod.thorium.2x.name=Double Thorium Fuel Rod
+metaitem.fuel_rod.thorium.4x.name=Quad Thorium Fuel Rod
+metaitem.fuel_rod.plutonium.1x.name=Plutonium Fuel Rod
+metaitem.fuel_rod.plutonium.2x.name=Double Plutonium Fuel Rod
+metaitem.fuel_rod.plutonium.4x.name=Quad Plutonium Fuel Rod
+metaitem.fuel_rod.naquadah.1x.name=Naquadah Fuel Rod
+metaitem.fuel_rod.naquadah.2x.name=Double Naquadah Fuel Rod
+metaitem.fuel_rod.naquadah.4x.name=Quad Naquadah Fuel Rod
+
+metaitem.heat_vent.basic.name=Basic Heat Vent
+metaitem.heat_vent.advanced.name=Advanced Heat Vent
+metaitem.heat_vent.elite.name=Elite Heat Vent
+metaitem.heat_vent.ultimate.name=Ultimate Heat Vent
+
+metaitem.component_heat_vent.basic.name=Basic Component Heat Vent
+metaitem.component_heat_vent.advanced.name=Advanced Component Heat Vent
+metaitem.component_heat_vent.elite.name=Elite Component Heat Vent
+metaitem.component_heat_vent.ultimate.name=Ultimate Component Heat Vent
+
+metaitem.coolant_cell.10k.name=10K Empty Coolant Cell
+metaitem.coolant_cell.30k.name=30K Empty Coolant Cell
+metaitem.coolant_cell.60k.name=60K Empty Coolant Cell
+
+metaitem.coolant_cell.coolant.10k.name=10K Coolant Coolant Cell
+metaitem.coolant_cell.coolant.30k.name=30K Coolant Coolant Cell
+metaitem.coolant_cell.coolant.60k.name=60K Coolant Coolant Cell
+
+metaitem.coolant_cell.sodium_potassium.10k.name=10K Sodium Potassium Coolant Cell
+metaitem.coolant_cell.sodium_potassium.30k.name=30K Sodium Potassium Coolant Cell
+metaitem.coolant_cell.sodium_potassium.60k.name=60K Sodium Potassium Coolant Cell
+
+metaitem.coolant_cell.helium.10k.name=10K Helium Coolant Cell
+metaitem.coolant_cell.helium.30k.name=30K Helium Coolant Cell
+metaitem.coolant_cell.helium.60k.name=60K Helium Coolant Cell
+
+metaitem.neutron_reflector.basic.name=Neutron Reflector
+metaitem.neutron_reflector.thick.name=Thick Neutron Reflector
+metaitem.neutron_reflector.iridium.name=Iridium Neutron Reflector
+
+metaitem.heat_exchanger.basic.name=Basic Heat Exchanger
+metaitem.heat_exchanger.advanced.name=Advanced Heat Exchanger
+metaitem.heat_exchanger.reactor.name=Reactor Heat Exchanger
+metaitem.heat_exchanger.component.name=Component Heat Exchanger
+
+metaitem.reactor_plating.basic.name=Basic Reactor Plating
+metaitem.reactor_plating.advanced.name=Advanced Reactor Plating
+
+tile.panelling.white.name=White Panelling
+tile.panelling.orange.name=Orange Panelling
+tile.panelling.magenta.name=Magenta Panelling
+tile.panelling.light_blue.name=Light Blue Panelling
+tile.panelling.yellow.name=Yellow Panelling
+tile.panelling.lime.name=Lime Panelling
+tile.panelling.pink.name=Pink Panelling
+tile.panelling.gray.name=Gray Panelling
+tile.panelling.light_gray.name=Light Gray Panelling
+tile.panelling.cyan.name=Cyan Panelling
+tile.panelling.purple.name=Purple Panelling
+tile.panelling.blue.name=Blue Panelling
+tile.panelling.brown.name=Brown Panelling
+tile.panelling.green.name=Green Panelling
+tile.panelling.red.name=Red Panelling
+tile.panelling.black.name=Black Panelling
+
+# Nuclear Blocks
+tile.nuclear_casing.spent_fuel_casing.name=Spent Fuel Casing
+tile.nuclear_casing.gas_centrifuge_heater.name=Gas Centrifuge Heater
+tile.gas_centrifuge_casing.gas_centrifuge_column.name=Gas Centrifuge Column
+tile.nuclear_reactor_casing.nuclear_reactor_casing.name=Nuclear Fission Reactor Hull
+
+gregtech.machine.fission_reactor.name=Fission Reactor
+gregtech.machine.fission_reactor.tooltip.1=§6§l[Fission Reactor]
+gregtech.machine.fission_reactor.tooltip.2=§7Goal: fuel rods heat up -> coolant carries heat -> heat exchanger makes steam -> turbine makes power.
+gregtech.machine.fission_reactor.tooltip.3=§8The reactor does not output EU directly; connect the heat-processing line before starting it.
+gregtech.machine.fission_reactor.tooltip.4=§b1. Check the structure first
+gregtech.machine.fission_reactor.tooltip.5=§7JEI/projector use three values: width = diameter; height = layers above controller; length = layers below.
+gregtech.machine.fission_reactor.tooltip.6=§7Smallest example: diameter 5, one upper layer, one lower layer (3 layers total). Keep both views on the same values.
+gregtech.machine.fission_reactor.tooltip.7=§7The controller is in the outer wall of the middle layer. Use reactor vessels for the shell; the inside holds channels, air, or moderators.
+gregtech.machine.fission_reactor.tooltip.8=§eThe shell must contain exactly one maintenance hatch, or the reactor cannot work.
+gregtech.machine.fission_reactor.tooltip.9=§b2. Build one complete vertical path
+gregtech.machine.fission_reactor.tooltip.10=§7Fuel: top fuel rod input -> fuel channels all the way down -> bottom fuel rod output.
+gregtech.machine.fission_reactor.tooltip.11=§7Coolant: top coolant input -> coolant channels all the way down -> bottom coolant output.
+gregtech.machine.fission_reactor.tooltip.12=§7Control rod ports go on the top; control rod channels must run below them. They need no matching bottom output.
+gregtech.machine.fission_reactor.tooltip.13=§7A port only connects to its matching channel. If formation fails, check the block above/below the port and its own tooltip.
+gregtech.machine.fission_reactor.tooltip.14=§b3. Check before starting
+gregtech.machine.fission_reactor.tooltip.15=§7Every fuel input needs a valid, non-depleted fuel rod, and the reactor needs at least one fuel channel.
+gregtech.machine.fission_reactor.tooltip.16=§7Every coolant input needs a valid coolant listed in JEI's "Coolant Heating" page.
+gregtech.machine.fission_reactor.tooltip.17=§7Leave room in fuel rod outputs. Pipe hot coolant away and provide enough tank capacity.
+gregtech.machine.fission_reactor.tooltip.18=§7For the first run, use normal control rod ports and leave automatic control rod regulation enabled.
+gregtech.machine.fission_reactor.tooltip.19=§b4. Start and use the heat
+gregtech.machine.fission_reactor.tooltip.20=§7Open the controller and click "Lock and start". Inputs lock while running, so fuel and coolant types cannot be changed.
+gregtech.machine.fission_reactor.tooltip.21=§7Hot coolant -> heat exchanger -> steam -> steam turbine; hot depleted rods -> a water-filled spent fuel pool.
+gregtech.machine.fission_reactor.tooltip.22=§b5. Watch these values while running
+gregtech.machine.fission_reactor.tooltip.23=§7k_eff near 1 is stable. Above 1, power keeps rising; below 1, power slowly falls.
+gregtech.machine.fission_reactor.tooltip.24=§eWhen k_eff is high (especially above 1.05), insert more control rods or shut down. Graphite-tipped rods do the opposite; avoid them at first.
+gregtech.machine.fission_reactor.tooltip.25=§cIf temperature/pressure keep rising or hot coolant is blocked, shut down immediately and check cooling plus maintenance.
+gregtech.machine.fission_reactor.tooltip.26=§b6. Stop and diagnose
+gregtech.machine.fission_reactor.tooltip.27=§7To change fuel or coolant, shut down and unlock first. For "Fuel output blocked", empty the bottom fuel output.
+gregtech.machine.fission_reactor.tooltip.28=§7"Missing fuel/coolant" means the matching top input is empty or invalid, or its channel is not continuous.
+gregtech.machine.fission_reactor.tooltip.29=§7After depletion, move hot depleted rods to a water-filled spent fuel pool to cool them before further processing.
+
+gregtech.machine.heat_exchanger.name=Heat Exchanger
+gregtech.machine.spent_fuel_pool.name=Spent Fuel Pool
+gregtech.machine.gas_centrifuge.name=Gas Centrifuge
+gregtech.machine.natural_draft_cooling_tower.name=冷却塔
+
+gregtech.machine.fission_reactor.tooltip=Blowy-uppy yumyum generator
+gregtech.machine.heat_exchanger.tooltip=Molecular hot potato player
+
+gregtech.machine.spent_fuel_pool.tooltip.parallel=§dMax Parallel: §f%s per block of pool length
+gregtech.machine.gas_centrifuge.tooltip.parallel=§dMax Parallel: §f1 + number of added columns
+gregtech.machine.fluid_auto_fill.tooltip=§3Fluid blocks in this multi can be automatically filled by supplying it to the input tank
+
+
+gregtech.coolant.general=§9Can be used as a coolant§7
+gregtech.coolant.exit_temp=Hot coolant temperature: %d K
+gregtech.coolant.heat_capacity=Heat capacity: %d J/kgK
+gregtech.coolant.cooling_factor=Heat transfer: %d W/(m^2K)
+gregtech.coolant.moderation_factor=Moderation cross section: %d barn
+gregtech.coolant.accumulates_hydrogen=§cAccumulates hydrogen at 1500K
+
+gregtech.gui.fission.control_rod_insertion=Control rod insertion: %d
+gregtech.gui.fission.coolant_flow=Coolant flow rate: %d L/t per channel
+gregtech.gui.fission.temperature=Temperature: %.3f K
+gregtech.gui.fission.pressure=Pressure: %.3f Pa
+gregtech.gui.fission.power=Power: %.3f MW / %.3f MW
+gregtech.gui.fission.k_eff=Neutron multiplication factor: %f
+gregtech.gui.fission.depletion=Current fuel rod depletion: %f%%
+gregtech.gui.fission.depleted_rod=Making %s
+
+gregtech.gui.fission.lock.locked=Reactor locked and active!
+gregtech.gui.fission.lock.unlocked=Reactor not active
+gregtech.gui.fission.lock.should_lock=Activating...
+gregtech.gui.fission.lock.missing_fuel=A bus is missing fuel!
+gregtech.gui.fission.lock.missing_coolant=A hatch is missing coolant!
+gregtech.gui.fission.lock.fuel_clogged=An output fuel bus is full!
+gregtech.gui.fission.lock.no_fuel_channels=There isn't a fuel channel!
+gregtech.gui.fission.lock.invalid_component=Erm, what the flip? Check your log file
+gregtech.gui.fission.lock.disabled=Lock Fuel and Coolant types and start the Reactor
+gregtech.gui.fission.lock.enabled=Unlock Fuel and Coolant types and stop the Reactor
+gregtech.gui.fission.structure.location=V3 structure error location: %s
+gregtech.gui.fission.structure.no_trace=V3 has no failure coordinate yet; click Start again to recheck the structure.
+
+gregtech.gui.fission.helper.disabled=Automatic control rod regulation: Disabled
+gregtech.gui.fission.helper.enabled=Automatic control rod regulation: Enabled
+
+gregtech.gui.locked=(Locked)
+gregtech.gui.void_fuel=Void the current partially depleted fuel!
+
+gregtech.multiblock.pattern.error.hatch_invalid=§cThis hatch is not valid yet!§r
+
+gregtech.multiblock.fission_reactor.diameter=Diameter: %s
+gregtech.multiblock.fission_reactor.height=Height: %s
+
+gregtech.multiblock.fission_reactor.turn_on=Turn on the reactor? (Locks all hatches)
+gregtech.multiblock.fission_reactor.turn_off=Turn off the reactor?
+gregtech.multiblock.fission_reactor.structure_incomplete=Cannot toggle the reactor. The structure is incomplete.
+gregtech.multiblock.fission_reactor.invalid_components=Reactor startup failed. Some of the inputs ports are invalid. Please check that channels are aligned with their respective ports.
+gregtech.multiblock.fission_reactor.missing_inputs=Reactor startup failed. Some of the inputs ports are empty or have inappropriate contents. Please check the ports.
+gregtech.multiblock.spent_fuel_pool.obstructed=The pool is not filled!
+gregtech.multiblock.spent_fuel_pool.obstructed.desc=The pool must be filled with water to function.
+
+# Name Overrides (doesn't work)
+
+# Creative tabs
+itemGroup.gregtech_tab=Supercritical | Nuclear

@@ -6,15 +6,19 @@ import gregtech.api.block.coil.CustomCoilBlock;
 import gregtech.api.block.machines.BlockMachine;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.registry.MTERegistry;
+import gregtech.api.nuclear.fission.ModeratorRegistry;
 import gregtech.api.pipenet.longdist.BlockLongDistancePipe;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.material.properties.ModeratorProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
+import gregtech.api.unification.material.properties.SCPropertyKey;
 import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.ore.StoneType;
 import gregtech.api.util.BlockUtility;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.function.TriConsumer;
 import gregtech.client.model.SimpleStateMapper;
@@ -148,6 +152,14 @@ public class MetaBlocks {
     public static BlockCleanroomCasing CLEANROOM_CASING;
     public static BlockComputerCasing COMPUTER_CASING;
     public static BlockBatteryPart BATTERY_BLOCK;
+
+    // Nuclear blocks
+    public static BlockFissionCasing FISSION_CASING;
+    public static BlockNuclearCasing NUCLEAR_CASING;
+    public static BlockGasCentrifugeCasing GAS_CENTRIFUGE_CASING;
+    public static BlockPanelling PANELLING;
+    public static BlockNuclearReactorCasing NUCLEAR_REACTOR_CASING;
+    public static BlockMoltenCorium MOLTEN_CORIUM;
 
     // GCYM的
     public static BlockUniqueCasing UNIQUE_CASING;
@@ -292,6 +304,18 @@ public class MetaBlocks {
         COMPUTER_CASING.setRegistryName("computer_casing");
         BATTERY_BLOCK = new BlockBatteryPart();
         BATTERY_BLOCK.setRegistryName("battery_block");
+
+        FISSION_CASING = new BlockFissionCasing();
+        FISSION_CASING.setRegistryName("fission_casing");
+        NUCLEAR_CASING = new BlockNuclearCasing();
+        NUCLEAR_CASING.setRegistryName("nuclear_casing");
+        GAS_CENTRIFUGE_CASING = new BlockGasCentrifugeCasing();
+        GAS_CENTRIFUGE_CASING.setRegistryName("gas_centrifuge_casing");
+        PANELLING = new BlockPanelling();
+        PANELLING.setRegistryName("panelling");
+        NUCLEAR_REACTOR_CASING = new BlockNuclearReactorCasing();
+        NUCLEAR_REACTOR_CASING.setRegistryName("nuclear_reactor_casing");
+        MOLTEN_CORIUM = BlockMoltenCorium.register();
 
         UNIQUE_CASING = new BlockUniqueCasing();
         UNIQUE_CASING.setRegistryName("unique_casing");
@@ -517,6 +541,10 @@ public class MetaBlocks {
         registerItemModel(CLEANROOM_CASING);
         registerItemModel(COMPUTER_CASING);
         registerItemModel(BATTERY_BLOCK);
+        registerItemModel(FISSION_CASING);
+        registerItemModel(GAS_CENTRIFUGE_CASING);
+        registerItemModel(PANELLING);
+        registerItemModel(NUCLEAR_REACTOR_CASING);
         registerItemModel(LARGE_MULTIBLOCK_CASING);
         registerItemModel(ASPHALT);
         registerItemModel(RUBBER_LOG);
@@ -534,6 +562,7 @@ public class MetaBlocks {
         registerItemModel(STUDS);
 
         BOILER_FIREBOX_CASING.onModelRegister();
+        NUCLEAR_CASING.onModelRegister();
         WIRE_COIL.onModelRegister();
         FUSION_CASING.onModelRegister();
         MULTIBLOCK_CASING.onModelRegister();
@@ -821,6 +850,19 @@ public class MetaBlocks {
                     OreDictUnifier.registerOre(itemStack, pipe.getPrefix(), pipeMaterial);
                 }
             }
+        }
+
+        for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
+            if (!material.hasProperty(SCPropertyKey.MODERATOR)) continue;
+
+            BlockCompressed block = COMPRESSED.get(material);
+            if (block == null) {
+                GTLog.logger.warn("Skipping moderator registration for {} because no compressed block was generated",
+                        material.getResourceLocation());
+                continue;
+            }
+            ModeratorProperty moderator = material.getProperty(SCPropertyKey.MODERATOR);
+            ModeratorRegistry.registerModerator(block.getBlock(material), moderator);
         }
     }
 

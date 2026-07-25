@@ -9,12 +9,17 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAutoM
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCleaningMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComputationHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityControlRodPort;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCoolantExportHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCoolantImportHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCreativeInputBus;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCreativeInputHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityDataAccessHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityEnergyHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityFluidHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityFuelRodExportBus;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityFuelRodImportBus;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityGasHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityHeatSensor;
@@ -29,6 +34,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityLaser
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMachineHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMoldItemBus;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityModeratorPort;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMufflerHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiFluidHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityObjectHolder;
@@ -53,6 +59,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntity
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAComputation;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCACooler;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAEmpty;
+import gregtech.common.metatileentities.multi.nuclearReactor.MetaTileEntityNuclearExtend;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamFluidHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamItemBus;
@@ -132,6 +139,15 @@ public final class MultiblockPartRegistration {
             HUGE_COMPLEX_DUAL_HATCH[i] = registerMetaTileEntity(2270 + i,
                     new MetaTileEntityHugeComplexDualHatch(gregtechId("huge_complex_dual_hatch." + voltageName), i));
         }
+
+        FUEL_ROD_INPUT = registerMetaTileEntity(2285,
+                new MetaTileEntityFuelRodImportBus(gregtechId("fuel_rod_input")));
+        FUEL_ROD_OUTPUT = registerMetaTileEntity(2286,
+                new MetaTileEntityFuelRodExportBus(gregtechId("fuel_rod_output")));
+        COOLANT_INPUT = registerMetaTileEntity(2287,
+                new MetaTileEntityCoolantImportHatch(gregtechId("coolant_input")));
+        COOLANT_OUTPUT = registerMetaTileEntity(2288,
+                new MetaTileEntityCoolantExportHatch(gregtechId("coolant_output")));
     }
 
     // ---- Steam Hatches/Buses ----
@@ -509,6 +525,15 @@ public final class MultiblockPartRegistration {
                 new MetaTileEntityCreativeInputBus(gregtechId("creative_input_bus")));
         CREATIVE_INPUT_HATCH = registerMetaTileEntity(3595,
                 new MetaTileEntityCreativeInputHatch(gregtechId("creative_input_hatch")));
+
+        CONTROL_ROD = registerMetaTileEntity(3596,
+                new MetaTileEntityControlRodPort(gregtechId("control_rod"), false));
+        CONTROL_ROD_MODERATED = registerMetaTileEntity(3597,
+                new MetaTileEntityControlRodPort(gregtechId("control_rod_moderated"), true));
+        MODERATOR_PORT = registerMetaTileEntity(3598,
+                new MetaTileEntityModeratorPort(gregtechId("moderator_port")));
+        NUCLEAR_EXTEND_HATCH = registerMetaTileEntity(3599,
+                new MetaTileEntityNuclearExtend(gregtechId("nuclear_extend_hatch")));
 
     }
 }

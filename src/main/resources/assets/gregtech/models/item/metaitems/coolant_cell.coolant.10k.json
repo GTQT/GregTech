@@ -1,0 +1,7 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "gregtech:items/metaitems/coolant_cell.10k",
+    "layer1": "gregtech:items/metaitems/coolant.10k"
+  }
+}
