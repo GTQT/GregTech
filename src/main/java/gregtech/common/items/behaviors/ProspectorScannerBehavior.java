@@ -39,6 +39,7 @@ public class ProspectorScannerBehavior implements IItemBehaviour, ItemUIFactory,
 
     private static final long VOLTAGE_FACTOR = 16L;
     private static final int FLUID_PROSPECTION_THRESHOLD = GTValues.HV;
+    private static final int BEDROCK_ORE_PROSPECTION_THRESHOLD = GTValues.EV;
 
     private final int radius;
     private final int tier;
@@ -58,10 +59,15 @@ public class ProspectorScannerBehavior implements IItemBehaviour, ItemUIFactory,
                 ItemStack stack = player.getHeldItem(hand);
                 ProspectorMode mode = getMode(stack);
                 ProspectorMode nextMode = mode.next();
-                if (nextMode == ProspectorMode.FLUID) {
+                if (nextMode == ProspectorMode.BEDROCK_FLUID) {
                     if (tier >= FLUID_PROSPECTION_THRESHOLD) {
                         setMode(stack, nextMode);
-                        player.sendStatusMessage(new TextComponentTranslation("metaitem.prospector.mode.fluid"), true);
+                        player.sendStatusMessage(new TextComponentTranslation("metaitem.prospector.mode.bedrock_fluid"), true);
+                    }
+                } else if (nextMode == ProspectorMode.BEDROCK_ORE) {
+                    if (tier >= BEDROCK_ORE_PROSPECTION_THRESHOLD) {
+                        setMode(stack, nextMode);
+                        player.sendStatusMessage(new TextComponentTranslation("metaitem.prospector.mode.bedrock_ore"), true);
                     }
                 } else {
                     setMode(stack, nextMode);
@@ -131,13 +137,15 @@ public class ProspectorScannerBehavior implements IItemBehaviour, ItemUIFactory,
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
         IItemBehaviour.super.addInformation(itemStack, lines);
-
-        if (tier >= FLUID_PROSPECTION_THRESHOLD) {
+        if (tier >= BEDROCK_ORE_PROSPECTION_THRESHOLD) {
+            lines.add(I18n.format("metaitem.prospector.tooltip.bedrock_ore", radius));
+        } else if (tier >= FLUID_PROSPECTION_THRESHOLD) {
             lines.add(I18n.format("metaitem.prospector.tooltip.fluids", radius));
-            lines.add(I18n.format(getMode(itemStack).unlocalizedName));
         } else {
             lines.add(I18n.format("metaitem.prospector.tooltip.ores", radius));
         }
+
+        lines.add(I18n.format(getMode(itemStack).unlocalizedName));
     }
 
     @Override

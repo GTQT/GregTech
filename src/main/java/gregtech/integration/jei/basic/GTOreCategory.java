@@ -5,6 +5,7 @@ import gregtech.api.gui.GuiTextures;
 import gregtech.api.util.GTStringUtils;
 import gregtech.api.worldgen.config.OreDepositDefinition;
 import gregtech.api.worldgen.config.WorldGenRegistry;
+import gregtech.api.worldgen.filler.LayeredBlockFiller;
 import gregtech.common.items.OrbItems;
 import gregtech.integration.jei.utils.JEIResourceDepositCategoryUtils;
 import gregtech.integration.jei.utils.render.ItemStackTextRenderer;
@@ -21,13 +22,19 @@ import mezz.jei.api.ingredients.IIngredients;
 import mezz.jei.api.recipe.IRecipeWrapper;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class GTOreCategory extends BasicRecipeCategory<GTOreInfo, GTOreInfo> {
 
     public static final String UID = String.format("%s.ore_spawn_location", GTValues.MODID);
-    private static final int NUM_OF_SLOTS = 5;
     private static final int SLOT_WIDTH = 18;
     private static final int SLOT_HEIGHT = 18;
     private static final int DIM_DISPLAY_PER_ROW = 7;
+    private static final int LEFT_PADDING = 3;
+    private static final int LINE_KEY_COLOR = 0x404040;
+    private static final int LINE_VALUE_COLOR = 0x303030;
+    private static final int ORE_COLUMN_X = 3;
 
     protected final IDrawable slot;
     protected OreDepositDefinition definition;
@@ -36,9 +43,12 @@ public class GTOreCategory extends BasicRecipeCategory<GTOreInfo, GTOreInfo> {
     protected int maxHeight;
     protected int outputCount;
     protected int weight;
+    private boolean isLayeredVein;
+    private List<String> oreDisplayNames;
     private int[] dimensionIDs;
     private int dimDisplayCount;
     private int dimDisplayBaseYPos;
+    private int dimHeaderYPos;
 
     public GTOreCategory(IGuiHelper guiHelper) {
         super("ore_spawn_location",
@@ -55,38 +65,48 @@ public class GTOreCategory extends BasicRecipeCategory<GTOreInfo, GTOreInfo> {
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
         int baseYPos = 19;
 
-        // The ore selected from JEI
-        itemStackGroup.init(0, true, 22, baseYPos);
-        // The Surface Identifier
-        itemStackGroup.init(1, true, 22, 73);
-
-        for (int i = 0; i < recipeWrapper.getOutputCount(); i++) {
-            int yPos = baseYPos + (i / NUM_OF_SLOTS) * SLOT_HEIGHT;
-            int xPos = 70 + (i % NUM_OF_SLOTS) * SLOT_WIDTH;
-
-            itemStackGroup.init(i + 2, false,
-                    new ItemStackTextRenderer(recipeWrapper.getOreWeight(i) * 100, -1),
-                    xPos + 1, yPos + 1, 16, 16, 0, 0);
-        }
-
-        itemStackGroup.addTooltipCallback(recipeWrapper::addTooltip);
-        itemStackGroup.set(ingredients);
         this.veinName = recipeWrapper.getVeinName();
         this.minHeight = recipeWrapper.getMinHeight();
         this.maxHeight = recipeWrapper.getMaxHeight();
         this.outputCount = recipeWrapper.getOutputCount();
         this.weight = recipeWrapper.getWeight();
         this.definition = recipeWrapper.getDefinition();
+        this.isLayeredVein = definition.getBlockFiller() instanceof LayeredBlockFiller;
+
+        this.oreDisplayNames = new ArrayList<>();
+        List<List<ItemStack>> outputStacks = ingredients.getOutputs(mezz.jei.api.ingredients.VanillaTypes.ITEM);
+        for (int i = 0; i < outputCount && i < outputStacks.size(); i++) {
+            List<ItemStack> group = outputStacks.get(i);
+            oreDisplayNames.add(group.isEmpty() ? "" : group.get(0).getDisplayName());
+        }
 
         this.dimensionIDs = JEIResourceDepositCategoryUtils.getAllRegisteredDimensions(
                 definition.getDimensionFilter());
 
-        // ========== Dimension display item slots ==========
-        this.dimDisplayCount = 0;
-        int outputRows = outputCount == 0 ? 0 : ((outputCount - 1) / NUM_OF_SLOTS) + 1;
-        int yAfterOres = 19 + outputRows * SLOT_HEIGHT;
-        int textBaseY = Math.max(yAfterOres, SLOT_HEIGHT * (NUM_OF_SLOTS - 1) + 1); // matches drawExtras logic
-        this.dimDisplayBaseYPos = textBaseY + 3 * FONT_HEIGHT;
+        int oreListBottom = baseYPos + SLOT_HEIGHT + outputCount * SLOT_HEIGHT;
+        int infoY = oreListBottom + 1;
+        this.dimHeaderYPos = infoY + 2 * FONT_HEIGHT + 2;
+        this.dimDisplayBaseYPos = dimHeaderYPos + FONT_HEIGHT + 1;
+
+        int dimItemCount = 0;
+        for (int dimId : dimensionIDs) {
+            ItemStack displayStack = OrbItems.getDisplayItem(dimId);
+            if (!displayStack.isEmpty()) dimItemCount++;
+        }
+        this.dimDisplayCount = dimItemCount;
+
+        itemStackGroup.init(0, true, ORE_COLUMN_X, baseYPos);
+        itemStackGroup.init(1, true, ORE_COLUMN_X + SLOT_WIDTH, baseYPos);
+
+        for (int i = 0; i < outputCount; i++) {
+            int yPos = baseYPos + SLOT_HEIGHT + i * SLOT_HEIGHT;
+            itemStackGroup.init(i + 2, false,
+                    new ItemStackTextRenderer(recipeWrapper.getOreWeight(i) * 100, -1),
+                    ORE_COLUMN_X + 1, yPos + 1, 16, 16, 0, 0);
+        }
+
+        itemStackGroup.addTooltipCallback(recipeWrapper::addTooltip);
+        itemStackGroup.set(ingredients);
 
         int j = 0;
         for (int dimId : dimensionIDs) {
@@ -95,12 +115,11 @@ public class GTOreCategory extends BasicRecipeCategory<GTOreInfo, GTOreInfo> {
 
             int slotIndex = 2 + outputCount + j;
             itemStackGroup.init(slotIndex, true,
-                    22 + (j % DIM_DISPLAY_PER_ROW) * SLOT_WIDTH,
+                    LEFT_PADDING + (j % DIM_DISPLAY_PER_ROW) * SLOT_WIDTH,
                     dimDisplayBaseYPos + (j / DIM_DISPLAY_PER_ROW) * SLOT_HEIGHT);
             itemStackGroup.set(slotIndex, displayStack);
             j++;
         }
-        this.dimDisplayCount = j;
     }
 
     @NotNull
@@ -111,64 +130,66 @@ public class GTOreCategory extends BasicRecipeCategory<GTOreInfo, GTOreInfo> {
 
     @Override
     public void drawExtras(@NotNull Minecraft minecraft) {
-        int baseXPos = 70;
         int baseYPos = 19;
-
-        // Selected Ore
-        this.slot.draw(minecraft, 22, baseYPos);
-        // Surface Identifier
-        this.slot.draw(minecraft, 22, SLOT_HEIGHT * (NUM_OF_SLOTS - 1) + 1);
-
-        int yPos = 0;
-        for (int i = 0; i < outputCount; i++) {
-            yPos = baseYPos + (i / NUM_OF_SLOTS) * SLOT_HEIGHT;
-            int xPos = baseXPos + (i % NUM_OF_SLOTS) * SLOT_WIDTH;
-
-            this.slot.draw(minecraft, xPos, yPos);
-        }
-
-        // base positions set to position of last rendered slot for later use.
-        baseYPos = yPos + SLOT_HEIGHT;
+        int textX = ORE_COLUMN_X + 18;
 
         GTStringUtils.drawCenteredStringWithCutoff(veinName, minecraft.fontRenderer, 176);
 
-        // Begin Drawing information
-        if (baseYPos >= SLOT_HEIGHT * NUM_OF_SLOTS) {
-            minecraft.fontRenderer.drawString(I18n.format("gregtech.jei.ore.spawn_range", minHeight, maxHeight),
-                    baseXPos, baseYPos + 1, 0x111111);
-        } else {
-            minecraft.fontRenderer.drawString(I18n.format("gregtech.jei.ore.spawn_range", minHeight, maxHeight),
-                    baseXPos, SLOT_HEIGHT * (NUM_OF_SLOTS - 1) + 1, 0x111111);
-            baseYPos = 73;
+        String indicatorHeader = net.minecraft.util.text.TextFormatting.UNDERLINE +
+                I18n.format("gregtech.jei.ore.vein_indicator");
+        minecraft.fontRenderer.drawString(indicatorHeader, ORE_COLUMN_X,
+                baseYPos - FONT_HEIGHT - 1, LINE_KEY_COLOR);
+
+        for (int i = 0; i < outputCount; i++) {
+            int yPos = baseYPos + SLOT_HEIGHT + i * SLOT_HEIGHT;
+
+            if (isLayeredVein) {
+                String layerName;
+                switch (i) {
+                    case 0:
+                        layerName = I18n.format("gregtech.jei.ore.primary_1");
+                        break;
+                    case 1:
+                        layerName = I18n.format("gregtech.jei.ore.secondary_1");
+                        break;
+                    case 2:
+                        layerName = I18n.format("gregtech.jei.ore.between_1");
+                        break;
+                    case 3:
+                        layerName = I18n.format("gregtech.jei.ore.sporadic_1");
+                        break;
+                    default:
+                        layerName = "";
+                }
+                minecraft.fontRenderer.drawString(layerName, textX, yPos + 1, LINE_KEY_COLOR);
+                if (i < oreDisplayNames.size()) {
+                    minecraft.fontRenderer.drawString(
+                            oreDisplayNames.get(i),
+                            textX, yPos + 11, LINE_VALUE_COLOR);
+                }
+            }
         }
 
-        // Weight
-        minecraft.fontRenderer.drawString(I18n.format("gregtech.jei.ore.vein_weight", weight), baseXPos,
-                baseYPos + FONT_HEIGHT, 0x111111);
+        int infoY = baseYPos + SLOT_HEIGHT + outputCount * SLOT_HEIGHT + 1;
+        minecraft.fontRenderer.drawString(
+                I18n.format("gregtech.jei.ore.spawn_range", minHeight, maxHeight),
+                ORE_COLUMN_X, infoY + 1, LINE_KEY_COLOR);
+        minecraft.fontRenderer.drawString(
+                I18n.format("gregtech.jei.ore.vein_weight", weight),
+                ORE_COLUMN_X, infoY + FONT_HEIGHT + 1, LINE_KEY_COLOR);
 
-        // Dimensions label
-        minecraft.fontRenderer.drawString(I18n.format("gregtech.jei.ore.dimension"), baseXPos,
-                baseYPos + 2 * FONT_HEIGHT, 0x111111);
+        String dimHeader = net.minecraft.util.text.TextFormatting.UNDERLINE +
+                I18n.format("gregtech.jei.ore.dimension");
+        minecraft.fontRenderer.drawString(dimHeader, LEFT_PADDING, dimHeaderYPos, LINE_KEY_COLOR);
 
-        // Fallback: text-based dimension list when no display icons are registered
         if (dimDisplayCount == 0) {
             JEIResourceDepositCategoryUtils.drawMultiLineCommaSeparatedDimensionList(
                     WorldGenRegistry.getNamedDimensions(),
                     dimensionIDs,
                     minecraft.fontRenderer,
-                    baseXPos,
-                    baseYPos + 3 * FONT_HEIGHT,
+                    LEFT_PADDING,
+                    dimDisplayBaseYPos,
                     70);
         }
-
-        // Dimension display item slot backgrounds
-        for (int j = 0; j < dimDisplayCount; j++) {
-            int slotX = 22 + (j % DIM_DISPLAY_PER_ROW) * SLOT_WIDTH;
-            int slotY = dimDisplayBaseYPos + (j / DIM_DISPLAY_PER_ROW) * SLOT_HEIGHT;
-            this.slot.draw(minecraft, slotX, slotY);
-        }
-
-        // Surface Identifier label
-        minecraft.fontRenderer.drawSplitString(I18n.format("gregtech.jei.ore.surfacematerial"), 15, 92, 50, 0x111111);
     }
 }

@@ -28,16 +28,19 @@ public class GTFluidVeinCategory extends BasicRecipeCategory<GTFluidVeinInfo, GT
     public static final String UID = String.format("%s.fluid_spawn_location", GTValues.MODID);
 
     private static final int SLOT_CENTER = 79;
-    private static final int TEXT_START_X = 5;
+    private static final int LEFT_PADDING = 3;
+    private static final int DIM_HEADER_OFFSET = 72;
     private static final int START_POS_Y = 40;
     private static final int SLOT_WIDTH = 18;
     private static final int SLOT_HEIGHT = 18;
     private static final int DIM_DISPLAY_PER_ROW = 7;
+    private static final int LINE_KEY_COLOR = 0x404040;
+    private static final int LINE_VALUE_COLOR = 0x303030;
 
     protected final IDrawable slot;
     private String veinName;
     private int weight;
-    private int[] yields; // the [minimum, maximum) yields
+    private int[] yields;
     private int depletionAmount;
     private int depletionChance;
     private int depletedYield;
@@ -50,6 +53,7 @@ public class GTFluidVeinCategory extends BasicRecipeCategory<GTFluidVeinInfo, GT
     private int depletedYieldLength;
     private int dimDisplayCount;
     private int dimDisplayBaseYPos;
+    private int dimHeaderYPos;
 
     public GTFluidVeinCategory(IGuiHelper guiHelper) {
         super("fluid_spawn_location",
@@ -81,11 +85,10 @@ public class GTFluidVeinCategory extends BasicRecipeCategory<GTFluidVeinInfo, GT
         this.dimensionIDs = JEIResourceDepositCategoryUtils.getAllRegisteredDimensions(
                 gtFluidVeinInfo.getDefinition().getDimensionFilter());
 
-        // ========== Dimension display item slots ==========
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
         int dimSlotStartIndex = 1;
-        int dimBaseY = START_POS_Y + 7 * FONT_HEIGHT + 1; // one row below "Dimensions:" text
-        this.dimDisplayBaseYPos = dimBaseY;
+        this.dimHeaderYPos = START_POS_Y + 6 * FONT_HEIGHT + 1;
+        this.dimDisplayBaseYPos = dimHeaderYPos + FONT_HEIGHT + 2;
 
         int j = 0;
         for (int dimId : dimensionIDs) {
@@ -93,8 +96,8 @@ public class GTFluidVeinCategory extends BasicRecipeCategory<GTFluidVeinInfo, GT
             if (displayStack.isEmpty()) continue;
 
             itemStackGroup.init(dimSlotStartIndex + j, true,
-                    TEXT_START_X + (j % DIM_DISPLAY_PER_ROW) * SLOT_WIDTH,
-                    dimBaseY + (j / DIM_DISPLAY_PER_ROW) * SLOT_HEIGHT);
+                    LEFT_PADDING + (j % DIM_DISPLAY_PER_ROW) * SLOT_WIDTH,
+                    dimDisplayBaseYPos + (j / DIM_DISPLAY_PER_ROW) * SLOT_HEIGHT);
             itemStackGroup.set(dimSlotStartIndex + j, displayStack);
             j++;
         }
@@ -116,80 +119,68 @@ public class GTFluidVeinCategory extends BasicRecipeCategory<GTFluidVeinInfo, GT
         // Vein Weight information
         String veinWeight = I18n.format("gregtech.jei.fluid.vein_weight", weight);
         weightLength = minecraft.fontRenderer.getStringWidth(veinWeight);
-        minecraft.fontRenderer.drawString(veinWeight, TEXT_START_X, START_POS_Y, 0x111111);
+        minecraft.fontRenderer.drawString(veinWeight, LEFT_PADDING, START_POS_Y, LINE_KEY_COLOR);
 
-        // Vein Minimum Yield information
         String veinMinYield = I18n.format("gregtech.jei.fluid.min_yield", yields[0]);
         minYieldLength = minecraft.fontRenderer.getStringWidth(veinMinYield);
-        minecraft.fontRenderer.drawString(veinMinYield, TEXT_START_X, START_POS_Y + FONT_HEIGHT + 1, 0x111111);
+        minecraft.fontRenderer.drawString(veinMinYield, LEFT_PADDING, START_POS_Y + FONT_HEIGHT + 1, LINE_KEY_COLOR);
 
-        // Vein Maximum Yield information
         String veinMaxYield = I18n.format("gregtech.jei.fluid.max_yield", yields[1]);
         maxYieldLength = minecraft.fontRenderer.getStringWidth(veinMaxYield);
-        minecraft.fontRenderer.drawString(veinMaxYield, TEXT_START_X, START_POS_Y + 2 * FONT_HEIGHT + 1, 0x111111);
+        minecraft.fontRenderer.drawString(veinMaxYield, LEFT_PADDING, START_POS_Y + 2 * FONT_HEIGHT + 1, LINE_KEY_COLOR);
 
-        // Vein Depletion Chance information
         String veinDepletionChance = I18n.format("gregtech.jei.fluid.depletion_chance", depletionChance);
         depletionChanceLength = minecraft.fontRenderer.getStringWidth(veinDepletionChance);
-        minecraft.fontRenderer.drawString(veinDepletionChance, TEXT_START_X, START_POS_Y + 3 * FONT_HEIGHT + 1,
-                0x111111);
+        minecraft.fontRenderer.drawString(veinDepletionChance, LEFT_PADDING, START_POS_Y + 3 * FONT_HEIGHT + 1,
+                LINE_KEY_COLOR);
 
-        // Vein Depletion Amount information
         String veinDepletionAmount = I18n.format("gregtech.jei.fluid.depletion_amount", depletionAmount);
         depletionAmountLength = minecraft.fontRenderer.getStringWidth(veinDepletionAmount);
-        minecraft.fontRenderer.drawString(veinDepletionAmount, TEXT_START_X, START_POS_Y + 4 * FONT_HEIGHT + 1,
-                0x111111);
+        minecraft.fontRenderer.drawString(veinDepletionAmount, LEFT_PADDING, START_POS_Y + 4 * FONT_HEIGHT + 1,
+                LINE_KEY_COLOR);
 
-        // Vein Depleted Yield information
         String veinDepletedYield = I18n.format("gregtech.jei.fluid.depleted_rate", depletedYield);
         depletedYieldLength = minecraft.fontRenderer.getStringWidth(veinDepletedYield);
-        minecraft.fontRenderer.drawString(veinDepletedYield, TEXT_START_X, START_POS_Y + 5 * FONT_HEIGHT + 1, 0x111111);
+        minecraft.fontRenderer.drawString(veinDepletedYield, LEFT_PADDING, START_POS_Y + 5 * FONT_HEIGHT + 1,
+                LINE_KEY_COLOR);
 
-        // Vein Dimensions information
-        String veinDimension = I18n.format("gregtech.jei.fluid.dimension") + " ";
-        int dimensionLength = minecraft.fontRenderer.getStringWidth(veinDimension);
-        minecraft.fontRenderer.drawString(veinDimension, TEXT_START_X, START_POS_Y + 6 * FONT_HEIGHT + 1, 0x111111);
+        String dimHeader = net.minecraft.util.text.TextFormatting.UNDERLINE +
+                I18n.format("gregtech.jei.fluid.dimension");
+        minecraft.fontRenderer.drawString(dimHeader, LEFT_PADDING, dimHeaderYPos, LINE_KEY_COLOR);
 
-        // Dimension display: use icons if available, otherwise fall back to text
-        if (dimDisplayCount > 0) {
-            for (int j = 0; j < dimDisplayCount; j++) {
-                int slotX = TEXT_START_X + (j % DIM_DISPLAY_PER_ROW) * SLOT_WIDTH;
-                int slotY = dimDisplayBaseYPos + (j / DIM_DISPLAY_PER_ROW) * SLOT_HEIGHT;
-                this.slot.draw(minecraft, slotX, slotY);
-            }
-        } else {
+        if (dimDisplayCount == 0) {
             JEIResourceDepositCategoryUtils.drawMultiLineCommaSeparatedDimensionList(
                     WorldGenRegistry.getNamedDimensions(),
                     dimensionIDs,
                     minecraft.fontRenderer,
-                    TEXT_START_X,
-                    START_POS_Y + 6 * FONT_HEIGHT + 1,
-                    TEXT_START_X + dimensionLength);
+                    LEFT_PADDING,
+                    dimDisplayBaseYPos,
+                    70);
         }
     }
 
     @NotNull
     @Override
     public List<String> getTooltipStrings(int mouseX, int mouseY) {
-        if (isPointWithinRange(TEXT_START_X, START_POS_Y, weightLength, FONT_HEIGHT, mouseX, mouseY)) {
+        if (isPointWithinRange(LEFT_PADDING, START_POS_Y, weightLength, FONT_HEIGHT, mouseX, mouseY)) {
             return Collections.singletonList(I18n.format("gregtech.jei.fluid.weight_hover"));
-        } else if (isPointWithinRange(TEXT_START_X, START_POS_Y + FONT_HEIGHT + 1, minYieldLength, FONT_HEIGHT + 1,
+        } else if (isPointWithinRange(LEFT_PADDING, START_POS_Y + FONT_HEIGHT + 1, minYieldLength, FONT_HEIGHT + 1,
                 mouseX, mouseY)) {
                     return Collections.singletonList(I18n.format("gregtech.jei.fluid.min_hover"));
                 } else
-            if (isPointWithinRange(TEXT_START_X, START_POS_Y + 2 * FONT_HEIGHT + 1, maxYieldLength, FONT_HEIGHT + 1,
+            if (isPointWithinRange(LEFT_PADDING, START_POS_Y + 2 * FONT_HEIGHT + 1, maxYieldLength, FONT_HEIGHT + 1,
                     mouseX, mouseY)) {
                         return Collections.singletonList(I18n.format("gregtech.jei.fluid.max_hover"));
                     } else
-                if (isPointWithinRange(TEXT_START_X, START_POS_Y + 3 * FONT_HEIGHT + 1, depletionChanceLength,
+                if (isPointWithinRange(LEFT_PADDING, START_POS_Y + 3 * FONT_HEIGHT + 1, depletionChanceLength,
                         FONT_HEIGHT + 1, mouseX, mouseY)) {
                             return Collections.singletonList(I18n.format("gregtech.jei.fluid.dep_chance_hover"));
                         } else
-                    if (isPointWithinRange(TEXT_START_X, START_POS_Y + 4 * FONT_HEIGHT + 1, depletionAmountLength,
+                    if (isPointWithinRange(LEFT_PADDING, START_POS_Y + 4 * FONT_HEIGHT + 1, depletionAmountLength,
                             FONT_HEIGHT + 1, mouseX, mouseY)) {
                                 return Collections.singletonList(I18n.format("gregtech.jei.fluid.dep_amount_hover"));
                             } else
-                        if (isPointWithinRange(TEXT_START_X, START_POS_Y + 5 * FONT_HEIGHT + 1, depletedYieldLength,
+                        if (isPointWithinRange(LEFT_PADDING, START_POS_Y + 5 * FONT_HEIGHT + 1, depletedYieldLength,
                                 FONT_HEIGHT + 1, mouseX, mouseY)) {
                                     return Collections.singletonList(
                                             I18n.format("gregtech.jei.fluid.dep_yield_hover"));

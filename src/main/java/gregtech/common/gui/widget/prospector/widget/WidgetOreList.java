@@ -67,12 +67,40 @@ public class WidgetOreList extends DraggableScrollableWidgetGroup {
             case ORE:
                 ores.stream().sorted().forEach(this::addOre);
                 break;
-            case FLUID:
+            case BEDROCK_FLUID:
                 ores.stream().sorted().forEach(this::addOil);
+                break;
+            case BEDROCK_ORE:
+                ores.stream().sorted().forEach(this::addBedrockOre);
                 break;
             default:
                 break;
         }
+    }
+
+    private void addBedrockOre(String oreNames) {
+        if (ores.containsKey(oreNames)) return;
+        // 通过 GT 材料系统获取本地化名
+        StringBuilder display = new StringBuilder();
+        for (String name : oreNames.split(",")) {
+            ItemStack stack = gregtech.api.worldgen.vein.VeinHelper.oreNameToItemStack(name.trim());
+            String displayName;
+            if (!stack.isEmpty()) {
+                gregtech.api.unification.stack.MaterialStack ms =
+                        OreDictUnifier.getMaterial(stack);
+                displayName = ms != null ? ms.material.getLocalizedName() : stack.getDisplayName();
+            } else {
+                displayName = name;
+            }
+            if (display.length() > 0) display.append(", ");
+            display.append(displayName);
+        }
+        String displayName = display.toString();
+        ores.put(oreNames, displayName);
+        WidgetGroup widgetGroup = new WidgetGroup(0, 0, getSize().width - 5, 18);
+        widgetGroup.addWidget(new ImageWidget(0, 0, 18, 18, GuiTextures.LOCK));
+        widgetGroup.addWidget(new LabelWidget(20, 5, displayName, oreNames.hashCode() | 0xFF000000));
+        addOrePrefix(oreNames, widgetGroup);
     }
 
     private void addOre(String orePrefix) {

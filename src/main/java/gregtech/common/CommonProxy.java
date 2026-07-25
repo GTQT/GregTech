@@ -54,7 +54,6 @@ import gregtech.common.pipelike.optical.ItemBlockOpticalPipe;
 import gregtech.common.villager.VillageEngineersHouse;
 import gregtech.common.villager.VillagerHandler;
 import gregtech.common.wireless.WirelessEnergyServiceImpl;
-import gregtech.datafix.GTDataFixers;
 import gregtech.integration.groovy.GroovyScriptModule;
 import gregtech.loaders.MaterialInfoLoader;
 import gregtech.loaders.OreDictionaryLoader;
@@ -520,7 +519,6 @@ public class CommonProxy {
     }
 
     public void onLoad() {
-        GTDataFixers.init();
         MapGenStructureIO.registerStructureComponent(VillageEngineersHouse.class, "gtqt:village_engineers_house");
         VillagerRegistry.instance().registerVillageCreationHandler(new VillageEngineersHouse.VillageManager());
         MinecraftForge.EVENT_BUS.register(new WirelessEnergyServiceImpl());

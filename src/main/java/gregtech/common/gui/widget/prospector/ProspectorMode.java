@@ -5,7 +5,8 @@ import org.jetbrains.annotations.NotNull;
 public enum ProspectorMode {
 
     ORE("ore_prospector", "metaitem.prospector.mode.ores"),
-    FLUID("fluid_prospector", "metaitem.prospector.mode.fluid");
+    BEDROCK_FLUID("fluid_prospector", "metaitem.prospector.mode.bedrock_fluid"),
+    BEDROCK_ORE("bedrock_ore_prospector", "metaitem.prospector.mode.bedrock_ore");
 
     public static final ProspectorMode[] VALUES = values();
 

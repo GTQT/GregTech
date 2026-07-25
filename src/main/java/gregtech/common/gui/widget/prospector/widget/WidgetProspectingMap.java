@@ -16,6 +16,9 @@ import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinHandler;
 import gregtech.api.worldgen.config.OreDepositDefinition;
 import gregtech.api.worldgen.config.WorldGenRegistry;
 import gregtech.api.worldgen.filler.FillerEntry;
+import gregtech.api.worldgen.vein.OreEntry;
+import gregtech.api.worldgen.vein.OreVeinHandler;
+import gregtech.api.worldgen.vein.VeinHelper;
 import gregtech.common.gui.widget.prospector.ProspectingTexture;
 import gregtech.common.gui.widget.prospector.ProspectorMode;
 import gregtech.core.network.packets.PacketProspecting;
@@ -51,7 +54,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Queue;
 import java.util.Set;
-
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.function.Consumer;
 
@@ -176,7 +178,7 @@ public class WidgetProspectingMap extends Widget {
                         }
                     }
                     break;
-                case FLUID:
+                case BEDROCK_FLUID:
                     BedrockFluidVeinHandler.FluidVeinWorldEntry fStack = BedrockFluidVeinHandler
                             .getFluidVeinWorldEntry(world, chunk.x, chunk.z);
                     if (fStack != null && fStack.getDefinition() != null) {
@@ -190,6 +192,26 @@ public class WidgetProspectingMap extends Widget {
                         if (fluid != null) {
                             packet.addBlock(0, 1, 0, fluid.getName());
                         }
+                    }
+                    break;
+                case BEDROCK_ORE:
+                    OreVeinHandler.OreVeinWorldEntry oreEntry = OreVeinHandler
+                            .getOreVeinWorldEntry(world, chunk.x, chunk.z);
+                    if (oreEntry != null && oreEntry.getType() != null) {
+                        packet.addBlock(0, 3, 0, TextFormattingUtil.formatNumbers(100.0 *
+                                oreEntry.getOperationsRemaining() /
+                                OreVeinHandler.MAXIMUM_VEIN_OPERATIONS));
+                        packet.addBlock(0, 2, 0, String.valueOf(oreEntry.getOreYield()));
+                        // y=1: ore registry names (client looks up display name)
+                        StringBuilder sb = new StringBuilder();
+                        for (OreEntry oe : oreEntry.getType().getOrePool()) {
+                            if (sb.length() > 0) sb.append(",");
+                            sb.append(oe.oreName);
+                        }
+                        String oreNames = sb.length() > 0 ? sb.toString() : oreEntry.getType().id;
+                        packet.addBlock(0, 1, 0, oreNames);
+                        // y=4: vein type id for internal lookup
+                        packet.addBlock(0, 4, 0, oreEntry.getType().id);
                     }
                     break;
                 default:
@@ -308,7 +330,7 @@ public class WidgetProspectingMap extends Widget {
                     tooltips.add(name + " --- §e" + count + "§r, §cy" + height + "§r");
                     hoveredNames.add(name);
                 });
-            } else if (this.mode == ProspectorMode.FLUID) {
+            } else if (this.mode == ProspectorMode.BEDROCK_FLUID) {
                 tooltips.add(I18n.format("terminal.prospector.fluid"));
                 if (texture.map[cX][cZ] != null && !texture.map[cX][cZ].isEmpty()) {
                     if (ProspectingTexture.SELECTED_ALL.equals(texture.getSelected()) ||
@@ -326,6 +348,20 @@ public class WidgetProspectingMap extends Widget {
                                 color = fluidStack.getFluid().getColor(fluidStack);
                             }
                         }
+                    }
+                }
+            } else if (this.mode == ProspectorMode.BEDROCK_ORE) {
+                tooltips.add(I18n.format("terminal.prospector.bedrock_ore"));
+                if (texture.map[cX][cZ] != null && !texture.map[cX][cZ].isEmpty()) {
+                    String oreNames = texture.map[cX][cZ].get((byte) 1);
+                    if (ProspectingTexture.SELECTED_ALL.equals(texture.getSelected()) ||
+                            oreNames.contains(texture.getSelected())) {
+                        String displayNames = resolveOreDisplayNames(oreNames);
+                        tooltips.add(I18n.format("terminal.prospector.bedrock_ore.info",
+                                displayNames,
+                                texture.map[cX][cZ].get((byte) 2),
+                                texture.map[cX][cZ].get((byte) 3)));
+                        hoveredNames.add(oreNames);
                     }
                 }
             }
@@ -480,4 +516,17 @@ public class WidgetProspectingMap extends Widget {
             ColorUtility.getLab(new Color(255, 255, 0)),
             ColorUtility.getLab(new Color(255, 255, 255)),
     };
+
+    private static String resolveOreDisplayNames(String oreNames) {
+        StringBuilder sb = new StringBuilder();
+        for (String name : oreNames.split(",")) {
+            ItemStack stack = VeinHelper.oreNameToItemStack(name.trim());
+            if (!stack.isEmpty()) {
+                MaterialStack ms = OreDictUnifier.getMaterial(stack);
+                if (sb.length() > 0) sb.append(", ");
+                sb.append(ms != null ? ms.material.getLocalizedName() : stack.getDisplayName());
+            }
+        }
+        return sb.length() > 0 ? sb.toString() : oreNames;
+    }
 }

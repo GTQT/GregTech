@@ -37,6 +37,7 @@ import gregtech.api.util.virtualregistry.VirtualEnderRegistry;
 import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinHandler;
 import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinSaveData;
 import gregtech.api.worldgen.config.WorldGenRegistry;
+import gregtech.api.worldgen.vein.BedrockOreVeinSaveData;
 import gregtech.api.worldgen.vein.VeinSystemInit;
 import gregtech.common.CommonProxy;
 import gregtech.common.ConfigHolder;
@@ -80,7 +81,6 @@ import gregtech.core.network.packets.PacketUIWidgetUpdate;
 import gregtech.core.sound.GTSoundEvents;
 import gregtech.core.sound.internal.SoundManager;
 import gregtech.core.unification.material.internal.MaterialRegistryManager;
-import gregtech.datafix.command.CommandDataFix;
 import gregtech.loaders.dungeon.DungeonLootLoader;
 import gregtech.modules.GregTechModules;
 
@@ -362,7 +362,6 @@ public class CoreModule implements IGregTechModule {
         GregTechAPI.commandManager.addCommand(new CommandRecipeCheck());
         GregTechAPI.commandManager.addCommand(new CommandShaders());
         GregTechAPI.commandManager.addCommand(new CommandStructureTrace());
-        GregTechAPI.commandManager.addCommand(new CommandDataFix());
         GregTechAPI.commandManager.addCommand(new CommandWireless());
         CapesRegistry.load();
     }
@@ -373,14 +372,22 @@ public class CoreModule implements IGregTechModule {
             World world = FMLCommonHandler.instance().getMinecraftServerInstance().getEntityWorld();
             if (!world.isRemote) {
                 BedrockFluidVeinSaveData saveData = (BedrockFluidVeinSaveData) world
-                        .loadData(BedrockFluidVeinSaveData.class, BedrockFluidVeinSaveData.dataName);
+                        .loadData(BedrockFluidVeinSaveData.class, BedrockFluidVeinSaveData.DATA_NAME);
                 if (saveData == null) {
-                    saveData = new BedrockFluidVeinSaveData(BedrockFluidVeinSaveData.dataName);
-                    world.setData(BedrockFluidVeinSaveData.dataName, saveData);
+                    saveData = new BedrockFluidVeinSaveData(BedrockFluidVeinSaveData.DATA_NAME);
+                    world.setData(BedrockFluidVeinSaveData.DATA_NAME, saveData);
                     // the save data does not yet exist, use the latest version number
                     BedrockFluidVeinHandler.saveDataVersion = BedrockFluidVeinHandler.MAX_FLUID_SAVE_DATA_VERSION;
                 }
                 BedrockFluidVeinSaveData.setInstance(saveData);
+
+                BedrockOreVeinSaveData oreSaveData = (BedrockOreVeinSaveData) world
+                        .loadData(BedrockOreVeinSaveData.class, BedrockOreVeinSaveData.DATA_NAME);
+                if (oreSaveData == null) {
+                    oreSaveData = new BedrockOreVeinSaveData(BedrockOreVeinSaveData.DATA_NAME);
+                    world.setData(BedrockOreVeinSaveData.DATA_NAME, oreSaveData);
+                }
+                BedrockOreVeinSaveData.setInstance(oreSaveData);
             }
         }
     }

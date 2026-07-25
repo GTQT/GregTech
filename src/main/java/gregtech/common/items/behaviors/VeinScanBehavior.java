@@ -3,9 +3,7 @@ package gregtech.common.items.behaviors;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.worldgen.vein.VeinHelper;
 
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
@@ -19,12 +17,11 @@ public class VeinScanBehavior implements IItemBehaviour {
         if (world.isRemote) return EnumActionResult.PASS;
         if(player.isSneaking())
         {
-            var data = VeinHelper.getVeinData(world,posin);
-            player.sendMessage(new TextComponentString("该区块的矿脉为："+data.getVeinTypeId()));
-            if(data.getVeinTypeId().length()>0)
-            {
-                //var list = VeinHelper.extractOres(data,10,world.rand);
-                //list.forEach(x->world.spawnEntity(new EntityItem(world,posin.getX(),posin.getY()+2,posin.getZ(),x)));
+            var data = VeinHelper.getVeinEntry(world, posin);
+            if (data != null && data.getType() != null) {
+                player.sendMessage(new TextComponentString("该区块的矿脉为：" + data.getType().id));
+            } else {
+                player.sendMessage(new TextComponentString("该区块无矿脉"));
             }
             return EnumActionResult.SUCCESS;
         }

@@ -13,8 +13,6 @@ import net.minecraft.world.DimensionType;
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.common.capabilities.CapabilityManager;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -56,13 +54,7 @@ public class VeinSystemInit {
      * 注册 Capability 和 ChunkLoad 事件监听。
      */
     public static void init() {
-        CapabilityManager.INSTANCE.register(
-                VeinDataCapability.IVeinDataCapability.class,
-                new VeinDataCapability.Storage(),
-                VeinDataCapability.Implementation::new
-        );
-        MinecraftForge.EVENT_BUS.register(new VeinChunkEventHandler());
-        LOG.info("[VeinSystemInit] Capability 和事件监听已注册。");
+        LOG.info("[VeinSystemInit] OreVeinHandler 已就绪（惰性生成，无需 Chunk 事件）。");
     }
 
     // ── postInit 阶段 ─────────────────────────────────────────────
@@ -104,6 +96,7 @@ public class VeinSystemInit {
                     continue;
                 }
                 VeinRegistry.register(vein);
+                OreVeinHandler.addOreDeposit(vein);
                 synced++;
             } catch (Exception e) {
                 LOG.warn("[VeinSystemInit] 转换矿脉 '{}' 失败: {}",
