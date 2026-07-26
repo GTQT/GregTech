@@ -355,8 +355,8 @@ public final class MultiblockRegistration {
     }
 
     private static void registerGodforge() {
-        FORGE_OF_GODS = registerMetaTileEntity(1280,
-                new MetaTileEntityForgeOfGods(gregtechId("forge_of_gods")));
+        // ForgeOfGods captures these module prototypes in its static structure definition.
+        // Register them first so module slots remain valid after a cold restart.
         GODFORGE_SMELTING_MODULE = registerMetaTileEntity(1281,
                 new MTESmeltingModule(gregtechId("godforge_smelting_module")));
         GODFORGE_MOLTEN_MODULE = registerMetaTileEntity(1282,
@@ -365,5 +365,7 @@ public final class MultiblockRegistration {
                 new MTEPlasmaModule(gregtechId("godforge_plasma_module")));
         GODFORGE_EXOTIC_MODULE = registerMetaTileEntity(1284,
                 new MTEExoticModule(gregtechId("godforge_exotic_module")));
+        FORGE_OF_GODS = registerMetaTileEntity(1280,
+                new MetaTileEntityForgeOfGods(gregtechId("forge_of_gods")));
     }
 }

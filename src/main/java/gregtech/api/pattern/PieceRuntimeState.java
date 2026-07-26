@@ -957,7 +957,10 @@ public final class PieceRuntimeState {
             }
             return;
         }
-        if (!world.getBlockState(pos).getMaterial().isReplaceable()) {
+        IBlockState existingState = world.getBlockState(pos);
+        boolean existingStateReplaceable = existingState.getMaterial().isReplaceable();
+        TileEntity existingTile = existingStateReplaceable ? null : world.getTileEntity(pos);
+        if (!existingStateReplaceable && !operation.isCreativeBuild()) {
             buildState.result.recordPlacementBudget();
             buildState.result.recordPlacementFailureCell();
             return;
@@ -1188,6 +1191,11 @@ public final class PieceRuntimeState {
         ItemStack found = buildCandidate.getRequiredStack();
         BlockInfo matchedInfo = buildCandidate.getMatchedInfo();
 
+        if (!canReplaceBuildTarget(existingState, existingTile, matchedInfo, operation)) {
+            buildState.result.recordPlacementFailureCell();
+            return;
+        }
+
         if (operation.isSurvivalBuild()) {
             buildState.result.recordRequiredItem(found);
         }
@@ -1228,6 +1236,25 @@ public final class PieceRuntimeState {
                 }
             }
         }
+    }
+
+    /**
+     * Creative construction can repair a state/variant mismatch on an otherwise identical, stateless block.
+     * This deliberately excludes air and tile entities so auto-build never clears or overwrites arbitrary blocks.
+     */
+    private static boolean canReplaceBuildTarget(@NotNull IBlockState existingState,
+                                                 @Nullable TileEntity existingTile,
+                                                 @NotNull BlockInfo targetInfo,
+                                                 @NotNull StructureEvaluationContext.Operation operation) {
+        if (existingState.getMaterial().isReplaceable()) {
+            return true;
+        }
+        if (!operation.isCreativeBuild() || existingTile != null || targetInfo.getTileEntity() != null) {
+            return false;
+        }
+
+        IBlockState targetState = targetInfo.getBlockState();
+        return targetState.getBlock() != Blocks.AIR && existingState.getBlock() == targetState.getBlock();
     }
 
     private static boolean hasPlaceableCandidate(@Nullable BlockInfo[] infos,

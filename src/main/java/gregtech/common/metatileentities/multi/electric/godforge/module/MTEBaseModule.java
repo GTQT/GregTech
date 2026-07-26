@@ -149,7 +149,7 @@ public abstract class MTEBaseModule extends RecipeMapMultiblockController
                 .aisle("       ", "       ", "   E   ", "  EAE  ", "   E   ", "       ", "       ")
                 .aisle("  CCC  ", " CFFFC ", "CFFFFFC", "CFFFFFC", "CFFFFFC", " CFFFC ", "  CCC  ")
                 .aisle("       ", "  BBB  ", " BBBBB ", " BB~BB ", " BBBBB ", "  BBB  ", "       ")
-                .metaTileEntities('~', this)
+                .where('~', Elements.self(MTEBaseModule.class, metaTileEntityId))
                 .where('A', getCoilBlockElement())
                 .where('B', Elements.chain(
                         Elements.block(getCasingState(
