@@ -19,6 +19,8 @@ Heating Coil Textures, Wooden Forms, World Accelerators, and the Extreme Combust
 
 Primitive Water Pump and Super Tank GUI Textures are from the **[IMPACT: GREGTECH EDITION Modpack](https://gt-impact.github.io/)**.
 
+Part of the nuclear-related code comes from **[Supercritical](https://github.com/SymmetricDevs/Supercritical)** under the **LGPLv3** license.
+
 Ender Fluid Link Cover, Auto-Maintenance Hatch, Optical Fiber, and Data Bank Textures are from **[TecTech](https://github.com/Technus/TecTech)**.
 
 Steam Grinder is from **[GregTech++](https://www.curseforge.com/minecraft/mc-mods/gregtech-gt-gtplusplus)**.
