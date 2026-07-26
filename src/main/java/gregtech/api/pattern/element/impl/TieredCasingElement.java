@@ -50,12 +50,21 @@ public final class TieredCasingElement implements ITypedStructureElement<Object>
         this.requiresUniformTier = group.requiresUniformTier();
         this.minGlobalCount = Math.max(0, minGlobalCount);
         this.maxGlobalCount = maxGlobalCount;
-        this.preview = StructureElementPreview.builder()
-                .limited(StructureElementPreview.CandidateGroup.builder(this::getCandidates)
-                        .global(this.minGlobalCount, this.maxGlobalCount)
-                        .channel(channelName)
-                        .build())
-                .build();
+        StructureElementPreview.CandidateGroup.Builder groupBuilder =
+                StructureElementPreview.CandidateGroup.builder(this::getCandidates)
+                        .channel(channelName);
+        boolean hasCountConstraint = this.minGlobalCount > 0 || this.maxGlobalCount >= 0;
+        if (hasCountConstraint) {
+            groupBuilder.global(this.minGlobalCount, this.maxGlobalCount);
+        }
+
+        StructureElementPreview.Builder previewBuilder = StructureElementPreview.builder();
+        if (hasCountConstraint) {
+            previewBuilder.limited(groupBuilder.build());
+        } else {
+            previewBuilder.common(groupBuilder.build());
+        }
+        this.preview = previewBuilder.build();
     }
 
     @Override
