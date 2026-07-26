@@ -152,17 +152,23 @@ public class MaterialPropertyExpansion {
 
     public static void addFluidPipes(Material m, int maxFluidTemperature, int throughput, boolean gasProof,
                                      boolean acidProof, boolean cryoProof, boolean plasmaProof) {
+        addFluidPipes(m, maxFluidTemperature, throughput, gasProof, acidProof, cryoProof, plasmaProof, false);
+    }
+
+    public static void addFluidPipes(Material m, int maxFluidTemperature, int throughput, boolean gasProof,
+                                     boolean acidProof, boolean cryoProof, boolean plasmaProof, boolean baseProof) {
         if (checkFrozen("add fluid pipes to a material")) return;
         if (m.hasProperty(PropertyKey.FLUID_PIPE)) {
             m.getProperty(PropertyKey.FLUID_PIPE).setMaxFluidTemperature(maxFluidTemperature);
             m.getProperty(PropertyKey.FLUID_PIPE).setThroughput(throughput);
             m.getProperty(PropertyKey.FLUID_PIPE).setGasProof(gasProof);
             m.getProperty(PropertyKey.FLUID_PIPE).setCanContain(FluidAttributes.ACID, acidProof);
+            m.getProperty(PropertyKey.FLUID_PIPE).setCanContain(FluidAttributes.BASE, baseProof);
             m.getProperty(PropertyKey.FLUID_PIPE).setCryoProof(cryoProof);
             m.getProperty(PropertyKey.FLUID_PIPE).setPlasmaProof(plasmaProof);
         } else {
             m.setProperty(PropertyKey.FLUID_PIPE, new FluidPipeProperties(maxFluidTemperature, throughput, gasProof,
-                    acidProof, cryoProof, plasmaProof));
+                    acidProof, cryoProof, plasmaProof, baseProof, 1));
         }
     }
 

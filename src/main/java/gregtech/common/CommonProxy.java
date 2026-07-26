@@ -27,10 +27,12 @@ import gregtech.api.util.GTLog;
 import gregtech.common.blocks.BlockCompressed;
 import gregtech.common.blocks.BlockFrame;
 import gregtech.common.blocks.BlockLamp;
+import gregtech.common.blocks.BlockLeanOre;
 import gregtech.common.blocks.BlockOre;
 import gregtech.common.blocks.BlockSheet;
 import gregtech.common.blocks.BlockSurfaceRock;
 import gregtech.common.blocks.LampItemBlock;
+import gregtech.common.blocks.LeanOreItemBlock;
 import gregtech.common.blocks.MaterialItemBlock;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.OreItemBlock;
@@ -122,6 +124,7 @@ public class CommonProxy {
             for (Material material : materialRegistry) {
                 if (material.hasProperty(PropertyKey.ORE) && !material.hasFlag(MaterialFlags.DISABLE_ORE_BLOCK)) {
                     createOreBlock(material);
+                    createLeanOreBlock(material);
                 }
 
                 if (material.hasProperty(PropertyKey.WIRE)) {
@@ -237,6 +240,7 @@ public class CommonProxy {
         for (BlockSheet block : SHEET_BLOCKS) registry.register(block);
         for (BlockSurfaceRock block : SURFACE_ROCK_BLOCKS) registry.register(block);
         for (BlockOre block : ORES) registry.register(block);
+        for (BlockLeanOre block : LEAN_ORES) registry.register(block);
 
         registry.register(FISSION_CASING);
         registry.register(NUCLEAR_CASING);
@@ -272,6 +276,27 @@ public class CommonProxy {
             GregTechAPI.oreBlockTable.computeIfAbsent(material, m -> new HashMap<>()).put(stoneType, block);
         }
         ORES.add(block);
+    }
+
+    private static void createLeanOreBlock(Material material) {
+        StoneType[] stoneTypeBuffer = new StoneType[16];
+        int generationIndex = 0;
+        for (StoneType stoneType : StoneType.STONE_TYPE_REGISTRY) {
+            int id = StoneType.STONE_TYPE_REGISTRY.getIDForObject(stoneType), index = id / 16;
+            if (index > generationIndex) {
+                createLeanOreBlock(material, copyNotNull(stoneTypeBuffer), generationIndex);
+                Arrays.fill(stoneTypeBuffer, null);
+            }
+            stoneTypeBuffer[id % 16] = stoneType;
+            generationIndex = index;
+        }
+        createLeanOreBlock(material, copyNotNull(stoneTypeBuffer), generationIndex);
+    }
+
+    private static void createLeanOreBlock(Material material, StoneType[] stoneTypes, int index) {
+        BlockLeanOre block = new BlockLeanOre(material, stoneTypes);
+        block.setRegistryName("ore_lean_" + material + "_" + index);
+        LEAN_ORES.add(block);
     }
 
     @SubscribeEvent(priority = EventPriority.LOWEST)
@@ -401,6 +426,9 @@ public class CommonProxy {
         }
         for (BlockOre block : ORES) {
             registry.register(createItemBlock(block, OreItemBlock::new));
+        }
+        for (BlockLeanOre block : LEAN_ORES) {
+            registry.register(createItemBlock(block, LeanOreItemBlock::new));
         }
 
         registry.register(createItemBlock(FISSION_CASING, VariantItemBlock::new));

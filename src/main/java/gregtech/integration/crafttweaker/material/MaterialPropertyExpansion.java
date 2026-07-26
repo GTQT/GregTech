@@ -5,7 +5,17 @@ import gregtech.api.fluids.FluidState;
 import gregtech.api.fluids.attribute.FluidAttributes;
 import gregtech.api.fluids.store.FluidStorageKeys;
 import gregtech.api.unification.material.Material;
-import gregtech.api.unification.material.properties.*;
+import gregtech.api.unification.material.properties.BlastProperty;
+import gregtech.api.unification.material.properties.DustProperty;
+import gregtech.api.unification.material.properties.FluidPipeProperties;
+import gregtech.api.unification.material.properties.FluidProperty;
+import gregtech.api.unification.material.properties.GemProperty;
+import gregtech.api.unification.material.properties.IngotProperty;
+import gregtech.api.unification.material.properties.ItemPipeProperties;
+import gregtech.api.unification.material.properties.MaterialToolProperty;
+import gregtech.api.unification.material.properties.OreProperty;
+import gregtech.api.unification.material.properties.PropertyKey;
+import gregtech.api.unification.material.properties.WireProperties;
 
 import crafttweaker.annotations.ZenRegister;
 import stanhebben.zenscript.annotations.Optional;
@@ -127,17 +137,24 @@ public class MaterialPropertyExpansion {
     @ZenMethod
     public static void addFluidPipes(Material m, int maxFluidTemperature, int throughput, boolean gasProof,
                                      boolean acidProof, boolean cryoProof, boolean plasmaProof) {
+        addFluidPipes(m, maxFluidTemperature, throughput, gasProof, acidProof, cryoProof, plasmaProof, false);
+    }
+
+    @ZenMethod
+    public static void addFluidPipes(Material m, int maxFluidTemperature, int throughput, boolean gasProof,
+                                     boolean acidProof, boolean cryoProof, boolean plasmaProof, boolean baseProof) {
         if (checkFrozen("add fluid pipes to a material")) return;
         if (m.hasProperty(PropertyKey.FLUID_PIPE)) {
             m.getProperty(PropertyKey.FLUID_PIPE).setMaxFluidTemperature(maxFluidTemperature);
             m.getProperty(PropertyKey.FLUID_PIPE).setThroughput(throughput);
             m.getProperty(PropertyKey.FLUID_PIPE).setGasProof(gasProof);
             m.getProperty(PropertyKey.FLUID_PIPE).setCanContain(FluidAttributes.ACID, acidProof);
+            m.getProperty(PropertyKey.FLUID_PIPE).setCanContain(FluidAttributes.BASE, baseProof);
             m.getProperty(PropertyKey.FLUID_PIPE).setCryoProof(cryoProof);
             m.getProperty(PropertyKey.FLUID_PIPE).setPlasmaProof(plasmaProof);
         } else {
             m.setProperty(PropertyKey.FLUID_PIPE, new FluidPipeProperties(maxFluidTemperature, throughput, gasProof,
-                    acidProof, cryoProof, plasmaProof));
+                    acidProof, cryoProof, plasmaProof, baseProof, 1));
         }
     }
 

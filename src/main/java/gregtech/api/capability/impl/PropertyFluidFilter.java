@@ -26,9 +26,19 @@ public class PropertyFluidFilter implements IPropertyFluidFilter<PropertyFluidFi
                                boolean acidProof,
                                boolean cryoProof,
                                boolean plasmaProof) {
+        this(maxFluidTemperature, gasProof, acidProof, cryoProof, plasmaProof, false);
+    }
+
+    public PropertyFluidFilter(int maxFluidTemperature,
+                               boolean gasProof,
+                               boolean acidProof,
+                               boolean cryoProof,
+                               boolean plasmaProof,
+                               boolean baseProof) {
         this.maxFluidTemperature = maxFluidTemperature;
         this.gasProof = gasProof;
         if (acidProof) setCanContain(FluidAttributes.ACID, true);
+        if (baseProof) setCanContain(FluidAttributes.BASE, true);
         this.cryoProof = cryoProof;
         this.plasmaProof = plasmaProof;
     }

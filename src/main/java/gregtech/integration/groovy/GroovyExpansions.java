@@ -86,4 +86,8 @@ public class GroovyExpansions {
     public static FluidBuilder acidic(FluidBuilder builder) {
         return builder.attributes(FluidAttributes.ACID);
     }
+
+    public static FluidBuilder basic(FluidBuilder builder) {
+        return builder.attributes(FluidAttributes.BASE);
+    }
 }

@@ -58,6 +58,14 @@ public class OrePrefix {
             .flags(OrePrefix.Flags.ENABLE_UNIFICATION)
             .condition(OrePrefix.Conditions.hasOreProperty)
             .build();
+
+    public static final OrePrefix oreLean = Builder.of("oreLean", -1)
+            .material(null)
+            .materialIconType(MaterialIconType.oreLean)
+            .flags(OrePrefix.Flags.ENABLE_UNIFICATION)
+            .condition(OrePrefix.Conditions.hasOreProperty)
+            .build();
+
     //rawOre
     public static final OrePrefix rawOre = Builder.of("rawOre", -1)
             .material(null)
@@ -81,10 +89,30 @@ public class OrePrefix {
     public static final OrePrefix oreBasalt = new OrePrefix("oreBasalt", -1, null, MaterialIconType.ore,
             ENABLE_UNIFICATION, hasOreProperty);
 
+    public static final OrePrefix oreGraniteLean = new OrePrefix("oreGraniteLean", -1, null, MaterialIconType.oreLean,
+            ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreDioriteLean = new OrePrefix("oreDioriteLean", -1, null, MaterialIconType.oreLean,
+            ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreAndesiteLean = new OrePrefix("oreAndesiteLean", -1, null, MaterialIconType.oreLean,
+            ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreBlackgraniteLean = new OrePrefix("oreBlackgraniteLean", -1, null,
+            MaterialIconType.oreLean, ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreRedgraniteLean = new OrePrefix("oreRedgraniteLean", -1, null,
+            MaterialIconType.oreLean, ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreMarbleLean = new OrePrefix("oreMarbleLean", -1, null, MaterialIconType.oreLean,
+            ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreBasaltLean = new OrePrefix("oreBasaltLean", -1, null, MaterialIconType.oreLean,
+            ENABLE_UNIFICATION, hasOreProperty);
+
     // In case of an Sand-Ores Mod. Ore -> Material is a Oneway Operation!
     public static final OrePrefix oreSand = new OrePrefix("oreSand", -1, null, MaterialIconType.ore, ENABLE_UNIFICATION,
             null);
     public static final OrePrefix oreRedSand = new OrePrefix("oreRedSand", -1, null, MaterialIconType.ore,
+            ENABLE_UNIFICATION, null);
+
+    public static final OrePrefix oreSandLean = new OrePrefix("oreSandLean", -1, null, MaterialIconType.oreLean,
+            ENABLE_UNIFICATION, null);
+    public static final OrePrefix oreRedSandLean = new OrePrefix("oreRedSandLean", -1, null, MaterialIconType.oreLean,
             ENABLE_UNIFICATION, null);
 
     // Prefix of the Nether-Ores Mod. Causes Ores to double. Ore -> Material is a Oneway Operation!
@@ -93,6 +121,40 @@ public class OrePrefix {
     // In case of an End-Ores Mod. Ore -> Material is a Oneway Operation!
     public static final OrePrefix oreEndstone = new OrePrefix("oreEndstone", -1, null, MaterialIconType.ore,
             ENABLE_UNIFICATION, hasOreProperty);
+
+    // Legacy aliases
+    public static final OrePrefix oreNether = new OrePrefix("oreNether", -1, null, MaterialIconType.ore,
+            ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreEnd = new OrePrefix("oreEnd", -1, null, MaterialIconType.ore,
+            ENABLE_UNIFICATION, hasOreProperty);
+
+    public static final OrePrefix oreNetherrackLean = new OrePrefix("oreNetherrackLean", -1, null,
+            MaterialIconType.oreLean, ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreNetherLean = new OrePrefix("oreNetherLean", -1, null, MaterialIconType.oreLean,
+            ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreEndstoneLean = new OrePrefix("oreEndstoneLean", -1, null, MaterialIconType.oreLean,
+            ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreEndLean = new OrePrefix("oreEndLean", -1, null, MaterialIconType.oreLean,
+            ENABLE_UNIFICATION, hasOreProperty);
+
+    /** Maps each stone-type OrePrefix to its lean counterpart. */
+    public static final Map<OrePrefix, OrePrefix> leanCounterparts = new HashMap<>();
+    static {
+        leanCounterparts.put(OrePrefix.ore, OrePrefix.oreLean);
+        leanCounterparts.put(OrePrefix.oreGranite, OrePrefix.oreGraniteLean);
+        leanCounterparts.put(OrePrefix.oreDiorite, OrePrefix.oreDioriteLean);
+        leanCounterparts.put(OrePrefix.oreAndesite, OrePrefix.oreAndesiteLean);
+        leanCounterparts.put(OrePrefix.oreBlackgranite, OrePrefix.oreBlackgraniteLean);
+        leanCounterparts.put(OrePrefix.oreRedgranite, OrePrefix.oreRedgraniteLean);
+        leanCounterparts.put(OrePrefix.oreMarble, OrePrefix.oreMarbleLean);
+        leanCounterparts.put(OrePrefix.oreBasalt, OrePrefix.oreBasaltLean);
+        leanCounterparts.put(OrePrefix.oreSand, OrePrefix.oreSandLean);
+        leanCounterparts.put(OrePrefix.oreRedSand, OrePrefix.oreRedSandLean);
+        leanCounterparts.put(OrePrefix.oreNetherrack, OrePrefix.oreNetherrackLean);
+        leanCounterparts.put(OrePrefix.oreNether, OrePrefix.oreNetherLean);
+        leanCounterparts.put(OrePrefix.oreEndstone, OrePrefix.oreEndstoneLean);
+        leanCounterparts.put(OrePrefix.oreEnd, OrePrefix.oreEndLean);
+    }
 
     public static final OrePrefix crushedCentrifuged = new OrePrefix("crushedCentrifuged", -1, null,
             MaterialIconType.crushedCentrifuged, ENABLE_UNIFICATION, hasOreProperty);

@@ -286,7 +286,7 @@ public class OrganicChemistryMaterials {
                 .build();
 
         Dimethylamine = Material.builder(1037, gregtechId("dimethylamine"))
-                .gas()
+                .gas(new FluidBuilder().attribute(FluidAttributes.BASE))
                 .color(0x554469)
                 .flags(DISABLE_DECOMPOSITION)
                 .components(Carbon, 2, Hydrogen, 7, Nitrogen, 1)

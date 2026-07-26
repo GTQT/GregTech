@@ -33,7 +33,7 @@ public class ArmorMetaItem<T extends ArmorMetaItem<?>.ArmorMetaValueItem> extend
 
     public ArmorMetaItem() {
         super((short) 0);
-        setCreativeTab(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        setCreativeTab(GTCreativeTabs.TAB_GREGTECH_ARMOR);
     }
 
     @SuppressWarnings("unchecked")

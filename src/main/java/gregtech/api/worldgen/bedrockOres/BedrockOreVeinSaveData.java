@@ -1,4 +1,4 @@
-package gregtech.api.worldgen.vein;
+package gregtech.api.worldgen.bedrockOres;
 
 import gregtech.api.GTValues;
 import gregtech.api.worldgen.bedrockFluids.ChunkPosDimension;

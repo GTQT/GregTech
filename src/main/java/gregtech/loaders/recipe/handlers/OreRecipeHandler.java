@@ -31,8 +31,11 @@ public class OreRecipeHandler {
     // Make sure to update OreByProduct jei page with any byproduct changes made here!
 
     public static void register() {
-        OrePrefix.ore.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOre);
+        // 粗矿入口
         OrePrefix.rawOre.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOre);
+
+        // 正常矿入口
+        OrePrefix.ore.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOre);
         OrePrefix.oreEndstone.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreDouble);
         OrePrefix.oreNetherrack.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreDouble);
         if (ConfigHolder.worldgen.allUniqueStoneTypes) {
@@ -47,13 +50,30 @@ public class OreRecipeHandler {
             OrePrefix.oreRedSand.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOre);
         }
 
+        // 贫瘠矿入口
+        OrePrefix.oreLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+        OrePrefix.oreNetherrackLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+        OrePrefix.oreEndstoneLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+        if (ConfigHolder.worldgen.allUniqueStoneTypes) {
+            OrePrefix.oreGraniteLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+            OrePrefix.oreDioriteLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+            OrePrefix.oreAndesiteLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+            OrePrefix.oreBasaltLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+            OrePrefix.oreBlackgraniteLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+            OrePrefix.oreRedgraniteLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+            OrePrefix.oreMarbleLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+            OrePrefix.oreSandLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+            OrePrefix.oreRedSandLean.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processOreLean);
+        }
+
+        // 道中处理
         OrePrefix.crushed.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processCrushedOre);
         OrePrefix.crushedPurified.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processCrushedPurified);
         OrePrefix.crushedCentrifuged.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processCrushedCentrifuged);
         OrePrefix.dustImpure.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processDirtyDust);
         OrePrefix.dustPure.addProcessingHandler(PropertyKey.ORE, OreRecipeHandler::processPureDust);
 
-        //污水离心
+        // 污水离心
         RecipeMaps.CENTRIFUGE_RECIPES.recipeBuilder()
                 .fluidInputs(Materials.Sewage.getFluid(4000))
                 .fluidOutputs(Materials.Water.getFluid(4000))
@@ -84,6 +104,37 @@ public class OreRecipeHandler {
 
     public static void processOreDouble(OrePrefix orePrefix, Material material, OreProperty property) {
         processOre(orePrefix, material, property, 2);
+    }
+
+    public static void processOreLean(OrePrefix orePrefix, Material material, OreProperty property) {
+        Material byproductMaterial = property.getOreByProduct(0, material);
+        ItemStack byproductStack = OreDictUnifier.get(OrePrefix.gem, byproductMaterial);
+        if (byproductStack.isEmpty()) byproductStack = OreDictUnifier.get(OrePrefix.dust, byproductMaterial);
+        ItemStack crushedStack = OreDictUnifier.get(OrePrefix.crushed, material);
+        double amountOfCrushedOre = property.getOreMultiplier();
+
+        int crushedCount = Math.max(1, (int) Math.round(amountOfCrushedOre));
+        crushedStack.setCount(crushedCount * crushedStack.getCount());
+
+        if (!crushedStack.isEmpty()) {
+            RecipeBuilder<?> builder = RecipeMaps.FORGE_HAMMER_RECIPES.recipeBuilder()
+                    .input(orePrefix, material)
+                    .duration(10).EUt(16);
+            if (material.hasProperty(PropertyKey.GEM) && !OreDictUnifier.get(OrePrefix.gem, material).isEmpty()) {
+                builder.outputs(GTUtility.copy(crushedCount,
+                        OreDictUnifier.get(OrePrefix.gem, material, crushedStack.getCount())));
+            } else {
+                builder.outputs(GTUtility.copy(crushedCount, crushedStack));
+            }
+            builder.buildAndRegister();
+
+            RecipeMaps.MACERATOR_RECIPES.recipeBuilder()
+                    .input(orePrefix, material)
+                    .outputs(GTUtility.copy(crushedCount, crushedStack))
+                    .chancedOutput(byproductStack, 1400, 850)
+                    .duration(400)
+                    .buildAndRegister();
+        }
     }
 
     public static void processOre(OrePrefix orePrefix, Material material, OreProperty property, int oreTypeMultiplier) {

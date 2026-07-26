@@ -1221,8 +1221,14 @@ public class Material implements Comparable<Material> {
 
         public Builder fluidPipeProperties(int maxTemp, int throughput, boolean gasProof, boolean acidProof,
                                            boolean cryoProof, boolean plasmaProof) {
+            return fluidPipeProperties(maxTemp, throughput, gasProof, acidProof, cryoProof, plasmaProof, false);
+        }
+
+        public Builder fluidPipeProperties(int maxTemp, int throughput, boolean gasProof, boolean acidProof,
+                                           boolean cryoProof, boolean plasmaProof, boolean baseProof) {
             properties.setProperty(PropertyKey.FLUID_PIPE,
-                    new FluidPipeProperties(maxTemp, throughput, gasProof, acidProof, cryoProof, plasmaProof));
+                    new FluidPipeProperties(maxTemp, throughput, gasProof, acidProof, cryoProof, plasmaProof, baseProof,
+                            1));
             return this;
         }
 

@@ -465,6 +465,7 @@ public interface IGTTool extends ItemUIFactory, IToolWrench, IToolHammer, ITool,
 
     default boolean definition$onBlockStartBreak(ItemStack stack, BlockPos pos, EntityPlayer player) {
         if (player.world.isRemote) return false;
+        if (player.isCreative()) return false;
         getBehaviors(stack).forEach(behavior -> behavior.onBlockStartBreak(stack, pos, player));
 
         if (!player.isSneaking()) {
@@ -514,8 +515,6 @@ public interface IGTTool extends ItemUIFactory, IToolWrench, IToolHammer, ITool,
                 damageItem(stack, entityLiving, getToolStats().getToolDamagePerBlockBreak(stack));
             }
             if (entityLiving instanceof EntityPlayer && playSoundOnBlockDestroy()) {
-                // sneaking disables AOE, which means it is okay to play the sound
-                // not checking this means the sound will play for every AOE broken block, which is very loud
                 if (entityLiving.isSneaking()) {
                     playSound((EntityPlayer) entityLiving);
                 }

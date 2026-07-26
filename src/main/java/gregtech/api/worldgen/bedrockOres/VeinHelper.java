@@ -1,4 +1,4 @@
-package gregtech.api.worldgen.vein;
+package gregtech.api.worldgen.bedrockOres;
 
 import net.minecraft.block.Block;
 import net.minecraft.init.Blocks;

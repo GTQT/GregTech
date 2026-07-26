@@ -31,6 +31,11 @@ public class StoneType implements Comparable<StoneType> {
     };
     public final String name;
     public final OrePrefix processingPrefix;
+
+    /** @return the lean OrePrefix counterpart for this stone type, or {@link OrePrefix#oreLean} as fallback */
+    public OrePrefix getLeanProcessingPrefix() {
+        return OrePrefix.leanCounterparts.getOrDefault(processingPrefix, OrePrefix.oreLean);
+    }
     public final Material stoneMaterial;
     public final Supplier<IBlockState> stone;
     public final SoundType soundType;

@@ -218,6 +218,7 @@ public class MetaBlocks {
     public static final List<BlockSurfaceRock> SURFACE_ROCK_BLOCKS = new ArrayList<>();
 
     public static final List<BlockOre> ORES = new ArrayList<>();
+    public static final List<BlockLeanOre> LEAN_ORES = new ArrayList<>();
     public static final List<BlockFluidBase> FLUID_BLOCKS = new ArrayList<>();
 
     public static void init() {
@@ -599,6 +600,7 @@ public class MetaBlocks {
         for (BlockFrame block : FRAME_BLOCKS) block.onModelRegister();
         for (BlockSheet block : SHEET_BLOCKS) block.onModelRegister();
         for (BlockOre block : ORES) block.onModelRegister();
+        for (BlockLeanOre block : LEAN_ORES) block.onModelRegister();
 
 
         registerItemModelWithOverride(WOOD_SLAB, ImmutableMap.of(BlockSlab.HALF, EnumBlockHalf.BOTTOM));
@@ -747,6 +749,12 @@ public class MetaBlocks {
             itemColors.registerItemColorHandler((s, i) -> i == 1 ? block.material.getMaterialRGB() : 0xFFFFFF, block);
         }
 
+        for (BlockLeanOre block : LEAN_ORES) {
+            blockColors.registerBlockColorHandler((s, w, p, i) -> i == 1 ? block.material.getMaterialRGB() : 0xFFFFFF,
+                    block);
+            itemColors.registerItemColorHandler((s, i) -> i == 1 ? block.material.getMaterialRGB() : 0xFFFFFF, block);
+        }
+
         blockColors.registerBlockColorHandler(
                 (s, w, p, i) -> MACHINE_CASING.getState(s) == BlockMachineCasing.MachineCasingType.ULV ?
                         0xFFFFFF : ConfigHolder.client.defaultPaintingColor,
@@ -823,6 +831,15 @@ public class MetaBlocks {
                 ItemStack normalStack = GTUtility.toItem(blockOre.getDefaultState()
                         .withProperty(blockOre.STONE_TYPE, stoneType));
                 OreDictUnifier.registerOre(normalStack, stoneType.processingPrefix, material);
+            }
+        }
+        for (BlockLeanOre blockLeanOre : LEAN_ORES) {
+            Material material = blockLeanOre.material;
+            for (StoneType stoneType : blockLeanOre.STONE_TYPE.getAllowedValues()) {
+                if (stoneType == null) continue;
+                ItemStack normalStack = GTUtility.toItem(blockLeanOre.getDefaultState()
+                        .withProperty(blockLeanOre.STONE_TYPE, stoneType));
+                OreDictUnifier.registerOre(normalStack, stoneType.getLeanProcessingPrefix(), material);
             }
         }
         for (MaterialRegistry registry : GregTechAPI.materialManager.getRegistries()) {

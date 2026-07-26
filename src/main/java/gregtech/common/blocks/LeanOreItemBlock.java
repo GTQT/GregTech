@@ -10,13 +10,13 @@ import net.minecraft.item.ItemStack;
 
 import org.jetbrains.annotations.NotNull;
 
-public class OreItemBlock extends ItemBlock {
+public class LeanOreItemBlock extends ItemBlock {
 
-    private final BlockOre oreBlock;
+    private final BlockLeanOre oreBlock;
     private final Material material;
     private final PropertyStoneType stoneTypeProperty;
 
-    public OreItemBlock(BlockOre oreBlock) {
+    public LeanOreItemBlock(BlockLeanOre oreBlock) {
         super(oreBlock);
         this.oreBlock = oreBlock;
         this.material = oreBlock.material;
@@ -38,6 +38,6 @@ public class OreItemBlock extends ItemBlock {
     public String getItemStackDisplayName(@NotNull ItemStack stack) {
         IBlockState blockState = getBlockState(stack);
         StoneType stoneType = blockState.getValue(stoneTypeProperty);
-        return stoneType.processingPrefix.getLocalNameForItem(material);
+        return stoneType.getLeanProcessingPrefix().getLocalNameForItem(material);
     }
 }

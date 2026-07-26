@@ -33,6 +33,15 @@ import gregtech.common.covers.filter.SimpleItemFilter;
 import gregtech.common.covers.filter.SmartItemFilter;
 import gregtech.common.creativetab.GTCreativeTabs;
 import gregtech.common.entities.GTBoatEntity.GTBoatType;
+import gregtech.common.item.behaviors.ComponentHeatExchangerBehavior;
+import gregtech.common.item.behaviors.ComponentHeatVentBehavior;
+import gregtech.common.item.behaviors.CoolantCellBehavior;
+import gregtech.common.item.behaviors.FuelRodBehavior;
+import gregtech.common.item.behaviors.HeatExchangerBehavior;
+import gregtech.common.item.behaviors.HeatVentBehavior;
+import gregtech.common.item.behaviors.NeutronReflectorBehavior;
+import gregtech.common.item.behaviors.ReactorHeatExchangerBehavior;
+import gregtech.common.item.behaviors.ReactorPlatingBehavior;
 import gregtech.common.items.behaviors.ClipboardBehavior;
 import gregtech.common.items.behaviors.DataItemBehavior;
 import gregtech.common.items.behaviors.DoorBehavior;
@@ -1563,7 +1572,7 @@ public final class GregTechMetaItem extends StandardMetaItem {
         registerWirelessCoverInput(1100);
         registerWirelessCoverOutput(1115);
 
-        // Disposable Tools (A6+): ID 2000
+        // Disposable Tools: ID 2000
         MetaItems.DISPOSABLE_SAW = addItem(2000, "tool.disposable.saw").addOreDict("toolSaw")
                 .addOreDict("craftingToolSaw").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
         MetaItems.DISPOSABLE_HARD_HAMMER = addItem(2001, "tool.disposable.hard_hammer").addOreDict("toolHammer")
@@ -1631,6 +1640,178 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
 
+        // Nuclear IDs:3000+
+        ANODE_BASKET = addItem(3000, "basket.anode").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_CLADDING = addItem(3001, "cladding.fuel")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+
+        FUEL_ROD_1X = addItem(3010, "fuel_rod.1x").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_2X = addItem(3011, "fuel_rod.2x").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_4X = addItem(3012, "fuel_rod.4x").setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+
+        FUEL_ROD_URANIUM_1X_DEPLETED = addItem(3020, "fuel_rod.uranium.1x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_URANIUM_2X_DEPLETED = addItem(3021, "fuel_rod.uranium.2x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_URANIUM_4X_DEPLETED = addItem(3022, "fuel_rod.uranium.4x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_THORIUM_1X_DEPLETED = addItem(3023, "fuel_rod.thorium.1x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_THORIUM_2X_DEPLETED = addItem(3024, "fuel_rod.thorium.2x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_THORIUM_4X_DEPLETED = addItem(3025, "fuel_rod.thorium.4x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_PLUTONIUM_1X_DEPLETED = addItem(3026, "fuel_rod.plutonium.1x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_PLUTONIUM_2X_DEPLETED = addItem(3027, "fuel_rod.plutonium.2x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_PLUTONIUM_4X_DEPLETED = addItem(3028, "fuel_rod.plutonium.4x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_NAQUADAH_1X_DEPLETED = addItem(3029, "fuel_rod.naquadah.1x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_NAQUADAH_2X_DEPLETED = addItem(3030, "fuel_rod.naquadah.2x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        FUEL_ROD_NAQUADAH_4X_DEPLETED = addItem(3031, "fuel_rod.naquadah.4x.depleted")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+
+        FUEL_ROD_URANIUM_1X = addItem(3050, "fuel_rod.uranium.1x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(20000, Materials.Uranium, 5, 512, 1.0f,
+                        FUEL_ROD_URANIUM_1X_DEPLETED.getStackForm()));
+        FUEL_ROD_URANIUM_2X = addItem(3051, "fuel_rod.uranium.2x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(20000, Materials.Uranium, 10, 1024, 2.0f,
+                        FUEL_ROD_URANIUM_2X_DEPLETED.getStackForm()));
+        FUEL_ROD_URANIUM_4X = addItem(3052, "fuel_rod.uranium.4x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(20000, Materials.Uranium, 20, 2048, 4.0f,
+                        FUEL_ROD_URANIUM_4X_DEPLETED.getStackForm()));
+        FUEL_ROD_THORIUM_1X = addItem(3053, "fuel_rod.thorium.1x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(24000, Materials.Thorium, 3, 384, 1.5f,
+                        FUEL_ROD_THORIUM_1X_DEPLETED.getStackForm()));
+        FUEL_ROD_THORIUM_2X = addItem(3054, "fuel_rod.thorium.2x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(24000, Materials.Thorium, 6, 768, 2.0f,
+                        FUEL_ROD_THORIUM_2X_DEPLETED.getStackForm()));
+        FUEL_ROD_THORIUM_4X = addItem(3055, "fuel_rod.thorium.4x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(24000, Materials.Thorium, 12, 1536, 4.0f,
+                        FUEL_ROD_THORIUM_4X_DEPLETED.getStackForm()));
+        FUEL_ROD_PLUTONIUM_1X = addItem(3056, "fuel_rod.plutonium.1x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(15000, Materials.Plutonium, 12, 640, 1.0f,
+                        FUEL_ROD_PLUTONIUM_1X_DEPLETED.getStackForm()));
+        FUEL_ROD_PLUTONIUM_2X = addItem(3057, "fuel_rod.plutonium.2x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(15000, Materials.Plutonium, 24, 1280, 2.0f,
+                        FUEL_ROD_PLUTONIUM_2X_DEPLETED.getStackForm()));
+        FUEL_ROD_PLUTONIUM_4X = addItem(3058, "fuel_rod.plutonium.4x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(15000, Materials.Plutonium, 48, 2560, 4.0f,
+                        FUEL_ROD_PLUTONIUM_4X_DEPLETED.getStackForm()));
+        FUEL_ROD_NAQUADAH_1X = addItem(3059, "fuel_rod.naquadah.1x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(36000, Materials.Naquadah, 20, 1024, 3.0f,
+                        FUEL_ROD_NAQUADAH_1X_DEPLETED.getStackForm()));
+        FUEL_ROD_NAQUADAH_2X = addItem(3060, "fuel_rod.naquadah.2x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(36000, Materials.Naquadah, 40, 2048, 6.0f,
+                        FUEL_ROD_NAQUADAH_2X_DEPLETED.getStackForm()));
+        FUEL_ROD_NAQUADAH_4X = addItem(3061, "fuel_rod.naquadah.4x")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new FuelRodBehavior(36000, Materials.Naquadah, 80, 4096, 12.0f,
+                        FUEL_ROD_NAQUADAH_4X_DEPLETED.getStackForm()));
+
+        HEAT_VENT_BASIC = addItem(3100, "heat_vent.basic")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new HeatVentBehavior(24000, Materials.Steel, 6));
+        HEAT_VENT_ADVANCED = addItem(3101, "heat_vent.advanced")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new HeatVentBehavior(28000, Materials.StainlessSteel, 12));
+        HEAT_VENT_ELITE = addItem(3102, "heat_vent.elite")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new HeatVentBehavior(32000, Materials.Titanium, 18));
+        HEAT_VENT_ULTIMATE = addItem(3103, "heat_vent.ultimate")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new HeatVentBehavior(36000, Materials.TungstenSteel, 24));
+
+        COMPONENT_HEAT_VENT_BASIC = addItem(3104, "component_heat_vent.basic")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new ComponentHeatVentBehavior(120000, Materials.Aluminium, 4));
+        COMPONENT_HEAT_VENT_ADVANCED = addItem(3105, "component_heat_vent.advanced")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new ComponentHeatVentBehavior(180000, Materials.Gold, 8));
+        COMPONENT_HEAT_VENT_ELITE = addItem(3106, "component_heat_vent.elite")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new ComponentHeatVentBehavior(240000, Materials.Platinum, 12));
+        COMPONENT_HEAT_VENT_ULTIMATE = addItem(3107, "component_heat_vent.ultimate")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new ComponentHeatVentBehavior(300000, Materials.Neodymium, 16));
+
+        COOLANT_CELL_10K = addItem(3110, "coolant_cell.10k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        COOLANT_CELL_30K = addItem(3111, "coolant_cell.30k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+        COOLANT_CELL_60K = addItem(3112, "coolant_cell.60k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR);
+
+        COOLANT_CELL_COOLANT_10K = addItem(3113, "coolant_cell.coolant.10k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new CoolantCellBehavior(10000, Materials.WaterCoolant, 10000, 10));
+        COOLANT_CELL_COOLANT_30K = addItem(3114, "coolant_cell.coolant.30k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new CoolantCellBehavior(10000, Materials.WaterCoolant, 30000, 30));
+        COOLANT_CELL_COOLANT_60K = addItem(3115, "coolant_cell.coolant.60k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new CoolantCellBehavior(10000, Materials.WaterCoolant, 60000, 60));
+        COOLANT_CELL_SODIUM_POTASSIUM_10K = addItem(3116, "coolant_cell.sodium_potassium.10k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new CoolantCellBehavior(10000, Materials.SodiumPotassium, 10000, 30));
+        COOLANT_CELL_SODIUM_POTASSIUM_30K = addItem(3117, "coolant_cell.sodium_potassium.30k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new CoolantCellBehavior(10000, Materials.SodiumPotassium, 30000, 90));
+        COOLANT_CELL_SODIUM_POTASSIUM_60K = addItem(3118, "coolant_cell.sodium_potassium.60k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new CoolantCellBehavior(10000, Materials.SodiumPotassium, 60000, 180));
+        COOLANT_CELL_HELIUM_10K = addItem(3119, "coolant_cell.helium.10k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new CoolantCellBehavior(10000, Materials.Helium, 10000, 60));
+        COOLANT_CELL_HELIUM_30K = addItem(3120, "coolant_cell.helium.30k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new CoolantCellBehavior(10000, Materials.Helium, 30000, 180));
+        COOLANT_CELL_HELIUM_60K = addItem(3121, "coolant_cell.helium.60k")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new CoolantCellBehavior(10000, Materials.Helium, 60000, 540));
+
+        NEUTRON_REFLECTOR_BASIC = addItem(3130, "neutron_reflector.basic")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new NeutronReflectorBehavior(50000, Materials.Graphite, 0.5f));
+        NEUTRON_REFLECTOR_THICK = addItem(3131, "neutron_reflector.thick")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new NeutronReflectorBehavior(100000, Materials.Beryllium, 0.75f));
+        NEUTRON_REFLECTOR_IRIDIUM = addItem(3132, "neutron_reflector.iridium")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new NeutronReflectorBehavior(200000, Materials.Iridium, 0.95f));
+
+        HEAT_EXCHANGER_BASIC = addItem(3133, "heat_exchanger.basic")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new HeatExchangerBehavior(100000, Materials.Copper, 10));
+        HEAT_EXCHANGER_ADVANCED = addItem(3134, "heat_exchanger.advanced")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new HeatExchangerBehavior(120000, Materials.Gold, 20));
+        HEAT_EXCHANGER_REACTOR = addItem(3135, "heat_exchanger.reactor")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new ReactorHeatExchangerBehavior(150000, Materials.Aluminium, 10000, 20));
+        COMPONENT_HEAT_EXCHANGER = addItem(3136, "heat_exchanger.component")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new ComponentHeatExchangerBehavior(120000, Materials.Bronze, 15));
+        REACTOR_PLATING_BASIC = addItem(3137, "reactor_plating.basic")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new ReactorPlatingBehavior(Materials.Bronze, 1000, 0.1f));
+        REACTOR_PLATING_ADVANCED = addItem(3138, "reactor_plating.advanced")
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
+                .addComponents(new ReactorPlatingBehavior(Materials.Lead, 2500, 0.25f));
     }
 
     private void registerWirelessCoverInput(int baseId) {

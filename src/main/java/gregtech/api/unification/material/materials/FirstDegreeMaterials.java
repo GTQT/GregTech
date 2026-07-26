@@ -1216,9 +1216,10 @@ public class FirstDegreeMaterials {
                 .build();
 
         Ammonia = Material.builder(408, gregtechId("ammonia"))
-                .gas()
+                .gas(new FluidBuilder().attribute(FluidAttributes.BASE))
                 .liquid(new FluidBuilder()
                         .block()
+                        .attribute(FluidAttributes.BASE)
                         .temperature(240)
                         .color(0xB5E8FF)
                         .name("liquid_ammonia")

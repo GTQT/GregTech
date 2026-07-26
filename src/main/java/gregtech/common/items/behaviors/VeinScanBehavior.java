@@ -1,7 +1,7 @@
 package gregtech.common.items.behaviors;
 
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
-import gregtech.api.worldgen.vein.VeinHelper;
+import gregtech.api.worldgen.bedrockOres.VeinHelper;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.util.EnumActionResult;

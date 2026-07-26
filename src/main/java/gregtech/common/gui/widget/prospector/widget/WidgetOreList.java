@@ -83,7 +83,7 @@ public class WidgetOreList extends DraggableScrollableWidgetGroup {
         // 通过 GT 材料系统获取本地化名
         StringBuilder display = new StringBuilder();
         for (String name : oreNames.split(",")) {
-            ItemStack stack = gregtech.api.worldgen.vein.VeinHelper.oreNameToItemStack(name.trim());
+            ItemStack stack = gregtech.api.worldgen.bedrockOres.VeinHelper.oreNameToItemStack(name.trim());
             String displayName;
             if (!stack.isEmpty()) {
                 gregtech.api.unification.stack.MaterialStack ms =

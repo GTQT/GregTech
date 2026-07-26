@@ -28,6 +28,7 @@ import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GregTechGuiScreen;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
+import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
@@ -399,10 +400,6 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * Returns the translation key base for a specific ItemStack.
-     * Override this for MTE types that store variant information in ItemStack NBT
-     * (e.g. {@link ParametricMetaTileEntity}).
-     *
      * @param stack the ItemStack to determine the name for
      * @return the unlocalized name base (without ".name" suffix)
      */
@@ -592,6 +589,11 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
      */
     public final boolean onToolClick(EntityPlayer playerIn, @NotNull Set<String> toolClasses, EnumHand hand,
                                      CuboidRayTraceResult hitResult) {
+        // GT6 Connection: Relay tool clicks to neighboring blocks when sneaking
+        if (tryRelayToolClick(playerIn, toolClasses, hand, hitResult)) {
+            return true;
+        }
+
         // the side hit from the machine grid
         EnumFacing gridSideHit = CoverRayTracer.determineGridSideHit(hitResult);
         Cover cover = gridSideHit == null ? null : getCoverAtSide(gridSideHit);
@@ -642,6 +644,105 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
         return actionPerformed;
     }
+
+    /**
+     * GT6 Connection: Relay tool clicks to neighboring blocks when the player is sneaking.
+     * <p>
+     * - Screwdriver: relay to neighbor's cover<br>
+     * - Wrench: relay to neighbor fluid/item pipe<br>
+     * - Wirecutter: relay to neighbor cable
+     *
+     * @return true if the relay was handled (normal tool processing should be skipped)
+     */
+    private boolean tryRelayToolClick(EntityPlayer playerIn, Set<String> toolClasses, EnumHand hand,
+                                      CuboidRayTraceResult hitResult) {
+        if (playerIn == null || !playerIn.isSneaking()) {
+            return false;
+        }
+
+        // Fast exit: non-screwdriver relay does not apply to pipe/cable MTEs (they have their own handling)
+        String thisName = this.getClass().getSimpleName();
+        if (!toolClasses.contains(ToolClasses.SCREWDRIVER)) {
+            if (thisName.equals("TileEntityCable") ||
+                    thisName.equals("TileEntityFluidPipeTickable") ||
+                    thisName.equals("TileEntityItemPipeTickable")) {
+                return false;
+            }
+        }
+
+        // Detect grid side hit
+        EnumFacing gridSideHit = CoverRayTracer.determineGridSideHit(hitResult);
+        if (gridSideHit == null) return false;
+
+        // Locate neighbor
+        BlockPos neighbourPos = getPos().offset(gridSideHit);
+        TileEntity te = getWorld().getTileEntity(neighbourPos);
+        if (te == null) return false;
+
+        String neighbourName = te.getClass().getSimpleName();
+        EnumFacing neighbourSide = gridSideHit.getOpposite();
+        boolean handled = false;
+
+        // --- Cover Relay (Screwdriver) ---
+        if (toolClasses.contains(ToolClasses.SCREWDRIVER)) {
+            CoverHolder holder = te.getCapability(GregtechTileCapabilities.CAPABILITY_COVER_HOLDER, neighbourSide);
+            if (holder != null) {
+                Cover cover = holder.getCoverAtSide(neighbourSide);
+                if (cover != null) {
+                    handled = cover.onScrewdriverClick(playerIn, hand, hitResult) == EnumActionResult.SUCCESS;
+                }
+            }
+        }
+
+        // --- Pipe Relay (Wrench) ---
+        if (!handled && toolClasses.contains(ToolClasses.WRENCH)) {
+            if (neighbourName.equals("TileEntityFluidPipeTickable") ||
+                    neighbourName.equals("TileEntityItemPipeTickable")) {
+                if (te instanceof IGregTechTileEntity) {
+                    MetaTileEntity neighbourMTE = ((IGregTechTileEntity) te).getMetaTileEntity();
+                    if (neighbourMTE != null) {
+                        EnumFacing originalSide = hitResult.sideHit;
+                        hitResult.sideHit = neighbourSide;
+                        handled = neighbourMTE.onWrenchClick(playerIn, hand, neighbourSide, hitResult);
+                        hitResult.sideHit = originalSide;
+                    }
+                } else if (te instanceof TileEntityPipeBase) {
+                    handled = toggleConnection((TileEntityPipeBase<?, ?>) te, neighbourSide);
+                }
+            }
+        }
+
+        // --- Wire/Cable Relay (Wirecutter) ---
+        if (!handled && toolClasses.contains(ToolClasses.WIRE_CUTTER)) {
+            if (neighbourName.equals("TileEntityCable")) {
+                if (te instanceof IGregTechTileEntity) {
+                    MetaTileEntity neighbourMTE = ((IGregTechTileEntity) te).getMetaTileEntity();
+                    if (neighbourMTE != null) {
+                        EnumFacing originalSide = hitResult.sideHit;
+                        hitResult.sideHit = neighbourSide;
+                        handled = neighbourMTE.onToolClick(playerIn, toolClasses, hand, hitResult);
+                        hitResult.sideHit = originalSide;
+                    }
+                } else if (te instanceof TileEntityPipeBase) {
+                    handled = toggleConnection((TileEntityPipeBase<?, ?>) te, neighbourSide);
+                }
+            }
+        }
+
+        return handled;
+    }
+
+    /**
+     * Toggle a pipe/cable connection on the given side.
+     */
+    private boolean toggleConnection(TileEntityPipeBase<?, ?> pipe, EnumFacing side) {
+        boolean isConnected = pipe.isConnected(side);
+        pipe.setConnection(side, !isConnected, true);
+        getWorld().notifyBlockUpdate(pipe.getPos(), getWorld().getBlockState(pipe.getPos()),
+                getWorld().getBlockState(pipe.getPos()), 3);
+        return true;
+    }
+
     /**
      * Called when player clicks a wrench on specific side of this meta tile entity
      *
@@ -1779,7 +1880,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     public boolean canRenderMachineGrid(@NotNull ItemStack mainHandStack, @NotNull ItemStack offHandStack) {
-        final String[] tools = { ToolClasses.WRENCH, ToolClasses.SCREWDRIVER };
+        final String[] tools = { ToolClasses.WRENCH, ToolClasses.SCREWDRIVER, ToolClasses.WIRE_CUTTER };
         return ToolHelper.isTool(mainHandStack, tools) ||
                 ToolHelper.isTool(offHandStack, tools);
     }

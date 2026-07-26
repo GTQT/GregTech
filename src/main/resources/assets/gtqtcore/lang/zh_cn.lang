@@ -605,8 +605,7 @@ gregtech.machine.pattern_mapping_slave.ui.status.waiting=已写入总成坐标�
 gregtech.machine.pattern_mapping_slave.ui.status.none=未写入总成坐标
 gregtech.machine.pattern_mapping_slave.ui.status.buffers=总成缓冲区：%s/%s
 gregtech.machine.pattern_mapping_slave.ui.hint=先用闪存右键样板总成写入坐标，再右键本方块完成链接
-#item group
-itemGroup.gtqt_programmable=量子跃迁 | 可编程舱室
+
 #村民
 entity.Villager.level_lv=民间科学家
 entity.Villager.level_mv=村民工匠

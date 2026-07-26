@@ -27,7 +27,7 @@ public class FluidPipeProperties implements IMaterialProperty, IPropertyFluidFil
 
     public FluidPipeProperties(int maxFluidTemperature, int throughput, boolean gasProof, boolean acidProof,
                                boolean cryoProof, boolean plasmaProof) {
-        this(maxFluidTemperature, throughput, gasProof, acidProof, cryoProof, plasmaProof, 1);
+        this(maxFluidTemperature, throughput, gasProof, acidProof, cryoProof, plasmaProof, false, 1);
     }
 
     /**
@@ -36,10 +36,16 @@ public class FluidPipeProperties implements IMaterialProperty, IPropertyFluidFil
      */
     public FluidPipeProperties(int maxFluidTemperature, int throughput, boolean gasProof, boolean acidProof,
                                boolean cryoProof, boolean plasmaProof, int tanks) {
+        this(maxFluidTemperature, throughput, gasProof, acidProof, cryoProof, plasmaProof, false, tanks);
+    }
+
+    public FluidPipeProperties(int maxFluidTemperature, int throughput, boolean gasProof, boolean acidProof,
+                               boolean cryoProof, boolean plasmaProof, boolean baseProof, int tanks) {
         this.maxFluidTemperature = maxFluidTemperature;
         this.throughput = throughput;
         this.gasProof = gasProof;
         if (acidProof) setCanContain(FluidAttributes.ACID, true);
+        if (baseProof) setCanContain(FluidAttributes.BASE, true);
         this.cryoProof = cryoProof;
         this.plasmaProof = plasmaProof;
         this.tanks = tanks;
@@ -126,6 +132,10 @@ public class FluidPipeProperties implements IMaterialProperty, IPropertyFluidFil
         return canContain(FluidAttributes.ACID);
     }
 
+    public boolean isBaseProof() {
+        return canContain(FluidAttributes.BASE);
+    }
+
     public boolean isCryoProof() {
         return cryoProof;
     }
@@ -141,6 +151,11 @@ public class FluidPipeProperties implements IMaterialProperty, IPropertyFluidFil
 
     public FluidPipeProperties setPlasmaProof(boolean plasmaProof) {
         this.plasmaProof = plasmaProof;
+        return this;
+    }
+
+    public FluidPipeProperties setBaseProof(boolean baseProof) {
+        setCanContain(FluidAttributes.BASE, baseProof);
         return this;
     }
 

@@ -7,9 +7,8 @@ import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.MetaItem.MetaValueItem;
 import gregtech.api.nuclear.fission.FissionFuelRegistry;
 import gregtech.api.unification.OreDictUnifier;
-import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.MarkerMaterial;
-import gregtech.api.unification.material.Materials;
+import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.properties.FissionFuelProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.material.registry.MaterialRegistry;
@@ -18,15 +17,6 @@ import gregtech.api.unification.ore.SCOrePrefix;
 import gregtech.api.util.GTLog;
 import gregtech.client.renderer.handler.FacadeRenderer;
 import gregtech.client.renderer.handler.ProgrammableCircuitRenderer;
-import gregtech.common.item.behaviors.ComponentHeatExchangerBehavior;
-import gregtech.common.item.behaviors.ComponentHeatVentBehavior;
-import gregtech.common.item.behaviors.CoolantCellBehavior;
-import gregtech.common.item.behaviors.FuelRodBehavior;
-import gregtech.common.item.behaviors.HeatExchangerBehavior;
-import gregtech.common.item.behaviors.HeatVentBehavior;
-import gregtech.common.item.behaviors.NeutronReflectorBehavior;
-import gregtech.common.item.behaviors.ReactorHeatExchangerBehavior;
-import gregtech.common.item.behaviors.ReactorPlatingBehavior;
 import gregtech.common.items.armor.MetaArmor;
 
 import net.minecraft.client.renderer.block.model.IBakedModel;
@@ -897,127 +887,6 @@ public final class MetaItems {
                 metaOrePrefix.setRegistryName(registry.getModid(), String.format("meta_%s", regName));
             }
         }
-
-        initNuclearItems();
-    }
-
-    private static void initNuclearItems() {
-        ANODE_BASKET = GT_META_ITEM.addItem(2048, "basket.anode");
-        FUEL_CLADDING = GT_META_ITEM.addItem(2049, "cladding.fuel");
-
-        FUEL_ROD_1X = GT_META_ITEM.addItem(2148, "fuel_rod.1x");
-        FUEL_ROD_2X = GT_META_ITEM.addItem(2149, "fuel_rod.2x");
-        FUEL_ROD_4X = GT_META_ITEM.addItem(2150, "fuel_rod.4x");
-
-        FUEL_ROD_URANIUM_1X_DEPLETED = GT_META_ITEM.addItem(2158, "fuel_rod.uranium.1x.depleted");
-        FUEL_ROD_URANIUM_2X_DEPLETED = GT_META_ITEM.addItem(2159, "fuel_rod.uranium.2x.depleted");
-        FUEL_ROD_URANIUM_4X_DEPLETED = GT_META_ITEM.addItem(2160, "fuel_rod.uranium.4x.depleted");
-        FUEL_ROD_THORIUM_1X_DEPLETED = GT_META_ITEM.addItem(2161, "fuel_rod.thorium.1x.depleted");
-        FUEL_ROD_THORIUM_2X_DEPLETED = GT_META_ITEM.addItem(2162, "fuel_rod.thorium.2x.depleted");
-        FUEL_ROD_THORIUM_4X_DEPLETED = GT_META_ITEM.addItem(2163, "fuel_rod.thorium.4x.depleted");
-        FUEL_ROD_PLUTONIUM_1X_DEPLETED = GT_META_ITEM.addItem(2164, "fuel_rod.plutonium.1x.depleted");
-        FUEL_ROD_PLUTONIUM_2X_DEPLETED = GT_META_ITEM.addItem(2165, "fuel_rod.plutonium.2x.depleted");
-        FUEL_ROD_PLUTONIUM_4X_DEPLETED = GT_META_ITEM.addItem(2166, "fuel_rod.plutonium.4x.depleted");
-        FUEL_ROD_NAQUADAH_1X_DEPLETED = GT_META_ITEM.addItem(2167, "fuel_rod.naquadah.1x.depleted");
-        FUEL_ROD_NAQUADAH_2X_DEPLETED = GT_META_ITEM.addItem(2168, "fuel_rod.naquadah.2x.depleted");
-        FUEL_ROD_NAQUADAH_4X_DEPLETED = GT_META_ITEM.addItem(2169, "fuel_rod.naquadah.4x.depleted");
-
-        FUEL_ROD_URANIUM_1X = GT_META_ITEM.addItem(2198, "fuel_rod.uranium.1x")
-                .addComponents(new FuelRodBehavior(20000, Materials.Uranium, 5, 512, 1.0f,
-                        FUEL_ROD_URANIUM_1X_DEPLETED.getStackForm()));
-        FUEL_ROD_URANIUM_2X = GT_META_ITEM.addItem(2199, "fuel_rod.uranium.2x")
-                .addComponents(new FuelRodBehavior(20000, Materials.Uranium, 10, 1024, 2.0f,
-                        FUEL_ROD_URANIUM_2X_DEPLETED.getStackForm()));
-        FUEL_ROD_URANIUM_4X = GT_META_ITEM.addItem(2200, "fuel_rod.uranium.4x")
-                .addComponents(new FuelRodBehavior(20000, Materials.Uranium, 20, 2048, 4.0f,
-                        FUEL_ROD_URANIUM_4X_DEPLETED.getStackForm()));
-        FUEL_ROD_THORIUM_1X = GT_META_ITEM.addItem(2201, "fuel_rod.thorium.1x")
-                .addComponents(new FuelRodBehavior(24000, Materials.Thorium, 3, 384, 1.5f,
-                        FUEL_ROD_THORIUM_1X_DEPLETED.getStackForm()));
-        FUEL_ROD_THORIUM_2X = GT_META_ITEM.addItem(2202, "fuel_rod.thorium.2x")
-                .addComponents(new FuelRodBehavior(24000, Materials.Thorium, 6, 768, 2.0f,
-                        FUEL_ROD_THORIUM_2X_DEPLETED.getStackForm()));
-        FUEL_ROD_THORIUM_4X = GT_META_ITEM.addItem(2203, "fuel_rod.thorium.4x")
-                .addComponents(new FuelRodBehavior(24000, Materials.Thorium, 12, 1536, 4.0f,
-                        FUEL_ROD_THORIUM_4X_DEPLETED.getStackForm()));
-        FUEL_ROD_PLUTONIUM_1X = GT_META_ITEM.addItem(2204, "fuel_rod.plutonium.1x")
-                .addComponents(new FuelRodBehavior(15000, Materials.Plutonium, 12, 640, 1.0f,
-                        FUEL_ROD_PLUTONIUM_1X_DEPLETED.getStackForm()));
-        FUEL_ROD_PLUTONIUM_2X = GT_META_ITEM.addItem(2205, "fuel_rod.plutonium.2x")
-                .addComponents(new FuelRodBehavior(15000, Materials.Plutonium, 24, 1280, 2.0f,
-                        FUEL_ROD_PLUTONIUM_2X_DEPLETED.getStackForm()));
-        FUEL_ROD_PLUTONIUM_4X = GT_META_ITEM.addItem(2206, "fuel_rod.plutonium.4x")
-                .addComponents(new FuelRodBehavior(15000, Materials.Plutonium, 48, 2560, 4.0f,
-                        FUEL_ROD_PLUTONIUM_4X_DEPLETED.getStackForm()));
-        FUEL_ROD_NAQUADAH_1X = GT_META_ITEM.addItem(2207, "fuel_rod.naquadah.1x")
-                .addComponents(new FuelRodBehavior(36000, Materials.Naquadah, 20, 1024, 3.0f,
-                        FUEL_ROD_NAQUADAH_1X_DEPLETED.getStackForm()));
-        FUEL_ROD_NAQUADAH_2X = GT_META_ITEM.addItem(2208, "fuel_rod.naquadah.2x")
-                .addComponents(new FuelRodBehavior(36000, Materials.Naquadah, 40, 2048, 6.0f,
-                        FUEL_ROD_NAQUADAH_2X_DEPLETED.getStackForm()));
-        FUEL_ROD_NAQUADAH_4X = GT_META_ITEM.addItem(2209, "fuel_rod.naquadah.4x")
-                .addComponents(new FuelRodBehavior(36000, Materials.Naquadah, 80, 4096, 12.0f,
-                        FUEL_ROD_NAQUADAH_4X_DEPLETED.getStackForm()));
-
-        HEAT_VENT_BASIC = GT_META_ITEM.addItem(2248, "heat_vent.basic")
-                .addComponents(new HeatVentBehavior(24000, Materials.Steel, 6));
-        HEAT_VENT_ADVANCED = GT_META_ITEM.addItem(2249, "heat_vent.advanced")
-                .addComponents(new HeatVentBehavior(28000, Materials.StainlessSteel, 12));
-        HEAT_VENT_ELITE = GT_META_ITEM.addItem(2250, "heat_vent.elite")
-                .addComponents(new HeatVentBehavior(32000, Materials.Titanium, 18));
-        HEAT_VENT_ULTIMATE = GT_META_ITEM.addItem(2251, "heat_vent.ultimate")
-                .addComponents(new HeatVentBehavior(36000, Materials.TungstenSteel, 24));
-
-        COMPONENT_HEAT_VENT_BASIC = GT_META_ITEM.addItem(2253, "component_heat_vent.basic")
-                .addComponents(new ComponentHeatVentBehavior(120000, Materials.Aluminium, 4));
-        COMPONENT_HEAT_VENT_ADVANCED = GT_META_ITEM.addItem(2254, "component_heat_vent.advanced")
-                .addComponents(new ComponentHeatVentBehavior(180000, Materials.Gold, 8));
-        COMPONENT_HEAT_VENT_ELITE = GT_META_ITEM.addItem(2255, "component_heat_vent.elite")
-                .addComponents(new ComponentHeatVentBehavior(240000, Materials.Platinum, 12));
-        COMPONENT_HEAT_VENT_ULTIMATE = GT_META_ITEM.addItem(2256, "component_heat_vent.ultimate")
-                .addComponents(new ComponentHeatVentBehavior(300000, Materials.Neodymium, 16));
-
-        COOLANT_CELL_10K = GT_META_ITEM.addItem(2258, "coolant_cell.10k");
-        COOLANT_CELL_30K = GT_META_ITEM.addItem(2259, "coolant_cell.30k");
-        COOLANT_CELL_60K = GT_META_ITEM.addItem(2260, "coolant_cell.60k");
-        COOLANT_CELL_COOLANT_10K = GT_META_ITEM.addItem(2261, "coolant_cell.coolant.10k")
-                .addComponents(new CoolantCellBehavior(10000, Materials.WaterCoolant, 10000, 10));
-        COOLANT_CELL_COOLANT_30K = GT_META_ITEM.addItem(2262, "coolant_cell.coolant.30k")
-                .addComponents(new CoolantCellBehavior(10000, Materials.WaterCoolant, 30000, 30));
-        COOLANT_CELL_COOLANT_60K = GT_META_ITEM.addItem(2263, "coolant_cell.coolant.60k")
-                .addComponents(new CoolantCellBehavior(10000, Materials.WaterCoolant, 60000, 60));
-        COOLANT_CELL_SODIUM_POTASSIUM_10K = GT_META_ITEM.addItem(2264, "coolant_cell.sodium_potassium.10k")
-                .addComponents(new CoolantCellBehavior(10000, Materials.SodiumPotassium, 10000, 30));
-        COOLANT_CELL_SODIUM_POTASSIUM_30K = GT_META_ITEM.addItem(2265, "coolant_cell.sodium_potassium.30k")
-                .addComponents(new CoolantCellBehavior(10000, Materials.SodiumPotassium, 30000, 90));
-        COOLANT_CELL_SODIUM_POTASSIUM_60K = GT_META_ITEM.addItem(2266, "coolant_cell.sodium_potassium.60k")
-                .addComponents(new CoolantCellBehavior(10000, Materials.SodiumPotassium, 60000, 180));
-        COOLANT_CELL_HELIUM_10K = GT_META_ITEM.addItem(2267, "coolant_cell.helium.10k")
-                .addComponents(new CoolantCellBehavior(10000, Materials.Helium, 10000, 60));
-        COOLANT_CELL_HELIUM_30K = GT_META_ITEM.addItem(2268, "coolant_cell.helium.30k")
-                .addComponents(new CoolantCellBehavior(10000, Materials.Helium, 30000, 180));
-        COOLANT_CELL_HELIUM_60K = GT_META_ITEM.addItem(2269, "coolant_cell.helium.60k")
-                .addComponents(new CoolantCellBehavior(10000, Materials.Helium, 60000, 540));
-
-        NEUTRON_REFLECTOR_BASIC = GT_META_ITEM.addItem(2278, "neutron_reflector.basic")
-                .addComponents(new NeutronReflectorBehavior(50000, Materials.Graphite, 0.5f));
-        NEUTRON_REFLECTOR_THICK = GT_META_ITEM.addItem(2279, "neutron_reflector.thick")
-                .addComponents(new NeutronReflectorBehavior(100000, Materials.Beryllium, 0.75f));
-        NEUTRON_REFLECTOR_IRIDIUM = GT_META_ITEM.addItem(2280, "neutron_reflector.iridium")
-                .addComponents(new NeutronReflectorBehavior(200000, Materials.Iridium, 0.95f));
-
-        HEAT_EXCHANGER_BASIC = GT_META_ITEM.addItem(2283, "heat_exchanger.basic")
-                .addComponents(new HeatExchangerBehavior(100000, Materials.Copper, 10));
-        HEAT_EXCHANGER_ADVANCED = GT_META_ITEM.addItem(2284, "heat_exchanger.advanced")
-                .addComponents(new HeatExchangerBehavior(120000, Materials.Gold, 20));
-        HEAT_EXCHANGER_REACTOR = GT_META_ITEM.addItem(2285, "heat_exchanger.reactor")
-                .addComponents(new ReactorHeatExchangerBehavior(150000, Materials.Aluminium, 10000, 20));
-        COMPONENT_HEAT_EXCHANGER = GT_META_ITEM.addItem(2286, "heat_exchanger.component")
-                .addComponents(new ComponentHeatExchangerBehavior(120000, Materials.Bronze, 15));
-        REACTOR_PLATING_BASIC = GT_META_ITEM.addItem(2288, "reactor_plating.basic")
-                .addComponents(new ReactorPlatingBehavior(Materials.Bronze, 1000, 0.1f));
-        REACTOR_PLATING_ADVANCED = GT_META_ITEM.addItem(2289, "reactor_plating.advanced")
-                .addComponents(new ReactorPlatingBehavior(Materials.Lead, 2500, 0.25f));
     }
 
     public static void registerOreDict() {

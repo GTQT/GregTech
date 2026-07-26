@@ -10,7 +10,11 @@ import gregtech.api.util.GTUtility;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.block.model.*;
+import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.block.model.IBakedModel;
+import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
+import net.minecraft.client.renderer.block.model.ItemOverrideList;
+import net.minecraft.client.renderer.block.model.ModelResourceLocation;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
@@ -36,7 +40,15 @@ public class OreBakedModel implements IBakedModel {
 
     public static ModelResourceLocation registerOreEntry(StoneType stoneType, Material material) {
         return ENTRIES.computeIfAbsent(
-                new Entry(stoneType, material.getMaterialIconSet(), material.getProperty(PropertyKey.ORE).isEmissive()),
+                new Entry(stoneType, material.getMaterialIconSet(),
+                        material.getProperty(PropertyKey.ORE).isEmissive(), false),
+                Entry::getModelId);
+    }
+
+    public static ModelResourceLocation registerLeanOreEntry(StoneType stoneType, Material material) {
+        return ENTRIES.computeIfAbsent(
+                new Entry(stoneType, material.getMaterialIconSet(),
+                        material.getProperty(PropertyKey.ORE).isEmissive(), true),
                 Entry::getModelId);
     }
 
@@ -60,9 +72,6 @@ public class OreBakedModel implements IBakedModel {
 
     @Override
     public List<BakedQuad> getQuads(@Nullable IBlockState state, @Nullable EnumFacing side, long rand) {
-        // a way to guarantee one variant on random models with arbitrary entries.
-        // this essentially prevents z-fighting issues as long as the first model defined in weighted baked model
-        // does not have any rotation applied.
         List<BakedQuad> quads = new ArrayList<>(getBaseModel().getQuads(null, side, 0));
         quads.addAll(this.overlay.getQuads(null, side, rand));
         return quads;
@@ -110,7 +119,8 @@ public class OreBakedModel implements IBakedModel {
     @SubscribeEvent
     public static void onTextureStitch(TextureStitchEvent.Pre event) {
         for (Map.Entry<Entry, ModelResourceLocation> e : ENTRIES.entrySet()) {
-            event.getMap().registerSprite(MaterialIconType.ore.getBlockTexturePath(e.getKey().iconSet));
+            MaterialIconType iconType = e.getKey().lean ? MaterialIconType.oreLean : MaterialIconType.ore;
+            event.getMap().registerSprite(iconType.getBlockTexturePath(e.getKey().iconSet));
         }
     }
 
@@ -119,8 +129,9 @@ public class OreBakedModel implements IBakedModel {
         Map<ResourceLocation, IBakedModel> overlayCache = new Object2ObjectOpenHashMap<>();
 
         for (Map.Entry<Entry, ModelResourceLocation> e : ENTRIES.entrySet()) {
+            MaterialIconType iconType = e.getKey().lean ? MaterialIconType.oreLean : MaterialIconType.ore;
             IBakedModel overlay = overlayCache.computeIfAbsent(
-                    MaterialIconType.ore.getBlockTexturePath(e.getKey().iconSet),
+                    iconType.getBlockTexturePath(e.getKey().iconSet),
                     tex -> new ModelFactory(ModelFactory.ModelTemplate.ORE_OVERLAY)
                             .addSprite("texture", tex)
                             .bake());
@@ -135,20 +146,23 @@ public class OreBakedModel implements IBakedModel {
         private final StoneType stoneType;
         private final MaterialIconSet iconSet;
         private final boolean emissive;
+        private final boolean lean;
 
         private final int hash;
 
-        private Entry(StoneType stoneType, MaterialIconSet iconSet, boolean emissive) {
+        private Entry(StoneType stoneType, MaterialIconSet iconSet, boolean emissive, boolean lean) {
             this.stoneType = stoneType;
             this.iconSet = iconSet;
             this.emissive = emissive;
+            this.lean = lean;
 
-            this.hash = Objects.hash(stoneType.name, iconSet.name, emissive);
+            this.hash = Objects.hash(stoneType.name, iconSet.name, emissive, lean);
         }
 
         public ModelResourceLocation getModelId() {
+            String prefix = lean ? "lean_ore_" : "ore_";
             return new ModelResourceLocation(GTUtility.gregtechId(
-                    "ore_" + this.stoneType.name + "_" + this.iconSet.name + (this.emissive ? "_emissive" : "")), "");
+                    prefix + this.stoneType.name + "_" + this.iconSet.name + (this.emissive ? "_emissive" : "")), "");
         }
 
         @Override
@@ -158,7 +172,8 @@ public class OreBakedModel implements IBakedModel {
             Entry entry = (Entry) o;
             return this.stoneType.name.equals(entry.stoneType.name) &&
                     this.iconSet.name.equals(entry.iconSet.name) &&
-                    this.emissive == entry.emissive;
+                    this.emissive == entry.emissive &&
+                    this.lean == entry.lean;
         }
 
         @Override
@@ -168,7 +183,8 @@ public class OreBakedModel implements IBakedModel {
 
         @Override
         public String toString() {
-            return "stoneType=" + stoneType.name + ", iconSet=" + iconSet.name + ", emissive=" + emissive;
+            return "stoneType=" + stoneType.name + ", iconSet=" + iconSet.name +
+                    ", emissive=" + emissive + ", lean=" + lean;
         }
     }
 }

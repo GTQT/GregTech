@@ -3,6 +3,8 @@ package gregtech.common.items;
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.StandardMetaItem;
 
+import gregtech.common.creativetab.GTCreativeTabs;
+
 import net.minecraft.item.ItemStack;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
@@ -23,6 +25,11 @@ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  * </ul>
  */
 public class OrbItems extends StandardMetaItem {
+
+    public OrbItems() {
+        super();
+        setCreativeTab(GTCreativeTabs.TAB_GREGTECH_ORB);
+    }
 
     // ==================== Display Items ====================
 

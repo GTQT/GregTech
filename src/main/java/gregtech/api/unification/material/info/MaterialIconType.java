@@ -94,7 +94,7 @@ public class MaterialIconType {
     public static final MaterialIconType plasma = new MaterialIconType("plasma");
     public static final MaterialIconType ore = new MaterialIconType("ore");
     public static final MaterialIconType raw = new MaterialIconType("raw");
-    public static final MaterialIconType oreSmall = new MaterialIconType("oreSmall");
+    public static final MaterialIconType oreLean = new MaterialIconType("oreLean");
 
     // BLOCK MODELS
     public static final MaterialIconType block = new MaterialIconType("block");

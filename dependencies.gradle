@@ -63,8 +63,8 @@ dependencies {
     implementation rfg.deobf("curse.maven:chisel-235279:2915375") // Chisel 1.0.2.45
     implementation rfg.deobf("curse.maven:better-builders-wands-238403:2691084")
 
-    implementation rfg.deobf("curse.maven:mantle-74924:2713386")
-    implementation rfg.deobf("curse.maven:tinkers-antique-1242239:7999105")
+    compileOnly rfg.deobf("curse.maven:mantle-74924:2713386")
+    compileOnly rfg.deobf("curse.maven:tinkers-antique-1242239:7999105")
 
     compileOnly rfg.deobf("curse.maven:littletiles-257818:4750222") // LittleTiles 1.5.82-1.12.2
     compileOnly rfg.deobf("curse.maven:creativecore-257814:4722163") // Creative Core 1.10.71

@@ -1,15 +1,23 @@
 package gregtech.api.worldgen.generator;
 
+import gregtech.api.unification.material.Material;
+import gregtech.api.unification.ore.StoneType;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.random.XoShiRo256PlusPlusRandom;
 import gregtech.api.worldgen.config.OreDepositDefinition;
 import gregtech.api.worldgen.config.WorldGenRegistry;
+import gregtech.api.worldgen.filler.BlockFiller;
+import gregtech.api.worldgen.filler.FillerEntry;
+import gregtech.api.worldgen.filler.LayeredBlockFiller;
 import gregtech.api.worldgen.populator.IBlockModifierAccess;
 import gregtech.api.worldgen.populator.IVeinPopulator;
 import gregtech.api.worldgen.populator.VeinBufferPopulator;
 import gregtech.api.worldgen.populator.VeinChunkPopulator;
 import gregtech.api.worldgen.shape.IBlockGeneratorAccess;
 import gregtech.common.ConfigHolder;
+import gregtech.common.blocks.BlockLeanOre;
+import gregtech.common.blocks.BlockOre;
+import gregtech.common.blocks.MetaBlocks;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
@@ -21,12 +29,27 @@ import net.minecraft.world.chunk.Chunk;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import it.unimi.dsi.fastutil.longs.*;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongArrayList;
+import it.unimi.dsi.fastutil.longs.LongIterator;
+import it.unimi.dsi.fastutil.longs.LongList;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.apache.commons.lang3.tuple.MutablePair;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
+import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IBlockModifierAccess {
@@ -182,9 +205,9 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
                     ((VeinChunkPopulator) veinPopulator).populateChunk(world, chunkX, chunkZ, random, definition, this);
                 }
             }
-            return true;
         }
-        return false;
+        scatterLeanOres(world, chunkX, chunkZ);
+        return chunkDataEntry != null;
     }
 
     @Override
@@ -312,6 +335,122 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
             dataEntry.setBlock(localX, worldY, localZ, definition, index);
         }
     }
+
+    // === Lean Ore Scattering ===
+
+    /** Probability at the inner edge of the hollow sphere (distance = veinRadius). */
+    private static final double LEAN_ORE_PROB_INNER = 1.0 / 4.0;
+    /** Probability at the outer edge of the hollow sphere (distance = 2 * veinRadius). */
+    private static final double LEAN_ORE_PROB_OUTER = 1.0 / 16.0;
+
+    /**
+     * Scatters lean ore blocks in a hollow sphere around each vein:
+     * from {@code veinRadius} to {@code 2 * veinRadius} horizontally, same Y range as the vein.
+     * Probability linearly decreases from 1/4 (inner) to 1/16 (outer).
+     */
+    private void scatterLeanOres(World world, int chunkX, int chunkZ) {
+        if (veinGeneratedMap == null || veinGeneratedMap.isEmpty()) return;
+
+        int chunkBaseX = chunkX * 16;
+        int chunkBaseZ = chunkZ * 16;
+        long worldSeed = world.getSeed();
+
+        for (Map.Entry<OreDepositDefinition, BlockPos> entry : veinGeneratedMap.entrySet()) {
+            OreDepositDefinition definition = entry.getKey();
+            BlockPos veinCenter = entry.getValue();
+
+            int veinRadius = Math.max(
+                    definition.getShapeGenerator().getMaxSize().getX() / 2,
+                    definition.getShapeGenerator().getMaxSize().getZ() / 2);
+            int innerRadiusSq = veinRadius * veinRadius;
+            int outerRadiusSq = 4 * innerRadiusSq; // (2r)² = 4r²
+
+            int dx = Math.abs(veinCenter.getX() - chunkBaseX);
+            int dz = Math.abs(veinCenter.getZ() - chunkBaseZ);
+            if (dx > 2 * veinRadius + 16 || dz > 2 * veinRadius + 16) continue;
+
+            Set<Material> materials = collectPrimaryMaterials(definition);
+            if (materials.isEmpty()) continue;
+
+            int yMin = veinCenter.getY() - 4;
+            int yMax = veinCenter.getY() + 4;
+            int yRange = yMax - yMin;
+
+            long seed = worldSeed ^ ((long) chunkX << 32) ^ chunkZ ^
+                    ((long) veinCenter.getX() << 16) ^ veinCenter.getZ();
+            Random rand = new Random(seed);
+
+            for (int localX = 0; localX < 16; localX++) {
+                for (int localZ = 0; localZ < 16; localZ++) {
+                    int worldX = chunkBaseX + localX;
+                    int worldZ = chunkBaseZ + localZ;
+
+                    int ddx = worldX - veinCenter.getX();
+                    int ddz = worldZ - veinCenter.getZ();
+                    int distSq = ddx * ddx + ddz * ddz;
+
+                    if (distSq < innerRadiusSq || distSq > outerRadiusSq) continue;
+
+                    double dist = Math.sqrt(distSq);
+                    double distRatio = (dist - veinRadius) / veinRadius;
+                    double prob = LEAN_ORE_PROB_INNER +
+                            (LEAN_ORE_PROB_OUTER - LEAN_ORE_PROB_INNER) * distRatio;
+
+                    for (int dy = 0; dy <= yRange; dy++) {
+                        int y = yMin + dy;
+                        if (y <= 0) continue;
+                        if (rand.nextFloat() > prob) continue;
+
+                        for (Material material : materials) {
+                            BlockLeanOre leanBlock = findLeanOreBlock(material);
+                            if (leanBlock == null) continue;
+
+                            BlockPos pos = new BlockPos(worldX, y, worldZ);
+                            IBlockState currentState = world.getBlockState(pos);
+                            StoneType stoneType = StoneType.computeStoneType(currentState, world, pos);
+                            if (stoneType == null) continue;
+
+                            IBlockState leanState = leanBlock.getOreBlock(stoneType);
+                            world.setBlockState(pos, leanState, 16);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Collects the primary ore materials from a vein definition's layered filler.
+     */
+    private static Set<Material> collectPrimaryMaterials(OreDepositDefinition definition) {
+        Set<Material> materials = new HashSet<>();
+        BlockFiller filler = definition.getBlockFiller();
+        if (filler instanceof LayeredBlockFiller layered) {
+            FillerEntry primary = layered.getPrimary();
+            for (IBlockState state : primary.getPossibleResults()) {
+                Block block = state.getBlock();
+                if (block instanceof BlockOre oreBlock) {
+                    materials.add(oreBlock.material);
+                }
+            }
+        }
+        return materials;
+    }
+
+    /**
+     * Finds the {@link BlockLeanOre} instance for the given material.
+     */
+    private static BlockLeanOre findLeanOreBlock(Material material) {
+        for (BlockLeanOre block : MetaBlocks.LEAN_ORES) {
+            if (block.material == material) {
+                return block;
+            }
+        }
+        return null;
+    }
+
+    // === End Lean Ore Scattering ===
 
     public static class ChunkDataEntry {
 

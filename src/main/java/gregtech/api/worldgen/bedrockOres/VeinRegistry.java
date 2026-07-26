@@ -1,4 +1,4 @@
-package gregtech.api.worldgen.vein;
+package gregtech.api.worldgen.bedrockOres;
 
 import java.util.ArrayList;
 import java.util.Collection;
