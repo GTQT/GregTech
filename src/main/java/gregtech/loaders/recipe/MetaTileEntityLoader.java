@@ -10,12 +10,12 @@ import gregtech.api.recipes.crafting.Component;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.MarkerMaterials;
 import gregtech.api.unification.material.MarkerMaterials.Tier;
-import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.recipeUtility;
 import gregtech.common.ConfigHolder;
+import gregtech.common.blocks.BlockFissionCasing;
 import gregtech.common.blocks.BlockGlassCasing;
 import gregtech.common.blocks.BlockMachineCasing;
 import gregtech.common.blocks.BlockMetalCasing.MetalCasingType;
@@ -717,6 +717,36 @@ public class MetaTileEntityLoader {
                 new UnificationEntry(OrePrefix.circuit, Tier.LuV), 'B',
                 MetaBlocks.METAL_CASING.getItemVariant(PALLADIUM_SUBSTATION));
 
+
+        ModHandler.addShapedRecipe(true, "fission_reactor", MetaTileEntities.FISSION_REACTOR.getStackForm(), "CSC",
+                "RHR", "CWC",
+                'C', new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.EV),
+                'H', MetaBlocks.FISSION_CASING.getItemVariant(BlockFissionCasing.FissionCasingType.REACTOR_VESSEL),
+                'S', SENSOR.getIngredient(GTValues.EV),
+                'R', new UnificationEntry(OrePrefix.rotor, Materials.Steel),
+                'W', CABLE_QUAD.getIngredient(GTValues.EV));
+
+
+        ModHandler.addShapedRecipe(true, "heat_exchanger", MetaTileEntities.HEAT_EXCHANGER.getStackForm(),
+                "FFF",
+                "PCP", "FFF",
+                'C', new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.HV),
+                'P', new UnificationEntry(OrePrefix.pipeLargeFluid, Materials.Inconel),
+                'F', MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID));
+
+        ModHandler.addShapedRecipe(true, "gas_centrifuge", MetaTileEntities.GAS_CENTRIFUGE.getStackForm(), "FFF",
+                "WRW", "CCC",
+                'C', new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.EV),
+                'R', new UnificationEntry(OrePrefix.rotor, Materials.Titanium),
+                'F', MetaBlocks.METAL_CASING.getItemVariant(PTFE_INERT_CASING),
+                'W', CABLE_QUAD.getIngredient(GTValues.EV));
+
+        ModHandler.addShapedRecipe(true, "spent_fuel_pool", MetaTileEntities.SPENT_FUEL_POOL.getStackForm(), "PFP",
+                "PCP", "PFP",
+                'C', new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.LV),
+                'F', MetaBlocks.METAL_CASING.getItemVariant(STAINLESS_CLEAN),
+                'P', new UnificationEntry(OrePrefix.plate, Materials.StainlessSteel));
+
         /*
         RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder()
                 .input(frameGt, Steel, 2)
@@ -1142,6 +1172,11 @@ public class MetaTileEntityLoader {
                 'R', CraftingComponent.ROTOR
         );
 
+        registerMachineRecipe(MetaTileEntities.DECAY_CHAMBER, "EWE", "CMC", "EWE", 'M', HULL, 'E', SENSOR, 'C', CIRCUIT, 'W', CABLE);
+
+        registerMachineRecipe(MetaTileEntities.RTG, "EWE", "CMC", "EWE", 'M', HULL, 'E', FIELD_GENERATOR, 'C', CIRCUIT, 'W', CABLE);
+
+
         registerMachineRecipe(ArrayUtils.subarray(MetaTileEntities.DIODES, GTValues.ULV, GTValues.HV), "CDC", "DHD",
                 "PDP", 'H', HULL, 'D', new UnificationEntry(OrePrefix.component, MarkerMaterials.Component.Diode), 'P',
                 PLATE, 'C', CABLE_QUAD);
@@ -1490,15 +1525,7 @@ public class MetaTileEntityLoader {
             registerMachineRecipe(MetaTileEntities.ENERGY_CONVERTER[3], " WW", "RMC", " WW", 'C', CIRCUIT, 'M', HULL,
                     'W', CABLE_HEX, 'R', new UnificationEntry(OrePrefix.cableGtHex, Materials.RedAlloy));
         }
-    }
-
-    private static void addTankCasingRecipe(String name, Material material, ItemStack casingStack) {
-        ItemStack casingOutput = casingStack.copy();
-        casingOutput.setCount(4);
-        ModHandler.addShapedRecipe(true, "tank_casing_" + name, casingOutput, "PhP", "PFP", "PwP",
-                'P', new UnificationEntry(OrePrefix.plate, material),
-                'F', new UnificationEntry(OrePrefix.frameGt, material));
-    }
+           }
 
     // Can only accept a subset of "Item" types:
     // - ItemStack

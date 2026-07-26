@@ -1,10 +1,12 @@
 package gregtech.common.blocks;
 
+import gregtech.api.GTValues;
 import gregtech.api.fluids.GTFluidBlock;
 import gregtech.api.fluids.GTFluidMaterial;
 import gregtech.api.fluids.GTFluidRegistration;
 import gregtech.api.unification.material.Material;
 import gregtech.api.util.GTUtility;
+
 import net.minecraft.block.material.MaterialLiquid;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.entity.Entity;
@@ -16,13 +18,13 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 import net.minecraftforge.event.ForgeEventFactory;
 import net.minecraftforge.fluids.Fluid;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import gregtech.api.GTValues;
 
 import java.util.Random;
 
-import static gregtech.api.unification.material.SCMaterials.Corium;
+import static gregtech.api.unification.material.Materials.Corium;
 
 public class BlockMoltenCorium extends GTFluidBlock {
 
@@ -32,6 +34,9 @@ public class BlockMoltenCorium extends GTFluidBlock {
 
     @NotNull
     public static BlockMoltenCorium register() {
+        if (Corium == null || Corium.getFluid() == null) {
+            return null; // Material not yet initialized, skip
+        }
         Fluid fluid = Corium.getFluid();
         MaterialLiquid liquidMaterial = new GTFluidMaterial(GTUtility.getMapColor(fluid.getColor()), false);
         BlockMoltenCorium block = new BlockMoltenCorium(fluid, liquidMaterial, Corium);

@@ -13,7 +13,6 @@ import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.properties.ModeratorProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
-import gregtech.api.unification.material.properties.SCPropertyKey;
 import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.ore.StoneType;
@@ -870,7 +869,7 @@ public class MetaBlocks {
         }
 
         for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
-            if (!material.hasProperty(SCPropertyKey.MODERATOR)) continue;
+            if (!material.hasProperty(PropertyKey.MODERATOR)) continue;
 
             BlockCompressed block = COMPRESSED.get(material);
             if (block == null) {
@@ -878,7 +877,7 @@ public class MetaBlocks {
                         material.getResourceLocation());
                 continue;
             }
-            ModeratorProperty moderator = material.getProperty(SCPropertyKey.MODERATOR);
+            ModeratorProperty moderator = material.getProperty(PropertyKey.MODERATOR);
             ModeratorRegistry.registerModerator(block.getBlock(material), moderator);
         }
     }

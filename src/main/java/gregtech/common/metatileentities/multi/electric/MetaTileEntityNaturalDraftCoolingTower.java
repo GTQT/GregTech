@@ -9,7 +9,7 @@ import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.recipes.SCRecipeMaps;
+import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.api.util.tooltips.TooltipBuilder;
@@ -148,7 +148,7 @@ public class MetaTileEntityNaturalDraftCoolingTower extends CachedPatternRecipeM
     private List<BlockPos> waterPositions;
 
     public MetaTileEntityNaturalDraftCoolingTower(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, SCRecipeMaps.NATURAL_DRAFT_COOLING_TOWER);
+        super(metaTileEntityId, RecipeMaps.NATURAL_DRAFT_COOLING_TOWER);
     }
 
     public static IBlockState getCasingState() {

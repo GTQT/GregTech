@@ -5,16 +5,11 @@ import gregtech.api.unification.material.Materials;
 import gregtech.common.items.MetaItems;
 
 import static gregtech.api.GTValues.*;
-import static gregtech.api.recipes.RecipeMaps.BLAST_RECIPES;
-import static gregtech.api.recipes.RecipeMaps.CENTRIFUGE_RECIPES;
+import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
-import static gregtech.api.unification.ore.OrePrefix.dust;
-import static gregtech.api.recipes.SCRecipeMaps.RTG_RECIPES;
-import static gregtech.api.unification.material.SCMaterials.*;
-import static gregtech.api.unification.ore.SCOrePrefix.fuelPebble;
-import static gregtech.api.unification.ore.SCOrePrefix.fuelPebbleDepleted;
+import static gregtech.api.unification.ore.OrePrefix.*;
 
-public class SCRTGFuel {
+public class RTGFuelRecipeLoader {
     public static void load() {
         RTG(Thorium232, 1,
                 Uranium233, Uranium234, Thorium230, Thorium229,

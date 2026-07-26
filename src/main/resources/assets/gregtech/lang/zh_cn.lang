@@ -1901,18 +1901,33 @@ item.material.oreprefix.polymer.dustTiny=小撮%s末
 item.material.oreprefix.polymer.dustSmall=小堆%s末
 item.material.oreprefix.polymer.dust=%s末
 item.material.oreprefix.polymer.ingot=%s条
-
+item.material.oreprefix.fuelRod=%s燃料棒
+item.material.oreprefix.fuelRodDepleted=%s乏燃料棒
+item.material.oreprefix.fuelRodHotDepleted=热%s乏燃料棒
+item.material.oreprefix.fuelPelletRaw=未烧结%s燃料芯块
+item.material.oreprefix.fuelPellet=%s燃料芯块
+item.material.oreprefix.fuelPelletDepleted=%s乏燃料芯块
+item.material.oreprefix.dustSpentFuel=枯竭%s燃料粉
+item.material.oreprefix.dustBredFuel=增殖%s燃料粉
+item.material.oreprefix.dustFissionByproduct=%s裂变副产物粉
+item.material.oreprefix.fuelPebble=%s 浓缩燃料丸
+item.material.oreprefix.fuelPebbleDepleted=%s 枯竭浓缩燃料丸
 
 # Direct Element Materials
 gregtech.material.actinium=锕
 gregtech.material.aluminium=铝
 gregtech.material.americium=镅
+gregtech.material.americium_240=镅-240
+gregtech.material.americium_241=镅-241
+gregtech.material.americium_242=镅-242
+gregtech.material.americium_243=镅-243
 gregtech.material.antimony=锑
 gregtech.material.argon=氩
 gregtech.material.arsenic=砷
 gregtech.material.astatine=砹
 gregtech.material.barium=钡
 gregtech.material.berkelium=锫
+gregtech.material.berkelium_249=锫-249
 gregtech.material.beryllium=铍
 gregtech.material.bismuth=铋
 gregtech.material.bohrium=钅波
@@ -1921,6 +1936,8 @@ gregtech.material.bromine=溴
 gregtech.material.caesium=铯
 gregtech.material.calcium=钙
 gregtech.material.californium=锎
+gregtech.material.californium_249=锎-249
+gregtech.material.californium_252=锎-252
 gregtech.material.carbon=碳
 gregtech.material.cadmium=镉
 gregtech.material.cerium=铈
@@ -1930,6 +1947,14 @@ gregtech.material.cobalt=钴
 gregtech.material.copernicium=钅哥
 gregtech.material.copper=铜
 gregtech.material.curium=锔
+gregtech.material.curium_242=锔-242
+gregtech.material.curium_243=锔-243
+gregtech.material.curium_244=锔-244
+gregtech.material.curium_245=锔-245
+gregtech.material.curium_246=锔-246
+gregtech.material.curium_247=锔-247
+gregtech.material.curium_248=锔-248
+gregtech.material.curium_250=锔-250
 gregtech.material.darmstadtium=钅达
 gregtech.material.deuterium=氘
 gregtech.material.dubnium=钅杜
@@ -1972,6 +1997,11 @@ gregtech.material.moscovium=镆
 gregtech.material.neodymium=钕
 gregtech.material.neon=氖
 gregtech.material.neptunium=镎
+gregtech.material.neptunium_235=镎-235
+gregtech.material.neptunium_236=镎-236
+gregtech.material.neptunium_237=镎-237
+gregtech.material.neptunium_238=镎-238
+gregtech.material.neptunium_239=镎-239
 gregtech.material.nickel=镍
 gregtech.material.nihonium=钅尔
 gregtech.material.niobium=铌
@@ -1987,12 +2017,23 @@ gregtech.material.platinum=铂
 gregtech.material.plutonium=钚
 gregtech.material.plutonium_239=钚-239
 gregtech.material.plutonium_241=钚-241
+gregtech.material.plutonium_236=钚-236
+gregtech.material.plutonium_237=钚-237
+gregtech.material.plutonium_238=钚-238
+gregtech.material.plutonium_240=钚-240
+gregtech.material.plutonium_242=钚-242
+gregtech.material.plutonium_243=钚-243
+gregtech.material.plutonium_244=钚-244
 gregtech.material.potassium=钾
 gregtech.material.praseodymium=镨
 gregtech.material.promethium=钷
 gregtech.material.protactinium=镤
+gregtech.material.protactinium_231=镤-231
+gregtech.material.protactinium_233=镤-233
 gregtech.material.radon=氡
 gregtech.material.radium=镭
+gregtech.material.radium_225=镭-225
+gregtech.material.radium_226=镭-226
 gregtech.material.rhenium=铼
 gregtech.material.rhodium=铑
 gregtech.material.roentgenium=钅仑
@@ -2014,6 +2055,11 @@ gregtech.material.tellurium=碲
 gregtech.material.tennessine=石田
 gregtech.material.terbium=铽
 gregtech.material.thorium=钍
+gregtech.material.thorium_228=钍-228
+gregtech.material.thorium_229=钍-229
+gregtech.material.thorium_230=钍-230
+gregtech.material.thorium_232=钍-232
+gregtech.material.thorium_233=钍-233
 gregtech.material.thallium=铊
 gregtech.material.thulium=铥
 gregtech.material.tin=锡
@@ -2023,6 +2069,12 @@ gregtech.material.tungsten=钨
 gregtech.material.uranium=铀
 gregtech.material.uranium_235=铀-235
 gregtech.material.uranium_238=铀-238
+gregtech.material.uranium_232=铀-232
+gregtech.material.uranium_233=铀-233
+gregtech.material.uranium_234=铀-234
+gregtech.material.uranium_236=铀-236
+gregtech.material.uranium_237=铀-237
+gregtech.material.uranium_239=铀-239
 gregtech.material.vanadium=钒
 gregtech.material.xenon=氙
 gregtech.material.ytterbium=镱
@@ -2597,6 +2649,27 @@ gregtech.material.hsla_steel=HSLA钢
 gregtech.material.titanium_tungsten_carbide=碳化钛钨
 gregtech.material.incoloy_ma_956=耐热铬铁合金-MA956
 
+gregtech.material.high_enriched_uranium_dioxide=高浓缩二氧化铀
+gregtech.material.depleted_uranium_dioxide=枯竭二氧化铀
+gregtech.material.fissile_plutonium_dioxide=裂变二氧化钚
+gregtech.material.low_enriched_uranium_dioxide=低浓缩二氧化铀
+gregtech.material.inconel=因科镍
+gregtech.material.high_enriched_uranium_hexafluoride=高浓缩铀六氟化物
+gregtech.material.boron_trioxide=硼氧化物
+gregtech.material.boron_carbide=硼化硼
+gregtech.material.high_pressure_heavy_water=高压重水
+gregtech.material.heavy_water=重水
+gregtech.material.corium=熔毁炉芯
+gregtech.material.spent_uranium_fuel_solution=耗尽铀燃料溶液
+gregtech.material.radon_rich_gas_mixture=富氡气体
+gregtech.material.leu_235=低浓缩铀-235（LEU-235）
+gregtech.material.heu_235=高浓缩铀-235（HEU-235）
+gregtech.material.low_grade_mox=低浓度混合氧化物燃料（MOX）
+gregtech.material.high_grade_mox=高浓度混合氧化物燃料（MOX）
+gregtech.material.fbr=快堆核反应燃料（FBR）
+gregtech.material.thor=熔盐堆核反应燃料(THOR)
+gregtech.material.zircaloy=锆合金
+
 # Third Degree Materials
 gregtech.material.electrotine=蓝石
 gregtech.material.ender_eye=末影之眼
@@ -2886,6 +2959,15 @@ recipemap.godforge_exotic.name=神锻奇异物质
 recipemap.godforge_upgrade_costs.name=神锻升级消耗
 recipemap.alloy_blast_smelter.name=合金高炉冶炼
 recipemap.auto_chisel.name=自动凿制
+recipemap.heat_exchanger.name=换热器
+recipemap.gas_centrifuge.name=气体离心机
+recipemap.spent_fuel_pool.name=乏燃料池
+recipemap.rtg_recipes.name=同位素温差发电
+recipemap.decay_chamber_recipes.name=衰变室
+recipemap.natural_draft_cooling_tower.name=冷却塔
+fission.coolant.name=冷却剂加热
+fission.fuel.name=裂变燃料
+fission.moderator.name=中子慢化
 
 gregtech.recipe.category.arc_furnace_recycling=电弧炉回收
 gregtech.recipe.category.macerator_recycling=研磨机回收
@@ -3082,6 +3164,9 @@ metaitem.rubber_wood_door.name=橡胶木门
 metaitem.treated_wood_door.name=防腐木门
 
 entity.GTBoat.name=船
+entity.Villager.level_lv=民间科学家
+entity.Villager.level_mv=村民工匠
+entity.Villager.level_hv=村民工程师
 
 metaitem.terminal.name=终端
 metaitem.terminal.tooltip=工欲善其事，必先利其器。
@@ -3103,6 +3188,233 @@ metaitem.cover.digital.wireless.name=无线数字接口
 metaitem.coloured.leds.name=彩色LED
 metaitem.display.name=显示器
 
+# 可编程电路
+metaitem.cover.programmable_circuit.name=可编程电路覆盖板
+metaitem.order.name=订单
+metaitem.programmable_circuit.name=可编程电路卡
+metaitem.programming_toolkit.name=可编程工具箱
+metaitem.programmable_circuit.wrapped=§b已包裹: %s
+metaitem.programmable_circuit.empty=§7空白（请使用可编程工具箱包裹物品）
+metaitem.programmable_circuit.tooltip.1=§7可以包裹任意物品
+metaitem.programmable_circuit.tooltip.2=§7放入输入总线后配合可编程覆盖板使用
+metaitem.programmable_circuit.tooltip.3=§7会自动设置虚拟电路槽
+metaitem.programming_toolkit.tooltip.1=§7右键打开 GUI
+metaitem.programming_toolkit.tooltip.2=§7放入任意物品生成对应的可编程电路卡
+metaitem.programming_toolkit.gui_title=可编程工具箱
+metaitem.programming_toolkit.input=输入
+metaitem.programming_toolkit.output=输出
+metaitem.programming_toolkit.hint=§7放入物品后从输出槽取出可编程电路
+
+# 可编程提供器
+gregtech.machine.programming_provider.name=可编程提供器
+gregtech.machine.programming_provider.hint=§7放入物品以追加对应的可编程电路
+gregtech.machine.programming_provider.tooltip.1=§7默认提供空白可编程电路及数字电路 1~32
+gregtech.machine.programming_provider.tooltip.2=§7放入任意物品可追加对应的可编程电路
+gregtech.machine.programming_provider.tooltip.3=§7连接 AE 存储总线可向 ME 网络无限供应
+gregtech.machine.programming_provider.tooltip.4=§7输入的可编程电路会被自动销毁
+
+# 无线能源覆盖版
+metaitem.wireless_energy_cover_input.ulv.name=无线能源覆盖版 (§8ULV§r)
+metaitem.wireless_energy_cover_input.lv.name=无线能源覆盖版 (§7LV§r)
+metaitem.wireless_energy_cover_input.mv.name=无线能源覆盖版 (§bMV§r)
+metaitem.wireless_energy_cover_input.hv.name=无线能源覆盖版 (§6HV§r)
+metaitem.wireless_energy_cover_input.ev.name=无线能源覆盖版 (§5EV§r)
+metaitem.wireless_energy_cover_input.iv.name=无线能源覆盖版 (§1IV§r)
+metaitem.wireless_energy_cover_input.luv.name=无线能源覆盖版 (§dLuV§r)
+metaitem.wireless_energy_cover_input.zpm.name=无线能源覆盖版 (§cZPM§r)
+metaitem.wireless_energy_cover_input.uv.name=无线能源覆盖版 (§3UV§r)
+metaitem.wireless_energy_cover_input.uhv.name=无线能源覆盖版 (§4UHV§r)
+metaitem.wireless_energy_cover_input.uev.name=无线能源覆盖版 (§aUEV§r)
+metaitem.wireless_energy_cover_input.uiv.name=无线能源覆盖版 (§2UIV§r)
+metaitem.wireless_energy_cover_input.uxv.name=无线能源覆盖版 (§eUXV§r)
+metaitem.wireless_energy_cover_input.opv.name=无线能源覆盖版 (§9OpV§r)
+metaitem.wireless_energy_cover_input.max.name=无线能源覆盖版 (§c§lMAX§r)
+
+metaitem.wireless_energy_cover_input.tooltip=从无线网络中获取能量输入机器
+
+metaitem.wireless_energy_cover_output.ulv.name=无线动力覆盖版 (§8ULV§r)
+metaitem.wireless_energy_cover_output.lv.name=无线动力覆盖版 (§7LV§r)
+metaitem.wireless_energy_cover_output.mv.name=无线动力覆盖版 (§bMV§r)
+metaitem.wireless_energy_cover_output.hv.name=无线动力覆盖版 (§6HV§r)
+metaitem.wireless_energy_cover_output.ev.name=无线动力覆盖版 (§5EV§r)
+metaitem.wireless_energy_cover_output.iv.name=无线动力覆盖版 (§1IV§r)
+metaitem.wireless_energy_cover_output.luv.name=无线动力覆盖版 (§dLuV§r)
+metaitem.wireless_energy_cover_output.zpm.name=无线动力覆盖版 (§cZPM§r)
+metaitem.wireless_energy_cover_output.uv.name=无线动力覆盖版 (§3UV§r)
+metaitem.wireless_energy_cover_output.uhv.name=无线动力覆盖版 (§4UHV§r)
+metaitem.wireless_energy_cover_output.uev.name=无线动力覆盖版 (§aUEV§r)
+metaitem.wireless_energy_cover_output.uiv.name=无线动力覆盖版 (§2UIV§r)
+metaitem.wireless_energy_cover_output.uxv.name=无线动力覆盖版 (§eUXV§r)
+metaitem.wireless_energy_cover_output.opv.name=无线动力覆盖版 (§9OpV§r)
+metaitem.wireless_energy_cover_output.max.name=无线动力覆盖版 (§c§lMAX§r)
+
+metaitem.wireless_energy_cover_output.tooltip=从机器中获取能量输入能量网络
+
+#  通用电路板
+metaitem.general_circuit.ulv.name=通用电路板 (§8ULV§r)
+metaitem.general_circuit.lv.name=通用电路板 (§7LV§r)
+metaitem.general_circuit.mv.name=通用电路板 (§bMV§r)
+metaitem.general_circuit.hv.name=通用电路板 (§6HV§r)
+metaitem.general_circuit.ev.name=通用电路板 (§5EV§r)
+metaitem.general_circuit.iv.name=通用电路板 (§1IV§r)
+metaitem.general_circuit.luv.name=通用电路板 (§dLuV§r)
+metaitem.general_circuit.zpm.name=通用电路板 (§cZPM§r)
+metaitem.general_circuit.uv.name=通用电路板 (§3UV§r)
+metaitem.general_circuit.uhv.name=通用电路板 (§4UHV§r)
+metaitem.general_circuit.uev.name=通用电路板 (§aUEV§r)
+metaitem.general_circuit.uiv.name=通用电路板 (§2UIV§r)
+metaitem.general_circuit.uxv.name=通用电路板 (§eUXV§r)
+metaitem.general_circuit.opv.name=通用电路板 (§9OpV§r)
+metaitem.general_circuit.max.name=通用电路板 (§c§lMAX§r)
+
+metaitem.general_circuit.ulv.tooltip=§我是可爱的通用电路板§r
+metaitem.general_circuit.lv.tooltip=§7我是可爱的通用电路板§r
+metaitem.general_circuit.mv.tooltip=§b我是可爱的通用电路板§r
+metaitem.general_circuit.hv.tooltip=§6我是可爱的通用电路板§r
+metaitem.general_circuit.ev.tooltip=§5我是可爱的通用电路板§r
+metaitem.general_circuit.iv.tooltip=§1我是可爱的通用电路板§r
+metaitem.general_circuit.luv.tooltip=§d我是可爱的通用电路板§r
+metaitem.general_circuit.zpm.tooltip=§c我是可爱的通用电路板§r
+metaitem.general_circuit.uv.tooltip=§3我是可爱的通用电路板§r
+metaitem.general_circuit.uhv.tooltip=§4我是可爱的通用电路板§r
+metaitem.general_circuit.uev.tooltip=§a我是可爱的通用电路板§r
+metaitem.general_circuit.uiv.tooltip=§2我是可爱的通用电路板§r
+metaitem.general_circuit.uxv.tooltip=§e我是可爱的通用电路板§r
+metaitem.general_circuit.opv.tooltip=§9我是可爱的通用电路板§r
+metaitem.general_circuit.max.tooltip=§c§l我是可爱的通用电路板§r
+
+metaitem.wooden_bucket.name=木桶
+metaitem.large_fluid_cell.chrome.name=%s铬单元
+metaitem.large_fluid_cell.iridium.name=%s铱单元
+metaitem.large_fluid_cell.naquadah_alloy.name=%s硅岩合金单元
+metaitem.large_fluid_cell.neutronium.name=%s中子素单元
+
+metaitem.shape.mold.vanadium_steel.empty.name=空铸造模具
+metaitem.shape.mold.vanadium_steel.empty.tooltip=用以制作一次性工具的模具
+metaitem.shape.mold.vanadium_steel.saw.name=铸造模具（锯）
+metaitem.shape.mold.vanadium_steel.saw.tooltip=用来制作一次性锯的模具
+metaitem.shape.mold.vanadium_steel.hard_hammer.name=铸造模具（锤）
+metaitem.shape.mold.vanadium_steel.hard_hammer.tooltip=用来制作一次性锤的模具
+metaitem.shape.mold.vanadium_steel.soft_mallet.name=铸造模具（软锤）
+metaitem.shape.mold.vanadium_steel.soft_mallet.tooltip=用来制作一次性软锤的模具
+metaitem.shape.mold.vanadium_steel.wrench.name=铸造模具（扳手）
+metaitem.shape.mold.vanadium_steel.wrench.tooltip=用来制作一次性扳手的模具
+metaitem.shape.mold.vanadium_steel.file.name=铸造模具（锉）
+metaitem.shape.mold.vanadium_steel.file.tooltip=用来制作一次性锉的模具
+metaitem.shape.mold.vanadium_steel.crowbar.name=铸造模具（撬棍）
+metaitem.shape.mold.vanadium_steel.crowbar.tooltip=用来制作一次性撬棍的模具
+metaitem.shape.mold.vanadium_steel.screwdriver.name=铸造模具（螺丝刀）
+metaitem.shape.mold.vanadium_steel.screwdriver.tooltip=用来制作一次性螺丝刀的模具
+metaitem.shape.mold.vanadium_steel.mortar.name=铸造模具（研钵）
+metaitem.shape.mold.vanadium_steel.mortar.tooltip=用来制作一次性研钵的模具
+metaitem.shape.mold.vanadium_steel.wire_cutter.name=铸造模具（剪线钳）
+metaitem.shape.mold.vanadium_steel.wire_cutter.tooltip=用来制作一次性剪线钳的模具
+metaitem.shape.mold.vanadium_steel.knife.name=铸造模具（刀）
+metaitem.shape.mold.vanadium_steel.knife.tooltip=用来制作一次性刀的模具
+metaitem.shape.mold.vanadium_steel.butchery_knife.name=铸造模具（屠刀）
+metaitem.shape.mold.vanadium_steel.butchery_knife.tooltip=用来制作一次性屠刀的模具
+metaitem.shape.mold.vanadium_steel.rolling_pin.name=铸造模具（擀面杖）
+metaitem.shape.mold.vanadium_steel.rolling_pin.tooltip=用来制作一次性擀面杖的模具
+
+metaitem.tool.disposable.saw.name=一次性锯
+metaitem.tool.disposable.saw.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.hard_hammer.name=一次性锤
+metaitem.tool.disposable.hard_hammer.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.soft_mallet.name=一次性软锤
+metaitem.tool.disposable.soft_mallet.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.wrench.name=一次性扳手
+metaitem.tool.disposable.wrench.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.file.name=一次性锉
+metaitem.tool.disposable.file.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.crowbar.name=一次性撬棍
+metaitem.tool.disposable.crowbar.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.screwdriver.name=一次性螺丝刀
+metaitem.tool.disposable.screwdriver.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.mortar.name=一次性研钵
+metaitem.tool.disposable.mortar.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.wire_cutter.name=一次性剪线钳
+metaitem.tool.disposable.wire_cutter.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.knife.name=一次性刀
+metaitem.tool.disposable.knife.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.butchery_knife.name=一次性屠刀
+metaitem.tool.disposable.butchery_knife.tooltip=仅用于合成的一次性工具
+metaitem.tool.disposable.rolling_pin.name=一次性擀面杖
+metaitem.tool.disposable.rolling_pin.tooltip=仅用于合成的一次性工具
+metaitem.tool.scanner.name=基岩矿脉探测器
+
+# 核电
+metaitem.basket.anode.name=阳极筐
+metaitem.cladding.fuel.name=燃料棒包壳
+
+metaitem.fuel_rod.1x.name=空燃料棒
+metaitem.fuel_rod.2x.name=空双联燃料棒
+metaitem.fuel_rod.4x.name=空四联燃料棒
+
+metaitem.fuel_rod.uranium.1x.depleted.name=枯竭铀燃料棒
+metaitem.fuel_rod.uranium.2x.depleted.name=双联枯竭铀燃料棒
+metaitem.fuel_rod.uranium.4x.depleted.name=四联枯竭铀燃料棒
+metaitem.fuel_rod.thorium.1x.depleted.name=枯竭钍燃料棒
+metaitem.fuel_rod.thorium.2x.depleted.name=双联枯竭钍燃料棒
+metaitem.fuel_rod.thorium.4x.depleted.name=四联枯竭钍燃料棒
+metaitem.fuel_rod.plutonium.1x.depleted.name=枯竭钚燃料棒
+metaitem.fuel_rod.plutonium.2x.depleted.name=双联枯竭钚燃料棒
+metaitem.fuel_rod.plutonium.4x.depleted.name=四联枯竭钚燃料棒
+metaitem.fuel_rod.naquadah.1x.depleted.name=枯竭硅岩燃料棒
+metaitem.fuel_rod.naquadah.2x.depleted.name=双联枯竭硅岩燃料棒
+metaitem.fuel_rod.naquadah.4x.depleted.name=四联枯竭硅岩燃料棒
+
+metaitem.fuel_rod.uranium.1x.name=铀燃料棒
+metaitem.fuel_rod.uranium.2x.name=双联铀燃料棒
+metaitem.fuel_rod.uranium.4x.name=四联铀燃料棒
+metaitem.fuel_rod.thorium.1x.name=钍燃料棒
+metaitem.fuel_rod.thorium.2x.name=双联钍燃料棒
+metaitem.fuel_rod.thorium.4x.name=四联钍燃料棒
+metaitem.fuel_rod.plutonium.1x.name=钚燃料棒
+metaitem.fuel_rod.plutonium.2x.name=双联钚燃料棒
+metaitem.fuel_rod.plutonium.4x.name=四联钚燃料棒
+metaitem.fuel_rod.naquadah.1x.name=硅岩燃料棒
+metaitem.fuel_rod.naquadah.2x.name=双联硅岩燃料棒
+metaitem.fuel_rod.naquadah.4x.name=四联硅岩燃料棒
+
+metaitem.heat_vent.basic.name=基础散热片
+metaitem.heat_vent.advanced.name=进阶散热片
+metaitem.heat_vent.elite.name=精英散热片
+metaitem.heat_vent.ultimate.name=终极散热片
+
+metaitem.component_heat_vent.basic.name=基础元件散热片
+metaitem.component_heat_vent.advanced.name=进阶元件散热片
+metaitem.component_heat_vent.elite.name=精英元件散热片
+metaitem.component_heat_vent.ultimate.name=终极元件散热片
+
+metaitem.coolant_cell.10k.name=10K空冷却单元
+metaitem.coolant_cell.30k.name=30K空冷却单元
+metaitem.coolant_cell.60k.name=60K空冷却单元
+
+metaitem.coolant_cell.coolant.10k.name=10K冷却液冷却单元
+metaitem.coolant_cell.coolant.30k.name=30K冷却液冷却单元
+metaitem.coolant_cell.coolant.60k.name=60K冷却液冷却单元
+
+metaitem.coolant_cell.sodium_potassium.10k.name=10K钠钾合金冷却单元
+metaitem.coolant_cell.sodium_potassium.30k.name=30K钠钾合金冷却单元
+metaitem.coolant_cell.sodium_potassium.60k.name=60K钠钾合金冷却单元
+
+metaitem.coolant_cell.helium.10k.name=10K液氦冷却单元
+metaitem.coolant_cell.helium.30k.name=30K液氦冷却单元
+metaitem.coolant_cell.helium.60k.name=60K液氦冷却单元
+
+metaitem.neutron_reflector.basic.name=中子反射板
+metaitem.neutron_reflector.thick.name=加厚中子反射板
+metaitem.neutron_reflector.iridium.name=铱中子反射板
+
+metaitem.heat_exchanger.basic.name=基础热交换器
+metaitem.heat_exchanger.advanced.name=进阶热交换器
+metaitem.heat_exchanger.reactor.name=反应堆热交换器
+metaitem.heat_exchanger.component.name=部件交换器
+
+metaitem.reactor_plating.basic.name=基础反应堆隔板
+metaitem.reactor_plating.advanced.name=强化反应堆隔板
+
+# Casing blocks
 tile.casing.ulv=§8ULV§r机械方块
 tile.casing.lv=§7LV§r机械方块
 tile.casing.mv=§bMV§r机械方块
@@ -3378,6 +3690,34 @@ tile.large_multiblock_casing.atomic_casing.name=原子机械方块
 tile.large_multiblock_casing.naquadah_reinforced_casing.name=强化硅岩机械方块
 tile.large_multiblock_casing.steam_casing.name=工业蒸汽机械方块
 
+# 镶板
+tile.panelling.white.name=白色镶板
+tile.panelling.orange.name=橙色镶板
+tile.panelling.magenta.name=品红色镶板
+tile.panelling.light_blue.name=浅蓝色镶板
+tile.panelling.yellow.name=黄色镶板
+tile.panelling.lime.name=黄绿色镶板
+tile.panelling.pink.name=粉色镶板
+tile.panelling.gray.name=灰色镶板
+tile.panelling.light_gray.name=淡蓝色镶板
+tile.panelling.cyan.name=青色镶板
+tile.panelling.purple.name=紫色镶板
+tile.panelling.blue.name=蓝色镶板
+tile.panelling.brown.name=棕色镶板
+tile.panelling.green.name=绿色镶板
+tile.panelling.red.name=红色镶板
+tile.panelling.black.name=黑色镶板
+
+# 核反应堆方块
+tile.nuclear_casing.spent_fuel_casing.name=乏燃料贮存格架
+tile.nuclear_casing.gas_centrifuge_heater.name=气体加热器
+tile.gas_centrifuge_casing.gas_centrifuge_column.name=气体离心筒
+tile.nuclear_reactor_casing.nuclear_reactor_casing.name=核裂变反应堆外壳
+tile.fission_casing.reactor_vessel.name=反应堆压力壳
+tile.fission_casing.fuel_channel.name=燃料通道
+tile.fission_casing.control_rod_channel.name=控制棒通道
+tile.fission_casing.coolant_channel.name=冷却剂通道
+
 # Forge of the Gods Casings
 tile.godforge_casing.singularity_reinforced_stellar_shielding.name=奇点强化恒星屏蔽外壳
 tile.godforge_casing.celestial_matter_guidance.name=天体物质引导外壳
@@ -3638,7 +3978,6 @@ tile.stone_bricks_square.marble.name=大理岩方形砖
 tile.stone_bricks_square.basalt.name=玄武岩方形砖
 tile.stone_bricks_square.concrete_light.name=淡色混凝土方形砖
 tile.stone_bricks_square.concrete_dark.name=深色混凝土方形砖
-
 
 # Steam machines
 gregtech.machine.steam_boiler_coal_bronze.name=小型蒸汽固体燃料锅炉
@@ -5709,6 +6048,39 @@ gregtech.machine.world_accelerator.working_area_random=  随机刻模式：§f%d
 gregtech.machine.world_accelerator.mode_tile=方块实体模式
 gregtech.machine.world_accelerator.mode_entity=随机刻模式
 
+# Decay Chamber
+gregtech.machine.decay_chamber.lv.name=基础衰变室
+gregtech.machine.decay_chamber.lv.tooltip=辐光盈盈
+gregtech.machine.decay_chamber.mv.name=进阶衰变室
+gregtech.machine.decay_chamber.mv.tooltip=辐光盈盈
+gregtech.machine.decay_chamber.hv.name=进阶衰变室 II
+gregtech.machine.decay_chamber.hv.tooltip=辐光盈盈
+gregtech.machine.decay_chamber.ev.name=进阶衰变室 III
+gregtech.machine.decay_chamber.ev.tooltip=辐光盈盈
+gregtech.machine.decay_chamber.iv.name=精英衰变室
+gregtech.machine.decay_chamber.iv.tooltip=衰变加速器
+gregtech.machine.decay_chamber.luv.name=精英衰变室 II
+gregtech.machine.decay_chamber.luv.tooltip=衰变加速器
+gregtech.machine.decay_chamber.zpm.name=精英衰变室 III
+gregtech.machine.decay_chamber.zpm.tooltip=衰变加速器
+gregtech.machine.decay_chamber.uv.name=终极衰变室
+gregtech.machine.decay_chamber.uv.tooltip=零过程衰变
+gregtech.machine.decay_chamber.uhv.name=史诗衰变室
+gregtech.machine.decay_chamber.uhv.tooltip=零过程衰变
+gregtech.machine.decay_chamber.uev.name=史诗衰变室 II
+gregtech.machine.decay_chamber.uev.tooltip=零过程衰变
+gregtech.machine.decay_chamber.uiv.name=史诗衰变室 III
+gregtech.machine.decay_chamber.uiv.tooltip=零过程衰变
+gregtech.machine.decay_chamber.uxv.name=史诗衰变室 IV
+gregtech.machine.decay_chamber.uxv.tooltip=零过程衰变
+gregtech.machine.decay_chamber.opv.name=传奇衰变室
+gregtech.machine.decay_chamber.opv.tooltip=零过程衰变
+
+# RTG
+gregtech.machine.rtg.lv.name=同位素温差发电机-MKI
+gregtech.machine.rtg.mv.name=同位素温差发电机-MKII
+gregtech.machine.rtg.hv.name=同位素温差发电机-MKIII
+
 # Teleporter
 gregtech.machine.teleporter.ulv.name=简易传送器
 gregtech.machine.teleporter.ulv.tooltip=短距离传送设备
@@ -5738,6 +6110,58 @@ gregtech.machine.teleporter.uxv.name=史诗传送器 IV
 gregtech.machine.teleporter.uxv.tooltip=空间折跃装置
 gregtech.machine.teleporter.opv.name=传奇传送器
 gregtech.machine.teleporter.opv.tooltip=空间折跃装置
+
+gregtech.machine.teleporter.data_stick_use=坐标数据已写入闪存
+gregtech.machine.teleporter.data_stick_name=传送器位置信息
+gregtech.machine.teleporter_link.data_stick_loaded=已连接位于 X: %s, Y: %s, Z: %s 的传送器
+gregtech.machine.teleporter.teleport_success=已传送至位于 X: %s, Y: %s, Z: %s 的传送器
+gregtech.machine.teleporter.data_stick_saved=坐标数据已保存
+gregtech.machine.teleporter.working_enabled=传送器正在运行
+gregtech.machine.teleporter.working_disabled=传送器停止运行
+
+gregtech.machine.teleporter.tooltip.desc=将实体传送到连接的传送器
+gregtech.machine.teleporter.tooltip.range=传送最大距离：%s 格
+gregtech.machine.teleporter.tooltip.energy_consumption=每16格消耗能量：%s EU
+gregtech.machine.teleporter.tooltip.data_stick=使用数据棒保存/加载坐标
+gregtech.machine.teleporter.tooltip.screwdriver=使用螺丝刀右键切换工作状态
+
+# Bee Attractor
+gregtech.machine.bee_attractor.ulv.name=原始引蜂器
+gregtech.machine.bee_attractor.ulv.tooltip=并不是蜂巢
+gregtech.machine.bee_attractor.lv.name=基础引蜂器
+gregtech.machine.bee_attractor.lv.tooltip=专骗新手小蜜蜂
+gregtech.machine.bee_attractor.mv.name=进阶引蜂器
+gregtech.machine.bee_attractor.mv.tooltip=嗡嗡！这里有好花粉
+gregtech.machine.bee_attractor.hv.name=进阶引蜂器 II
+gregtech.machine.bee_attractor.hv.tooltip=嗡嗡！这里有好花粉
+gregtech.machine.bee_attractor.ev.name=进阶引蜂器 III
+gregtech.machine.bee_attractor.ev.tooltip=嗡嗡！这里有好花粉
+gregtech.machine.bee_attractor.iv.name=精英引蜂器
+gregtech.machine.bee_attractor.iv.tooltip=嗡嗡！这里有好花粉
+gregtech.machine.bee_attractor.luv.name=精英引蜂器 II
+gregtech.machine.bee_attractor.luv.tooltip=引诱良家妇蜂
+gregtech.machine.bee_attractor.zpm.name=精英引蜂器 III
+gregtech.machine.bee_attractor.zpm.tooltip=引诱良家妇蜂
+gregtech.machine.bee_attractor.uv.name=终极引蜂器
+gregtech.machine.bee_attractor.uv.tooltip=引诱良家妇蜂
+gregtech.machine.bee_attractor.uhv.name=史诗引蜂器
+gregtech.machine.bee_attractor.uhv.tooltip=引诱良家妇蜂
+gregtech.machine.bee_attractor.uev.name=史诗引蜂器 II
+gregtech.machine.bee_attractor.uev.tooltip=高收益蜂巢，稳赚不赔
+gregtech.machine.bee_attractor.uiv.name=史诗引蜂器 III
+gregtech.machine.bee_attractor.uiv.tooltip=高收益蜂巢，稳赚不赔
+gregtech.machine.bee_attractor.uxv.name=史诗引蜂器 IV
+gregtech.machine.bee_attractor.uxv.tooltip=高收益蜂巢，稳赚不赔
+gregtech.machine.bee_attractor.opv.name=传奇引蜂器
+gregtech.machine.bee_attractor.opv.tooltip=高收益蜂巢，稳赚不赔
+
+# Huge Buffer
+gregtech.machine.huge_buffer.tooltip=存储物品和流体的超大缓冲器
+gregtech.machine.huge_buffer.lv.name=基础巨型缓存器
+gregtech.machine.huge_buffer.mv.name=进阶巨型缓存器
+gregtech.machine.huge_buffer.hv.name=进阶巨型缓存器 II
+gregtech.machine.huge_buffer.ev.name=进阶巨型缓存器 III
+gregtech.machine.huge_buffer.iv.name=精英巨型缓存器
 
 # HPCA Components
 gregtech.machine.hpca.empty_component.name=空HPCA组件
@@ -6085,6 +6509,14 @@ gregtech.machine.primitive_blast_furnace_hatch.name=土高炉仓
 gregtech.machine.primitive_blast_furnace_hatch.tooltip=允许自动化土高炉的物品吞吐。
 gregtech.machine.large_chemical_reactor.name=大型化学反应釜
 
+gregtech.machine.heat_exchanger.name=换热器
+gregtech.machine.spent_fuel_pool.name=乏燃料池
+gregtech.machine.gas_centrifuge.name=气体离心机
+gregtech.machine.natural_draft_cooling_tower.name=冷却塔
+gregtech.machine.spent_fuel_pool.tooltip.parallel=§d最大并行：§f%s * 长度
+gregtech.machine.gas_centrifuge.tooltip.parallel=§d最大并行：§f1 + 额外列数
+gregtech.machine.fluid_auto_fill.tooltip=§3该多方块中的流体可以通过向输入仓提供流体来自动填充
+
 gregtech.machine.large_combustion_engine.name=大型内燃引擎
 gregtech.machine.extreme_combustion_engine.name=极限内燃引擎
 gregtech.machine.large_combustion_engine.tooltip.boost_regular=提供§f20 L/s§7的氧气，并消耗§f双倍§7燃料以产生高达§f%s§7 EU/t的功率。
@@ -6165,6 +6597,14 @@ gregtech.multiblock.cleanroom.clean_state=洁净（%s%%）
 gregtech.multiblock.cleanroom.dirty_state=污染（%s%%）
 gregtech.multiblock.cleanroom.warning_contaminated=被污染！
 gregtech.multiblock.cleanroom.low_tier=能源仓等级过低，最低等级为%s！
+
+gregtech.machine.logistics_material_distributor.name=物料分配器
+
+gregtech.machine.huge_transformer.name=大型变压器
+gregtech.machine.huge_transformer.tooltip1=家门口的变电站
+gregtech.machine.huge_transformer.tooltip2=可以将任意数量的能量§f输入§7整合为任意数量的能量§f输出§7。
+gregtech.machine.huge_transformer.tooltip3=仅支持能源仓
+gregtech.machine.huge_transformer.tooltip4=在工作时拆除会触发瞬时电压等级威力的爆炸
 
 gregtech.machine.charcoal_pile.name=木炭堆点火器
 gregtech.machine.charcoal_pile.tooltip.1=§c点火后§7将原木烧制成§a木炭§7。
@@ -6273,6 +6713,80 @@ metaitem.cover.digital.mode.fluid.enabled=已启用流体模式
 
 gregtech.machine.monitor_screen.name=监控器屏幕
 
+gregtech.machine.fission_reactor.name=裂变反应堆
+gregtech.machine.fission_reactor.tooltip.1=裂变反应堆的完整功能描述与操作指南起始于此。
+gregtech.machine.fission_reactor.tooltip.2=燃料棒内部核裂变产生的热能必须经由冷却剂介质传输至外部热交换器，最终转化为蒸汽并驱动涡轮发电机。
+gregtech.machine.fission_reactor.tooltip.3=该反应堆本身不具备直接向电网输出电力单位的能力，在启动前必须先行连接完备的热量处理与转换体系。
+gregtech.machine.fission_reactor.tooltip.4=关于反应堆的物理尺寸构建，需首先明确其空间结构参数。
+gregtech.machine.fission_reactor.tooltip.5=在JEI或结构投影装置中，所设定的三个参数分别对应反应堆的直径数值、控制器所在平面以上的层数以及控制器平面以下的层数。
+gregtech.machine.fission_reactor.tooltip.6=允许的最小结构实例为直径等于五个方块、上方设置一层、下方设置一层，整体高度为三层，且这些参数必须在所有相关界面中保持完全一致。
+gregtech.machine.fission_reactor.tooltip.7=控制器方块必须放置于中间层的外壁位置，整个外围使用反应堆压力壳材料封闭，内部空间则保留用于布置燃料通道、冷却剂通道、控制棒通道或中子慢化剂填充。
+gregtech.machine.fission_reactor.tooltip.8=外壳结构内必须且仅能包含一个维护仓，任何多出或缺失的情况均会导致结构校验失败。
+gregtech.machine.fission_reactor.tooltip.9=在完成外壳构建后，须沿垂直方向布置三条完整的物料输送通路。
+gregtech.machine.fission_reactor.tooltip.10=燃料的流通路径起始于顶层所设置的燃料输入端口，经由垂直贯通的燃料通道抵达底层燃料输出端口，该输出端口应预留空位以接收耗尽燃料棒。
+gregtech.machine.fission_reactor.tooltip.11=冷却剂的循环路径同样始自顶层冷却剂输入口，沿冷却剂通道下行至底层冷却剂输出口，该输出口需连接外部管道系统并具备充足的液体存储容量。
+gregtech.machine.fission_reactor.tooltip.12=控制棒的控制端口仅出现在顶层位置，其下方必须连接有竖直贯通的控制棒通道，且该通道不需要在底部设置对应的输出终端。
+gregtech.machine.fission_reactor.tooltip.13=各类端口仅允许连接与其类型相匹配的内部通道，当结构成形过程出现错误时，应首先检查端口下方的方块类型以及端口自身信息提示。
+gregtech.machine.fission_reactor.tooltip.14=在正式启动反应堆之前，必须执行一系列预备性检查程序。
+gregtech.machine.fission_reactor.tooltip.15=每一个燃料输入端口都需要插入一枚尚未完全消耗且具备有效成分的燃料棒，同时反应堆内部至少需要存在一条完整的燃料通道。
+gregtech.machine.fission_reactor.tooltip.16=每一处冷却剂输入端口都必须注入在JEI的“冷却剂加热”页面中明确列出的适用冷却剂类型。
+gregtech.machine.fission_reactor.tooltip.17=燃料棒输出端口必须保持无物品占据状态，而经加热后的热冷却剂输出端则需连接妥当的管道设施并配备充足的存储空间以容纳输出液体。
+gregtech.machine.fission_reactor.tooltip.18=对于初次投入运行的反应堆，建议采用标准型控制棒端口，并保持其自动调节功能处于激活状态。
+gregtech.machine.fission_reactor.tooltip.19=启动流程及所产生的热量后续处理方向描述如下。
+gregtech.machine.fission_reactor.tooltip.20=通过控制器界面执行“锁定并启动”操作，一旦运行开始，所有输入端口将被锁定，在此期间无法更换燃料种类或冷却剂类型。
+gregtech.machine.fission_reactor.tooltip.21=被加热的冷却剂需导入热交换器以产生蒸汽，进而供给蒸汽轮机使用；而使用过的热乏燃料棒则必须转移至注满水的乏燃料池中进行临时存放。
+gregtech.machine.fission_reactor.tooltip.22=运行过程中需要密切关注以下三项关键指标。
+gregtech.machine.fission_reactor.tooltip.23=有效中子倍增系数k_eff的数值接近1时反应堆处于最稳定状态，大于1则表明功率将持续上升，小于1则预示功率将逐步衰减。
+gregtech.machine.fission_reactor.tooltip.24=当k_eff数值过高，尤其是超过1.05的阈值时，应增加控制棒的插入深度或执行紧急停堆操作，特别需要注意的是石墨材质的控制棒具有相反的作用效果，因此在初次使用时应避免采用。
+gregtech.machine.fission_reactor.tooltip.25=若观察到反应堆内部温度与压力持续攀升，或者热冷却剂输出管路发生堵塞现象，必须立即停止运行并对冷却线路以及维护仓进行排查。
+gregtech.machine.fission_reactor.tooltip.26=关于停堆操作以及常见的故障提示信息处理方式。
+gregtech.machine.fission_reactor.tooltip.27=若需要更换燃料或冷却剂，应首先点击关闭或解锁按钮；当出现“燃料棒输出堵塞”的提示时，应及时清空底部输出端口的物品。
+gregtech.machine.fission_reactor.tooltip.28=出现“缺少燃料/冷却剂”的提示通常意味着对应顶层输入端为空置状态、内容物无效，或者其下方并未构成贯通的正确类型通道。
+gregtech.machine.fission_reactor.tooltip.29=当燃料棒完全耗尽后，取出具有热量的乏燃料棒，将其投入充满水的乏燃料池中等待冷却，冷却完成后方可进行后续的再处理工序。
+
+gregtech.multiblock.fission_reactor.description=裂变反应堆利用相近摆放的燃料棒维持可控的链式核反应。反应中所产生的热能被反应堆中的冷却剂吸收，并最终在你旋转涡轮机中被转化为电力。例如，若使用蒸馏水作为冷却剂，每格冷却液通道最大能吸收2 EU/(t * K)的热量。反应堆的结构大小可变，其中截面形状可参考JEI结构预览；而高度上则可以从控制器上下各延伸7格。反应堆的燃料棒及冷却剂交互需要通过其顶层与底层的特的端口来进行，此外，你也可以通过在反应堆顶层放置控制棒端口来进一步控制链式反应的进行。控制棒深入越多，反应堆的等效中子增殖速率（k_eff）越低。反应堆运行时将不断产生中子毒物，且在停堆后也保留较长时间，k_eff的数值也会被中子毒物的浓度影响。在反应堆到达其最大输出功率之前，其功率将不断以k_eff倍率增加，这意味着如果某一时刻k_eff > 1, 其功率将提高；若k_eff < 1，则功率将下降；而k_eff = 1则意味着其功率将稳定不变。事实上，反应堆将主动调节控制棒的插入程度，以求达到一稳定平衡。当然，你也可以手动覆写控制棒的插入程度——尤其是当k_eff > 1.05时——以免反应堆陷入螺旋式失控，并最终熔毁（或爆炸！）。功率以k_eff的倍率倍增的频率则取决于平均中子产生时间（t），这一时间由使用的燃料棒决定（你可以从工具信息中看到）。总的来说，反应堆的功率以t / (1 - k_eff)为时间常数（幅值衰变为1 / e倍时所对应的时间）而指数变化。结构中的控制棒、冷却液和燃料端口都需要与相应的通道相连才能正常运行，检查工具信息以了解所需的通道方块。在输入端口都填有原料后，即可锁定端口（意味着反应堆运行期间其中物品/流体种类将不再可被更改）并启动反应堆。反应堆中燃料棒以及冷却剂通道的摆放位置非常重要：燃料棒中原子衰变产生的中子可以造成其他燃料棒中原子的裂变反应，这意味着反应堆中有复数根燃料棒时，裂变效率将大大提高。当中子被慢化剂减速后，其与另一燃料棒作用的概率将提高。冷却剂通道中的水就是一种慢化剂，所以你可以在两个燃料棒通道间放置冷却剂通道来增大k_eff（控制棒则相反）。燃料棒的枯竭速率与功率成正比，一根产能为600 MJ的燃料棒可以在600秒的时间能提供1 MW的功率，抑或在1秒内提供600 MW的功率。注：如果反应堆产生了维护问题，冷却系统有时候会停止运行。冷却剂通道只有在热冷却液温度比堆温高时才会运行，且输出热冷却剂中的总热量不会超过反应堆最大功率。
+gregtech.multiblock.fission_reactor.description.minimal.title=§b最小可运行示例
+gregtech.multiblock.fission_reactor.description.minimal.dimensions=§7JEI 参数：宽度 7，高度 1，长度 1（总尺寸 7x7x3）。
+gregtech.multiblock.fission_reactor.description.minimal.layout=§7堆芯俯视图；F/W/R 是同一条纵向通路，. 为非堆芯位置：
+gregtech.multiblock.fission_reactor.description.minimal.row_1=§f. F W F .
+gregtech.multiblock.fission_reactor.description.minimal.row_2=§fF W R W F
+gregtech.multiblock.fission_reactor.description.minimal.row_3=§fW R W R W
+gregtech.multiblock.fission_reactor.description.minimal.row_4=§fF W R W F
+gregtech.multiblock.fission_reactor.description.minimal.row_5=§f. F W F .
+gregtech.multiblock.fission_reactor.description.minimal.top=§7顶层：F=燃料棒输入口（共 8 根低浓缩铀-235 燃料棒），W=冷却剂输入口（蒸馏水），R=普通控制棒端口。
+gregtech.multiblock.fission_reactor.description.minimal.middle=§7中层：F/W/R 分别替换为燃料通道、冷却剂通道、控制棒通道。
+gregtech.multiblock.fission_reactor.description.minimal.bottom=§7底层：F/W 分别替换为燃料棒输出口、冷却剂输出口；R 位置放反应堆压力壳。
+gregtech.multiblock.fission_reactor.description.minimal.shell=§7其余外壳使用反应堆压力壳；控制器在中层外壁，并且只能有 1 个维护仓。
+gregtech.multiblock.fission_reactor.description.minimal.operation=§7保持自动控制棒调节开启，冷却剂输出保持畅通；初始 k_eff 约为 1.07，随后会向 1.00 收敛。
+gregtech.multiblock.gas_centrifuge.description=气体离心机可被用于提纯同位素，尤其是铀的。通过将六氟化铀重复通入一系列离心筒中离心，最终可以得到高度浓缩的六氟化铀-235，足以用于核燃料的制造。结构每增长一格，并行数增加1。
+gregtech.multiblock.heat_exchanger.description=通过将热流体通入热交换器，你可以将其热量传递至另一流体，抑或是散发到环境中。你可以通过它来利用裂变反应堆输出的热冷却液生产蒸汽，以推动你的蒸汽轮机。
+gregtech.multiblock.spent_fuel_pool.description=乏燃料池可以将裂变反应堆输出的热乏燃料棒冷却以供后续处理。它必须要在灌满水后才能正常运行，这可以通过输入水或手动放置水方块来完成。结构每增长一格，并行数增加32。
+gregtech.multiblock.nuclear_reactor.description=核反应堆是一套复刻并强化了IC经典核电系统的先进多方块结构。它通过精密排布各类燃料棒（如铀棒、MOX棒）、散热片、热交换器、中子反射板等核心元件，构成一个高效且高风险的能量产出矩阵。该系统的核心在于动态平衡：燃料棒在产生巨额电力的同时会释放大量热量，必须依靠周围的散热元件（如散热片、冷却单元、热交换器）及时吸收并耗散，否则积聚的热量将导致反应堆过热，引发范围性环境破坏（如火灾、水体蒸发、方块熔融）乃至毁灭性爆炸。反应堆隔板能提升其整体热容上限并抑制爆炸威力，而冷凝模块等特殊组件则提供了更强的瞬时散热能力。允许玩家构建从安全稳健到极致性能（伴随极高风险）的多种核电方案，是GregTech模组中兼具复杂工程魅力和巨大能源回报的关键设施。
+metaitem.nuclear.tooltip.radioactive=§c释放危险性辐射
+metaitem.nuclear.tooltip.duration=总热量：%d MJ
+metaitem.nuclear.tooltip.temperature=熔点：%d K
+metaitem.nuclear.tooltip.cross_section_fast=快中子概率：%d barn
+metaitem.nuclear.tooltip.cross_section_slow=慢中子概率：%d barn
+metaitem.nuclear.tooltip.neutron_time.0=平均中子辐照：%ds（§1安全§r）
+metaitem.nuclear.tooltip.neutron_time.1=平均中子辐照：%ds（§2非常安全§r）
+metaitem.nuclear.tooltip.neutron_time.2=平均中子辐照：%ds（§c危险§r）
+metaitem.nuclear.tooltip.neutron_time.3=平均中子辐照：%ds（§4非常危险§r）
+metaitem.nuclear.tooltip.moderation_factor=慢化强度：%d
+metaitem.nuclear.tooltip.absorption_factor=吸收强度：%d
+
+gregtech.multiblock.pattern.error.hatch_invalid=§c此仓室未被正确摆放！§r
+
+gregtech.multiblock.fission_reactor.diameter=直径: %s
+gregtech.multiblock.fission_reactor.height=高度: %s
+
+gregtech.multiblock.fission_reactor.turn_on=启动反应堆（并锁定所有端口）？
+gregtech.multiblock.fission_reactor.turn_off=关闭反应堆？
+gregtech.multiblock.fission_reactor.structure_incomplete=无法启动反应堆，因为结构无效。
+gregtech.multiblock.fission_reactor.invalid_components=无法启动反应堆，因为存在端口与相应位置通道功能不一致。
+gregtech.multiblock.fission_reactor.missing_inputs=无法启动反应堆，因为存在输入端口为空或存有无效冷却剂。
+gregtech.multiblock.spent_fuel_pool.obstructed=乏燃料池未灌满水！
+gregtech.multiblock.spent_fuel_pool.obstructed.desc=乏燃料池必须要充满水才能正常运行。
+
 gregtech.machine.large_macerator.name=大型研磨机
 gregtech.machine.alloy_blast_smelter.name=合金冶炼炉
 gregtech.machine.large_arc_furnace.name=大型电弧炉
@@ -6355,6 +6869,8 @@ gregtech.machine.fluid_drilling_rig.hv.tooltip=并不能用来液压破碎
 gregtech.machine.fluid_drilling_rig.ev.tooltip=甚至可以抽空整个油田
 gregtech.machine.cleanroom.tooltip=将那些讨厌的灰尘拒之门外
 gregtech.machine.charcoal_pile.tooltip=不烤面包烤燃料的地下面包房
+gregtech.machine.fission_reactor.tooltip=好吃到爆的发电机
+gregtech.machine.heat_exchanger.tooltip=分子级烫手山芋玩家
 
 # Multiblock machine parts
 gregtech.machine.item_bus.import.tooltip=为多方块结构输入物品
@@ -7494,9 +8010,156 @@ gregtech.machine.laser_hatch.source.tooltip1=远距离发射能量
 gregtech.machine.laser_hatch.target.tooltip1=远距离接收能量
 gregtech.machine.laser_hatch.tooltip=§c激光传导线缆必须直线摆放！§7
 
+gregtech.machine.huge_item_bus.import.lv.1.name=§7LV§r巨型输入总线(单槽)
+gregtech.machine.huge_item_bus.import.lv.4.name=§7LV§r巨型输入总线(4槽)
+gregtech.machine.huge_item_bus.import.lv.9.name=§7LV§r巨型输入总线(9槽)
+gregtech.machine.huge_item_bus.import.lv.16.name=§7LV§r巨型输入总线(16槽)
+gregtech.machine.huge_item_bus.import.mv.1.name=§bMV§r巨型输入总线(单槽)
+gregtech.machine.huge_item_bus.import.mv.4.name=§bMV§r巨型输入总线(4槽)
+gregtech.machine.huge_item_bus.import.mv.9.name=§bMV§r巨型输入总线(9槽)
+gregtech.machine.huge_item_bus.import.mv.16.name=§bMV§r巨型输入总线(16槽)
+gregtech.machine.huge_item_bus.import.hv.1.name=§6HV§r巨型输入总线(单槽)
+gregtech.machine.huge_item_bus.import.hv.4.name=§6HV§r巨型输入总线(4槽)
+gregtech.machine.huge_item_bus.import.hv.9.name=§6HV§r巨型输入总线(9槽)
+gregtech.machine.huge_item_bus.import.hv.16.name=§6HV§r巨型输入总线(16槽)
+gregtech.machine.huge_item_bus.import.ev.1.name=§5EV§r巨型输入总线(单槽)
+gregtech.machine.huge_item_bus.import.ev.4.name=§5EV§r巨型输入总线(4槽)
+gregtech.machine.huge_item_bus.import.ev.9.name=§5EV§r巨型输入总线(9槽)
+gregtech.machine.huge_item_bus.import.ev.16.name=§5EV§r巨型输入总线(16槽)
+gregtech.machine.huge_item_bus.import.iv.1.name=§1IV§r巨型输入总线(单槽)
+gregtech.machine.huge_item_bus.import.iv.4.name=§1IV§r巨型输入总线(4槽)
+gregtech.machine.huge_item_bus.import.iv.9.name=§1IV§r巨型输入总线(9槽)
+gregtech.machine.huge_item_bus.import.iv.16.name=§1IV§r巨型输入总线(16槽)
+
+gregtech.machine.huge_item_bus.export.lv.1.name=§7LV§r巨型输出总线(单槽)
+gregtech.machine.huge_item_bus.export.lv.4.name=§7LV§r巨型输出总线(4槽)
+gregtech.machine.huge_item_bus.export.lv.9.name=§7LV§r巨型输出总线(9槽)
+gregtech.machine.huge_item_bus.export.lv.16.name=§7LV§r巨型输出总线(16槽)
+gregtech.machine.huge_item_bus.export.mv.1.name=§bMV§r巨型输出总线(单槽)
+gregtech.machine.huge_item_bus.export.mv.4.name=§bMV§r巨型输出总线(4槽)
+gregtech.machine.huge_item_bus.export.mv.9.name=§bMV§r巨型输出总线(9槽)
+gregtech.machine.huge_item_bus.export.mv.16.name=§bMV§r巨型输出总线(16槽)
+gregtech.machine.huge_item_bus.export.hv.1.name=§6HV§r巨型输出总线(单槽)
+gregtech.machine.huge_item_bus.export.hv.4.name=§6HV§r巨型输出总线(4槽)
+gregtech.machine.huge_item_bus.export.hv.9.name=§6HV§r巨型输出总线(9槽)
+gregtech.machine.huge_item_bus.export.hv.16.name=§6HV§r巨型输出总线(16槽)
+gregtech.machine.huge_item_bus.export.ev.1.name=§5EV§r巨型输出总线(单槽)
+gregtech.machine.huge_item_bus.export.ev.4.name=§5EV§r巨型输出总线(4槽)
+gregtech.machine.huge_item_bus.export.ev.9.name=§5EV§r巨型输出总线(9槽)
+gregtech.machine.huge_item_bus.export.ev.16.name=§5EV§r巨型输出总线(16槽)
+gregtech.machine.huge_item_bus.export.iv.1.name=§1IV§r巨型输出总线(单槽)
+gregtech.machine.huge_item_bus.export.iv.4.name=§1IV§r巨型输出总线(4槽)
+gregtech.machine.huge_item_bus.export.iv.9.name=§1IV§r巨型输出总线(9槽)
+gregtech.machine.huge_item_bus.export.iv.16.name=§1IV§r巨型输出总线(16槽)
+
+gregtech.machine.dual_hatch.import.ulv.name=§8ULV§r输入总成
+gregtech.machine.dual_hatch.import.lv.name=§7LV§r输入总成
+gregtech.machine.dual_hatch.import.mv.name=§bMV§r输入总成
+gregtech.machine.dual_hatch.import.hv.name=§6HV§r输入总成
+gregtech.machine.dual_hatch.import.ev.name=§5EV§r输入总成
+gregtech.machine.dual_hatch.import.iv.name=§1IV§r输入总成
+gregtech.machine.dual_hatch.import.luv.name=§dLuV§r输入总成
+gregtech.machine.dual_hatch.import.zpm.name=§cZPM§r输入总成
+gregtech.machine.dual_hatch.import.uv.name=§3UV§r输入总成
+gregtech.machine.dual_hatch.import.uhv.name=§4UHV§r输入总成
+gregtech.machine.dual_hatch.import.uev.name=§aUEV§r输入总成
+gregtech.machine.dual_hatch.import.uiv.name=§2UIV§r输入总成
+gregtech.machine.dual_hatch.import.uxv.name=§eUXV§r输入总成
+gregtech.machine.dual_hatch.import.opv.name=§9OpV§r输入总成
+gregtech.machine.dual_hatch.import.max.name=§c§lMAX§r输入总成
+
+gregtech.machine.dual_hatch.export.ulv.name=§8ULV§r输出总成
+gregtech.machine.dual_hatch.export.lv.name=§7LV§r输出总成
+gregtech.machine.dual_hatch.export.mv.name=§bMV§r输出总成
+gregtech.machine.dual_hatch.export.hv.name=§6HV§r输出总成
+gregtech.machine.dual_hatch.export.ev.name=§5EV§r输出总成
+gregtech.machine.dual_hatch.export.iv.name=§1IV§r输出总成
+gregtech.machine.dual_hatch.export.luv.name=§dLuV§r输出总成
+gregtech.machine.dual_hatch.export.zpm.name=§cZPM§r输出总成
+gregtech.machine.dual_hatch.export.uv.name=§3UV§r输出总成
+gregtech.machine.dual_hatch.export.uhv.name=§4UHV§r输出总成
+gregtech.machine.dual_hatch.export.uev.name=§aUEV§r输出总成
+gregtech.machine.dual_hatch.export.uiv.name=§2UIV§r输出总成
+gregtech.machine.dual_hatch.export.uxv.name=§eUXV§r输出总成
+gregtech.machine.dual_hatch.export.opv.name=§9OpV§r输出总成
+gregtech.machine.dual_hatch.export.max.name=§c§lMAX§r输出总成
+
+gregtech.machine.huge_dual_hatch.import.lv.1.name=§7LV§r巨型输入总成(单槽)
+gregtech.machine.huge_dual_hatch.import.lv.4.name=§7LV§r巨型输入总成(4槽)
+gregtech.machine.huge_dual_hatch.import.lv.9.name=§7LV§r巨型输入总成(9槽)
+gregtech.machine.huge_dual_hatch.import.lv.16.name=§7LV§r巨型输入总成(16槽)
+gregtech.machine.huge_dual_hatch.import.mv.1.name=§bMV§r巨型输入总成(单槽)
+gregtech.machine.huge_dual_hatch.import.mv.4.name=§bMV§r巨型输入总成(4槽)
+gregtech.machine.huge_dual_hatch.import.mv.9.name=§bMV§r巨型输入总成(9槽)
+gregtech.machine.huge_dual_hatch.import.mv.16.name=§bMV§r巨型输入总成(16槽)
+gregtech.machine.huge_dual_hatch.import.hv.1.name=§6HV§r巨型输入总成(单槽)
+gregtech.machine.huge_dual_hatch.import.hv.4.name=§6HV§r巨型输入总成(4槽)
+gregtech.machine.huge_dual_hatch.import.hv.9.name=§6HV§r巨型输入总成(9槽)
+gregtech.machine.huge_dual_hatch.import.hv.16.name=§6HV§r巨型输入总成(16槽)
+gregtech.machine.huge_dual_hatch.import.ev.1.name=§5EV§r巨型输入总成(单槽)
+gregtech.machine.huge_dual_hatch.import.ev.4.name=§5EV§r巨型输入总成(4槽)
+gregtech.machine.huge_dual_hatch.import.ev.9.name=§5EV§r巨型输入总成(9槽)
+gregtech.machine.huge_dual_hatch.import.ev.16.name=§5EV§r巨型输入总成(16槽)
+gregtech.machine.huge_dual_hatch.import.iv.1.name=§1IV§r巨型输入总成(单槽)
+gregtech.machine.huge_dual_hatch.import.iv.4.name=§1IV§r巨型输入总成(4槽)
+gregtech.machine.huge_dual_hatch.import.iv.9.name=§1IV§r巨型输入总成(9槽)
+gregtech.machine.huge_dual_hatch.import.iv.16.name=§1IV§r巨型输入总成(16槽)
+
+gregtech.machine.huge_dual_hatch.export.lv.1.name=§7LV§r巨型输出总成(单槽)
+gregtech.machine.huge_dual_hatch.export.lv.4.name=§7LV§r巨型输出总成(4槽)
+gregtech.machine.huge_dual_hatch.export.lv.9.name=§7LV§r巨型输出总成(9槽)
+gregtech.machine.huge_dual_hatch.export.lv.16.name=§7LV§r巨型输出总成(16槽)
+gregtech.machine.huge_dual_hatch.export.mv.1.name=§bMV§r巨型输出总成(单槽)
+gregtech.machine.huge_dual_hatch.export.mv.4.name=§bMV§r巨型输出总成(4槽)
+gregtech.machine.huge_dual_hatch.export.mv.9.name=§bMV§r巨型输出总成(9槽)
+gregtech.machine.huge_dual_hatch.export.mv.16.name=§bMV§r巨型输出总成(16槽)
+gregtech.machine.huge_dual_hatch.export.hv.1.name=§6HV§r巨型输出总成(单槽)
+gregtech.machine.huge_dual_hatch.export.hv.4.name=§6HV§r巨型输出总成(4槽)
+gregtech.machine.huge_dual_hatch.export.hv.9.name=§6HV§r巨型输出总成(9槽)
+gregtech.machine.huge_dual_hatch.export.hv.16.name=§6HV§r巨型输出总成(16槽)
+gregtech.machine.huge_dual_hatch.export.ev.1.name=§5EV§r巨型输出总成(单槽)
+gregtech.machine.huge_dual_hatch.export.ev.4.name=§5EV§r巨型输出总成(4槽)
+gregtech.machine.huge_dual_hatch.export.ev.9.name=§5EV§r巨型输出总成(9槽)
+gregtech.machine.huge_dual_hatch.export.ev.16.name=§5EV§r巨型输出总成(16槽)
+gregtech.machine.huge_dual_hatch.export.iv.1.name=§1IV§r巨型输出总成(单槽)
+gregtech.machine.huge_dual_hatch.export.iv.4.name=§1IV§r巨型输出总成(4槽)
+gregtech.machine.huge_dual_hatch.export.iv.9.name=§1IV§r巨型输出总成(9槽)
+gregtech.machine.huge_dual_hatch.export.iv.16.name=§1IV§r巨型输出总成(16槽)
+
+gregtech.machine.complex_dual_hatch.ulv.name=§8ULV§r回环总成
+gregtech.machine.complex_dual_hatch.lv.name=§7LV§r回环总成
+gregtech.machine.complex_dual_hatch.mv.name=§bMV§r回环总成
+gregtech.machine.complex_dual_hatch.hv.name=§6HV§r回环总成
+gregtech.machine.complex_dual_hatch.ev.name=§5EV§r回环总成
+gregtech.machine.complex_dual_hatch.iv.name=§1IV§r回环总成
+gregtech.machine.complex_dual_hatch.luv.name=§dLuV§r回环总成
+gregtech.machine.complex_dual_hatch.zpm.name=§cZPM§r回环总成
+gregtech.machine.complex_dual_hatch.uv.name=§3UV§r回环总成
+gregtech.machine.complex_dual_hatch.uhv.name=§4UHV§r回环总成
+gregtech.machine.complex_dual_hatch.uev.name=§aUEV§r回环总成
+gregtech.machine.complex_dual_hatch.uiv.name=§2UIV§r回环总成
+gregtech.machine.complex_dual_hatch.uxv.name=§eUXV§r回环总成
+gregtech.machine.complex_dual_hatch.opv.name=§9OpV§r回环总成
+gregtech.machine.complex_dual_hatch.max.name=§c§lMAX§r回环总成
+
+gregtech.machine.mold_bus.ulv.name=§8ULV§r模具仓
+gregtech.machine.mold_bus.lv.name=§7LV§r模具仓
+gregtech.machine.mold_bus.mv.name=§bMV§r模具仓
+gregtech.machine.mold_bus.hv.name=§6HV§r模具仓
+gregtech.machine.mold_bus.ev.name=§5EV§r模具仓
+gregtech.machine.mold_bus.iv.name=§1IV§r模具仓
+gregtech.machine.mold_bus.luv.name=§dLuV§r模具仓
+gregtech.machine.mold_bus.zpm.name=§cZPM§r模具仓
+gregtech.machine.mold_bus.uv.name=§3UV§r模具仓
+gregtech.machine.mold_bus.uhv.name=§4UHV§r模具仓
+gregtech.machine.mold_bus.uev.name=§aUEV§r模具仓
+gregtech.machine.mold_bus.uiv.name=§2UIV§r模具仓
+gregtech.machine.mold_bus.uxv.name=§eUXV§r模具仓
+gregtech.machine.mold_bus.opv.name=§9OpV§r模具仓
+gregtech.machine.mold_bus.max.name=§c§lMAX§r模具仓
+
 gregtech.machine.fluid_tank.max_multiblock=多方块结构最大尺寸：%,dx%,dx%,d
 gregtech.machine.fluid_tank.fluid=§9含有:§f%s L %s
-
 
 gregtech.machine.parallel_hatch.lv.name=并行控制仓(LV)
 gregtech.machine.parallel_hatch.mv.name=并行控制仓(MV)
@@ -7580,6 +8243,99 @@ gregtech.machine.accelerate_hatch.max.name=加速仓(Max)
 
 gregtech.machine.accelerate_hatch.tooltip.1=加速仓可以直接调整机器的耗时倍数，在原计算结果之上乘算。
 gregtech.machine.accelerate_hatch.tooltip.2=可提供低至%s%%的耗时倍率。
+
+# Dust Collector
+gregtech.machine.dust_collector.ulv.name=§8ULV§r 除尘器
+gregtech.machine.dust_collector.lv.name=§7LV§r 除尘器
+gregtech.machine.dust_collector.mv.name=§bMV§r 除尘器
+gregtech.machine.dust_collector.hv.name=§6HV§r 除尘器
+gregtech.machine.dust_collector.ev.name=§5EV§r 除尘器
+gregtech.machine.dust_collector.iv.name=§1IV§r 除尘器
+gregtech.machine.dust_collector.luv.name=§dLuV§r 除尘器
+gregtech.machine.dust_collector.zpm.name=§cZPM§r 除尘器
+gregtech.machine.dust_collector.uv.name=§3UV§r 除尘器
+gregtech.machine.dust_collector.uhv.name=§4UHV§r 除尘器
+gregtech.machine.dust_collector.uev.name=§aUEV§r 除尘器
+gregtech.machine.dust_collector.uiv.name=§2UIV§r 除尘器
+gregtech.machine.dust_collector.uxv.name=§eUXV§r 除尘器
+gregtech.machine.dust_collector.opv.name=§9OpV§r 除尘器
+gregtech.machine.dust_collector.max.name=§c§lMAX§r 除尘器
+
+gregtech.machine.dust_collector.tooltip.1=从消声仓中收集灰烬
+gregtech.machine.dust_collector.tooltip.2=允许安装在消声仓前方，不影响消声仓检测
+
+# Heat Input/Output Hatches
+gregtech.machine.heat_input_hatch.ulv.name=§8ULV§r 热阱仓
+gregtech.machine.heat_input_hatch.lv.name=§7LV§r 热阱仓
+gregtech.machine.heat_input_hatch.mv.name=§bMV§r 热阱仓
+gregtech.machine.heat_input_hatch.hv.name=§6HV§r 热阱仓
+gregtech.machine.heat_input_hatch.ev.name=§5EV§r 热阱仓
+gregtech.machine.heat_input_hatch.iv.name=§1IV§r 热阱仓
+gregtech.machine.heat_input_hatch.luv.name=§dLuV§r 热阱仓
+gregtech.machine.heat_input_hatch.zpm.name=§cZPM§r 热阱仓
+gregtech.machine.heat_input_hatch.uv.name=§3UV§r 热阱仓
+gregtech.machine.heat_input_hatch.uhv.name=§4UHV§r 热阱仓
+
+gregtech.machine.heat_hatch.input.tooltip=为多方块结构输入热量
+
+gregtech.machine.heat_output_hatch.ulv.name=§8ULV§r 热源仓
+gregtech.machine.heat_output_hatch.lv.name=§7LV§r 热源仓
+gregtech.machine.heat_output_hatch.mv.name=§bMV§r 热源仓
+gregtech.machine.heat_output_hatch.hv.name=§6HV§r 热源仓
+gregtech.machine.heat_output_hatch.ev.name=§5EV§r 热源仓
+gregtech.machine.heat_output_hatch.iv.name=§1IV§r 热源仓
+gregtech.machine.heat_output_hatch.luv.name=§dLuV§r 热源仓
+gregtech.machine.heat_output_hatch.zpm.name=§cZPM§r 热源仓
+gregtech.machine.heat_output_hatch.uv.name=§3UV§r 热源仓
+gregtech.machine.heat_output_hatch.uhv.name=§4UHV§r 热源仓
+
+gregtech.machine.heat_hatch.output.tooltip=从多方块结构输出热量
+
+gregtech.machine.electric_heater.ulv.name=§8ULV§r 电加热器
+gregtech.machine.electric_heater.lv.name=§7LV§r 电加热器
+gregtech.machine.electric_heater.mv.name=§bMV§r 电加热器
+gregtech.machine.electric_heater.hv.name=§6HV§r 电加热器
+gregtech.machine.electric_heater.ev.name=§5EV§r 电加热器
+gregtech.machine.electric_heater.iv.name=§1IV§r 电加热器
+gregtech.machine.electric_heater.luv.name=§dLuV§r 电加热器
+gregtech.machine.electric_heater.zpm.name=§cZPM§r 电加热器
+gregtech.machine.electric_heater.uv.name=§3UV§r 电加热器
+gregtech.machine.electric_heater.uhv.name=§4UHV§r 电加热器
+
+gregtech.machine.electric_heater.tooltip=将电能转化为热能
+
+gregtech.machine.heat_sensor.name=热量传感器
+gregtech.machine.heat_sensor.tooltip.1=读取多方块的热量并输出红石信号
+gregtech.machine.heat_sensor.tooltip.2=温度每超过373k 200k则增加一级红石信号（最高15级信号）
+gregtech.machine.heat_sensor.tooltip.3=使用螺丝刀右键反转输出（温度最低时输出15级信号）
+
+gregtech.universal.tooltip.heat_in_till=§c输入热量上限：§f%,d HU
+gregtech.universal.tooltip.heat_out_till=§c输出热量上限：§f%,d HU
+gregtech.universal.tooltip.heat_storage_capacity=§b热量缓存：§f%,d HU
+gregtech.universal.tooltip.max_temperature=§e最大热容：§f%,d K
+
+# Fuel Rods
+gregtech.machine.fuel_rod_input.name=燃料棒输入口
+gregtech.machine.fuel_rod_input.tooltip=仅在下方为§f燃料通道§7时才能成型运作
+gregtech.machine.fuel_rod_output.name=燃料棒输出口
+gregtech.machine.fuel_rod_output.tooltip=仅在上方为§f燃料通道§7时才能成型运作
+gregtech.machine.coolant_input.name=冷却剂输入口
+gregtech.machine.coolant_input.tooltip=仅在下方为§f冷却剂通道§7时才能成型运作
+gregtech.machine.coolant_output.name=冷却剂输出口
+gregtech.machine.coolant_output.tooltip=仅在上方为§f冷却剂通道§7时才能成型运作
+gregtech.machine.control_rod.name=控制棒端口
+gregtech.machine.control_rod.tooltip=仅在下方为§f控制棒通道§7时才能成型运作
+gregtech.machine.control_rod.tooltip.1=放置在燃料棒之间时将降低中子增殖速率！
+gregtech.machine.control_rod_moderated.name=石墨控制棒端口
+gregtech.machine.control_rod_moderated.tooltip=仅在下方为§f控制棒通道§7时才能成型运作
+gregtech.machine.control_rod_moderated.tooltip.1=放置在燃料棒之间时将提升30%%的中子增殖速率！
+gregtech.machine.nuclear.locking.item=将在反应堆启动后锁定，无法更改其中物品种类
+gregtech.machine.nuclear.locking.fluid=将在反应堆启动后锁定，无法更改其中流体种类
+gregtech.machine.moderator_port.name=慢化剂端口
+gregtech.machine.moderator_port.tooltip=仅在下方为§f慢化剂方块§7时才能成型运作
+
+gregtech.machine.nuclear_reactor.name=核反应堆
+gregtech.machine.nuclear_extend_hatch.name=反应堆拓展仓
 # ME Parts
 gregtech.machine.me_import_item_bus.name=ME输入总线
 gregtech.machine.me.item_import.tooltip=从ME网络提取指定物品
@@ -7618,6 +8374,7 @@ gregtech.machine.me.settings.ore_dict=输入限制矿辞
 gregtech.machine.me.settings.ore_dict.tooltip=输入矿辞后，只会拉取带有指定矿辞的材料
 gregtech.machine.me.settings.precise_mode=精准模式
 gregtech.machine.me.multiplier.button=配置倍率
+
 # Universal tooltips
 gregtech.universal.tooltip.voltage_in=§a输入电压：§f%,d EU/t（%s§f）
 gregtech.universal.tooltip.max_voltage_in=§a最大输入电压：§f%,d（%s§f）
@@ -7700,6 +8457,12 @@ gregtech.recipe.scan_for_research=装配线配方扫描
 gregtech.recipe.computation_per_tick=最小算力：%,d CWU/t
 gregtech.recipe.total_computation=算力总计：%,d CWU
 gregtech.recipe.research_result=研究结果，物品不是由这个配方直接制造。
+gregtech.coolant.general=§9可被用作冷却剂§7
+gregtech.coolant.exit_temp=热冷却液温度：%d K
+gregtech.coolant.heat_capacity=热容：%d J/kgK
+gregtech.coolant.cooling_factor=传热速率：%d W/(m^2K)
+gregtech.coolant.moderation_factor=控制截面：%d barn
+gregtech.coolant.accumulates_hydrogen=§c在1500K以上将生成并积累氢气！
 
 gregtech.fluid.click_to_fill=§7手持流体容器点击流体槽以§b填入§7流体（Shift+单击以用整组容器中的流体填入）
 gregtech.fluid.click_combined=§7手持流体容器左键点击流体槽以§c倒出§7或§b填入§7流体（Shift+单击以用整组容器倒出流体或用整组容器中的流体填入）
@@ -7801,6 +8564,33 @@ gregtech.gui.item_passthrough.enabled=物品通行已启用
 gregtech.gui.item_passthrough.disabled=物品通行已禁用
 gregtech.gui.fluid_passthrough.enabled=流体通行已启用
 gregtech.gui.fluid_passthrough.disabled=流体通行已禁用
+gregtech.gui.fission.control_rod_insertion=控制棒插入程度：%d
+gregtech.gui.fission.coolant_flow=单通道冷却剂流速：%d L/t
+gregtech.gui.fission.temperature=温度：%.3f K
+gregtech.gui.fission.pressure=压力：%.3f Pa
+gregtech.gui.fission.power=功率：%.3f MW / %.3f MW
+gregtech.gui.fission.k_eff=中子增殖因子：%f
+gregtech.gui.fission.depletion=当前燃料棒枯竭度：%f%%
+gregtech.gui.fission.depleted_rod=枯竭燃料棒：%s
+
+gregtech.gui.fission.lock.locked=反应堆已锁定并启动！
+gregtech.gui.fission.lock.unlocked=反应堆未运行
+gregtech.gui.fission.lock.should_lock=正在启动……
+gregtech.gui.fission.lock.missing_fuel=通道尚未插入燃料棒！
+gregtech.gui.fission.lock.missing_coolant=通道尚未通入冷却液！
+gregtech.gui.fission.lock.fuel_clogged=燃料棒输出口被堵塞！
+gregtech.gui.fission.lock.no_fuel_channels=尚未安装燃料通道！
+gregtech.gui.fission.lock.invalid_component=呃，咋回事呢？看看你的输出日志？
+gregtech.gui.fission.lock.disabled=锁定燃料棒及冷却液端口并启动反应堆
+gregtech.gui.fission.lock.enabled=关闭反应堆并解锁燃料棒及冷却液端口
+gregtech.gui.fission.structure.location=V3 结构错误位置：%s
+gregtech.gui.fission.structure.no_trace=V3 尚未给出失败坐标；请再次点击启动以重新检查结构。
+
+gregtech.gui.fission.helper.disabled=智能控制棒调节：已关闭
+gregtech.gui.fission.helper.enabled=智能控制棒调节：已启用
+
+gregtech.gui.locked=(已锁定)
+gregtech.gui.void_fuel=清空当前部分枯竭的燃料！
 
 ore.spawnlocation.name=矿物生成信息
 gregtech.jei.ore.surface_rock_1=这种地表岩石标志着矿脉的生成位置。
@@ -9012,382 +9802,3 @@ gregtech.machine.wireless_controller.tooltip.8=§7 Ti = 电容等级，C = 监�
 gregtech.machine.wireless_controller.tooltip.9=§7 仅 UHV 及以上等级的电容参与计算
 gregtech.machine.wireless_controller.tooltip.retention=§b本地保留比例：§f%s%%
 gregtech.machine.wireless_controller.tooltip.team=FTB 同组玩家自动共享同一网络，无需额外操作。
-
-# Integrated nuclear content
-tile.fission_casing.reactor_vessel.name=反应堆压力壳
-tile.fission_casing.fuel_channel.name=燃料通道
-tile.fission_casing.control_rod_channel.name=控制棒通道
-tile.fission_casing.coolant_channel.name=冷却剂通道
-gregtech.machine.fuel_rod_input.name=燃料棒输入口
-gregtech.machine.fuel_rod_input.tooltip=仅在下方为§f燃料通道§7时才能成型运作
-gregtech.machine.fuel_rod_output.name=燃料棒输出口
-gregtech.machine.fuel_rod_output.tooltip=仅在上方为§f燃料通道§7时才能成型运作
-gregtech.machine.coolant_input.name=冷却剂输入口
-gregtech.machine.coolant_input.tooltip=仅在下方为§f冷却剂通道§7时才能成型运作
-gregtech.machine.coolant_output.name=冷却剂输出口
-gregtech.machine.coolant_output.tooltip=仅在上方为§f冷却剂通道§7时才能成型运作
-gregtech.machine.control_rod.name=控制棒端口
-gregtech.machine.control_rod.tooltip=仅在下方为§f控制棒通道§7时才能成型运作
-gregtech.machine.control_rod.tooltip.1=放置在燃料棒之间时将降低中子增殖速率！
-gregtech.machine.control_rod_moderated.name=石墨控制棒端口
-gregtech.machine.control_rod_moderated.tooltip=仅在下方为§f控制棒通道§7时才能成型运作
-gregtech.machine.control_rod_moderated.tooltip.1=放置在燃料棒之间时将提升30%%的中子增殖速率！
-gregtech.machine.nuclear.locking.item=将在反应堆启动后锁定，无法更改其中物品种类
-gregtech.machine.nuclear.locking.fluid=将在反应堆启动后锁定，无法更改其中流体种类
-gregtech.machine.moderator_port.name=慢化剂端口
-gregtech.machine.moderator_port.tooltip=仅在下方为§f慢化剂方块§7时才能成型运作
-
-gregtech.machine.nuclear_reactor.name=核反应堆
-gregtech.machine.nuclear_extend_hatch.name=反应堆拓展仓
-
-gregtech.multiblock.fission_reactor.description=裂变反应堆利用相近摆放的燃料棒维持可控的链式核反应。反应中所产生的热能被反应堆中的冷却剂吸收，并最终在你旋转涡轮机中被转化为电力。例如，若使用蒸馏水作为冷却剂，每格冷却液通道最大能吸收2 EU/(t * K)的热量。反应堆的结构大小可变，其中截面形状可参考JEI结构预览；而高度上则可以从控制器上下各延伸7格。反应堆的燃料棒及冷却剂交互需要通过其顶层与底层的特的端口来进行，此外，你也可以通过在反应堆顶层放置控制棒端口来进一步控制链式反应的进行。控制棒深入越多，反应堆的等效中子增殖速率（k_eff）越低。反应堆运行时将不断产生中子毒物，且在停堆后也保留较长时间，k_eff的数值也会被中子毒物的浓度影响。在反应堆到达其最大输出功率之前，其功率将不断以k_eff倍率增加，这意味着如果某一时刻k_eff > 1, 其功率将提高；若k_eff < 1，则功率将下降；而k_eff = 1则意味着其功率将稳定不变。事实上，反应堆将主动调节控制棒的插入程度，以求达到一稳定平衡。当然，你也可以手动覆写控制棒的插入程度——尤其是当k_eff > 1.05时——以免反应堆陷入螺旋式失控，并最终熔毁（或爆炸！）。功率以k_eff的倍率倍增的频率则取决于平均中子产生时间（t），这一时间由使用的燃料棒决定（你可以从工具信息中看到）。总的来说，反应堆的功率以t / (1 - k_eff)为时间常数（幅值衰变为1 / e倍时所对应的时间）而指数变化。结构中的控制棒、冷却液和燃料端口都需要与相应的通道相连才能正常运行，检查工具信息以了解所需的通道方块。在输入端口都填有原料后，即可锁定端口（意味着反应堆运行期间其中物品/流体种类将不再可被更改）并启动反应堆。反应堆中燃料棒以及冷却剂通道的摆放位置非常重要：燃料棒中原子衰变产生的中子可以造成其他燃料棒中原子的裂变反应，这意味着反应堆中有复数根燃料棒时，裂变效率将大大提高。当中子被慢化剂减速后，其与另一燃料棒作用的概率将提高。冷却剂通道中的水就是一种慢化剂，所以你可以在两个燃料棒通道间放置冷却剂通道来增大k_eff（控制棒则相反）。燃料棒的枯竭速率与功率成正比，一根产能为600 MJ的燃料棒可以在600秒的时间能提供1 MW的功率，抑或在1秒内提供600 MW的功率。注：如果反应堆产生了维护问题，冷却系统有时候会停止运行。冷却剂通道只有在热冷却液温度比堆温高时才会运行，且输出热冷却剂中的总热量不会超过反应堆最大功率。
-gregtech.multiblock.fission_reactor.description.minimal.title=§b最小可运行示例
-gregtech.multiblock.fission_reactor.description.minimal.dimensions=§7JEI 参数：宽度 7，高度 1，长度 1（总尺寸 7x7x3）。
-gregtech.multiblock.fission_reactor.description.minimal.layout=§7堆芯俯视图；F/W/R 是同一条纵向通路，. 为非堆芯位置：
-gregtech.multiblock.fission_reactor.description.minimal.row_1=§f. F W F .
-gregtech.multiblock.fission_reactor.description.minimal.row_2=§fF W R W F
-gregtech.multiblock.fission_reactor.description.minimal.row_3=§fW R W R W
-gregtech.multiblock.fission_reactor.description.minimal.row_4=§fF W R W F
-gregtech.multiblock.fission_reactor.description.minimal.row_5=§f. F W F .
-gregtech.multiblock.fission_reactor.description.minimal.top=§7顶层：F=燃料棒输入口（共 8 根低浓缩铀-235 燃料棒），W=冷却剂输入口（蒸馏水），R=普通控制棒端口。
-gregtech.multiblock.fission_reactor.description.minimal.middle=§7中层：F/W/R 分别替换为燃料通道、冷却剂通道、控制棒通道。
-gregtech.multiblock.fission_reactor.description.minimal.bottom=§7底层：F/W 分别替换为燃料棒输出口、冷却剂输出口；R 位置放反应堆压力壳。
-gregtech.multiblock.fission_reactor.description.minimal.shell=§7其余外壳使用反应堆压力壳；控制器在中层外壁，并且只能有 1 个维护仓。
-gregtech.multiblock.fission_reactor.description.minimal.operation=§7保持自动控制棒调节开启，冷却剂输出保持畅通；初始 k_eff 约为 1.07，随后会向 1.00 收敛。
-gregtech.multiblock.gas_centrifuge.description=气体离心机可被用于提纯同位素，尤其是铀的。通过将六氟化铀重复通入一系列离心筒中离心，最终可以得到高度浓缩的六氟化铀-235，足以用于核燃料的制造。结构每增长一格，并行数增加1。
-gregtech.multiblock.heat_exchanger.description=通过将热流体通入热交换器，你可以将其热量传递至另一流体，抑或是散发到环境中。你可以通过它来利用裂变反应堆输出的热冷却液生产蒸汽，以推动你的蒸汽轮机。
-gregtech.multiblock.spent_fuel_pool.description=乏燃料池可以将裂变反应堆输出的热乏燃料棒冷却以供后续处理。它必须要在灌满水后才能正常运行，这可以通过输入水或手动放置水方块来完成。结构每增长一格，并行数增加32。
-gregtech.multiblock.nuclear_reactor.description=核反应堆是一套复刻并强化了IC经典核电系统的先进多方块结构。它通过精密排布各类燃料棒（如铀棒、MOX棒）、散热片、热交换器、中子反射板等核心元件，构成一个高效且高风险的能量产出矩阵。该系统的核心在于动态平衡：燃料棒在产生巨额电力的同时会释放大量热量，必须依靠周围的散热元件（如散热片、冷却单元、热交换器）及时吸收并耗散，否则积聚的热量将导致反应堆过热，引发范围性环境破坏（如火灾、水体蒸发、方块熔融）乃至毁灭性爆炸。反应堆隔板能提升其整体热容上限并抑制爆炸威力，而冷凝模块等特殊组件则提供了更强的瞬时散热能力。允许玩家构建从安全稳健到极致性能（伴随极高风险）的多种核电方案，是GregTech模组中兼具复杂工程魅力和巨大能源回报的关键设施。
-
-metaitem.nuclear.tooltip.radioactive=§c释放危险性辐射
-metaitem.nuclear.tooltip.duration=总热量：%d MJ
-metaitem.nuclear.tooltip.temperature=熔点：%d K
-metaitem.nuclear.tooltip.cross_section_fast=快中子概率：%d barn
-metaitem.nuclear.tooltip.cross_section_slow=慢中子概率：%d barn
-metaitem.nuclear.tooltip.neutron_time.0=平均中子辐照：%ds（§1安全§r）
-metaitem.nuclear.tooltip.neutron_time.1=平均中子辐照：%ds（§2非常安全§r）
-metaitem.nuclear.tooltip.neutron_time.2=平均中子辐照：%ds（§c危险§r）
-metaitem.nuclear.tooltip.neutron_time.3=平均中子辐照：%ds（§4非常危险§r）
-metaitem.nuclear.tooltip.moderation_factor=慢化强度：%d
-metaitem.nuclear.tooltip.absorption_factor=吸收强度：%d
-
-item.material.oreprefix.fuelRod=%s燃料棒
-item.material.oreprefix.fuelRodDepleted=%s乏燃料棒
-item.material.oreprefix.fuelRodHotDepleted=热%s乏燃料棒
-item.material.oreprefix.fuelPelletRaw=未烧结%s燃料芯块
-item.material.oreprefix.fuelPellet=%s燃料芯块
-item.material.oreprefix.fuelPelletDepleted=%s乏燃料芯块
-item.material.oreprefix.dustSpentFuel=枯竭%s燃料粉
-item.material.oreprefix.dustBredFuel=增殖%s燃料粉
-item.material.oreprefix.dustFissionByproduct=%s裂变副产物粉
-item.material.oreprefix.fuelPebble=%s 浓缩燃料丸
-item.material.oreprefix.fuelPebbleDepleted=%s 枯竭浓缩燃料丸
-
-# 基础元素
-# 镭同位素
-gregtech.material.radium_225=镭-225
-gregtech.material.radium_226=镭-226
-# 镤同位素
-gregtech.material.protactinium_231=镤-231
-gregtech.material.protactinium_233=镤-233
-# 铀同位素
-gregtech.material.uranium_232=铀-232
-gregtech.material.uranium_233=铀-233
-gregtech.material.uranium_234=铀-234
-gregtech.material.uranium_236=铀-236
-gregtech.material.uranium_237=铀-237
-gregtech.material.uranium_239=铀-239
-# 镎同位素
-gregtech.material.neptunium_235=镎-235
-gregtech.material.neptunium_236=镎-236
-gregtech.material.neptunium_237=镎-237
-gregtech.material.neptunium_238=镎-238
-gregtech.material.neptunium_239=镎-239
-# 钚同位素
-gregtech.material.plutonium_236=钚-236
-gregtech.material.plutonium_237=钚-237
-gregtech.material.plutonium_238=钚-238
-gregtech.material.plutonium_240=钚-240
-gregtech.material.plutonium_242=钚-242
-gregtech.material.plutonium_243=钚-243
-gregtech.material.plutonium_244=钚-244
-# 钍同位素
-gregtech.material.thorium_228=钍-228
-gregtech.material.thorium_229=钍-229
-gregtech.material.thorium_230=钍-230
-gregtech.material.thorium_232=钍-232
-gregtech.material.thorium_233=钍-233
-# 镅同位素
-gregtech.material.americium_240=镅-240
-gregtech.material.americium_241=镅-241
-gregtech.material.americium_242=镅-242
-gregtech.material.americium_243=镅-243
-# 锔同位素
-gregtech.material.curium_242=锔-242
-gregtech.material.curium_243=锔-243
-gregtech.material.curium_244=锔-244
-gregtech.material.curium_245=锔-245
-gregtech.material.curium_246=锔-246
-gregtech.material.curium_247=锔-247
-gregtech.material.curium_248=锔-248
-gregtech.material.curium_250=锔-250
-# 锫同位素
-gregtech.material.berkelium_249=锫-249
-# 锎同位素
-gregtech.material.californium_249=锎-249
-gregtech.material.californium_252=锎-252
-
-gregtech.material.high_enriched_uranium_hexafluoride=高浓缩铀六氟化物
-gregtech.material.high_enriched_uranium_dioxide=高浓缩二氧化铀
-gregtech.material.low_enriched_uranium_dioxide=低浓缩二氧化铀
-gregtech.material.depleted_uranium_dioxide=枯竭二氧化铀
-gregtech.material.fissile_plutonium_dioxide=裂变二氧化钚
-gregtech.material.inconel=因科镍
-gregtech.material.corium=熔毁炉芯
-gregtech.material.zircaloy=锆合金
-gregtech.material.boron_trioxide=硼氧化物
-gregtech.material.boron_carbide=硼化硼
-gregtech.material.heavy_water=重水
-gregtech.material.high_pressure_heavy_water=高压重水
-
-gregtech.material.spent_uranium_fuel_solution=耗尽铀燃料溶液
-gregtech.material.radon_rich_gas_mixture=富氡气体
-
-gregtech.material.leu_235=低浓缩铀-235（LEU-235）
-gregtech.material.heu_235=高浓缩铀-235（HEU-235）
-gregtech.material.low_grade_mox=低浓度混合氧化物燃料（MOX）
-gregtech.material.high_grade_mox=高浓度混合氧化物燃料（MOX）
-gregtech.material.fbr=快堆核反应燃料（FBR）
-gregtech.material.thor=熔盐堆核反应燃料(THOR)
-
-recipemap.heat_exchanger.name=换热器
-recipemap.gas_centrifuge.name=气体离心机
-recipemap.spent_fuel_pool.name=乏燃料池
-recipemap.rtg_recipes.name=同位素温差发电
-recipemap.decay_chamber_recipes.name=衰变室
-recipemap.natural_draft_cooling_tower.name=冷却塔
-
-gregtech.machine.decay_chamber.lv.name=基础衰变室
-gregtech.machine.decay_chamber.lv.tooltip=辐光盈盈
-gregtech.machine.decay_chamber.mv.name=进阶衰变室
-gregtech.machine.decay_chamber.mv.tooltip=辐光盈盈
-gregtech.machine.decay_chamber.hv.name=进阶衰变室 II
-gregtech.machine.decay_chamber.hv.tooltip=辐光盈盈
-gregtech.machine.decay_chamber.ev.name=进阶衰变室 III
-gregtech.machine.decay_chamber.ev.tooltip=辐光盈盈
-gregtech.machine.decay_chamber.iv.name=精英衰变室
-gregtech.machine.decay_chamber.iv.tooltip=衰变加速器
-gregtech.machine.decay_chamber.luv.name=精英衰变室 II
-gregtech.machine.decay_chamber.luv.tooltip=衰变加速器
-gregtech.machine.decay_chamber.zpm.name=精英衰变室 III
-gregtech.machine.decay_chamber.zpm.tooltip=衰变加速器
-gregtech.machine.decay_chamber.uv.name=终极衰变室
-gregtech.machine.decay_chamber.uv.tooltip=零过程衰变
-gregtech.machine.decay_chamber.uhv.name=史诗衰变室
-gregtech.machine.decay_chamber.uhv.tooltip=零过程衰变
-gregtech.machine.decay_chamber.uev.name=史诗衰变室 II
-gregtech.machine.decay_chamber.uev.tooltip=零过程衰变
-gregtech.machine.decay_chamber.uiv.name=史诗衰变室 III
-gregtech.machine.decay_chamber.uiv.tooltip=零过程衰变
-gregtech.machine.decay_chamber.uxv.name=史诗衰变室 IV
-gregtech.machine.decay_chamber.uxv.tooltip=零过程衰变
-gregtech.machine.decay_chamber.opv.name=传奇衰变室
-gregtech.machine.decay_chamber.opv.tooltip=零过程衰变
-
-gregtech.machine.rtg.lv.name=同位素温差发电机-MKI
-gregtech.machine.rtg.mv.name=同位素温差发电机-MKII
-gregtech.machine.rtg.hv.name=同位素温差发电机-MKIII
-
-fission.coolant.name=冷却剂加热
-fission.fuel.name=裂变燃料
-fission.moderator.name=中子慢化
-
-metaitem.basket.anode.name=阳极筐
-metaitem.cladding.fuel.name=燃料棒包壳
-
-metaitem.fuel_rod.1x.name=空燃料棒
-metaitem.fuel_rod.2x.name=空双联燃料棒
-metaitem.fuel_rod.4x.name=空四联燃料棒
-
-metaitem.fuel_rod.uranium.1x.depleted.name=枯竭铀燃料棒
-metaitem.fuel_rod.uranium.2x.depleted.name=双联枯竭铀燃料棒
-metaitem.fuel_rod.uranium.4x.depleted.name=四联枯竭铀燃料棒
-metaitem.fuel_rod.thorium.1x.depleted.name=枯竭钍燃料棒
-metaitem.fuel_rod.thorium.2x.depleted.name=双联枯竭钍燃料棒
-metaitem.fuel_rod.thorium.4x.depleted.name=四联枯竭钍燃料棒
-metaitem.fuel_rod.plutonium.1x.depleted.name=枯竭钚燃料棒
-metaitem.fuel_rod.plutonium.2x.depleted.name=双联枯竭钚燃料棒
-metaitem.fuel_rod.plutonium.4x.depleted.name=四联枯竭钚燃料棒
-metaitem.fuel_rod.naquadah.1x.depleted.name=枯竭硅岩燃料棒
-metaitem.fuel_rod.naquadah.2x.depleted.name=双联枯竭硅岩燃料棒
-metaitem.fuel_rod.naquadah.4x.depleted.name=四联枯竭硅岩燃料棒
-
-metaitem.fuel_rod.uranium.1x.name=铀燃料棒
-metaitem.fuel_rod.uranium.2x.name=双联铀燃料棒
-metaitem.fuel_rod.uranium.4x.name=四联铀燃料棒
-metaitem.fuel_rod.thorium.1x.name=钍燃料棒
-metaitem.fuel_rod.thorium.2x.name=双联钍燃料棒
-metaitem.fuel_rod.thorium.4x.name=四联钍燃料棒
-metaitem.fuel_rod.plutonium.1x.name=钚燃料棒
-metaitem.fuel_rod.plutonium.2x.name=双联钚燃料棒
-metaitem.fuel_rod.plutonium.4x.name=四联钚燃料棒
-metaitem.fuel_rod.naquadah.1x.name=硅岩燃料棒
-metaitem.fuel_rod.naquadah.2x.name=双联硅岩燃料棒
-metaitem.fuel_rod.naquadah.4x.name=四联硅岩燃料棒
-
-metaitem.heat_vent.basic.name=基础散热片
-metaitem.heat_vent.advanced.name=进阶散热片
-metaitem.heat_vent.elite.name=精英散热片
-metaitem.heat_vent.ultimate.name=终极散热片
-
-metaitem.component_heat_vent.basic.name=基础元件散热片
-metaitem.component_heat_vent.advanced.name=进阶元件散热片
-metaitem.component_heat_vent.elite.name=精英元件散热片
-metaitem.component_heat_vent.ultimate.name=终极元件散热片
-
-metaitem.coolant_cell.10k.name=10K空冷却单元
-metaitem.coolant_cell.30k.name=30K空冷却单元
-metaitem.coolant_cell.60k.name=60K空冷却单元
-
-metaitem.coolant_cell.coolant.10k.name=10K冷却液冷却单元
-metaitem.coolant_cell.coolant.30k.name=30K冷却液冷却单元
-metaitem.coolant_cell.coolant.60k.name=60K冷却液冷却单元
-
-metaitem.coolant_cell.sodium_potassium.10k.name=10K钠钾合金冷却单元
-metaitem.coolant_cell.sodium_potassium.30k.name=30K钠钾合金冷却单元
-metaitem.coolant_cell.sodium_potassium.60k.name=60K钠钾合金冷却单元
-
-metaitem.coolant_cell.helium.10k.name=10K液氦冷却单元
-metaitem.coolant_cell.helium.30k.name=30K液氦冷却单元
-metaitem.coolant_cell.helium.60k.name=60K液氦冷却单元
-
-metaitem.neutron_reflector.basic.name=中子反射板
-metaitem.neutron_reflector.thick.name=加厚中子反射板
-metaitem.neutron_reflector.iridium.name=铱中子反射板
-
-metaitem.heat_exchanger.basic.name=基础热交换器
-metaitem.heat_exchanger.advanced.name=进阶热交换器
-metaitem.heat_exchanger.reactor.name=反应堆热交换器
-metaitem.heat_exchanger.component.name=部件交换器
-
-metaitem.reactor_plating.basic.name=基础反应堆隔板
-metaitem.reactor_plating.advanced.name=强化反应堆隔板
-
-tile.panelling.white.name=白色镶板
-tile.panelling.orange.name=橙色镶板
-tile.panelling.magenta.name=品红色镶板
-tile.panelling.light_blue.name=浅蓝色镶板
-tile.panelling.yellow.name=黄色镶板
-tile.panelling.lime.name=黄绿色镶板
-tile.panelling.pink.name=粉色镶板
-tile.panelling.gray.name=灰色镶板
-tile.panelling.light_gray.name=淡蓝色镶板
-tile.panelling.cyan.name=青色镶板
-tile.panelling.purple.name=紫色镶板
-tile.panelling.blue.name=蓝色镶板
-tile.panelling.brown.name=棕色镶板
-tile.panelling.green.name=绿色镶板
-tile.panelling.red.name=红色镶板
-tile.panelling.black.name=黑色镶板
-
-# 核反应堆方块
-tile.nuclear_casing.spent_fuel_casing.name=乏燃料贮存格架
-tile.nuclear_casing.gas_centrifuge_heater.name=气体加热器
-tile.gas_centrifuge_casing.gas_centrifuge_column.name=气体离心筒
-tile.nuclear_reactor_casing.nuclear_reactor_casing.name=核裂变反应堆外壳
-
-gregtech.machine.fission_reactor.name=裂变反应堆
-gregtech.machine.fission_reactor.tooltip.1=§6§l【裂变反应堆】
-gregtech.machine.fission_reactor.tooltip.2=§7目标：燃料棒发热 -> 冷却剂带走热量 -> 换热器制蒸汽 -> 涡轮发电。
-gregtech.machine.fission_reactor.tooltip.3=§8反应堆本身不会直接向电网输出 EU；启动前先接好热量处理后端。
-gregtech.machine.fission_reactor.tooltip.4=§b1. 先看结构
-gregtech.machine.fission_reactor.tooltip.5=§7JEI/投影器都用三项参数：宽度=直径；高度=控制器上方层数；长度=控制器下方层数。
-gregtech.machine.fission_reactor.tooltip.6=§7最低示例为直径 5、上方 1 层、下方 1 层（总高 3 层）；JEI 与投影器参数必须一致。
-gregtech.machine.fission_reactor.tooltip.7=§7控制器在中间层外壁；用反应堆压力壳围出外壳，内部留给通道、空气或慢化剂。
-gregtech.machine.fission_reactor.tooltip.8=§e外壳中必须且只能有 1 个维护仓，否则结构不能正常工作。
-gregtech.machine.fission_reactor.tooltip.9=§b2. 从上到下布一条完整通路
-gregtech.machine.fission_reactor.tooltip.10=§7燃料：顶层燃料棒输入口 -> 全程燃料通道 -> 底层燃料棒输出口。
-gregtech.machine.fission_reactor.tooltip.11=§7冷却：顶层冷却剂输入口 -> 全程冷却剂通道 -> 底层冷却剂输出口。
-gregtech.machine.fission_reactor.tooltip.12=§7控制棒端口放在顶层，下方必须贯通控制棒通道；它不需要底部对应输出端。
-gregtech.machine.fission_reactor.tooltip.13=§7端口只能连接同类通道；成型失败时，先核对端口下方/上方的方块和端口自身 Tooltip。
-gregtech.machine.fission_reactor.tooltip.14=§b3. 启动前检查
-gregtech.machine.fission_reactor.tooltip.15=§7每个燃料输入口都要放入有效、未耗尽的燃料棒，且至少要有一条燃料通道。
-gregtech.machine.fission_reactor.tooltip.16=§7每个冷却剂输入口都要灌入 JEI“冷却剂加热”页列出的有效冷却剂。
-gregtech.machine.fission_reactor.tooltip.17=§7给燃料棒输出口留空位；给热冷却剂输出接好管道和足够的储液空间。
-gregtech.machine.fission_reactor.tooltip.18=§7第一次运行建议使用普通控制棒端口，并保持自动控制棒调节开启。
-gregtech.machine.fission_reactor.tooltip.19=§b4. 启动与热量去向
-gregtech.machine.fission_reactor.tooltip.20=§7打开控制器，点击“锁定并启动”。运行时输入端会锁定，不能更换燃料或冷却剂种类。
-gregtech.machine.fission_reactor.tooltip.21=§7热冷却剂 -> 热交换器 -> 蒸汽 -> 蒸汽轮机；热乏燃料棒 -> 灌满水的乏燃料池。
-gregtech.machine.fission_reactor.tooltip.22=§b5. 运行时盯住这三项
-gregtech.machine.fission_reactor.tooltip.23=§7k_eff 接近 1 最稳定；大于 1 时功率会继续上升，小于 1 时功率会逐渐下降。
-gregtech.machine.fission_reactor.tooltip.24=§e当 k_eff 过高（尤其大于 1.05）时，增加控制棒插入量或停堆；石墨控制棒效果相反，首次不要用它。
-gregtech.machine.fission_reactor.tooltip.25=§c温度/压力持续升高，或热冷却剂输出堵塞时，立即停堆并检查冷却线路与维护仓。
-gregtech.machine.fission_reactor.tooltip.26=§b6. 停堆与常见报错
-gregtech.machine.fission_reactor.tooltip.27=§7想更换燃料或冷却剂：先点击关闭/解锁；“燃料棒输出堵塞”时清空底部输出口。
-gregtech.machine.fission_reactor.tooltip.28=§7“缺少燃料/冷却剂”通常表示对应顶层输入端为空、内容无效，或下方不是贯通的正确通道。
-gregtech.machine.fission_reactor.tooltip.29=§7燃料耗尽后取出热乏燃料棒，送入灌满水的乏燃料池冷却，再进行后续处理。
-
-gregtech.machine.heat_exchanger.name=换热器
-gregtech.machine.spent_fuel_pool.name=乏燃料池
-gregtech.machine.gas_centrifuge.name=气体离心机
-gregtech.machine.natural_draft_cooling_tower.name=冷却塔
-
-gregtech.machine.fission_reactor.tooltip=好吃到爆的发电机
-gregtech.machine.heat_exchanger.tooltip=分子级烫手山芋玩家
-
-gregtech.machine.spent_fuel_pool.tooltip.parallel=§d最大并行：§f%s * 长度
-gregtech.machine.gas_centrifuge.tooltip.parallel=§d最大并行：§f1 + 额外列数
-gregtech.machine.fluid_auto_fill.tooltip=§3该多方块中的流体可以通过向输入仓提供流体来自动填充
-
-gregtech.coolant.general=§9可被用作冷却剂§7
-gregtech.coolant.exit_temp=热冷却液温度：%d K
-gregtech.coolant.heat_capacity=热容：%d J/kgK
-gregtech.coolant.cooling_factor=传热速率：%d W/(m^2K)
-gregtech.coolant.moderation_factor=控制截面：%d barn
-gregtech.coolant.accumulates_hydrogen=§c在1500K以上将生成并积累氢气！
-
-gregtech.gui.fission.control_rod_insertion=控制棒插入程度：%d
-gregtech.gui.fission.coolant_flow=单通道冷却剂流速：%d L/t
-gregtech.gui.fission.temperature=温度：%.3f K
-gregtech.gui.fission.pressure=压力：%.3f Pa
-gregtech.gui.fission.power=功率：%.3f MW / %.3f MW
-gregtech.gui.fission.k_eff=中子增殖因子：%f
-gregtech.gui.fission.depletion=当前燃料棒枯竭度：%f%%
-gregtech.gui.fission.depleted_rod=枯竭燃料棒：%s
-
-gregtech.gui.fission.lock.locked=反应堆已锁定并启动！
-gregtech.gui.fission.lock.unlocked=反应堆未运行
-gregtech.gui.fission.lock.should_lock=正在启动……
-gregtech.gui.fission.lock.missing_fuel=通道尚未插入燃料棒！
-gregtech.gui.fission.lock.missing_coolant=通道尚未通入冷却液！
-gregtech.gui.fission.lock.fuel_clogged=燃料棒输出口被堵塞！
-gregtech.gui.fission.lock.no_fuel_channels=尚未安装燃料通道！
-gregtech.gui.fission.lock.invalid_component=呃，咋回事呢？看看你的输出日志？
-gregtech.gui.fission.lock.disabled=锁定燃料棒及冷却液端口并启动反应堆
-gregtech.gui.fission.lock.enabled=关闭反应堆并解锁燃料棒及冷却液端口
-gregtech.gui.fission.structure.location=V3 结构错误位置：%s
-gregtech.gui.fission.structure.no_trace=V3 尚未给出失败坐标；请再次点击启动以重新检查结构。
-
-gregtech.gui.fission.helper.disabled=智能控制棒调节：已关闭
-gregtech.gui.fission.helper.enabled=智能控制棒调节：已启用
-
-gregtech.gui.locked=(已锁定)
-gregtech.gui.void_fuel=清空当前部分枯竭的燃料！
-
-gregtech.multiblock.pattern.error.hatch_invalid=§c此仓室未被正确摆放！§r
-
-gregtech.multiblock.fission_reactor.diameter=直径: %s
-gregtech.multiblock.fission_reactor.height=高度: %s
-
-gregtech.multiblock.fission_reactor.turn_on=启动反应堆（并锁定所有端口）？
-gregtech.multiblock.fission_reactor.turn_off=关闭反应堆？
-gregtech.multiblock.fission_reactor.structure_incomplete=无法启动反应堆，因为结构无效。
-gregtech.multiblock.fission_reactor.invalid_components=无法启动反应堆，因为存在端口与相应位置通道功能不一致。
-gregtech.multiblock.fission_reactor.missing_inputs=无法启动反应堆，因为存在输入端口为空或存有无效冷却剂。
-gregtech.multiblock.spent_fuel_pool.obstructed=乏燃料池未灌满水！
-gregtech.multiblock.spent_fuel_pool.obstructed.desc=乏燃料池必须要充满水才能正常运行。
-
-# 名称重写（不起作用）
-
-# Creative tabs
-itemGroup.gregtech_tab=超临界 | 核电

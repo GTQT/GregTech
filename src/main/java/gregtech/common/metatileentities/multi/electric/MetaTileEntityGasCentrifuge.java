@@ -11,7 +11,7 @@ import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.recipes.SCRecipeMaps;
+import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.textures.SCTextures;
@@ -65,7 +65,7 @@ public class MetaTileEntityGasCentrifuge extends RecipeMapMultiblockController {
     );
 
     public MetaTileEntityGasCentrifuge(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, SCRecipeMaps.GAS_CENTRIFUGE_RECIPES);
+        super(metaTileEntityId, RecipeMaps.GAS_CENTRIFUGE_RECIPES);
         this.recipeMapWorkable = new MultiblockRecipeLogic(this);
     }
 

@@ -13,7 +13,6 @@ import gregtech.api.unification.material.properties.FissionFuelProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.unification.ore.OrePrefix;
-import gregtech.api.unification.ore.SCOrePrefix;
 import gregtech.api.util.GTLog;
 import gregtech.client.renderer.handler.FacadeRenderer;
 import gregtech.client.renderer.handler.ProgrammableCircuitRenderer;
@@ -781,7 +780,19 @@ public final class MetaItems {
         orePrefixes.add(OrePrefix.toolHeadWrench);
         orePrefixes.add(OrePrefix.toolHeadBuzzSaw);
         orePrefixes.add(OrePrefix.toolHeadScrewdriver);
+        orePrefixes.add(OrePrefix.fuelRod);
+        orePrefixes.add(OrePrefix.fuelRodDepleted);
+        orePrefixes.add(OrePrefix.fuelPelletRaw);
+        orePrefixes.add(OrePrefix.fuelRodHotDepleted);
+        orePrefixes.add(OrePrefix.fuelPellet);
+        orePrefixes.add(OrePrefix.fuelPelletDepleted);
+        orePrefixes.add(OrePrefix.dustSpentFuel);
+        orePrefixes.add(OrePrefix.dustBredFuel);
+        orePrefixes.add(OrePrefix.dustFissionByproduct);
+        orePrefixes.add(OrePrefix.fuelPebble);
+        orePrefixes.add(OrePrefix.fuelPebbleDepleted);
     }
+
     public static MetaItem<?>.MetaValueItem COVER_PROGRAMMABLE_CIRCUIT;
     public static MetaItem<?>.MetaValueItem PROGRAMMABLE_CIRCUIT;
     public static MetaItem<?>.MetaValueItem PROGRAMMING_TOOLKIT;
@@ -909,15 +920,15 @@ public final class MetaItems {
             FissionFuelProperty fuel = material.getProperty(PropertyKey.FISSION_FUEL);
             if (fuel.getDepletedFuelSupplier() == null) {
                 fuel.setDepletedFuelSupplier(
-                        thermalProportion -> OreDictUnifier.get(SCOrePrefix.fuelRodHotDepleted, material));
+                        thermalProportion -> OreDictUnifier.get(OrePrefix.fuelRodHotDepleted, material));
                 fuel.setAllDepletedFuels(() -> {
                     List<ItemStack> depletedFuels = new ArrayList<>();
-                    depletedFuels.add(OreDictUnifier.get(SCOrePrefix.fuelRodHotDepleted, material));
+                    depletedFuels.add(OreDictUnifier.get(OrePrefix.fuelRodHotDepleted, material));
                     return depletedFuels;
                 });
             }
 
-            ItemStack fuelRod = OreDictUnifier.get(SCOrePrefix.fuelRod, material);
+            ItemStack fuelRod = OreDictUnifier.get(OrePrefix.fuelRod, material);
             if (fuelRod.isEmpty()) {
                 GTLog.logger.warn("Skipping fission fuel registration for {} because no fuel rod item was generated",
                         material.getResourceLocation());

@@ -1783,6 +1783,19 @@ item.material.oreprefix.oreGranite=Granite %s Ore
 item.material.oreprefix.oreDiorite=Diorite %s Ore
 item.material.oreprefix.oreAndesite=Andesite %s Ore
 item.material.oreprefix.oreLean=Lean %s Ore
+item.material.oreprefix.oreGraniteLean=贫瘠花岗岩%s矿石
+item.material.oreprefix.oreDioriteLean=贫瘠闪长岩%s矿石
+item.material.oreprefix.oreAndesiteLean=贫瘠安山岩%s矿石
+item.material.oreprefix.oreBlackgraniteLean=贫瘠黑花岗岩%s矿石
+item.material.oreprefix.oreRedgraniteLean=贫瘠红花岗岩%s矿石
+item.material.oreprefix.oreMarbleLean=贫瘠大理石%s矿石
+item.material.oreprefix.oreBasaltLean=贫瘠玄武岩%s矿石
+item.material.oreprefix.oreSandLean=贫瘠沙子%s矿石
+item.material.oreprefix.oreRedSandLean=贫瘠红沙%s矿石
+item.material.oreprefix.oreNetherrackLean=贫瘠地狱岩%s矿石
+item.material.oreprefix.oreNetherLean=贫瘠地狱岩%s矿石
+item.material.oreprefix.oreEndstoneLean=贫瘠末地石%s矿石
+item.material.oreprefix.oreEndLean=贫瘠末地石%s矿石
 item.material.oreprefix.crushedCentrifuged=Centrifuged %s Ore
 item.material.oreprefix.crushedPurified=Purified %s Ore
 item.material.oreprefix.crushed=Crushed %s Ore
@@ -1894,18 +1907,33 @@ item.material.oreprefix.polymer.dustTiny=Tiny Pile of %s Pulp
 item.material.oreprefix.polymer.dustSmall=Small Pile of %s Pulp
 item.material.oreprefix.polymer.dust=%s Pulp
 item.material.oreprefix.polymer.ingot=%s Bar
-
+item.material.oreprefix.fuelRod=%s Fuel Rod
+item.material.oreprefix.fuelRodDepleted=%s Depleted Fuel Rod
+item.material.oreprefix.fuelRodHotDepleted=%s Hot Depleted Fuel Rod
+item.material.oreprefix.fuelPelletRaw=%s Raw Fuel Pellet
+item.material.oreprefix.fuelPellet=%s Fuel Pellet
+item.material.oreprefix.fuelPelletDepleted=%s Depleted Fuel Pellet
+item.material.oreprefix.dustSpentFuel=%s Spent Fuel Dust
+item.material.oreprefix.dustBredFuel=%s Bred Fuel Dust
+item.material.oreprefix.dustFissionByproduct=%s Fission Byproduct Dust
+item.material.oreprefix.fuelPebble=%s Concentrated Fuel Pellets
+item.material.oreprefix.fuelPebbleDepleted=%s Depleted Concentrated Fuel Pellets
 
 # Direct Element Materials
 gregtech.material.actinium=Actinium
 gregtech.material.aluminium=Aluminium
 gregtech.material.americium=Americium
+gregtech.material.americium_240=Americium-240
+gregtech.material.americium_241=Americium-241
+gregtech.material.americium_242=Americium-242
+gregtech.material.americium_243=Americium-243
 gregtech.material.antimony=Antimony
 gregtech.material.argon=Argon
 gregtech.material.arsenic=Arsenic
 gregtech.material.astatine=Astatine
 gregtech.material.barium=Barium
 gregtech.material.berkelium=Berkelium
+gregtech.material.berkelium_249=Berkelium-249
 gregtech.material.beryllium=Beryllium
 gregtech.material.bismuth=Bismuth
 gregtech.material.bohrium=Bohrium
@@ -1914,6 +1942,8 @@ gregtech.material.bromine=Bromine
 gregtech.material.caesium=Caesium
 gregtech.material.calcium=Calcium
 gregtech.material.californium=Californium
+gregtech.material.californium_249=Californium-249
+gregtech.material.californium_252=Californium-252
 gregtech.material.carbon=Carbon
 gregtech.material.cadmium=Cadmium
 gregtech.material.cerium=Cerium
@@ -1923,6 +1953,14 @@ gregtech.material.cobalt=Cobalt
 gregtech.material.copernicium=Copernicium
 gregtech.material.copper=Copper
 gregtech.material.curium=Curium
+gregtech.material.curium_242=Curium-242
+gregtech.material.curium_243=Curium-243
+gregtech.material.curium_244=Curium-244
+gregtech.material.curium_245=Curium-245
+gregtech.material.curium_246=Curium-246
+gregtech.material.curium_247=Curium-247
+gregtech.material.curium_248=Curium-248
+gregtech.material.curium_250=Curium-250
 gregtech.material.darmstadtium=Darmstadtium
 gregtech.material.deuterium=Deuterium
 gregtech.material.dubnium=Dubnium
@@ -1965,6 +2003,11 @@ gregtech.material.moscovium=Moscovium
 gregtech.material.neodymium=Neodymium
 gregtech.material.neon=Neon
 gregtech.material.neptunium=Neptunium
+gregtech.material.neptunium_235=Neptunium-235
+gregtech.material.neptunium_236=Neptunium-236
+gregtech.material.neptunium_237=Neptunium-237
+gregtech.material.neptunium_238=Neptunium-238
+gregtech.material.neptunium_239=Neptunium-239
 gregtech.material.nickel=Nickel
 gregtech.material.nihonium=Nihonium
 gregtech.material.niobium=Niobium
@@ -1980,12 +2023,23 @@ gregtech.material.platinum=Platinum
 gregtech.material.plutonium=Plutonium
 gregtech.material.plutonium_239=Plutonium 239
 gregtech.material.plutonium_241=Plutonium 241
+gregtech.material.plutonium_236=Plutonium-236
+gregtech.material.plutonium_237=Plutonium-237
+gregtech.material.plutonium_238=Plutonium-238
+gregtech.material.plutonium_240=Plutonium-240
+gregtech.material.plutonium_242=Plutonium-242
+gregtech.material.plutonium_243=Plutonium-243
+gregtech.material.plutonium_244=Plutonium-244
 gregtech.material.potassium=Potassium
 gregtech.material.praseodymium=Praseodymium
 gregtech.material.promethium=Promethium
 gregtech.material.protactinium=Protactinium
+gregtech.material.protactinium_231=Protactinium-231
+gregtech.material.protactinium_233=Protactinium-233
 gregtech.material.radon=Radon
 gregtech.material.radium=Radium
+gregtech.material.radium_225=Radium-225
+gregtech.material.radium_226=Radium-226
 gregtech.material.rhenium=Rhenium
 gregtech.material.rhodium=Rhodium
 gregtech.material.roentgenium=Roentgenium
@@ -2007,6 +2061,11 @@ gregtech.material.tellurium=Tellurium
 gregtech.material.tennessine=Tennessine
 gregtech.material.terbium=Terbium
 gregtech.material.thorium=Thorium
+gregtech.material.thorium_228=Thorium-228
+gregtech.material.thorium_229=Thorium-229
+gregtech.material.thorium_230=Thorium-230
+gregtech.material.thorium_232=Thorium-232
+gregtech.material.thorium_233=Thorium-233
 gregtech.material.thallium=Thallium
 gregtech.material.thulium=Thulium
 gregtech.material.tin=Tin
@@ -2016,6 +2075,12 @@ gregtech.material.tungsten=Tungsten
 gregtech.material.uranium=Uranium
 gregtech.material.uranium_235=Uranium 235
 gregtech.material.uranium_238=Uranium 238
+gregtech.material.uranium_232=Uranium-232
+gregtech.material.uranium_233=Uranium-233
+gregtech.material.uranium_234=Uranium-234
+gregtech.material.uranium_236=Uranium-236
+gregtech.material.uranium_237=Uranium-237
+gregtech.material.uranium_239=Uranium-239
 gregtech.material.vanadium=Vanadium
 gregtech.material.xenon=Xenon
 gregtech.material.ytterbium=Ytterbium
@@ -2590,6 +2655,27 @@ gregtech.material.hsla_steel=HSLA Steel
 gregtech.material.titanium_tungsten_carbide=Titanium Tungsten Carbide
 gregtech.material.incoloy_ma_956=Incoloy-MA956
 
+gregtech.material.high_enriched_uranium_dioxide=Highly Enriched Uranium Dioxide
+gregtech.material.depleted_uranium_dioxide=Depleted Uranium Dioxide
+gregtech.material.fissile_plutonium_dioxide=Fissile Plutonium Dioxide
+gregtech.material.low_enriched_uranium_dioxide=Low Enriched Uranium Dioxide
+gregtech.material.inconel=Inconel
+gregtech.material.high_enriched_uranium_hexafluoride=Highly Enriched Uranium Hexafluoride
+gregtech.material.boron_trioxide=Boron Trioxide
+gregtech.material.boron_carbide=Boron Carbide
+gregtech.material.high_pressure_heavy_water=High Pressure Heavy Water
+gregtech.material.heavy_water=Heavy Water
+gregtech.material.corium=Corium
+gregtech.material.spent_uranium_fuel_solution=Spent Uranium Fuel Solution
+gregtech.material.radon_rich_gas_mixture=Radon Rich Gas Mixture
+gregtech.material.leu_235=LEU-235
+gregtech.material.heu_235=HEU-235
+gregtech.material.low_grade_mox=Low Grade MOX
+gregtech.material.high_grade_mox=High Grade MOX
+gregtech.material.fbr=Fast Reactor Fuel
+gregtech.material.thor=Molten Salt Reactor Fuel
+gregtech.material.zircaloy=Zircaloy
+
 # Third Degree Materials
 gregtech.material.electrotine=Electrotine
 gregtech.material.ender_eye=Endereye
@@ -2878,6 +2964,15 @@ recipemap.godforge_exotic.name=Godforge Exotic Matter
 recipemap.godforge_upgrade_costs.name=Godforge Upgrade Costs
 recipemap.alloy_blast_smelter.name=Alloy Blast Smelting
 recipemap.auto_chisel.name=Auto Chisel
+recipemap.heat_exchanger.name=Heat Exchanger
+recipemap.gas_centrifuge.name=Gas Centrifuge
+recipemap.spent_fuel_pool.name=Spent Fuel Pool
+recipemap.rtg_recipes.name=RTG
+recipemap.decay_chamber_recipes.name=Decay Chamber
+recipemap.natural_draft_cooling_tower.name=冷却塔
+fission.coolant.name=冷却剂加热
+fission.fuel.name=裂变燃料
+fission.moderator.name=中子慢化
 
 gregtech.recipe.category.arc_furnace_recycling=Arc Furnace Recycling
 gregtech.recipe.category.macerator_recycling=Macerator Recycling
@@ -3073,6 +3168,9 @@ metaitem.rubber_wood_door.name=Rubber Wood Door
 metaitem.treated_wood_door.name=Treated Wood Door
 
 entity.GTBoat.name=Boat
+entity.Villager.level_lv=Folk Scientist
+entity.Villager.level_mv=Villager Craftsmen
+entity.Villager.level_hv=Villager Engineer
 
 metaitem.terminal.name=Terminal
 metaitem.terminal.tooltip=Sharp tools make good work
@@ -3094,6 +3192,233 @@ metaitem.cover.digital.wireless.name=Wireless Digital Interface
 metaitem.coloured.leds.name=Coloured LEDs
 metaitem.display.name=Display
 
+# Programming
+metaitem.cover.programmable_circuit.name=Programmable Circuit Cover
+metaitem.order.name=Order
+metaitem.programmable_circuit.name=Programmable Circuit Card
+metaitem.programming_toolkit.name=Programming Toolkit
+metaitem.programmable_circuit.wrapped=§bWrapped: %s
+metaitem.programmable_circuit.empty=§7Empty (Use Programming Toolkit to wrap items)
+metaitem.programmable_circuit.tooltip.1=§7Can wrap any item
+metaitem.programmable_circuit.tooltip.2=§7Place in input bus with Programmable Cover
+metaitem.programmable_circuit.tooltip.3=§7Automatically sets ghost circuit slot
+metaitem.programming_toolkit.tooltip.1=§7Right-click to open GUI
+metaitem.programming_toolkit.tooltip.2=§7Insert any item to generate corresponding programmable circuit
+metaitem.programming_toolkit.gui_title=Programming Toolkit
+metaitem.programming_toolkit.input=Input
+metaitem.programming_toolkit.output=Output
+metaitem.programming_toolkit.hint=§7Insert item and take programmable circuit from output slot
+
+# Programming Provider
+gregtech.machine.programming_provider.name=Programming Provider
+gregtech.machine.programming_provider.hint=§7Insert items to add corresponding programmable circuits
+gregtech.machine.programming_provider.tooltip.1=§7Provides blank and circuit 1~32 programmable circuits by default
+gregtech.machine.programming_provider.tooltip.2=§7Insert any item to add its corresponding programmable circuit
+gregtech.machine.programming_provider.tooltip.3=§7Connect AE Storage Bus for infinite ME network supply
+gregtech.machine.programming_provider.tooltip.4=§7Incoming programmable circuits will be destroyed
+
+# 无线能源覆盖版
+metaitem.wireless_energy_cover_input.ulv.name=Wireless Energy Input Cover (§8ULV§r)
+metaitem.wireless_energy_cover_input.lv.name=Wireless Energy Input Cover (§7LV§r)
+metaitem.wireless_energy_cover_input.mv.name=Wireless Energy Input Cover (§bMV§r)
+metaitem.wireless_energy_cover_input.hv.name=Wireless Energy Input Cover (§6HV§r)
+metaitem.wireless_energy_cover_input.ev.name=Wireless Energy Input Cover (§5EV§r)
+metaitem.wireless_energy_cover_input.iv.name=Wireless Energy Input Cover (§1IV§r)
+metaitem.wireless_energy_cover_input.luv.name=Wireless Energy Input Cover (§dLuV§r)
+metaitem.wireless_energy_cover_input.zpm.name=Wireless Energy Input Cover (§cZPM§r)
+metaitem.wireless_energy_cover_input.uv.name=Wireless Energy Input Cover (§3UV§r)
+metaitem.wireless_energy_cover_input.uhv.name=Wireless Energy Input Cover (§4UHV§r)
+metaitem.wireless_energy_cover_input.uev.name=Wireless Energy Input Cover (§aUEV§r)
+metaitem.wireless_energy_cover_input.uiv.name=Wireless Energy Input Cover (§2UIV§r)
+metaitem.wireless_energy_cover_input.uxv.name=Wireless Energy Input Cover (§eUXV§r)
+metaitem.wireless_energy_cover_input.opv.name=Wireless Energy Input Cover (§9OpV§r)
+metaitem.wireless_energy_cover_input.max.name=Wireless Energy Input Cover (§c§lMAX§r)
+
+metaitem.wireless_energy_cover_input.tooltip=从无线网络中获取能量输入机器
+
+metaitem.wireless_energy_cover_output.ulv.name=Wireless Energy Output Cover (§8ULV§r)
+metaitem.wireless_energy_cover_output.lv.name=Wireless Energy Output Cover (§7LV§r)
+metaitem.wireless_energy_cover_output.mv.name=Wireless Energy Output Cover (§bMV§r)
+metaitem.wireless_energy_cover_output.hv.name=Wireless Energy Output Cover (§6HV§r)
+metaitem.wireless_energy_cover_output.ev.name=Wireless Energy Output Cover (§5EV§r)
+metaitem.wireless_energy_cover_output.iv.name=Wireless Energy Output Cover (§1IV§r)
+metaitem.wireless_energy_cover_output.luv.name=Wireless Energy Output Cover (§dLuV§r)
+metaitem.wireless_energy_cover_output.zpm.name=Wireless Energy Output Cover (§cZPM§r)
+metaitem.wireless_energy_cover_output.uv.name=Wireless Energy Output Cover (§3UV§r)
+metaitem.wireless_energy_cover_output.uhv.name=Wireless Energy Output Cover (§4UHV§r)
+metaitem.wireless_energy_cover_output.uev.name=Wireless Energy Output Cover (§aUEV§r)
+metaitem.wireless_energy_cover_output.uiv.name=Wireless Energy Output Cover (§2UIV§r)
+metaitem.wireless_energy_cover_output.uxv.name=Wireless Energy Output Cover (§eUXV§r)
+metaitem.wireless_energy_cover_output.opv.name=Wireless Energy Output Cover (§9OpV§r)
+metaitem.wireless_energy_cover_output.max.name=Wireless Energy Output Cover (§c§lMAX§r)
+
+metaitem.wireless_energy_cover_output.tooltip=从机器中获取能量输入能量网络
+
+#  Universal Circuit Boards
+metaitem.general_circuit.ulv.name=Universal Circuit Board (§8ULV§r)
+metaitem.general_circuit.lv.name=Universal Circuit Board (§7LV§r)
+metaitem.general_circuit.mv.name=Universal Circuit Board (§bMV§r)
+metaitem.general_circuit.hv.name=Universal Circuit Board (§6HV§r)
+metaitem.general_circuit.ev.name=Universal Circuit Board (§5EV§r)
+metaitem.general_circuit.iv.name=Universal Circuit Board (§1IV§r)
+metaitem.general_circuit.luv.name=Universal Circuit Board (§dLuV§r)
+metaitem.general_circuit.zpm.name=Universal Circuit Board (§cZPM§r)
+metaitem.general_circuit.uv.name=Universal Circuit Board (§3UV§r)
+metaitem.general_circuit.uhv.name=Universal Circuit Board (§4UHV§r)
+metaitem.general_circuit.uev.name=Universal Circuit Board (§aUEV§r)
+metaitem.general_circuit.uiv.name=Universal Circuit Board (§2UIV§r)
+metaitem.general_circuit.uxv.name=Universal Circuit Board (§eUXV§r)
+metaitem.general_circuit.opv.name=Universal Circuit Board (§9OpV§r)
+metaitem.general_circuit.max.name=Universal Circuit Board (§c§lMAX§r)
+
+metaitem.general_circuit.ulv.tooltip=§I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.lv.tooltip=§7I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.mv.tooltip=§bI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.hv.tooltip=§6I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.ev.tooltip=§5I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.iv.tooltip=§1I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.luv.tooltip=§dI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.zpm.tooltip=§cI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uv.tooltip=§3I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uhv.tooltip=§4I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uev.tooltip=§aI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uiv.tooltip=§2I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.uxv.tooltip=§eI am a lovely Universal Circuit Board§r
+metaitem.general_circuit.opv.tooltip=§9I am a lovely Universal Circuit Board§r
+metaitem.general_circuit.max.tooltip=§c§lI am a lovely Universal Circuit Board§r
+
+metaitem.wooden_bucket.name=Wooden Bucket
+metaitem.large_fluid_cell.chrome.name=%s Chrome Cell
+metaitem.large_fluid_cell.iridium.name=%s Iridium Cell
+metaitem.large_fluid_cell.naquadah_alloy.name=%s Naquadah Alloy Cell
+metaitem.large_fluid_cell.neutronium.name=%s Neutronium Cell
+
+metaitem.shape.mold.vanadium_steel.empty.name=Empty Casting Mold
+metaitem.shape.mold.vanadium_steel.empty.tooltip=Mold for making Casting Molds
+metaitem.shape.mold.vanadium_steel.saw.name=Casting Mold (Saw)
+metaitem.shape.mold.vanadium_steel.saw.tooltip=Mold for making Disposable Saw
+metaitem.shape.mold.vanadium_steel.hard_hammer.name=Casting Mold (Hard Hammer)
+metaitem.shape.mold.vanadium_steel.hard_hammer.tooltip=Mold for making Disposable Hard Hammer
+metaitem.shape.mold.vanadium_steel.soft_mallet.name=Casting Mold (Soft Mallet)
+metaitem.shape.mold.vanadium_steel.soft_mallet.tooltip=Mold for making Disposable Soft Mallet
+metaitem.shape.mold.vanadium_steel.wrench.name=Casting Mold (Wrench)
+metaitem.shape.mold.vanadium_steel.wrench.tooltip=Mold for making Disposable Wrench
+metaitem.shape.mold.vanadium_steel.file.name=Casting Mold (File)
+metaitem.shape.mold.vanadium_steel.file.tooltip=Mold for making Disposable File
+metaitem.shape.mold.vanadium_steel.crowbar.name=Casting Mold (Crowbar)
+metaitem.shape.mold.vanadium_steel.crowbar.tooltip=Mold for making Disposable Crowbar
+metaitem.shape.mold.vanadium_steel.screwdriver.name=Casting Mold (Screwdriver)
+metaitem.shape.mold.vanadium_steel.screwdriver.tooltip=Mold for making Disposable Screwdriver
+metaitem.shape.mold.vanadium_steel.mortar.name=Casting Mold (Mortar)
+metaitem.shape.mold.vanadium_steel.mortar.tooltip=Mold for making Disposable Mortar
+metaitem.shape.mold.vanadium_steel.wire_cutter.name=Casting Mold (Wire Cutter)
+metaitem.shape.mold.vanadium_steel.wire_cutter.tooltip=Mold for making Disposable Wire Cutter
+metaitem.shape.mold.vanadium_steel.knife.name=Casting Mold (Knife)
+metaitem.shape.mold.vanadium_steel.knife.tooltip=Mold for making Disposable Knife
+metaitem.shape.mold.vanadium_steel.butchery_knife.name=Casting Mold (Butchery Knife)
+metaitem.shape.mold.vanadium_steel.butchery_knife.tooltip=Mold for making Disposable Butchery Knife
+metaitem.shape.mold.vanadium_steel.rolling_pin.name=Casting Mold (Rolling Pin)
+metaitem.shape.mold.vanadium_steel.rolling_pin.tooltip=Mold for making Disposable Rolling Pin
+
+metaitem.tool.disposable.saw.name=Disposable Saw
+metaitem.tool.disposable.saw.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.hard_hammer.name=Disposable Hard Hammer
+metaitem.tool.disposable.hard_hammer.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.soft_mallet.name=Disposable Soft mallet
+metaitem.tool.disposable.soft_mallet.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.wrench.name=Disposable Wrench
+metaitem.tool.disposable.wrench.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.file.name=Disposable File
+metaitem.tool.disposable.file.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.crowbar.name=Disposable Crowbar
+metaitem.tool.disposable.crowbar.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.screwdriver.name=Disposable Screwdriver
+metaitem.tool.disposable.screwdriver.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.mortar.name=Disposable Mortar
+metaitem.tool.disposable.mortar.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.wire_cutter.name=Disposable Wire Cutter
+metaitem.tool.disposable.wire_cutter.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.knife.name=Disposable Knife
+metaitem.tool.disposable.knife.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.butchery_knife.name=Disposable Butchery Knife
+metaitem.tool.disposable.butchery_knife.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.disposable.rolling_pin.name=Disposable Rolling Pin
+metaitem.tool.disposable.rolling_pin.tooltip=Disposable Tool for crafting recipes
+metaitem.tool.scanner.name=Rock Formation Scanner
+
+# Nuclear
+metaitem.basket.anode.name=阳极筐
+metaitem.cladding.fuel.name=燃料棒包壳
+
+metaitem.fuel_rod.1x.name=空燃料棒
+metaitem.fuel_rod.2x.name=空双联燃料棒
+metaitem.fuel_rod.4x.name=空四联燃料棒
+
+metaitem.fuel_rod.uranium.1x.depleted.name=枯竭铀燃料棒
+metaitem.fuel_rod.uranium.2x.depleted.name=双联枯竭铀燃料棒
+metaitem.fuel_rod.uranium.4x.depleted.name=四联枯竭铀燃料棒
+metaitem.fuel_rod.thorium.1x.depleted.name=枯竭钍燃料棒
+metaitem.fuel_rod.thorium.2x.depleted.name=双联枯竭钍燃料棒
+metaitem.fuel_rod.thorium.4x.depleted.name=四联枯竭钍燃料棒
+metaitem.fuel_rod.plutonium.1x.depleted.name=枯竭钚燃料棒
+metaitem.fuel_rod.plutonium.2x.depleted.name=双联枯竭钚燃料棒
+metaitem.fuel_rod.plutonium.4x.depleted.name=四联枯竭钚燃料棒
+metaitem.fuel_rod.naquadah.1x.depleted.name=枯竭硅岩燃料棒
+metaitem.fuel_rod.naquadah.2x.depleted.name=双联枯竭硅岩燃料棒
+metaitem.fuel_rod.naquadah.4x.depleted.name=四联枯竭硅岩燃料棒
+
+metaitem.fuel_rod.uranium.1x.name=铀燃料棒
+metaitem.fuel_rod.uranium.2x.name=双联铀燃料棒
+metaitem.fuel_rod.uranium.4x.name=四联铀燃料棒
+metaitem.fuel_rod.thorium.1x.name=钍燃料棒
+metaitem.fuel_rod.thorium.2x.name=双联钍燃料棒
+metaitem.fuel_rod.thorium.4x.name=四联钍燃料棒
+metaitem.fuel_rod.plutonium.1x.name=钚燃料棒
+metaitem.fuel_rod.plutonium.2x.name=双联钚燃料棒
+metaitem.fuel_rod.plutonium.4x.name=四联钚燃料棒
+metaitem.fuel_rod.naquadah.1x.name=硅岩燃料棒
+metaitem.fuel_rod.naquadah.2x.name=双联硅岩燃料棒
+metaitem.fuel_rod.naquadah.4x.name=四联硅岩燃料棒
+
+metaitem.heat_vent.basic.name=基础散热片
+metaitem.heat_vent.advanced.name=进阶散热片
+metaitem.heat_vent.elite.name=精英散热片
+metaitem.heat_vent.ultimate.name=终极散热片
+
+metaitem.component_heat_vent.basic.name=基础元件散热片
+metaitem.component_heat_vent.advanced.name=进阶元件散热片
+metaitem.component_heat_vent.elite.name=精英元件散热片
+metaitem.component_heat_vent.ultimate.name=终极元件散热片
+
+metaitem.coolant_cell.10k.name=10K空冷却单元
+metaitem.coolant_cell.30k.name=30K空冷却单元
+metaitem.coolant_cell.60k.name=60K空冷却单元
+
+metaitem.coolant_cell.coolant.10k.name=10K冷却液冷却单元
+metaitem.coolant_cell.coolant.30k.name=30K冷却液冷却单元
+metaitem.coolant_cell.coolant.60k.name=60K冷却液冷却单元
+
+metaitem.coolant_cell.sodium_potassium.10k.name=10K钠钾合金冷却单元
+metaitem.coolant_cell.sodium_potassium.30k.name=30K钠钾合金冷却单元
+metaitem.coolant_cell.sodium_potassium.60k.name=60K钠钾合金冷却单元
+
+metaitem.coolant_cell.helium.10k.name=10K液氦冷却单元
+metaitem.coolant_cell.helium.30k.name=30K液氦冷却单元
+metaitem.coolant_cell.helium.60k.name=60K液氦冷却单元
+
+metaitem.neutron_reflector.basic.name=中子反射板
+metaitem.neutron_reflector.thick.name=加厚中子反射板
+metaitem.neutron_reflector.iridium.name=铱中子反射板
+
+metaitem.heat_exchanger.basic.name=基础热交换器
+metaitem.heat_exchanger.advanced.name=进阶热交换器
+metaitem.heat_exchanger.reactor.name=反应堆热交换器
+metaitem.heat_exchanger.component.name=部件交换器
+
+metaitem.reactor_plating.basic.name=基础反应堆隔板
+metaitem.reactor_plating.advanced.name=强化反应堆隔板
+
+# Casing blocks
 tile.casing.ulv=ULV Machine Casing
 tile.casing.lv=LV Machine Casing
 tile.casing.mv=MV Machine Casing
@@ -5699,6 +6024,39 @@ gregtech.machine.world_accelerator.working_area_random=  Random Tick Mode:§f %d
 gregtech.machine.world_accelerator.mode_tile=Tile Entity Mode
 gregtech.machine.world_accelerator.mode_entity=Random Tick Mode
 
+# Decay Chamber
+gregtech.machine.decay_chamber.lv.name=Basic Decay Chamber
+gregtech.machine.decay_chamber.lv.tooltip=Radiant Glow
+gregtech.machine.decay_chamber.mv.name=Advanced Decay Chamber
+gregtech.machine.decay_chamber.mv.tooltip=Radiant Glow
+gregtech.machine.decay_chamber.hv.name=Advanced Decay Chamber II
+gregtech.machine.decay_chamber.hv.tooltip=Radiant Glow
+gregtech.machine.decay_chamber.ev.name=Advanced Decay Chamber III
+gregtech.machine.decay_chamber.ev.tooltip=Radiant Glow
+gregtech.machine.decay_chamber.iv.name=Elite Decay Chamber
+gregtech.machine.decay_chamber.iv.tooltip=Decay Accelerator
+gregtech.machine.decay_chamber.luv.name=Elite Decay Chamber II
+gregtech.machine.decay_chamber.luv.tooltip=Decay Accelerator
+gregtech.machine.decay_chamber.zpm.name=Elite Decay Chamber III
+gregtech.machine.decay_chamber.zpm.tooltip=Decay Accelerator
+gregtech.machine.decay_chamber.uv.name=Ultimate Decay Chamber
+gregtech.machine.decay_chamber.uv.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.uhv.name=Epic Decay Chamber
+gregtech.machine.decay_chamber.uhv.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.uev.name=Epic Decay Chamber II
+gregtech.machine.decay_chamber.uev.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.uiv.name=Epic Decay Chamber III
+gregtech.machine.decay_chamber.uiv.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.uxv.name=Epic Decay Chamber IV
+gregtech.machine.decay_chamber.uxv.tooltip=Zero Process Decay
+gregtech.machine.decay_chamber.opv.name=Legendary Decay Chamber
+gregtech.machine.decay_chamber.opv.tooltip=Zero Process Decay
+
+# RTG
+gregtech.machine.rtg.lv.name=Radioisotope Thermoelectric Generator-MKI
+gregtech.machine.rtg.mv.name=Radioisotope Thermoelectric Generator-MKII
+gregtech.machine.rtg.hv.name=Radioisotope Thermoelectric Generator-MKIII
+
 # Teleporter
 gregtech.machine.teleporter.ulv.name=Basic Teleporter
 gregtech.machine.teleporter.ulv.tooltip=Short-range teleportation device
@@ -5728,6 +6086,58 @@ gregtech.machine.teleporter.uxv.name=Epic Teleporter IV
 gregtech.machine.teleporter.uxv.tooltip=Spatial Warp Drive
 gregtech.machine.teleporter.opv.name=Legendary Teleporter
 gregtech.machine.teleporter.opv.tooltip=Spatial Warp Drive
+
+gregtech.machine.teleporter.data_stick_use=Wrote location to data stick
+gregtech.machine.teleporter.data_stick_name=Teleporter Location Data
+gregtech.machine.teleporter_link.data_stick_loaded=Linked to Teleporter at X: %s, Y: %s, Z: %s
+gregtech.machine.teleporter.teleport_success=Teleported to a teleporter located at X: %s, Y: %s, Z: %s
+gregtech.machine.teleporter.data_stick_saved=The coordinate data is saved
+gregtech.machine.teleporter.working_enabled=Teleporter is working
+gregtech.machine.teleporter.working_disabled=Teleporter is not working
+
+gregtech.machine.teleporter.tooltip.desc=Teleports entities to linked teleporter
+gregtech.machine.teleporter.tooltip.range=Max Transmission Range: %s blocks
+gregtech.machine.teleporter.tooltip.energy_consumption=Energy consumption: %s EU per 32 blocks
+gregtech.machine.teleporter.tooltip.data_stick=Use Data Stick to save/load coordinates
+gregtech.machine.teleporter.tooltip.screwdriver=Use Screwdriver to toggle working state
+
+# Bee Attractor
+gregtech.machine.bee_attractor.ulv.name=原始引蜂器
+gregtech.machine.bee_attractor.ulv.tooltip=并不是蜂巢
+gregtech.machine.bee_attractor.lv.name=Basic Bee Attractor
+gregtech.machine.bee_attractor.lv.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.mv.name=Advanced Bee Attractor
+gregtech.machine.bee_attractor.mv.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.hv.name=Advanced Bee Attractor II
+gregtech.machine.bee_attractor.hv.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.ev.name=Advanced Bee Attractor III
+gregtech.machine.bee_attractor.ev.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.iv.name=Elite Bee Attractor
+gregtech.machine.bee_attractor.iv.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.luv.name=Elite Bee Attractor II
+gregtech.machine.bee_attractor.luv.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.zpm.name=Elite Bee Attractor III
+gregtech.machine.bee_attractor.zpm.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.uv.name=Ultimate Bee Attractor
+gregtech.machine.bee_attractor.uv.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.uhv.name=Epic Bee Attractor
+gregtech.machine.bee_attractor.uhv.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.uev.name=Epic Bee Attractor II
+gregtech.machine.bee_attractor.uev.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.uiv.name=Epic Bee Attractor III
+gregtech.machine.bee_attractor.uiv.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.uxv.name=Epic Bee Attractor IV
+gregtech.machine.bee_attractor.uxv.tooltip=Attracts proper lady bees
+gregtech.machine.bee_attractor.opv.name=Legendary Bee Attractor
+gregtech.machine.bee_attractor.opv.tooltip=Attracts proper lady bees
+
+# Huge Buffer
+gregtech.machine.huge_buffer.tooltip=A Big Buffer to store Items and Fluids
+gregtech.machine.huge_buffer.lv.name=Basic Huge Buffer
+gregtech.machine.huge_buffer.mv.name=Advanced Huge Buffer
+gregtech.machine.huge_buffer.hv.name=Advanced Huge Buffer II
+gregtech.machine.huge_buffer.ev.name=Advanced Huge Buffer III
+gregtech.machine.huge_buffer.iv.name=Elite Huge Buffer
 
 # HPCA Components
 gregtech.machine.hpca.empty_component.name=Empty HPCA Component
@@ -5798,6 +6208,30 @@ tile.gregtech.thread.tooltip.3=With a parallel hatch, each thread hatch has the 
 gregtech.tooltip.tiered_avaliable=-Control Unit System:
 gregtech.tooltip.tiered_hatch_enabled=Requires §bControl Unit§7 to operate.
 tile.gregtech.tiered.tooltip.1=The machine can only run recipes with a voltage tier no higher than that of the Control Unit.
+tile.panelling.white.name=White Panelling
+tile.panelling.orange.name=Orange Panelling
+tile.panelling.magenta.name=Magenta Panelling
+tile.panelling.light_blue.name=Light Blue Panelling
+tile.panelling.yellow.name=Yellow Panelling
+tile.panelling.lime.name=Lime Panelling
+tile.panelling.pink.name=Pink Panelling
+tile.panelling.gray.name=Gray Panelling
+tile.panelling.light_gray.name=Light Gray Panelling
+tile.panelling.cyan.name=Cyan Panelling
+tile.panelling.purple.name=Purple Panelling
+tile.panelling.blue.name=Blue Panelling
+tile.panelling.brown.name=Brown Panelling
+tile.panelling.green.name=Green Panelling
+tile.panelling.red.name=Red Panelling
+tile.panelling.black.name=Black Panelling
+tile.nuclear_casing.spent_fuel_casing.name=Spent Fuel Casing
+tile.nuclear_casing.gas_centrifuge_heater.name=Gas Centrifuge Heater
+tile.gas_centrifuge_casing.gas_centrifuge_column.name=Gas Centrifuge Column
+tile.nuclear_reactor_casing.nuclear_reactor_casing.name=Nuclear Fission Reactor Hull
+tile.fission_casing.reactor_vessel.name=Reactor Vessel
+tile.fission_casing.fuel_channel.name=Fuel Channel
+tile.fission_casing.control_rod_channel.name=Control Rod Channel
+tile.fission_casing.coolant_channel.name=Coolant Channel
 
 gregtech.multiblock.parallel_mode=-Multiblock Parallel Mode:
 gregtech.multiblock.parallel_mode.multiply=Single Recipe Parallel - Expands a single recipe by multiples, processing multiple identical recipes simultaneously
@@ -6076,6 +6510,14 @@ gregtech.machine.primitive_blast_furnace_hatch.tooltip=Allows automation access 
 
 gregtech.machine.large_chemical_reactor.name=Large Chemical Reactor
 
+gregtech.machine.heat_exchanger.name=换热器
+gregtech.machine.spent_fuel_pool.name=乏燃料池
+gregtech.machine.gas_centrifuge.name=气体离心机
+gregtech.machine.natural_draft_cooling_tower.name=冷却塔
+gregtech.machine.spent_fuel_pool.tooltip.parallel=§d最大并行：§f%s * 长度
+gregtech.machine.gas_centrifuge.tooltip.parallel=§d最大并行：§f1 + 额外列数
+gregtech.machine.fluid_auto_fill.tooltip=§3该多方块中的流体可以通过向输入仓提供流体来自动填充
+
 gregtech.machine.large_combustion_engine.name=Large Combustion Engine
 gregtech.machine.extreme_combustion_engine.name=Extreme Combustion Engine
 gregtech.machine.large_combustion_engine.tooltip.boost_regular=Supply §f20 L/s§7 of Oxygen to produce up to §f%s EU/t§7 at §f2x§7 fuel consumption.
@@ -6156,6 +6598,14 @@ gregtech.multiblock.cleanroom.clean_state=Clean (%s%%)
 gregtech.multiblock.cleanroom.dirty_state=Contaminated (%s%%)
 gregtech.multiblock.cleanroom.warning_contaminated=Contaminated!
 gregtech.multiblock.cleanroom.low_tier=Energy tier too low, minimum of %s!
+
+gregtech.machine.logistics_material_distributor.name=Logistics Material Distributor
+
+gregtech.machine.huge_transformer.name=Huge Transformer
+gregtech.machine.huge_transformer.tooltip1=A Transformer Near My home
+gregtech.machine.huge_transformer.tooltip2=Can combine any number of Energy §fInputs§7 into any number of Energy §fOutputs§7.
+gregtech.machine.huge_transformer.tooltip3=Only Support Energy Hatch
+gregtech.machine.huge_transformer.tooltip4=Demolition during work can trigger an explosion due to instantaneous voltage levels.
 
 gregtech.machine.charcoal_pile.name=Charcoal Pile Igniter
 gregtech.machine.charcoal_pile.tooltip.1=Turns Logs into §aCharcoal§7 when §cignited§7.
@@ -6266,6 +6716,80 @@ metaitem.cover.digital.mode.fluid.enabled=Fluid Mode enabled
 
 gregtech.machine.monitor_screen.name=Monitor Screen
 
+gregtech.machine.fission_reactor.name=裂变反应堆
+gregtech.machine.fission_reactor.tooltip.1=裂变反应堆的完整功能描述与操作指南起始于此。
+gregtech.machine.fission_reactor.tooltip.2=燃料棒内部核裂变产生的热能必须经由冷却剂介质传输至外部热交换器，最终转化为蒸汽并驱动涡轮发电机。
+gregtech.machine.fission_reactor.tooltip.3=该反应堆本身不具备直接向电网输出电力单位的能力，在启动前必须先行连接完备的热量处理与转换体系。
+gregtech.machine.fission_reactor.tooltip.4=关于反应堆的物理尺寸构建，需首先明确其空间结构参数。
+gregtech.machine.fission_reactor.tooltip.5=在JEI或结构投影装置中，所设定的三个参数分别对应反应堆的直径数值、控制器所在平面以上的层数以及控制器平面以下的层数。
+gregtech.machine.fission_reactor.tooltip.6=允许的最小结构实例为直径等于五个方块、上方设置一层、下方设置一层，整体高度为三层，且这些参数必须在所有相关界面中保持完全一致。
+gregtech.machine.fission_reactor.tooltip.7=控制器方块必须放置于中间层的外壁位置，整个外围使用反应堆压力壳材料封闭，内部空间则保留用于布置燃料通道、冷却剂通道、控制棒通道或中子慢化剂填充。
+gregtech.machine.fission_reactor.tooltip.8=外壳结构内必须且仅能包含一个维护仓，任何多出或缺失的情况均会导致结构校验失败。
+gregtech.machine.fission_reactor.tooltip.9=在完成外壳构建后，须沿垂直方向布置三条完整的物料输送通路。
+gregtech.machine.fission_reactor.tooltip.10=燃料的流通路径起始于顶层所设置的燃料输入端口，经由垂直贯通的燃料通道抵达底层燃料输出端口，该输出端口应预留空位以接收耗尽燃料棒。
+gregtech.machine.fission_reactor.tooltip.11=冷却剂的循环路径同样始自顶层冷却剂输入口，沿冷却剂通道下行至底层冷却剂输出口，该输出口需连接外部管道系统并具备充足的液体存储容量。
+gregtech.machine.fission_reactor.tooltip.12=控制棒的控制端口仅出现在顶层位置，其下方必须连接有竖直贯通的控制棒通道，且该通道不需要在底部设置对应的输出终端。
+gregtech.machine.fission_reactor.tooltip.13=各类端口仅允许连接与其类型相匹配的内部通道，当结构成形过程出现错误时，应首先检查端口下方的方块类型以及端口自身信息提示。
+gregtech.machine.fission_reactor.tooltip.14=在正式启动反应堆之前，必须执行一系列预备性检查程序。
+gregtech.machine.fission_reactor.tooltip.15=每一个燃料输入端口都需要插入一枚尚未完全消耗且具备有效成分的燃料棒，同时反应堆内部至少需要存在一条完整的燃料通道。
+gregtech.machine.fission_reactor.tooltip.16=每一处冷却剂输入端口都必须注入在JEI的“冷却剂加热”页面中明确列出的适用冷却剂类型。
+gregtech.machine.fission_reactor.tooltip.17=燃料棒输出端口必须保持无物品占据状态，而经加热后的热冷却剂输出端则需连接妥当的管道设施并配备充足的存储空间以容纳输出液体。
+gregtech.machine.fission_reactor.tooltip.18=对于初次投入运行的反应堆，建议采用标准型控制棒端口，并保持其自动调节功能处于激活状态。
+gregtech.machine.fission_reactor.tooltip.19=启动流程及所产生的热量后续处理方向描述如下。
+gregtech.machine.fission_reactor.tooltip.20=通过控制器界面执行“锁定并启动”操作，一旦运行开始，所有输入端口将被锁定，在此期间无法更换燃料种类或冷却剂类型。
+gregtech.machine.fission_reactor.tooltip.21=被加热的冷却剂需导入热交换器以产生蒸汽，进而供给蒸汽轮机使用；而使用过的热乏燃料棒则必须转移至注满水的乏燃料池中进行临时存放。
+gregtech.machine.fission_reactor.tooltip.22=运行过程中需要密切关注以下三项关键指标。
+gregtech.machine.fission_reactor.tooltip.23=有效中子倍增系数k_eff的数值接近1时反应堆处于最稳定状态，大于1则表明功率将持续上升，小于1则预示功率将逐步衰减。
+gregtech.machine.fission_reactor.tooltip.24=当k_eff数值过高，尤其是超过1.05的阈值时，应增加控制棒的插入深度或执行紧急停堆操作，特别需要注意的是石墨材质的控制棒具有相反的作用效果，因此在初次使用时应避免采用。
+gregtech.machine.fission_reactor.tooltip.25=若观察到反应堆内部温度与压力持续攀升，或者热冷却剂输出管路发生堵塞现象，必须立即停止运行并对冷却线路以及维护仓进行排查。
+gregtech.machine.fission_reactor.tooltip.26=关于停堆操作以及常见的故障提示信息处理方式。
+gregtech.machine.fission_reactor.tooltip.27=若需要更换燃料或冷却剂，应首先点击关闭或解锁按钮；当出现“燃料棒输出堵塞”的提示时，应及时清空底部输出端口的物品。
+gregtech.machine.fission_reactor.tooltip.28=出现“缺少燃料/冷却剂”的提示通常意味着对应顶层输入端为空置状态、内容物无效，或者其下方并未构成贯通的正确类型通道。
+gregtech.machine.fission_reactor.tooltip.29=当燃料棒完全耗尽后，取出具有热量的乏燃料棒，将其投入充满水的乏燃料池中等待冷却，冷却完成后方可进行后续的再处理工序。
+
+gregtech.multiblock.fission_reactor.description=裂变反应堆利用相近摆放的燃料棒维持可控的链式核反应。反应中所产生的热能被反应堆中的冷却剂吸收，并最终在你旋转涡轮机中被转化为电力。例如，若使用蒸馏水作为冷却剂，每格冷却液通道最大能吸收2 EU/(t * K)的热量。反应堆的结构大小可变，其中截面形状可参考JEI结构预览；而高度上则可以从控制器上下各延伸7格。反应堆的燃料棒及冷却剂交互需要通过其顶层与底层的特的端口来进行，此外，你也可以通过在反应堆顶层放置控制棒端口来进一步控制链式反应的进行。控制棒深入越多，反应堆的等效中子增殖速率（k_eff）越低。反应堆运行时将不断产生中子毒物，且在停堆后也保留较长时间，k_eff的数值也会被中子毒物的浓度影响。在反应堆到达其最大输出功率之前，其功率将不断以k_eff倍率增加，这意味着如果某一时刻k_eff > 1, 其功率将提高；若k_eff < 1，则功率将下降；而k_eff = 1则意味着其功率将稳定不变。事实上，反应堆将主动调节控制棒的插入程度，以求达到一稳定平衡。当然，你也可以手动覆写控制棒的插入程度——尤其是当k_eff > 1.05时——以免反应堆陷入螺旋式失控，并最终熔毁（或爆炸！）。功率以k_eff的倍率倍增的频率则取决于平均中子产生时间（t），这一时间由使用的燃料棒决定（你可以从工具信息中看到）。总的来说，反应堆的功率以t / (1 - k_eff)为时间常数（幅值衰变为1 / e倍时所对应的时间）而指数变化。结构中的控制棒、冷却液和燃料端口都需要与相应的通道相连才能正常运行，检查工具信息以了解所需的通道方块。在输入端口都填有原料后，即可锁定端口（意味着反应堆运行期间其中物品/流体种类将不再可被更改）并启动反应堆。反应堆中燃料棒以及冷却剂通道的摆放位置非常重要：燃料棒中原子衰变产生的中子可以造成其他燃料棒中原子的裂变反应，这意味着反应堆中有复数根燃料棒时，裂变效率将大大提高。当中子被慢化剂减速后，其与另一燃料棒作用的概率将提高。冷却剂通道中的水就是一种慢化剂，所以你可以在两个燃料棒通道间放置冷却剂通道来增大k_eff（控制棒则相反）。燃料棒的枯竭速率与功率成正比，一根产能为600 MJ的燃料棒可以在600秒的时间能提供1 MW的功率，抑或在1秒内提供600 MW的功率。注：如果反应堆产生了维护问题，冷却系统有时候会停止运行。冷却剂通道只有在热冷却液温度比堆温高时才会运行，且输出热冷却剂中的总热量不会超过反应堆最大功率。
+gregtech.multiblock.fission_reactor.description.minimal.title=§b最小可运行示例
+gregtech.multiblock.fission_reactor.description.minimal.dimensions=§7JEI 参数：宽度 7，高度 1，长度 1（总尺寸 7x7x3）。
+gregtech.multiblock.fission_reactor.description.minimal.layout=§7堆芯俯视图；F/W/R 是同一条纵向通路，. 为非堆芯位置：
+gregtech.multiblock.fission_reactor.description.minimal.row_1=§f. F W F .
+gregtech.multiblock.fission_reactor.description.minimal.row_2=§fF W R W F
+gregtech.multiblock.fission_reactor.description.minimal.row_3=§fW R W R W
+gregtech.multiblock.fission_reactor.description.minimal.row_4=§fF W R W F
+gregtech.multiblock.fission_reactor.description.minimal.row_5=§f. F W F .
+gregtech.multiblock.fission_reactor.description.minimal.top=§7顶层：F=燃料棒输入口（共 8 根低浓缩铀-235 燃料棒），W=冷却剂输入口（蒸馏水），R=普通控制棒端口。
+gregtech.multiblock.fission_reactor.description.minimal.middle=§7中层：F/W/R 分别替换为燃料通道、冷却剂通道、控制棒通道。
+gregtech.multiblock.fission_reactor.description.minimal.bottom=§7底层：F/W 分别替换为燃料棒输出口、冷却剂输出口；R 位置放反应堆压力壳。
+gregtech.multiblock.fission_reactor.description.minimal.shell=§7其余外壳使用反应堆压力壳；控制器在中层外壁，并且只能有 1 个维护仓。
+gregtech.multiblock.fission_reactor.description.minimal.operation=§7保持自动控制棒调节开启，冷却剂输出保持畅通；初始 k_eff 约为 1.07，随后会向 1.00 收敛。
+gregtech.multiblock.gas_centrifuge.description=气体离心机可被用于提纯同位素，尤其是铀的。通过将六氟化铀重复通入一系列离心筒中离心，最终可以得到高度浓缩的六氟化铀-235，足以用于核燃料的制造。结构每增长一格，并行数增加1。
+gregtech.multiblock.heat_exchanger.description=通过将热流体通入热交换器，你可以将其热量传递至另一流体，抑或是散发到环境中。你可以通过它来利用裂变反应堆输出的热冷却液生产蒸汽，以推动你的蒸汽轮机。
+gregtech.multiblock.spent_fuel_pool.description=乏燃料池可以将裂变反应堆输出的热乏燃料棒冷却以供后续处理。它必须要在灌满水后才能正常运行，这可以通过输入水或手动放置水方块来完成。结构每增长一格，并行数增加32。
+gregtech.multiblock.nuclear_reactor.description=核反应堆是一套复刻并强化了IC经典核电系统的先进多方块结构。它通过精密排布各类燃料棒（如铀棒、MOX棒）、散热片、热交换器、中子反射板等核心元件，构成一个高效且高风险的能量产出矩阵。该系统的核心在于动态平衡：燃料棒在产生巨额电力的同时会释放大量热量，必须依靠周围的散热元件（如散热片、冷却单元、热交换器）及时吸收并耗散，否则积聚的热量将导致反应堆过热，引发范围性环境破坏（如火灾、水体蒸发、方块熔融）乃至毁灭性爆炸。反应堆隔板能提升其整体热容上限并抑制爆炸威力，而冷凝模块等特殊组件则提供了更强的瞬时散热能力。允许玩家构建从安全稳健到极致性能（伴随极高风险）的多种核电方案，是GregTech模组中兼具复杂工程魅力和巨大能源回报的关键设施。
+metaitem.nuclear.tooltip.radioactive=§c释放危险性辐射
+metaitem.nuclear.tooltip.duration=总热量：%d MJ
+metaitem.nuclear.tooltip.temperature=熔点：%d K
+metaitem.nuclear.tooltip.cross_section_fast=快中子概率：%d barn
+metaitem.nuclear.tooltip.cross_section_slow=慢中子概率：%d barn
+metaitem.nuclear.tooltip.neutron_time.0=平均中子辐照：%ds（§1安全§r）
+metaitem.nuclear.tooltip.neutron_time.1=平均中子辐照：%ds（§2非常安全§r）
+metaitem.nuclear.tooltip.neutron_time.2=平均中子辐照：%ds（§c危险§r）
+metaitem.nuclear.tooltip.neutron_time.3=平均中子辐照：%ds（§4非常危险§r）
+metaitem.nuclear.tooltip.moderation_factor=慢化强度：%d
+metaitem.nuclear.tooltip.absorption_factor=吸收强度：%d
+
+gregtech.multiblock.pattern.error.hatch_invalid=§c此仓室未被正确摆放！§r
+
+gregtech.multiblock.fission_reactor.diameter=直径: %s
+gregtech.multiblock.fission_reactor.height=高度: %s
+
+gregtech.multiblock.fission_reactor.turn_on=启动反应堆（并锁定所有端口）？
+gregtech.multiblock.fission_reactor.turn_off=关闭反应堆？
+gregtech.multiblock.fission_reactor.structure_incomplete=无法启动反应堆，因为结构无效。
+gregtech.multiblock.fission_reactor.invalid_components=无法启动反应堆，因为存在端口与相应位置通道功能不一致。
+gregtech.multiblock.fission_reactor.missing_inputs=无法启动反应堆，因为存在输入端口为空或存有无效冷却剂。
+gregtech.multiblock.spent_fuel_pool.obstructed=乏燃料池未灌满水！
+gregtech.multiblock.spent_fuel_pool.obstructed.desc=乏燃料池必须要充满水才能正常运行。
+
 gregtech.machine.large_macerator.name=Large Maceration Tower
 gregtech.machine.alloy_blast_smelter.name=Alloy Blast Smelter
 gregtech.machine.large_arc_furnace.name=Large Arc Smelter
@@ -6348,6 +6872,8 @@ gregtech.machine.fluid_drilling_rig.hv.tooltip=Does not perform Fracking
 gregtech.machine.fluid_drilling_rig.ev.tooltip=Well Drainer
 gregtech.machine.cleanroom.tooltip=Keeping those pesky particles out
 gregtech.machine.charcoal_pile.tooltip=Underground fuel bakery
+gregtech.machine.fission_reactor.tooltip=好吃到爆的发电机
+gregtech.machine.heat_exchanger.tooltip=分子级烫手山芋玩家
 
 # Multiblock machine parts
 gregtech.machine.item_bus.import.tooltip=Item Input for Multiblocks
@@ -7493,6 +8019,154 @@ gregtech.machine.laser_hatch.source.tooltip1=Transmitting power at distance
 gregtech.machine.laser_hatch.target.tooltip1=Receiving power from distance
 gregtech.machine.laser_hatch.tooltip=§cLaser Cables must be in a straight line!§7
 
+gregtech.machine.huge_item_bus.import.lv.1.name=§7LV§r Huge Input Bus (Single Slot)
+gregtech.machine.huge_item_bus.import.lv.4.name=§7LV§r Huge Input Bus (4 Slot)
+gregtech.machine.huge_item_bus.import.lv.9.name=§7LV§r Huge Input Bus (9 Slot)
+gregtech.machine.huge_item_bus.import.lv.16.name=§7LV§r Huge Input Bus (16 Slot)
+gregtech.machine.huge_item_bus.import.mv.1.name=§bMV§r Huge Input Bus (Single Slot)
+gregtech.machine.huge_item_bus.import.mv.4.name=§bMV§r Huge Input Bus (4 Slot)
+gregtech.machine.huge_item_bus.import.mv.9.name=§bMV§r Huge Input Bus (9 Slot)
+gregtech.machine.huge_item_bus.import.mv.16.name=§bMV§r Huge Input Bus (16 Slot)
+gregtech.machine.huge_item_bus.import.hv.1.name=§6HV§r Huge Input Bus (Single Slot)
+gregtech.machine.huge_item_bus.import.hv.4.name=§6HV§r Huge Input Bus (4 Slot)
+gregtech.machine.huge_item_bus.import.hv.9.name=§6HV§r Huge Input Bus (9 Slot)
+gregtech.machine.huge_item_bus.import.hv.16.name=§6HV§r Huge Input Bus (16 Slot)
+gregtech.machine.huge_item_bus.import.ev.1.name=§5EV§r Huge Input Bus (Single Slot)
+gregtech.machine.huge_item_bus.import.ev.4.name=§5EV§r Huge Input Bus (4 Slot)
+gregtech.machine.huge_item_bus.import.ev.9.name=§5EV§r Huge Input Bus (9 Slot)
+gregtech.machine.huge_item_bus.import.ev.16.name=§5EV§r Huge Input Bus (16 Slot)
+gregtech.machine.huge_item_bus.import.iv.1.name=§1IV§r Huge Input Bus (Single Slot)
+gregtech.machine.huge_item_bus.import.iv.4.name=§1IV§r Huge Input Bus (4 Slot)
+gregtech.machine.huge_item_bus.import.iv.9.name=§1IV§r Huge Input Bus (9 Slot)
+gregtech.machine.huge_item_bus.import.iv.16.name=§1IV§r Huge Input Bus (16 Slot)
+
+gregtech.machine.huge_item_bus.export.lv.1.name=§7LV§r Huge Output Bus (Single Slot)
+gregtech.machine.huge_item_bus.export.lv.4.name=§7LV§r Huge Output Bus (4 Slot)
+gregtech.machine.huge_item_bus.export.lv.9.name=§7LV§r Huge Output Bus (9 Slot)
+gregtech.machine.huge_item_bus.export.lv.16.name=§7LV§r Huge Output Bus (16 Slot)
+gregtech.machine.huge_item_bus.export.mv.1.name=§bMV§r Huge Output Bus (Single Slot)
+gregtech.machine.huge_item_bus.export.mv.4.name=§bMV§r Huge Output Bus (4 Slot)
+gregtech.machine.huge_item_bus.export.mv.9.name=§bMV§r Huge Output Bus (9 Slot)
+gregtech.machine.huge_item_bus.export.mv.16.name=§bMV§r Huge Output Bus (16 Slot)
+gregtech.machine.huge_item_bus.export.hv.1.name=§6HV§r Huge Output Bus (Single Slot)
+gregtech.machine.huge_item_bus.export.hv.4.name=§6HV§r Huge Output Bus (4 Slot)
+gregtech.machine.huge_item_bus.export.hv.9.name=§6HV§r Huge Output Bus (9 Slot)
+gregtech.machine.huge_item_bus.export.hv.16.name=§6HV§r Huge Output Bus (16 Slot)
+gregtech.machine.huge_item_bus.export.ev.1.name=§5EV§r Huge Output Bus (Single Slot)
+gregtech.machine.huge_item_bus.export.ev.4.name=§5EV§r Huge Output Bus (4 Slot)
+gregtech.machine.huge_item_bus.export.ev.9.name=§5EV§r Huge Output Bus (9 Slot)
+gregtech.machine.huge_item_bus.export.ev.16.name=§5EV§r Huge Output Bus (16 Slot)
+gregtech.machine.huge_item_bus.export.iv.1.name=§1IV§r Huge Output Bus (Single Slot)
+gregtech.machine.huge_item_bus.export.iv.4.name=§1IV§r Huge Output Bus (4 Slot)
+gregtech.machine.huge_item_bus.export.iv.9.name=§1IV§r Huge Output Bus (9 Slot)
+gregtech.machine.huge_item_bus.export.iv.16.name=§1IV§r Huge Output Bus (16 Slot)
+
+gregtech.machine.dual_hatch.import.ulv.name=§8ULV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.lv.name=§7LV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.mv.name=§bMV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.hv.name=§6HV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.ev.name=§5EV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.iv.name=§1IV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.luv.name=§dLuV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.zpm.name=§cZPM§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.uv.name=§3UV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.uhv.name=§4UHV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.uev.name=§aUEV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.uiv.name=§2UIV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.uxv.name=§eUXV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.opv.name=§9OpV§r Dual Input Hatch
+gregtech.machine.dual_hatch.import.max.name=§c§lMAX§r Dual Input Hatch
+
+gregtech.machine.dual_hatch.export.ulv.name=§8ULV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.lv.name=§7LV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.mv.name=§bMV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.hv.name=§6HV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.ev.name=§5EV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.iv.name=§1IV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.luv.name=§dLuV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.zpm.name=§cZPM§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.uv.name=§3UV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.uhv.name=§4UHV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.uev.name=§aUEV§r§aUEV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.uiv.name=§2UIV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.uxv.name=§eUXV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.opv.name=§9OpV§r Dual Output Hatch
+gregtech.machine.dual_hatch.export.max.name=§c§lMAX§r Dual Output Hatch
+
+gregtech.machine.huge_dual_hatch.import.lv.1.name=§7LV§r Huge Dual Input Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.import.lv.4.name=§7LV§r Huge Dual Input Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.import.lv.9.name=§7LV§r Huge Dual Input Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.import.lv.16.name=§7LV§r Huge Dual Input Hatch (16 Slot)
+gregtech.machine.huge_dual_hatch.import.mv.1.name=§bMV§r Huge Dual Input Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.import.mv.4.name=§bMV§r Huge Dual Input Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.import.mv.9.name=§bMV§r Huge Dual Input Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.import.mv.16.name=§bMV§r Huge Dual Input Hatch (16 Slot)
+gregtech.machine.huge_dual_hatch.import.hv.1.name=§6HV§r Huge Dual Input Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.import.hv.4.name=§6HV§r Huge Dual Input Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.import.hv.9.name=§6HV§r Huge Dual Input Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.import.hv.16.name=§6HV§r Huge Dual Input Hatch (16 Slot)
+gregtech.machine.huge_dual_hatch.import.ev.1.name=§5EV§r Huge Dual Input Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.import.ev.4.name=§5EV§r Huge Dual Input Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.import.ev.9.name=§5EV§r Huge Dual Input Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.import.ev.16.name=§5EV§r Huge Dual Input Hatch (16 Slot)
+gregtech.machine.huge_dual_hatch.import.iv.1.name=§1IV§r Huge Dual Input Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.import.iv.4.name=§1IV§r Huge Dual Input Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.import.iv.9.name=§1IV§r Huge Dual Input Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.import.iv.16.name=§1IV§r Huge Dual Input Hatch (16 Slot)
+
+gregtech.machine.huge_dual_hatch.export.lv.1.name=§7LV§r Huge Dual Output Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.export.lv.4.name=§7LV§r Huge Dual Output Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.export.lv.9.name=§7LV§r Huge Dual Output Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.export.lv.16.name=§7LV§r Huge Dual Output Hatch (16 Slot)
+gregtech.machine.huge_dual_hatch.export.mv.1.name=§bMV§r Huge Dual Output Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.export.mv.4.name=§bMV§r Huge Dual Output Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.export.mv.9.name=§bMV§r Huge Dual Output Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.export.mv.16.name=§bMV§r Huge Dual Output Hatch (16 Slot)
+gregtech.machine.huge_dual_hatch.export.hv.1.name=§6HV§r Huge Dual Output Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.export.hv.4.name=§6HV§r Huge Dual Output Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.export.hv.9.name=§6HV§r Huge Dual Output Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.export.hv.16.name=§6HV§r Huge Dual Output Hatch (16 Slot)
+gregtech.machine.huge_dual_hatch.export.ev.1.name=§5EV§r Huge Dual Output Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.export.ev.4.name=§5EV§r Huge Dual Output Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.export.ev.9.name=§5EV§r Huge Dual Output Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.export.ev.16.name=§5EV§r Huge Dual Output Hatch (16 Slot)
+gregtech.machine.huge_dual_hatch.export.iv.1.name=§1IV§r Huge Dual Output Hatch (Single Slot)
+gregtech.machine.huge_dual_hatch.export.iv.4.name=§1IV§r Huge Dual Output Hatch (4 Slot)
+gregtech.machine.huge_dual_hatch.export.iv.9.name=§1IV§r Huge Dual Output Hatch (9 Slot)
+gregtech.machine.huge_dual_hatch.export.iv.16.name=§1IV§r Huge Dual Output Hatch (16 Slot)
+
+gregtech.machine.complex_dual_hatch.ulv.name=§8ULV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.lv.name=§7LV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.mv.name=§bMV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.hv.name=§6HV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.ev.name=§5EV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.iv.name=§1IV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.luv.name=§dLuV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.zpm.name=§cZPM§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.uv.name=§3UV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.uhv.name=§4UHV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.uev.name=§aUEV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.uiv.name=§2UIV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.uxv.name=§eUXV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.opv.name=§9OpV§r Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.max.name=§c§lMAX§r Complex Dual Hatch
+
+gregtech.machine.mold_bus.ulv.name=ULV Mold Bus
+gregtech.machine.mold_bus.lv.name=LV Mold Bus
+gregtech.machine.mold_bus.mv.name=MV Mold Bus
+gregtech.machine.mold_bus.hv.name=HV Mold Bus
+gregtech.machine.mold_bus.ev.name=EV Mold Bus
+gregtech.machine.mold_bus.iv.name=IV Mold Bus
+gregtech.machine.mold_bus.luv.name=LuV Mold Bus
+gregtech.machine.mold_bus.zpm.name=ZPM Mold Bus
+gregtech.machine.mold_bus.uv.name=UV Mold Bus
+gregtech.machine.mold_bus.uhv.name=UHV Mold Bus
+gregtech.machine.mold_bus.uev.name=UEV Mold Bus
+gregtech.machine.mold_bus.uiv.name=UIV Mold Bus
+gregtech.machine.mold_bus.uxv.name=UXV Mold Bus
+gregtech.machine.mold_bus.opv.name=OpV Mold Bus
+gregtech.machine.mold_bus.max.name=MAX Mold Bus
+
 gregtech.machine.fluid_tank.max_multiblock=Max Multiblock Size: %,dx%,dx%,d
 gregtech.machine.fluid_tank.fluid=§9Contains§f %s L of %s
 
@@ -7579,6 +8253,99 @@ gregtech.machine.accelerate_hatch.max.name=Accelerate Hatch(Max)
 gregtech.machine.accelerate_hatch.tooltip.1=The Accelerate Hatch can directly adjust the machine's processing time multiplier, applying a multiplicative factor on top of the original calculation.
 gregtech.machine.accelerate_hatch.tooltip.2=Can provide a processing time multiplier as low as %s%%.
 
+# Dust Collector
+gregtech.machine.dust_collector.ulv.name=ULV Dust Collector
+gregtech.machine.dust_collector.lv.name=LV Dust Collector
+gregtech.machine.dust_collector.mv.name=MV Dust Collector
+gregtech.machine.dust_collector.hv.name=HV Dust Collector
+gregtech.machine.dust_collector.ev.name=EV Dust Collector
+gregtech.machine.dust_collector.iv.name=IV Dust Collector
+gregtech.machine.dust_collector.luv.name=LuV Dust Collector
+gregtech.machine.dust_collector.zpm.name=ZPM Dust Collector
+gregtech.machine.dust_collector.uv.name=UV Dust Collector
+gregtech.machine.dust_collector.uhv.name=UHV Dust Collector
+gregtech.machine.dust_collector.uev.name=UEV Dust Collector
+gregtech.machine.dust_collector.uiv.name=UIV Dust Collector
+gregtech.machine.dust_collector.uxv.name=UXV Dust Collector
+gregtech.machine.dust_collector.opv.name=OpV Dust Collector
+gregtech.machine.dust_collector.max.name=MAX Dust Collector
+
+gregtech.machine.dust_collector.tooltip.1=Collect ashes from the Muffler Hatch
+gregtech.machine.dust_collector.tooltip.2=It is allowed to be installed in front of the anechoic chamber without affecting the detection of the Muffler Hatch
+
+#  Heat
+gregtech.machine.heat_input_hatch.ulv.name=ULV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.lv.name=LV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.mv.name=MV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.hv.name=HV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.ev.name=EV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.iv.name=IV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.luv.name=LuV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.zpm.name=ZPM Heat Sink Hatch
+gregtech.machine.heat_input_hatch.uv.name=UV Heat Sink Hatch
+gregtech.machine.heat_input_hatch.uhv.name=UHV Heat Sink Hatch
+
+gregtech.machine.heat_hatch.input.tooltip=Inputs heat for multiblock structures
+
+gregtech.machine.heat_output_hatch.ulv.name=ULV Heat Source Hatch
+gregtech.machine.heat_output_hatch.lv.name=HV Heat Source Hatch
+gregtech.machine.heat_output_hatch.mv.name=MV Heat Source Hatch
+gregtech.machine.heat_output_hatch.hv.name=HV Heat Source Hatch
+gregtech.machine.heat_output_hatch.ev.name=EV Heat Source Hatch
+gregtech.machine.heat_output_hatch.iv.name=IV Heat Source Hatch
+gregtech.machine.heat_output_hatch.luv.name=LuV Heat Source Hatch
+gregtech.machine.heat_output_hatch.zpm.name=ZPM Heat Source Hatch
+gregtech.machine.heat_output_hatch.uv.name=UV Heat Source Hatch
+gregtech.machine.heat_output_hatch.uhv.name=UHV Heat Source Hatch
+
+gregtech.machine.heat_hatch.output.tooltip=Outputs heat from multiblock structures
+
+gregtech.machine.electric_heater.ulv.name=ULV Electric Heater
+gregtech.machine.electric_heater.lv.name=LV Electric Heater
+gregtech.machine.electric_heater.mv.name=MV Electric Heater
+gregtech.machine.electric_heater.hv.name=HV Electric Heater
+gregtech.machine.electric_heater.ev.name=EV Electric Heater
+gregtech.machine.electric_heater.iv.name=IV Electric Heater
+gregtech.machine.electric_heater.luv.name=LuV Electric Heater
+gregtech.machine.electric_heater.zpm.name=ZPM Electric Heater
+gregtech.machine.electric_heater.uv.name=UV Electric Heater
+gregtech.machine.electric_heater.uhv.name=UHV Electric Heater
+
+gregtech.machine.electric_heater.tooltip=Converts electrical energy into thermal energy
+
+gregtech.machine.heat_sensor.name=Heat Sensor
+gregtech.machine.heat_sensor.tooltip.1=Reads the heat of a multiblock and outputs a redstone signal.
+gregtech.machine.heat_sensor.tooltip.2=Increases the redstone signal level by 1 for every 200K above 373K (up to level 15).
+gregtech.machine.heat_sensor.tooltip.3=Use a screwdriver to right-click to invert the output (outputs level 15 at minimum temperature).
+
+gregtech.universal.tooltip.heat_in_till=§cMax Heat Input: §f%,d HU
+gregtech.universal.tooltip.heat_out_till=§cMax Heat Output: §f%,d HU
+gregtech.universal.tooltip.heat_storage_capacity=§bHeat Storage: §f%,d HU
+gregtech.universal.tooltip.max_temperature=§eMax Temperature: §f%,d K
+
+# Fuel Rods
+gregtech.machine.fuel_rod_input.name=燃料棒输入口
+gregtech.machine.fuel_rod_input.tooltip=仅在下方为§f燃料通道§7时才能成型运作
+gregtech.machine.fuel_rod_output.name=燃料棒输出口
+gregtech.machine.fuel_rod_output.tooltip=仅在上方为§f燃料通道§7时才能成型运作
+gregtech.machine.coolant_input.name=冷却剂输入口
+gregtech.machine.coolant_input.tooltip=仅在下方为§f冷却剂通道§7时才能成型运作
+gregtech.machine.coolant_output.name=冷却剂输出口
+gregtech.machine.coolant_output.tooltip=仅在上方为§f冷却剂通道§7时才能成型运作
+gregtech.machine.control_rod.name=控制棒端口
+gregtech.machine.control_rod.tooltip=仅在下方为§f控制棒通道§7时才能成型运作
+gregtech.machine.control_rod.tooltip.1=放置在燃料棒之间时将降低中子增殖速率！
+gregtech.machine.control_rod_moderated.name=石墨控制棒端口
+gregtech.machine.control_rod_moderated.tooltip=仅在下方为§f控制棒通道§7时才能成型运作
+gregtech.machine.control_rod_moderated.tooltip.1=放置在燃料棒之间时将提升30%%的中子增殖速率！
+gregtech.machine.nuclear.locking.item=将在反应堆启动后锁定，无法更改其中物品种类
+gregtech.machine.nuclear.locking.fluid=将在反应堆启动后锁定，无法更改其中流体种类
+gregtech.machine.moderator_port.name=慢化剂端口
+gregtech.machine.moderator_port.tooltip=仅在下方为§f慢化剂方块§7时才能成型运作
+
+gregtech.machine.nuclear_reactor.name=核反应堆
+gregtech.machine.nuclear_extend_hatch.name=反应堆拓展仓
+
 # ME Parts
 gregtech.machine.me_import_item_bus.name=ME Input Bus
 gregtech.machine.me.item_import.tooltip=Extracts specified items from the ME network
@@ -7617,6 +8384,7 @@ gregtech.machine.me.settings.ore_dict=Input OreDict Restriction
 gregtech.machine.me.settings.ore_dict.tooltip=After entering an OreDict key, only materials with that specific OreDict key will be pulled.
 gregtech.machine.me.settings.precise_mode=Precise Mode
 gregtech.machine.me.multiplier.button=Config multiplier
+
 # Universal tooltips
 gregtech.universal.tooltip.voltage_in=§aVoltage IN: §f%,d EU/t (%s§f)
 gregtech.universal.tooltip.max_voltage_in=§aMax Voltage IN: §f%,d (%s§f)
@@ -7699,6 +8467,12 @@ gregtech.recipe.scan_for_research=Scan for Assembly Line
 gregtech.recipe.computation_per_tick=Min. Computation: %,d CWU/t
 gregtech.recipe.total_computation=Computation: %,d CWU
 gregtech.recipe.research_result=Research result item, not produced by this recipe directly
+gregtech.coolant.general=§9可被用作冷却剂§7
+gregtech.coolant.exit_temp=热冷却液温度：%d K
+gregtech.coolant.heat_capacity=热容：%d J/kgK
+gregtech.coolant.cooling_factor=传热速率：%d W/(m^2K)
+gregtech.coolant.moderation_factor=控制截面：%d barn
+gregtech.coolant.accumulates_hydrogen=§c在1500K以上将生成并积累氢气！
 
 gregtech.fluid.click_to_fill=§7Left Click with a Fluid Container to §bfill §7the tank (Right Click to process 1 item per click).
 gregtech.fluid.click_combined=§7Left Click with a Fluid Container to §bfill §7or §cempty §7the tank (Right Click to process 1 item per click).
@@ -7800,7 +8574,30 @@ gregtech.gui.item_passthrough.enabled=Item Passthough Enabled
 gregtech.gui.item_passthrough.disabled=Item Passthough Disabled
 gregtech.gui.fluid_passthrough.enabled=Fluid Passthough Enabled
 gregtech.gui.fluid_passthrough.disabled=Fluid Passthough Disabled
-
+gregtech.gui.fission.control_rod_insertion=Control rod insertion: %d
+gregtech.gui.fission.coolant_flow=Coolant flow rate: %d L/t per channel
+gregtech.gui.fission.temperature=Temperature: %.3f K
+gregtech.gui.fission.pressure=Pressure: %.3f Pa
+gregtech.gui.fission.power=Power: %.3f MW / %.3f MW
+gregtech.gui.fission.k_eff=Neutron multiplication factor: %f
+gregtech.gui.fission.depletion=Current fuel rod depletion: %f%%
+gregtech.gui.fission.depleted_rod=Making %s
+gregtech.gui.fission.lock.locked=Reactor locked and active!
+gregtech.gui.fission.lock.unlocked=Reactor not active
+gregtech.gui.fission.lock.should_lock=Activating...
+gregtech.gui.fission.lock.missing_fuel=A bus is missing fuel!
+gregtech.gui.fission.lock.missing_coolant=A hatch is missing coolant!
+gregtech.gui.fission.lock.fuel_clogged=An output fuel bus is full!
+gregtech.gui.fission.lock.no_fuel_channels=There isn't a fuel channel!
+gregtech.gui.fission.lock.invalid_component=Erm, what the flip? Check your log file
+gregtech.gui.fission.lock.disabled=Lock Fuel and Coolant types and start the Reactor
+gregtech.gui.fission.lock.enabled=Unlock Fuel and Coolant types and stop the Reactor
+gregtech.gui.fission.structure.location=V3 structure error location: %s
+gregtech.gui.fission.structure.no_trace=V3 has no failure coordinate yet; click Start again to recheck the structure.
+gregtech.gui.fission.helper.disabled=Automatic control rod regulation: Disabled
+gregtech.gui.fission.helper.enabled=Automatic control rod regulation: Enabled
+gregtech.gui.locked=(Locked)
+gregtech.gui.void_fuel=Void the current partially depleted fuel!
 
 ore.spawnlocation.name=Ore Spawn Information
 gregtech.jei.ore.surface_rock_1=Surface Rocks with this material denote vein spawn locations.
@@ -9021,382 +9818,3 @@ gregtech.machine.wireless_controller.tooltip.8=§7  T_i = capacitor tier, C = co
 gregtech.machine.wireless_controller.tooltip.9=§7  Only UHV-tier and higher capacitors are counted
 gregtech.machine.wireless_controller.tooltip.retention=§bLocal retention ratio: §f%s%%
 gregtech.machine.wireless_controller.tooltip.team=Players in the same FTB team automatically share one network.
-
-# Integrated nuclear content
-tile.fission_casing.reactor_vessel.name=Reactor Vessel
-tile.fission_casing.fuel_channel.name=Fuel Channel
-tile.fission_casing.control_rod_channel.name=Control Rod Channel
-tile.fission_casing.coolant_channel.name=Coolant Channel
-gregtech.machine.fuel_rod_input.name=Fuel Rod Input Port
-gregtech.machine.fuel_rod_input.tooltip=Requires §fFuel Channels§7 below itself to function and form.
-gregtech.machine.fuel_rod_output.name=Fuel Rod Output Port
-gregtech.machine.fuel_rod_output.tooltip=Requires §fFuel Channels§7 above itself to function and form.
-gregtech.machine.coolant_input.name=Coolant Input Port
-gregtech.machine.coolant_input.tooltip=Requires §fCoolant Channels§7 below itself to function and form.
-gregtech.machine.coolant_output.name=Coolant Output Port
-gregtech.machine.coolant_output.tooltip=Requires §fCoolant Channels§7 above itself to function and form.
-gregtech.machine.control_rod.name=Control Rod Port
-gregtech.machine.control_rod.tooltip=Requires §fControl Rod Channels§7 below itself to function and form.
-gregtech.machine.control_rod.tooltip.1=Lowers neutron multiplication as it is inserted when placed between fuel rods!
-gregtech.machine.control_rod_moderated.name=Graphite-Tipped Control Rod Port
-gregtech.machine.control_rod_moderated.tooltip=Requires §fControl Rod Channels§7 below itself to function and form.
-gregtech.machine.control_rod_moderated.tooltip.1=Increases neutron multiplication when placed between fuel rods when inserted around 30%%!
-gregtech.machine.nuclear.locking.item=Locks when the reactor is turned on; the held item cannot change type when locked.
-gregtech.machine.nuclear.locking.fluid=Locks when the reactor is turned on; the held fluid cannot change type when locked.
-gregtech.machine.moderator_port.name=Moderator Port
-gregtech.machine.moderator_port.tooltip=Requires §fModerator Blocks§7 below itself (like graphite) to function and form.
-
-gregtech.machine.nuclear_reactor.name=Nuclear Reactor
-gregtech.machine.nuclear_extend_hatch.name=Reactor Expansion Hatch
-
-gregtech.multiblock.fission_reactor.description=Fission Reactors use fuel rods placed together to create a sustained chain of fission reactions. These reactions generate heat (power) that may be soaked up by coolants, which can then be used inside turbines. For example, using distilled water as a coolant, each channel soaks up about 2 EU/t of heat per degree Kelvin and block of internal reactor depth.  The reactor can take on a variety of shapes. Its cross sections can be seen in JEI, and the reactor may extend 7 blocks up and down from the controller. Reactors can import and export fuel rods/coolants through special pairs of hatches on the top and bottom layers, respectively. Control rod hatches may also be placed on the top layer, and they give the user more control over the reactor. Inserting them more decreases the neutron multiplication rate "effective K" (shown as k_eff), a factor by which the power is continually multiplied by until it reaches the approximate max power. If k_eff is over 1, the reactor's power will eventually increase; if it's below 1, it will eventually decrease; and if it's around 1, it will stay stable. In fact, the reactor automatically shifts this over time, attempting to reach a stable equilibrium. This may be overridden manually, which you may want to do if the k_eff is over 1.05 to avoid it spiralling out of control and melting down. K_eff is also affected by neutron poisons inside the reactor, which will increase in concentration over time as the reactor runs (and still remain in a fairly high concentration for a while after). The rate at which k_eff "acts" is dependent on the mean generation time, which is how long it takes for the next generation of neutrons to be produced. This depends on the fuel rod (and can be seen in their tooltips), and it is mostly affected by delayed neutrons produced from decaying fission products. The power may then be modeled using an exponential function with a time constant of the mean generation time divided by (k_eff - 1). Control rods, fuel hatches, and coolant hatches all require special tubing beneath them to form correctly; check their tooltips to see which blocks to use. Once a reactor's hatches are filled, the reactor can be locked to begin operation, meaning that the types of items/fluids in the hatches can not be changed while the reactor operates. The placement of the fuel rods and coolant channels within the reactor is quite important. Neutrons produced by decaying atoms in the fuel rods can cause fissions in other fuel rods; therefore, reactors work far more effectively with more than one fuel rod channel. The chance that a neutron interacts with a fuel rod is increased if it is slowed down by a moderator, such as distilled water inside a coolant channel. As such, it can be helpful to put coolant channels between fuel rods to increase k_eff (and control rods do much the opposite). Fuel rods also decay at a rate proportional to the power; a 600 MJ fuel rod will deplete after 600 seconds of 1 MW, or alternatively 1 second of 600 MW. Note: if this multiblock receives maintenance problems, the coolant systems will occasionally seize up and stop working. However, coolant channels only operate when the hot coolant fluid is actually hotter than the reactor itself, and they can also only altogether export as much heat as the max power.
-gregtech.multiblock.fission_reactor.description.minimal.title=§bMinimal runnable example
-gregtech.multiblock.fission_reactor.description.minimal.dimensions=§7JEI settings: width 7, height 1, length 1 (7x7x3 overall).
-gregtech.multiblock.fission_reactor.description.minimal.layout=§7Top-down core map. F/W/R are one vertical path; . is outside the core:
-gregtech.multiblock.fission_reactor.description.minimal.row_1=§f. F W F .
-gregtech.multiblock.fission_reactor.description.minimal.row_2=§fF W R W F
-gregtech.multiblock.fission_reactor.description.minimal.row_3=§fW R W R W
-gregtech.multiblock.fission_reactor.description.minimal.row_4=§fF W R W F
-gregtech.multiblock.fission_reactor.description.minimal.row_5=§f. F W F .
-gregtech.multiblock.fission_reactor.description.minimal.top=§7Top: F = fuel rod input (8 LEU-235 fuel rods), W = distilled-water coolant input, R = normal control rod port.
-gregtech.multiblock.fission_reactor.description.minimal.middle=§7Middle: replace F/W/R with fuel channels, coolant channels, and control rod channels.
-gregtech.multiblock.fission_reactor.description.minimal.bottom=§7Bottom: replace F/W with fuel rod outputs and coolant outputs; use reactor vessels below R.
-gregtech.multiblock.fission_reactor.description.minimal.shell=§7Use reactor vessels for the remaining shell. Put the controller in the middle outer wall and exactly one maintenance hatch in the shell.
-gregtech.multiblock.fission_reactor.description.minimal.operation=§7Leave automatic control rod regulation enabled and keep coolant outputs clear. Initial k_eff is about 1.07 and settles toward 1.00.
-gregtech.multiblock.gas_centrifuge.description=The Gas Centrifuge can help in the purification process of isotopes, especially those of uranium. By repeatedly putting uranium hexafluoride into a gas centrifuge, one can obtain highly enriched uranium hexafluoride, which has a purity high enough to make nuclear fuels. Each block of length makes it perform one more recipe in parallel.
-gregtech.multiblock.heat_exchanger.description=The Heat Exchanger can be used to take heat out from one fluid by either radiating it out into its surrounding environment or by transferring it into another fluid. This can be used with hot coolant from fission reactors to help generate steam for steam turbines.
-gregtech.multiblock.spent_fuel_pool.description=The Spent Fuel Pool takes hot depleted fuel rods fresh from a fission reactor and cools them down to be processed later. It only works when the structure is fulled with water, you can do this by fill an input water with water, or place water blocks manually. Each block of length makes it perform 32 more recipes in parallel.
-gregtech.multiblock.nuclear_reactor.description=The nuclear reactor is an advanced multi-block structure that replicates and enhances IC's classic nuclear power system. It constitutes an efficient and high-risk energy output matrix by precisely arranging various fuel rods (such as uranium rods, MOX rods), heat sinks, heat exchangers, neutron reflectors and other core components. The core of the system is dynamic balance: fuel rods will release a large amount of heat while generating huge amounts of electricity, and must rely on the surrounding heat dissipation elements (such as heat sinks, cooling units, heat exchangers) to absorb and dissipate in time, otherwise the accumulated heat will cause the reactor to overheat, causing widespread environmental damage (such as fire, evaporation of water bodies, block melting) and even catastrophic explosions. Reactor partitions increase their overall heat capacity limit and suppress explosion power, while special components such as condensation modules provide enhanced instantaneous heat dissipation. Allowing players to build a variety of nuclear power solutions from safe and robust to extreme performance with extremely high risk, it is a key facility in GregTech mods that combines the charm of complex engineering with great energy returns.
-metaitem.nuclear.tooltip.radioactive=§cEmits dangerous radiation
-metaitem.nuclear.tooltip.duration=Total heat energy: %d MJ
-metaitem.nuclear.tooltip.temperature=Melting point: %d K
-metaitem.nuclear.tooltip.cross_section_fast=Fast neutron prob: %d barn
-metaitem.nuclear.tooltip.cross_section_slow=Slow neutron prob: %d barn
-metaitem.nuclear.tooltip.neutron_time.0=Avg. neutron: %ds (§1Safe§r)
-metaitem.nuclear.tooltip.neutron_time.1=Avg. neutron: %ds (§2Safer§r)
-metaitem.nuclear.tooltip.neutron_time.2=Avg. neutron: %ds (§cUnsafe§r)
-metaitem.nuclear.tooltip.neutron_time.3=Avg. neutron: %ds (§4Very unsafe§r)
-metaitem.nuclear.tooltip.moderation_factor=Moderation strength: %d
-metaitem.nuclear.tooltip.absorption_factor=Absorption strength: %d
-
-item.material.oreprefix.fuelRod=%s Fuel Rod
-item.material.oreprefix.fuelRodDepleted=%s Depleted Fuel Rod
-item.material.oreprefix.fuelRodHotDepleted=%s Hot Depleted Fuel Rod
-item.material.oreprefix.fuelPelletRaw=%s Raw Fuel Pellet
-item.material.oreprefix.fuelPellet=%s Fuel Pellet
-item.material.oreprefix.fuelPelletDepleted=%s Depleted Fuel Pellet
-item.material.oreprefix.dustSpentFuel=%s Spent Fuel Dust
-item.material.oreprefix.dustBredFuel=%s Bred Fuel Dust
-item.material.oreprefix.dustFissionByproduct=%s Fission Byproduct Dust
-item.material.oreprefix.fuelPebble=%s Concentrated Fuel Pellets
-item.material.oreprefix.fuelPebbleDepleted=%s Depleted Concentrated Fuel Pellets
-
-# 基础元素
-# 镭同位素
-gregtech.material.radium_225=Radium-225
-gregtech.material.radium_226=Radium-226
-# 镤同位素
-gregtech.material.protactinium_231=Protactinium-231
-gregtech.material.protactinium_233=Protactinium-233
-# 铀同位素
-gregtech.material.uranium_232=Uranium-232
-gregtech.material.uranium_233=Uranium-233
-gregtech.material.uranium_234=Uranium-234
-gregtech.material.uranium_236=Uranium-236
-gregtech.material.uranium_237=Uranium-237
-gregtech.material.uranium_239=Uranium-239
-# 镎同位素
-gregtech.material.neptunium_235=Neptunium-235
-gregtech.material.neptunium_236=Neptunium-236
-gregtech.material.neptunium_237=Neptunium-237
-gregtech.material.neptunium_238=Neptunium-238
-gregtech.material.neptunium_239=Neptunium-239
-# 钚同位素
-gregtech.material.plutonium_236=Plutonium-236
-gregtech.material.plutonium_237=Plutonium-237
-gregtech.material.plutonium_238=Plutonium-238
-gregtech.material.plutonium_240=Plutonium-240
-gregtech.material.plutonium_242=Plutonium-242
-gregtech.material.plutonium_243=Plutonium-243
-gregtech.material.plutonium_244=Plutonium-244
-# 钍同位素
-gregtech.material.thorium_228=Thorium-228
-gregtech.material.thorium_229=Thorium-229
-gregtech.material.thorium_230=Thorium-230
-gregtech.material.thorium_232=Thorium-232
-gregtech.material.thorium_233=Thorium-233
-# 镅同位素
-gregtech.material.americium_240=Americium-240
-gregtech.material.americium_241=Americium-241
-gregtech.material.americium_242=Americium-242
-gregtech.material.americium_243=Americium-243
-# 锔同位素
-gregtech.material.curium_242=Curium-242
-gregtech.material.curium_243=Curium-243
-gregtech.material.curium_244=Curium-244
-gregtech.material.curium_245=Curium-245
-gregtech.material.curium_246=Curium-246
-gregtech.material.curium_247=Curium-247
-gregtech.material.curium_248=Curium-248
-gregtech.material.curium_250=Curium-250
-# 锫同位素
-gregtech.material.berkelium_249=Berkelium-249
-# 锎同位素
-gregtech.material.californium_249=Californium-249
-gregtech.material.californium_252=Californium-252
-
-gregtech.material.high_enriched_uranium_hexafluoride=Highly Enriched Uranium Hexafluoride
-gregtech.material.high_enriched_uranium_dioxide=Highly Enriched Uranium Dioxide
-gregtech.material.low_enriched_uranium_dioxide=Low Enriched Uranium Dioxide
-gregtech.material.depleted_uranium_dioxide=Depleted Uranium Dioxide
-gregtech.material.fissile_plutonium_dioxide=Fissile Plutonium Dioxide
-gregtech.material.inconel=Inconel
-gregtech.material.corium=Corium
-gregtech.material.zircaloy=Zircaloy
-gregtech.material.boron_trioxide=Boron Trioxide
-gregtech.material.boron_carbide=Boron Carbide
-gregtech.material.heavy_water=Heavy Water
-gregtech.material.high_pressure_heavy_water=High Pressure Heavy Water
-
-gregtech.material.spent_uranium_fuel_solution=Spent Uranium Fuel Solution
-gregtech.material.radon_rich_gas_mixture=Radon Rich Gas Mixture
-
-gregtech.material.leu_235=LEU-235
-gregtech.material.heu_235=HEU-235
-gregtech.material.low_grade_mox=Low Grade MOX
-gregtech.material.high_grade_mox=High Grade MOX
-gregtech.material.fbr=Fast Reactor Fuel
-gregtech.material.thor=Molten Salt Reactor Fuel
-
-recipemap.heat_exchanger.name=Heat Exchanger
-recipemap.gas_centrifuge.name=Gas Centrifuge
-recipemap.spent_fuel_pool.name=Spent Fuel Pool
-recipemap.rtg_recipes.name=RTG
-recipemap.decay_chamber_recipes.name=Decay Chamber
-recipemap.natural_draft_cooling_tower.name=冷却塔
-
-gregtech.machine.decay_chamber.lv.name=Basic Decay Chamber
-gregtech.machine.decay_chamber.lv.tooltip=Radiant Glow
-gregtech.machine.decay_chamber.mv.name=Advanced Decay Chamber
-gregtech.machine.decay_chamber.mv.tooltip=Radiant Glow
-gregtech.machine.decay_chamber.hv.name=Advanced Decay Chamber II
-gregtech.machine.decay_chamber.hv.tooltip=Radiant Glow
-gregtech.machine.decay_chamber.ev.name=Advanced Decay Chamber III
-gregtech.machine.decay_chamber.ev.tooltip=Radiant Glow
-gregtech.machine.decay_chamber.iv.name=Elite Decay Chamber
-gregtech.machine.decay_chamber.iv.tooltip=Decay Accelerator
-gregtech.machine.decay_chamber.luv.name=Elite Decay Chamber II
-gregtech.machine.decay_chamber.luv.tooltip=Decay Accelerator
-gregtech.machine.decay_chamber.zpm.name=Elite Decay Chamber III
-gregtech.machine.decay_chamber.zpm.tooltip=Decay Accelerator
-gregtech.machine.decay_chamber.uv.name=Ultimate Decay Chamber
-gregtech.machine.decay_chamber.uv.tooltip=Zero Process Decay
-gregtech.machine.decay_chamber.uhv.name=Epic Decay Chamber
-gregtech.machine.decay_chamber.uhv.tooltip=Zero Process Decay
-gregtech.machine.decay_chamber.uev.name=Epic Decay Chamber II
-gregtech.machine.decay_chamber.uev.tooltip=Zero Process Decay
-gregtech.machine.decay_chamber.uiv.name=Epic Decay Chamber III
-gregtech.machine.decay_chamber.uiv.tooltip=Zero Process Decay
-gregtech.machine.decay_chamber.uxv.name=Epic Decay Chamber IV
-gregtech.machine.decay_chamber.uxv.tooltip=Zero Process Decay
-gregtech.machine.decay_chamber.opv.name=Legendary Decay Chamber
-gregtech.machine.decay_chamber.opv.tooltip=Zero Process Decay
-
-gregtech.machine.rtg.lv.name=Radioisotope Thermoelectric Generator-MKI
-gregtech.machine.rtg.mv.name=Radioisotope Thermoelectric Generator-MKII
-gregtech.machine.rtg.hv.name=Radioisotope Thermoelectric Generator-MKIII
-
-fission.coolant.name=Coolant Heating
-fission.fuel.name=Fission Reactor
-fission.moderator.name=Neutron Moderation
-
-metaitem.basket.anode.name=Anode Basket
-metaitem.cladding.fuel.name=Fuel Cladding
-
-metaitem.fuel_rod.1x.name=Empty Fuel Rod
-metaitem.fuel_rod.2x.name=Empty Double Fuel Rod
-metaitem.fuel_rod.4x.name=Empty Quad Fuel Rod
-
-metaitem.fuel_rod.uranium.1x.depleted.name=Depleted Uranium Fuel Rod
-metaitem.fuel_rod.uranium.2x.depleted.name=Depleted Double Uranium Fuel Rod
-metaitem.fuel_rod.uranium.4x.depleted.name=Depleted Quad Uranium Fuel Rod
-metaitem.fuel_rod.thorium.1x.depleted.name=Depleted Thorium Fuel Rod
-metaitem.fuel_rod.thorium.2x.depleted.name=Depleted Double Thorium Fuel Rod
-metaitem.fuel_rod.thorium.4x.depleted.name=Depleted Quad Thorium Fuel Rod
-metaitem.fuel_rod.plutonium.1x.depleted.name=Depleted Plutonium Fuel Rod
-metaitem.fuel_rod.plutonium.2x.depleted.name=Depleted Double Plutonium Fuel Rod
-metaitem.fuel_rod.plutonium.4x.depleted.name=Depleted Quad Plutonium Fuel Rod
-metaitem.fuel_rod.naquadah.1x.depleted.name=Depleted Naquadah Fuel Rod
-metaitem.fuel_rod.naquadah.2x.depleted.name=Depleted Double Naquadah Fuel Rod
-metaitem.fuel_rod.naquadah.4x.depleted.name=Depleted Quad Naquadah Fuel Rod
-
-metaitem.fuel_rod.uranium.1x.name=Uranium Fuel Rod
-metaitem.fuel_rod.uranium.2x.name=Double Uranium Fuel Rod
-metaitem.fuel_rod.uranium.4x.name=Quad Uranium Fuel Rod
-metaitem.fuel_rod.thorium.1x.name=Thorium Fuel Rod
-metaitem.fuel_rod.thorium.2x.name=Double Thorium Fuel Rod
-metaitem.fuel_rod.thorium.4x.name=Quad Thorium Fuel Rod
-metaitem.fuel_rod.plutonium.1x.name=Plutonium Fuel Rod
-metaitem.fuel_rod.plutonium.2x.name=Double Plutonium Fuel Rod
-metaitem.fuel_rod.plutonium.4x.name=Quad Plutonium Fuel Rod
-metaitem.fuel_rod.naquadah.1x.name=Naquadah Fuel Rod
-metaitem.fuel_rod.naquadah.2x.name=Double Naquadah Fuel Rod
-metaitem.fuel_rod.naquadah.4x.name=Quad Naquadah Fuel Rod
-
-metaitem.heat_vent.basic.name=Basic Heat Vent
-metaitem.heat_vent.advanced.name=Advanced Heat Vent
-metaitem.heat_vent.elite.name=Elite Heat Vent
-metaitem.heat_vent.ultimate.name=Ultimate Heat Vent
-
-metaitem.component_heat_vent.basic.name=Basic Component Heat Vent
-metaitem.component_heat_vent.advanced.name=Advanced Component Heat Vent
-metaitem.component_heat_vent.elite.name=Elite Component Heat Vent
-metaitem.component_heat_vent.ultimate.name=Ultimate Component Heat Vent
-
-metaitem.coolant_cell.10k.name=10K Empty Coolant Cell
-metaitem.coolant_cell.30k.name=30K Empty Coolant Cell
-metaitem.coolant_cell.60k.name=60K Empty Coolant Cell
-
-metaitem.coolant_cell.coolant.10k.name=10K Coolant Coolant Cell
-metaitem.coolant_cell.coolant.30k.name=30K Coolant Coolant Cell
-metaitem.coolant_cell.coolant.60k.name=60K Coolant Coolant Cell
-
-metaitem.coolant_cell.sodium_potassium.10k.name=10K Sodium Potassium Coolant Cell
-metaitem.coolant_cell.sodium_potassium.30k.name=30K Sodium Potassium Coolant Cell
-metaitem.coolant_cell.sodium_potassium.60k.name=60K Sodium Potassium Coolant Cell
-
-metaitem.coolant_cell.helium.10k.name=10K Helium Coolant Cell
-metaitem.coolant_cell.helium.30k.name=30K Helium Coolant Cell
-metaitem.coolant_cell.helium.60k.name=60K Helium Coolant Cell
-
-metaitem.neutron_reflector.basic.name=Neutron Reflector
-metaitem.neutron_reflector.thick.name=Thick Neutron Reflector
-metaitem.neutron_reflector.iridium.name=Iridium Neutron Reflector
-
-metaitem.heat_exchanger.basic.name=Basic Heat Exchanger
-metaitem.heat_exchanger.advanced.name=Advanced Heat Exchanger
-metaitem.heat_exchanger.reactor.name=Reactor Heat Exchanger
-metaitem.heat_exchanger.component.name=Component Heat Exchanger
-
-metaitem.reactor_plating.basic.name=Basic Reactor Plating
-metaitem.reactor_plating.advanced.name=Advanced Reactor Plating
-
-tile.panelling.white.name=White Panelling
-tile.panelling.orange.name=Orange Panelling
-tile.panelling.magenta.name=Magenta Panelling
-tile.panelling.light_blue.name=Light Blue Panelling
-tile.panelling.yellow.name=Yellow Panelling
-tile.panelling.lime.name=Lime Panelling
-tile.panelling.pink.name=Pink Panelling
-tile.panelling.gray.name=Gray Panelling
-tile.panelling.light_gray.name=Light Gray Panelling
-tile.panelling.cyan.name=Cyan Panelling
-tile.panelling.purple.name=Purple Panelling
-tile.panelling.blue.name=Blue Panelling
-tile.panelling.brown.name=Brown Panelling
-tile.panelling.green.name=Green Panelling
-tile.panelling.red.name=Red Panelling
-tile.panelling.black.name=Black Panelling
-
-# Nuclear Blocks
-tile.nuclear_casing.spent_fuel_casing.name=Spent Fuel Casing
-tile.nuclear_casing.gas_centrifuge_heater.name=Gas Centrifuge Heater
-tile.gas_centrifuge_casing.gas_centrifuge_column.name=Gas Centrifuge Column
-tile.nuclear_reactor_casing.nuclear_reactor_casing.name=Nuclear Fission Reactor Hull
-
-gregtech.machine.fission_reactor.name=Fission Reactor
-gregtech.machine.fission_reactor.tooltip.1=§6§l[Fission Reactor]
-gregtech.machine.fission_reactor.tooltip.2=§7Goal: fuel rods heat up -> coolant carries heat -> heat exchanger makes steam -> turbine makes power.
-gregtech.machine.fission_reactor.tooltip.3=§8The reactor does not output EU directly; connect the heat-processing line before starting it.
-gregtech.machine.fission_reactor.tooltip.4=§b1. Check the structure first
-gregtech.machine.fission_reactor.tooltip.5=§7JEI/projector use three values: width = diameter; height = layers above controller; length = layers below.
-gregtech.machine.fission_reactor.tooltip.6=§7Smallest example: diameter 5, one upper layer, one lower layer (3 layers total). Keep both views on the same values.
-gregtech.machine.fission_reactor.tooltip.7=§7The controller is in the outer wall of the middle layer. Use reactor vessels for the shell; the inside holds channels, air, or moderators.
-gregtech.machine.fission_reactor.tooltip.8=§eThe shell must contain exactly one maintenance hatch, or the reactor cannot work.
-gregtech.machine.fission_reactor.tooltip.9=§b2. Build one complete vertical path
-gregtech.machine.fission_reactor.tooltip.10=§7Fuel: top fuel rod input -> fuel channels all the way down -> bottom fuel rod output.
-gregtech.machine.fission_reactor.tooltip.11=§7Coolant: top coolant input -> coolant channels all the way down -> bottom coolant output.
-gregtech.machine.fission_reactor.tooltip.12=§7Control rod ports go on the top; control rod channels must run below them. They need no matching bottom output.
-gregtech.machine.fission_reactor.tooltip.13=§7A port only connects to its matching channel. If formation fails, check the block above/below the port and its own tooltip.
-gregtech.machine.fission_reactor.tooltip.14=§b3. Check before starting
-gregtech.machine.fission_reactor.tooltip.15=§7Every fuel input needs a valid, non-depleted fuel rod, and the reactor needs at least one fuel channel.
-gregtech.machine.fission_reactor.tooltip.16=§7Every coolant input needs a valid coolant listed in JEI's "Coolant Heating" page.
-gregtech.machine.fission_reactor.tooltip.17=§7Leave room in fuel rod outputs. Pipe hot coolant away and provide enough tank capacity.
-gregtech.machine.fission_reactor.tooltip.18=§7For the first run, use normal control rod ports and leave automatic control rod regulation enabled.
-gregtech.machine.fission_reactor.tooltip.19=§b4. Start and use the heat
-gregtech.machine.fission_reactor.tooltip.20=§7Open the controller and click "Lock and start". Inputs lock while running, so fuel and coolant types cannot be changed.
-gregtech.machine.fission_reactor.tooltip.21=§7Hot coolant -> heat exchanger -> steam -> steam turbine; hot depleted rods -> a water-filled spent fuel pool.
-gregtech.machine.fission_reactor.tooltip.22=§b5. Watch these values while running
-gregtech.machine.fission_reactor.tooltip.23=§7k_eff near 1 is stable. Above 1, power keeps rising; below 1, power slowly falls.
-gregtech.machine.fission_reactor.tooltip.24=§eWhen k_eff is high (especially above 1.05), insert more control rods or shut down. Graphite-tipped rods do the opposite; avoid them at first.
-gregtech.machine.fission_reactor.tooltip.25=§cIf temperature/pressure keep rising or hot coolant is blocked, shut down immediately and check cooling plus maintenance.
-gregtech.machine.fission_reactor.tooltip.26=§b6. Stop and diagnose
-gregtech.machine.fission_reactor.tooltip.27=§7To change fuel or coolant, shut down and unlock first. For "Fuel output blocked", empty the bottom fuel output.
-gregtech.machine.fission_reactor.tooltip.28=§7"Missing fuel/coolant" means the matching top input is empty or invalid, or its channel is not continuous.
-gregtech.machine.fission_reactor.tooltip.29=§7After depletion, move hot depleted rods to a water-filled spent fuel pool to cool them before further processing.
-
-gregtech.machine.heat_exchanger.name=Heat Exchanger
-gregtech.machine.spent_fuel_pool.name=Spent Fuel Pool
-gregtech.machine.gas_centrifuge.name=Gas Centrifuge
-gregtech.machine.natural_draft_cooling_tower.name=冷却塔
-
-gregtech.machine.fission_reactor.tooltip=Blowy-uppy yumyum generator
-gregtech.machine.heat_exchanger.tooltip=Molecular hot potato player
-
-gregtech.machine.spent_fuel_pool.tooltip.parallel=§dMax Parallel: §f%s per block of pool length
-gregtech.machine.gas_centrifuge.tooltip.parallel=§dMax Parallel: §f1 + number of added columns
-gregtech.machine.fluid_auto_fill.tooltip=§3Fluid blocks in this multi can be automatically filled by supplying it to the input tank
-
-
-gregtech.coolant.general=§9Can be used as a coolant§7
-gregtech.coolant.exit_temp=Hot coolant temperature: %d K
-gregtech.coolant.heat_capacity=Heat capacity: %d J/kgK
-gregtech.coolant.cooling_factor=Heat transfer: %d W/(m^2K)
-gregtech.coolant.moderation_factor=Moderation cross section: %d barn
-gregtech.coolant.accumulates_hydrogen=§cAccumulates hydrogen at 1500K
-
-gregtech.gui.fission.control_rod_insertion=Control rod insertion: %d
-gregtech.gui.fission.coolant_flow=Coolant flow rate: %d L/t per channel
-gregtech.gui.fission.temperature=Temperature: %.3f K
-gregtech.gui.fission.pressure=Pressure: %.3f Pa
-gregtech.gui.fission.power=Power: %.3f MW / %.3f MW
-gregtech.gui.fission.k_eff=Neutron multiplication factor: %f
-gregtech.gui.fission.depletion=Current fuel rod depletion: %f%%
-gregtech.gui.fission.depleted_rod=Making %s
-
-gregtech.gui.fission.lock.locked=Reactor locked and active!
-gregtech.gui.fission.lock.unlocked=Reactor not active
-gregtech.gui.fission.lock.should_lock=Activating...
-gregtech.gui.fission.lock.missing_fuel=A bus is missing fuel!
-gregtech.gui.fission.lock.missing_coolant=A hatch is missing coolant!
-gregtech.gui.fission.lock.fuel_clogged=An output fuel bus is full!
-gregtech.gui.fission.lock.no_fuel_channels=There isn't a fuel channel!
-gregtech.gui.fission.lock.invalid_component=Erm, what the flip? Check your log file
-gregtech.gui.fission.lock.disabled=Lock Fuel and Coolant types and start the Reactor
-gregtech.gui.fission.lock.enabled=Unlock Fuel and Coolant types and stop the Reactor
-gregtech.gui.fission.structure.location=V3 structure error location: %s
-gregtech.gui.fission.structure.no_trace=V3 has no failure coordinate yet; click Start again to recheck the structure.
-
-gregtech.gui.fission.helper.disabled=Automatic control rod regulation: Disabled
-gregtech.gui.fission.helper.enabled=Automatic control rod regulation: Enabled
-
-gregtech.gui.locked=(Locked)
-gregtech.gui.void_fuel=Void the current partially depleted fuel!
-
-gregtech.multiblock.pattern.error.hatch_invalid=§cThis hatch is not valid yet!§r
-
-gregtech.multiblock.fission_reactor.diameter=Diameter: %s
-gregtech.multiblock.fission_reactor.height=Height: %s
-
-gregtech.multiblock.fission_reactor.turn_on=Turn on the reactor? (Locks all hatches)
-gregtech.multiblock.fission_reactor.turn_off=Turn off the reactor?
-gregtech.multiblock.fission_reactor.structure_incomplete=Cannot toggle the reactor. The structure is incomplete.
-gregtech.multiblock.fission_reactor.invalid_components=Reactor startup failed. Some of the inputs ports are invalid. Please check that channels are aligned with their respective ports.
-gregtech.multiblock.fission_reactor.missing_inputs=Reactor startup failed. Some of the inputs ports are empty or have inappropriate contents. Please check the ports.
-gregtech.multiblock.spent_fuel_pool.obstructed=The pool is not filled!
-gregtech.multiblock.spent_fuel_pool.obstructed.desc=The pool must be filled with water to function.
-
-# Name Overrides (doesn't work)
-
-# Creative tabs
-itemGroup.gregtech_tab=Supercritical | Nuclear

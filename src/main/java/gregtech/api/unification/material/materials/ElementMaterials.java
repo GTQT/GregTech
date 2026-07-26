@@ -999,7 +999,7 @@ public class ElementMaterials {
                 .ingot(3)
                 .liquid(new FluidBuilder().temperature(3695))
                 .color(0x323232).iconSet(METALLIC)
-                
+
                 .element(Elements.W)
                 .rotorStats(7.0f, 3.0f, 2560)
                 .cableProperties(V[IV], 2, 2)
@@ -1167,5 +1167,104 @@ public class ElementMaterials {
                 .color(0xF03232).iconSet(ROUGH)
                 .element(Elements.Pu)
                 .build();
+
+        // Nuclear isotopes
+        Radium225 = Material.builder(133, gregtechId("radium_225"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xE0E0E0).element(Elements.Ra225).build();
+        Radium226 = Material.builder(134, gregtechId("radium_226"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xD3D3D3).element(Elements.Ra226).build();
+        Protactinium231 = Material.builder(135, gregtechId("protactinium_231"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x708090).element(Elements.Pa231).build();
+        Protactinium233 = Material.builder(136, gregtechId("protactinium_233"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x778899).element(Elements.Pa233).build();
+        Uranium232 = Material.builder(137, gregtechId("uranium_232"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x2F4F4F).element(Elements.U232).build();
+        Uranium233 = Material.builder(138, gregtechId("uranium_233"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x3B3B3B).element(Elements.U233).build();
+        Uranium234 = Material.builder(139, gregtechId("uranium_234"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x90EE90).element(Elements.U234).build();
+        Uranium236 = Material.builder(140, gregtechId("uranium_236"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x8FBC8F).element(Elements.U236).build();
+        Uranium237 = Material.builder(141, gregtechId("uranium_237"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x7CFC00).element(Elements.U237).build();
+        Uranium239 = Material.builder(142, gregtechId("uranium_239"))
+                .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x46FA46).iconSet(SHINY).element(Elements.U239)
+                .build();
+        Neptunium235 = Material.builder(143, gregtechId("neptunium_235"))
+                .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
+                .element(Elements.Np235).build();
+        Neptunium236 = Material.builder(144, gregtechId("neptunium_236"))
+                .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
+                .element(Elements.Np236).build();
+        Neptunium237 = Material.builder(145, gregtechId("neptunium_237"))
+                .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
+                .element(Elements.Np237).build();
+        Neptunium238 = Material.builder(146, gregtechId("neptunium_238"))
+                .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
+                .element(Elements.Np238).build();
+        Neptunium239 = Material.builder(147, gregtechId("neptunium_239"))
+                .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
+                .element(Elements.Np239).build();
+        Plutonium236 = Material.builder(148, gregtechId("plutonium_236"))
+                .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
+                .iconSet(METALLIC).element(Elements.Pu236).build();
+        Plutonium237 = Material.builder(149, gregtechId("plutonium_237"))
+                .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
+                .iconSet(METALLIC).element(Elements.Pu237).build();
+        Plutonium238 = Material.builder(150, gregtechId("plutonium_238"))
+                .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
+                .iconSet(METALLIC).element(Elements.Pu238).build();
+        Plutonium240 = Material.builder(151, gregtechId("plutonium_240"))
+                .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
+                .iconSet(METALLIC).element(Elements.Pu240).build();
+        Plutonium242 = Material.builder(152, gregtechId("plutonium_242"))
+                .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
+                .iconSet(METALLIC).element(Elements.Pu242).build();
+        Plutonium243 = Material.builder(153, gregtechId("plutonium_243"))
+                .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
+                .iconSet(METALLIC).element(Elements.Pu243).build();
+        Plutonium244 = Material.builder(154, gregtechId("plutonium_244"))
+                .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
+                .iconSet(METALLIC).element(Elements.Pu244).build();
+        Thorium228 = Material.builder(155, gregtechId("thorium_228"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xFF8C00).element(Elements.Th228).build();
+        Thorium229 = Material.builder(156, gregtechId("thorium_229"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xFFD700).element(Elements.Th229).build();
+        Thorium230 = Material.builder(157, gregtechId("thorium_230"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xFFA500).element(Elements.Th230).build();
+        Thorium232 = Material.builder(158, gregtechId("thorium_232"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xB8860B).element(Elements.Th232).build();
+        Thorium233 = Material.builder(159, gregtechId("thorium_233"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xCD853F).element(Elements.Th233).build();
+        Americium240 = Material.builder(160, gregtechId("americium_240"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x008B8B).element(Elements.Am240).build();
+        Americium241 = Material.builder(161, gregtechId("americium_241"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x00868B).element(Elements.Am241).build();
+        Americium242 = Material.builder(162, gregtechId("americium_242"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x008B45).element(Elements.Am242).build();
+        Americium243 = Material.builder(163, gregtechId("americium_243"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x006400).element(Elements.Am243).build();
+        Curium242 = Material.builder(164, gregtechId("curium_242"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x4169E1).element(Elements.Cm242).build();
+        Curium243 = Material.builder(165, gregtechId("curium_243"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x0000FF).element(Elements.Cm243).build();
+        Curium244 = Material.builder(166, gregtechId("curium_244"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x1E90FF).element(Elements.Cm244).build();
+        Curium245 = Material.builder(167, gregtechId("curium_245"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x0000EE).element(Elements.Cm245).build();
+        Curium246 = Material.builder(168, gregtechId("curium_246"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x0000CD).element(Elements.Cm246).build();
+        Curium247 = Material.builder(169, gregtechId("curium_247"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x0000AA).element(Elements.Cm247).build();
+        Curium248 = Material.builder(170, gregtechId("curium_248"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x000080).element(Elements.Cm248).build();
+        Curium250 = Material.builder(171, gregtechId("curium_250"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x191970).element(Elements.Cm250).build();
+        Berkelium249 = Material.builder(172, gregtechId("berkelium_249"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x696969).element(Elements.Bk249).build();
+        Californium249 = Material.builder(173, gregtechId("californium_249"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x708090).element(Elements.Cf249).build();
+        Californium252 = Material.builder(174, gregtechId("californium_252"))
+                .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x2F4F4F).element(Elements.Cf252).build();
     }
 }

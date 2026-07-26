@@ -18,6 +18,7 @@ import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.common.blocks.BlockGlassCasing;
 import gregtech.common.blocks.BlockMetalCasing;
+import gregtech.common.blocks.BlockPanelling;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.items.MetaItems;
 import gregtech.common.metatileentities.MetaTileEntities;
@@ -538,5 +539,28 @@ public class MiscRecipeLoader {
                 .input(ring, Steel, 2)
                 .output(STEEL_MINECART_WHEELS)
                 .duration(60).EUt(20).buildAndRegister();
+
+        // Panelling
+        ASSEMBLER_RECIPES.recipeBuilder().EUt(16).duration(120)
+                .input(plate, Steel, 4)
+                .circuitMeta(16)
+                .outputs(MetaBlocks.PANELLING.getItemVariant(
+                        BlockPanelling.PanellingType.GRAY))
+                .buildAndRegister();
+
+        for (int i = 0; i < CHEMICAL_DYES.length; i++) {
+            CHEMICAL_BATH_RECIPES.recipeBuilder()
+                    .inputs(MetaBlocks.PANELLING.getItemVariant(BlockPanelling.PanellingType.GRAY))
+                    .fluidInputs(CHEMICAL_DYES[i].getFluid(9))
+                    .outputs(MetaBlocks.PANELLING.getItemVariant(BlockPanelling.PanellingType.values()[i]))
+                    .EUt(2).duration(10)
+                    .buildAndRegister();
+        }
+
+        CHEMICAL_RECIPES.recipeBuilder()
+                .fluidInputs(Deuterium.getFluid(2000))
+                .fluidInputs(Oxygen.getFluid(1000))
+                .fluidOutputs(HeavyWater.getFluid(1000))
+                .duration(200).EUt(VH[LV]).buildAndRegister();
     }
 }

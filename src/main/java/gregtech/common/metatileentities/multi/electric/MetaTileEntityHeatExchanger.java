@@ -7,7 +7,7 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.NoEnergyMultiblockController;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.recipes.SCRecipeMaps;
+import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -49,7 +49,7 @@ public class MetaTileEntityHeatExchanger extends NoEnergyMultiblockController {
     }
 
     public MetaTileEntityHeatExchanger(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, SCRecipeMaps.HEAT_EXCHANGER_RECIPES);
+        super(metaTileEntityId, RecipeMaps.HEAT_EXCHANGER_RECIPES);
         this.recipeMapWorkable = new NoEnergyMultiblockRecipeLogic(this);
     }
 

@@ -8,6 +8,8 @@ import static gregtech.api.unification.material.Materials.*;
 public class FuelRecipes {
 
     public static void registerFuels() {
+        RTGFuelRecipeLoader.load();
+
         // diesel generator fuels
         RecipeMaps.COMBUSTION_GENERATOR_FUELS.recipeBuilder()
                 .fluidInputs(Naphtha.getFluid(1))

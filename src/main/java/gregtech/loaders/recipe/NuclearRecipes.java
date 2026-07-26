@@ -1,23 +1,13 @@
 package gregtech.loaders.recipe;
 
-import gregtech.api.unification.material.SCMaterials;
 import gregtech.common.items.MetaItems;
 
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
-import static gregtech.api.recipes.SCRecipeMaps.GAS_CENTRIFUGE_RECIPES;
-import static gregtech.api.unification.material.SCMaterials.*;
-import static gregtech.api.unification.ore.SCOrePrefix.*;
 
-/**
- * Copyright (C) SymmetricDevs 2025
- * 由 MeowmelMuku 于 2025 修改。
- * 修改内容：添加高浓缩铀二氧化物产线。
- * 此文件遵循 GPL-3.0 许可证，详情请见项目根目录的 LICENSE 文件。
- */
-public class SCNuclearRecipes {
+public class NuclearRecipes {
 
     public static void init() {
         CHEMICAL_RECIPES.recipeBuilder()

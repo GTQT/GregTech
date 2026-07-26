@@ -99,19 +99,6 @@ public class ConfigHolder {
     }
 
     public static class NuclearMiscOptions {
-
-        @Config.Comment({ "Apply nuclear material flag and property modifications.", "Default: true" })
-        public boolean enableMaterialModifications = true;
-
-        @Config.Comment({ "Whether to register heat exchangers.", "Default: true" })
-        public boolean enableHX = true;
-
-        @Config.Comment({ "Disable all integrated nuclear recipes.", "Default: false" })
-        public boolean disableAllRecipes = false;
-
-        @Config.Comment({ "Disable all integrated nuclear materials except Corium.", "Default: false" })
-        public boolean disableAllMaterials = false;
-
         @Config.Comment({ "Allow extended facing for fission reactors.", "Default: false" })
         public boolean allowExtendedFacingForFissionReactor = false;
     }

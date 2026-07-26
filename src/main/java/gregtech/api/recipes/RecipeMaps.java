@@ -2112,5 +2112,40 @@ public final class RecipeMaps {
             .build();
 
 
+    public static final RecipeMap<PrimitiveRecipeBuilder> HEAT_EXCHANGER_RECIPES = new RecipeMapBuilder<>(
+            "heat_exchanger", new PrimitiveRecipeBuilder())
+            .itemInputs(1).itemOutputs(0).fluidInputs(2).fluidOutputs(2)
+            .uiBuilder(b -> b.progressBar(GTGuiTextures.PROGRESS_BAR_ARROW_MULTIPLE))
+            .sound(GTSoundEvents.COOLING).build();
+
+    public static final RecipeMap<PrimitiveRecipeBuilder> NATURAL_DRAFT_COOLING_TOWER = new RecipeMapBuilder<>(
+            "natural_draft_cooling_tower", new PrimitiveRecipeBuilder())
+            .fluidInputs(1).fluidOutputs(1)
+            .uiBuilder(b -> b.progressBar(GTGuiTextures.PROGRESS_BAR_GAS_COLLECTOR))
+            .sound(GTSoundEvents.COOLING).build();
+
+    public static final RecipeMap<SimpleRecipeBuilder> SPENT_FUEL_POOL_RECIPES = new RecipeMapBuilder<>(
+            "spent_fuel_pool", new SimpleRecipeBuilder())
+            .itemInputs(1).itemOutputs(1).fluidInputs(1).fluidOutputs(1)
+            .uiBuilder(b -> b.progressBar(GTGuiTextures.PROGRESS_BAR_BATH)).build();
+
+    public static final RecipeMap<SimpleRecipeBuilder> GAS_CENTRIFUGE_RECIPES = new RecipeMapBuilder<>(
+            "gas_centrifuge", new SimpleRecipeBuilder())
+            .itemInputs(0).itemOutputs(0).fluidInputs(1).fluidOutputs(2)
+            .uiBuilder(b -> b.progressBar(GTGuiTextures.PROGRESS_BAR_MIXER))
+            .sound(GTSoundEvents.CENTRIFUGE).build();
+
+    public static final RecipeMap<SimpleRecipeBuilder> DECAY_CHAMBER_RECIPES = new RecipeMapBuilder<>(
+            "decay_chamber_recipes", new SimpleRecipeBuilder())
+            .itemInputs(1).itemOutputs(1).fluidInputs(1).fluidOutputs(1)
+            .uiBuilder(b -> b.progressBar(GTGuiTextures.PROGRESS_BAR_HAMMER))
+            .sound(GTSoundEvents.SCIENCE).build();
+
+    public static final RecipeMap<FuelRecipeBuilder> RTG_RECIPES = new RecipeMapBuilder<>(
+            "rtg_recipes", new FuelRecipeBuilder())
+            .itemInputs(1).itemOutputs(1)
+            .uiBuilder(b -> b.progressBar(GTGuiTextures.PROGRESS_BAR_ARROW_MULTIPLE))
+            .sound(GTSoundEvents.ARC).build();
+
     private RecipeMaps() {}
 }

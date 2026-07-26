@@ -8,7 +8,7 @@ import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.recipes.SCRecipeMaps;
+import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -77,7 +77,7 @@ public class MetaTileEntitySpentFuelPool extends RecipeMapMultiblockController {
     private List<BlockPos> waterPositions;
 
     public MetaTileEntitySpentFuelPool(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, SCRecipeMaps.SPENT_FUEL_POOL_RECIPES);
+        super(metaTileEntityId, RecipeMaps.SPENT_FUEL_POOL_RECIPES);
     }
 
     /** Preserve the legacy into-structure orientation of this template. */

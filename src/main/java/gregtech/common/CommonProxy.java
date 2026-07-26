@@ -62,7 +62,6 @@ import gregtech.loaders.OreDictionaryLoader;
 import gregtech.loaders.recipe.CraftingComponent;
 import gregtech.loaders.recipe.GTRecipeManager;
 import gregtech.loaders.recipe.RecipeManager;
-import gregtech.loaders.recipe.SCRecipeManager;
 import gregtech.modules.GregTechModules;
 
 import net.minecraft.block.Block;
@@ -473,7 +472,6 @@ public class CommonProxy {
         GTRecipeManager.load();
         RecipeManager.register();
         VillagerHandler.registerTrade();
-        SCRecipeManager.load();
     }
 
     // this is called almost last, to make sure all mods registered their ore dictionary
@@ -492,7 +490,6 @@ public class CommonProxy {
         GTLog.logger.info("Running late material handlers...");
         OrePrefix.runMaterialHandlers();
         GTRecipeManager.loadLatest();
-        SCRecipeManager.loadLatest();
 
         // On initial load we need to postpone cache flushing until FMLPostInitializationEvent
         // to account for post-init recipe registration

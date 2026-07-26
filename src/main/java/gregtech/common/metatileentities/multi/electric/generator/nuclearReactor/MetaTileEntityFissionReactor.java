@@ -46,7 +46,7 @@ import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.ITypedStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
-import gregtech.api.unification.material.SCMaterials;
+import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.properties.IFissionFuelStats;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTLog;
@@ -795,7 +795,7 @@ public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
         for (BlockPos immutPos : meltsDown.keySet()) {
             BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(immutPos);
             while (pos.getY() >= this.getPos().getY() - this.heightBottom) {
-                this.getWorld().setBlockState(pos, SCMaterials.Corium.getFluid().getBlock().getDefaultState());
+                this.getWorld().setBlockState(pos, Materials.Corium.getFluid().getBlock().getDefaultState());
                 pos.move(EnumFacing.DOWN);
             }
         }

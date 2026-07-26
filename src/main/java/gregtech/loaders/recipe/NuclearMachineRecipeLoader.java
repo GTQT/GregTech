@@ -1,22 +1,24 @@
 package gregtech.loaders.recipe;
 
+import gregtech.api.unification.material.MarkerMaterials;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockBoilerCasing;
-import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.BlockFissionCasing;
 import gregtech.common.blocks.BlockGasCentrifugeCasing;
 import gregtech.common.blocks.BlockNuclearCasing;
 import gregtech.common.blocks.MetaBlocks;
 
+import static gregtech.api.GTValues.EV;
+import static gregtech.api.GTValues.VA;
 import static gregtech.api.recipes.RecipeMaps.ASSEMBLER_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
-import static gregtech.api.unification.material.SCMaterials.BoronCarbide;
-import static gregtech.api.unification.material.SCMaterials.Inconel;
+import static gregtech.common.metatileentities.MetaTileEntities.*;
 
-public class SCMachineRecipeLoader {
+public class NuclearMachineRecipeLoader {
 
     public static void init() {
+        // Nuclear Casing
         ASSEMBLER_RECIPES.recipeBuilder().EUt(48).duration(280)
                 .input(plateDouble, Inconel)
                 .input(plate, Steel, 5)
@@ -69,5 +71,58 @@ public class SCMachineRecipeLoader {
                 .outputs(MetaBlocks.NUCLEAR_CASING.getItemVariant(
                         BlockNuclearCasing.NuclearCasingType.SPENT_FUEL_CASING, ConfigHolder.recipes.casingsPerCraft))
                 .buildAndRegister();
+
+        // Nuclear Technology
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(pipeLargeFluid, Inconel)
+                .input(HULL[EV])
+                .fluidInputs(Polyethylene.getFluid(144))
+                .circuitMeta(1)
+                .outputs(COOLANT_INPUT.getStackForm())
+                .duration(300).EUt(VA[EV]).buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(pipeLargeFluid, Inconel)
+                .input(HULL[EV])
+                .fluidInputs(Polyethylene.getFluid(144))
+                .circuitMeta(2)
+                .outputs(COOLANT_OUTPUT.getStackForm())
+                .duration(300).EUt(VA[EV]).buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Zircaloy4, 6)
+                .input(HULL[EV])
+                .fluidInputs(Polyethylene.getFluid(144))
+                .circuitMeta(1)
+                .outputs(FUEL_ROD_INPUT.getStackForm())
+                .duration(300).EUt(VA[EV]).buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stick, Zircaloy4, 6)
+                .input(HULL[EV])
+                .fluidInputs(Polyethylene.getFluid(144))
+                .circuitMeta(2)
+                .outputs(FUEL_ROD_OUTPUT.getStackForm())
+                .duration(300).EUt(VA[EV]).buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stickLong, Hafnium)
+                .input(circuit, MarkerMaterials.Tier.EV)
+                .input(HULL[EV])
+                .circuitMeta(1)
+                .fluidInputs(Polyethylene.getFluid(144))
+                .outputs(CONTROL_ROD.getStackForm())
+                .duration(300).EUt(VA[EV]).buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(stickLong, Hafnium)
+                .input(dust, Graphite)
+                .input(circuit, MarkerMaterials.Tier.EV)
+                .input(HULL[EV])
+                .circuitMeta(2)
+                .fluidInputs(Polyethylene.getFluid(144))
+                .outputs(CONTROL_ROD_MODERATED.getStackForm())
+                .duration(300).EUt(VA[EV]).buildAndRegister();
     }
 }

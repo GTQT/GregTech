@@ -3,13 +3,11 @@ package gregtech.loaders.recipe;
 import gregtech.api.unification.material.Material;
 
 import static gregtech.api.GTValues.VA;
+import static gregtech.api.recipes.RecipeMaps.DECAY_CHAMBER_RECIPES;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.dust;
-import static gregtech.api.recipes.SCRecipeMaps.DECAY_CHAMBER_RECIPES;
-import static gregtech.api.unification.material.SCMaterials.*;
 
-
-public class SCDecayChamberRecipes {
+public class DecayChamberRecipeLoader {
     public static void load() {
         DECAY_CHAMBER_RECIPES(Thorium, Lead, 3);
         DECAY_CHAMBER_RECIPES(Radium, Lead, 3);

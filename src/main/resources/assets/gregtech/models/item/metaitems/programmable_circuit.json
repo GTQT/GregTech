@@ -1,6 +1,6 @@
 {
   "parent": "item/generated",
   "textures": {
-    "layer0": "gtqtcore:items/metaitems/tool.programmable_circuit_overlay"
+    "layer0": "gregtech:items/metaitems/tool.programmable_circuit_overlay"
   }
 }

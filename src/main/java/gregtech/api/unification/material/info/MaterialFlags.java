@@ -10,7 +10,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class MaterialFlags {
-
     private final Set<MaterialFlag> flags = new HashSet<>();
 
     public MaterialFlags addFlags(MaterialFlag... flags) {
@@ -91,6 +90,11 @@ public class MaterialFlags {
      * Add to material if it is some kind of glowing material
      */
     public static final MaterialFlag GLOWING = new MaterialFlag.Builder("glowing").build();
+
+    /**
+     * Add to material if it is some kind of solid material
+     */
+    public static final MaterialFlag GENERATE_PELLETS = new MaterialFlag.Builder("pellets").build();
 
     //////////////////
     // DUST //
