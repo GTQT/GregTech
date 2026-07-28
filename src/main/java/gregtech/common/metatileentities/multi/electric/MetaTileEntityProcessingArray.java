@@ -89,6 +89,10 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
                 .muffler()
                 .preset(HatchPresets.STANDARD_IO)
                 .hatch(MultiblockAbility.MACHINE_HATCH, 1, 1)
+                // The casing alternative alone does not enforce a hatch minimum for a static structure.
+                // Keep the Processing Array unformed until its required machine interface is present.
+                .done()
+                .globalAbilityLimit(MultiblockAbility.MACHINE_HATCH, 1, 1)
                 .buildStructureDefinition();
     }
 
