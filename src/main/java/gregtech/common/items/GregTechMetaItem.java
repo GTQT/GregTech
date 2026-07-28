@@ -68,7 +68,6 @@ import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
 import gregtech.common.items.behaviors.TurbineRotorBehavior;
 import gregtech.common.items.behaviors.VajraBehavior;
-import gregtech.common.items.behaviors.VeinScanBehavior;
 import gregtech.common.items.behaviors.filter.OreDictFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFluidFilterUIManager;
@@ -1032,9 +1031,11 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .addComponents(new ProgrammingToolkit()).setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_PROGRAMMABLE);
 
+        /*
         VEIN_SCANNER = addItem(468, "tool.scanner")
                 .addComponents(new VeinScanBehavior())
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+         */
 
         TRICORDER_SCANNER = addItem(469, "tricorder_scanner")
                 .addComponents(ElectricStats.createElectricItem(100_000L, GTValues.MV), new TricorderBehavior(2))
