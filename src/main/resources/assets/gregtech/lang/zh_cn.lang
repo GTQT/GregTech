@@ -1466,6 +1466,8 @@ metaitem.power_thruster.name=能量推进器
 metaitem.power_thruster_advanced.name=进阶能量推进器
 metaitem.gravitation_engine.name=重力引擎单元
 
+metaitem.tool.multiblock_builder.name=多方块建造器
+
 metaitem.tool.multiblock_remover.name=多方块拆除器
 metaitem.tool.multiblock_remover.tooltip=拆除你的多方块结构！
 metaitem.tool.multiblock_remover.tooltip2=按住SHIFT键后右键单击多方块结构控制器以自动拆除

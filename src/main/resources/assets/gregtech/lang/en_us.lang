@@ -1472,6 +1472,8 @@ metaitem.power_thruster.name=Power Thruster
 metaitem.power_thruster_advanced.name=Advanced Power Thruster
 metaitem.gravitation_engine.name=Gravitation Engine Unit
 
+metaitem.tool.multiblock_builder.name=多方块建造器
+
 metaitem.tool.multiblock_remover.name=Multiblock demolition
 metaitem.tool.multiblock_remover.tooltip=Dismantle your Multiblock structure！
 metaitem.tool.multiblock_remover.tooltip2=Hold down the SHIFT key and right-click on the Multiblock structure controller to automatically dismantle it
