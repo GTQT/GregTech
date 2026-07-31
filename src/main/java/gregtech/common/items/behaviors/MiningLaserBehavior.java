@@ -7,9 +7,9 @@ import gregtech.common.entities.GTMiningLaserEntity;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.init.SoundEvents;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
@@ -93,49 +93,17 @@ public class MiningLaserBehavior implements IItemBehaviour {
     }
 
     private String getModeTranslationKey(int mode) {
-        switch (mode) {
-            case MODE_MINING:
-                return "behavior.mining_laser.mode.mining";
-            case MODE_LOW_FOCUS:
-                return "behavior.mining_laser.mode.low_focus";
-            case MODE_LONG_RANGE:
-                return "behavior.mining_laser.mode.long_range";
-            case MODE_HORIZONTAL:
-                return "behavior.mining_laser.mode.horizontal";
-            case MODE_SUPER_HEAT:
-                return "behavior.mining_laser.mode.super_heat";
-            case MODE_SCATTER:
-                return "behavior.mining_laser.mode.scatter";
-            case MODE_EXPLOSIVE:
-                return "behavior.mining_laser.mode.explosive";
-            case MODE_3X3:
-                return "behavior.mining_laser.mode.3x3";
-            default:
-                return "behavior.mining_laser.mode.unknown";
-        }
-    }
-
-    private String getModeDescriptionKey(int mode) {
-        switch (mode) {
-            case MODE_MINING:
-                return "behavior.mining_laser.mode.mining.description";
-            case MODE_LOW_FOCUS:
-                return "behavior.mining_laser.mode.low_focus.description";
-            case MODE_LONG_RANGE:
-                return "behavior.mining_laser.mode.long_range.description";
-            case MODE_HORIZONTAL:
-                return "behavior.mining_laser.mode.horizontal.description";
-            case MODE_SUPER_HEAT:
-                return "behavior.mining_laser.mode.super_heat.description";
-            case MODE_SCATTER:
-                return "behavior.mining_laser.mode.scatter.description";
-            case MODE_EXPLOSIVE:
-                return "behavior.mining_laser.mode.explosive.description";
-            case MODE_3X3:
-                return "behavior.mining_laser.mode.3x3.description";
-            default:
-                return "";
-        }
+        return switch (mode) {
+            case MODE_MINING -> "behavior.mining_laser.mode.mining";
+            case MODE_LOW_FOCUS -> "behavior.mining_laser.mode.low_focus";
+            case MODE_LONG_RANGE -> "behavior.mining_laser.mode.long_range";
+            case MODE_HORIZONTAL -> "behavior.mining_laser.mode.horizontal";
+            case MODE_SUPER_HEAT -> "behavior.mining_laser.mode.super_heat";
+            case MODE_SCATTER -> "behavior.mining_laser.mode.scatter";
+            case MODE_EXPLOSIVE -> "behavior.mining_laser.mode.explosive";
+            case MODE_3X3 -> "behavior.mining_laser.mode.3x3";
+            default -> "behavior.mining_laser.mode.unknown";
+        };
     }
 
     @Override
@@ -326,25 +294,13 @@ public class MiningLaserBehavior implements IItemBehaviour {
     }
 
     private void playShotSound(World world, EntityPlayer player, int mode) {
-        float pitch;
-        switch (mode) {
-            case MODE_LOW_FOCUS:
-                pitch = 1.8F;
-                break;
-            case MODE_LONG_RANGE:
-                pitch = 0.8F;
-                break;
-            case MODE_EXPLOSIVE:
-                pitch = 0.6F;
-                break;
-            case MODE_SCATTER:
-            case MODE_3X3:
-                pitch = 1.2F;
-                break;
-            default:
-                pitch = 1.0F;
-                break;
-        }
+        float pitch = switch (mode) {
+            case MODE_LOW_FOCUS -> 1.8F;
+            case MODE_LONG_RANGE -> 0.8F;
+            case MODE_EXPLOSIVE -> 0.6F;
+            case MODE_SCATTER, MODE_3X3 -> 1.2F;
+            default -> 1.0F;
+        };
         world.playSound(null, player.posX, player.posY, player.posZ, SoundEvents.ENTITY_FIREWORK_BLAST,
                 SoundCategory.PLAYERS, 0.5F, pitch);
     }
@@ -353,31 +309,7 @@ public class MiningLaserBehavior implements IItemBehaviour {
     public void addInformation(ItemStack itemStack, List<String> lines) {
         int mode = getMode(itemStack);
         String modeName = I18n.format(getModeTranslationKey(mode));
-        long energyCost = ENERGY_COSTS[mode];
-
         lines.add(TextFormatting.GOLD + I18n.format("behavior.mining_laser.tooltip.current_mode", modeName));
-        lines.add(TextFormatting.GRAY + I18n.format(getModeDescriptionKey(mode)));
-        lines.add(TextFormatting.GREEN + I18n.format("behavior.mining_laser.tooltip.energy_cost", energyCost));
         lines.add(TextFormatting.AQUA + I18n.format("behavior.mining_laser.tooltip.mode_switch"));
-
-        IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-        if (electricItem != null) {
-            long charge = electricItem.getCharge();
-            long maxCharge = electricItem.getMaxCharge();
-            double percentage = maxCharge <= 0 ? 0.0D : (double) charge / maxCharge * 100.0D;
-
-            TextFormatting chargeColor = percentage > 75.0D ? TextFormatting.GREEN :
-                    percentage > 25.0D ? TextFormatting.YELLOW : TextFormatting.RED;
-            lines.add(TextFormatting.BLUE + I18n.format("behavior.mining_laser.tooltip.energy",
-                    chargeColor + String.valueOf(charge), String.valueOf(maxCharge), String.format("%.1f", percentage)));
-            lines.add(TextFormatting.LIGHT_PURPLE + I18n.format("behavior.mining_laser.tooltip.available_uses",
-                    energyCost <= 0 ? 0 : charge / energyCost));
-        }
-
-        lines.add(TextFormatting.DARK_GRAY + I18n.format("behavior.mining_laser.tooltip.all_modes"));
-        for (int i = 0; i < MODE_COUNT; i++) {
-            String prefix = i == mode ? TextFormatting.GREEN + "> " : TextFormatting.GRAY + "  ";
-            lines.add(prefix + I18n.format(getModeTranslationKey(i)) + TextFormatting.DARK_GRAY + " (" + ENERGY_COSTS[i] + " EU)");
-        }
     }
 }

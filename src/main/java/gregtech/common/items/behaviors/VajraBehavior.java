@@ -16,15 +16,19 @@ import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Enchantments;
 import net.minecraft.init.Items;
 import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.play.server.SPacketBlockChange;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
+import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
@@ -44,8 +48,8 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
 
     protected static final UUID ATTACK_DAMAGE_MODIFIER = UUID.fromString("CB3F55D3-645C-4F38-A288-9C13A33DB5CF");
     protected static final UUID ATTACK_SPEED_MODIFIER = UUID.fromString("FA233E1C-4180-4288-B01B-BCCE9785ACA3");
-    private static final long NORMAL_ENERGY_COST = VA[ULV];  // 普通模式能耗
-    private static final long SILKTOUCH_ENERGY_COST = VA[LV]; // 精准采集模式能耗
+    private static final long NORMAL_ENERGY_COST = VA[ULV];
+    private static final long SILKTOUCH_ENERGY_COST = VA[LV];
     private static final String MODE_TAG = "VajraMode"; // 0 = Normal, 1 = SilkTouch
     private final double baseAttackDamage;
     private final double additionalAttackDamage;
@@ -55,10 +59,100 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
         this.additionalAttackDamage = ConfigHolder.tools.nanoSaber.nanoSaberDamageBoost * tier;
     }
 
+    /**
+     * Checks if the given item stack has Vajra behavior attached.
+     * Used by the left-click event handler to identify Vajra tools.
+     */
+    public static boolean isVajra(@NotNull ItemStack stack) {
+        if (stack.isEmpty()) return false;
+        IElectricItem electricItem = stack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
+        if (electricItem == null) return false;
+        // Vajra has a unique pattern: it has both electric capability and mode NBT
+        return stack.hasTagCompound() && stack.getTagCompound().hasKey(MODE_TAG);
+    }
+
+    /**
+     * Left-click block breaking logic — ported from Laser Destroyer's approach.
+     * Uses removedByPlayer + onPlayerDestroy for proper block removal,
+     * sends SPacketBlockChange for immediate client sync.
+     */
+    @SuppressWarnings("deprecation")
+    public static boolean breakBlock(@NotNull ItemStack stack, @NotNull EntityPlayer player,
+                                     @NotNull World world, @NotNull BlockPos pos,
+                                     boolean silkTouch, long energyCost) {
+        if (world.isRemote) return true;
+
+        // Energy check
+        if (!player.isCreative() && !drainEnergy(stack, energyCost, false)) {
+            return false;
+        }
+
+        IBlockState state = world.getBlockState(pos);
+        Block block = state.getBlock();
+
+        if (block == Blocks.AIR || state.getBlockHardness(world, pos) < 0) {
+            return false;
+        }
+
+        // Collect drops
+        List<ItemStack> drops = new ArrayList<>();
+        MetaTileEntity mte = GTUtility.getMetaTileEntity(world, pos);
+        if (mte != null) {
+            drops.add(mte.getStackForm());
+            mte.onRemoval();
+        } else if (silkTouch) {
+            drops.add(getSilkDrops(state));
+        } else {
+            drops = block.getDrops(world, pos, state, 0);
+        }
+
+        // Play break sound
+        var soundType = block.getSoundType(state, world, pos, player);
+        world.playSound(player, pos, soundType.getBreakSound(), SoundCategory.BLOCKS, 1.0f, 1.0f);
+
+        // Sync to client immediately
+        if (player instanceof EntityPlayerMP) {
+            ((EntityPlayerMP) player).connection.sendPacket(new SPacketBlockChange(world, pos));
+        }
+
+        // Proper block removal
+        boolean removed = block.removedByPlayer(state, world, pos, player, !silkTouch);
+        if (removed) {
+            block.onPlayerDestroy(world, pos, state);
+        } else {
+            block.onPlayerDestroy(world, pos, state);
+            world.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
+        }
+
+        // Spawn drops on ground
+        for (ItemStack drop : drops) {
+            if (player.isCreative()) continue;
+            float f = 0.7f;
+            double dx = world.rand.nextFloat() * f + (1.0f - f) * 0.5;
+            double dy = world.rand.nextFloat() * f + (1.0f - f) * 0.5;
+            double dz = world.rand.nextFloat() * f + (1.0f - f) * 0.5;
+            EntityItem entityItem = new EntityItem(world,
+                    pos.getX() + dx, pos.getY() + dy, pos.getZ() + dz, drop);
+            entityItem.setDefaultPickupDelay();
+            world.spawnEntity(entityItem);
+        }
+
+        return true;
+    }
+
+    private static ItemStack getSilkDrops(IBlockState state) {
+        try {
+            var method = state.getBlock().getClass().getMethod("getSilkTouchDrop", IBlockState.class);
+            method.setAccessible(true);
+            return (ItemStack) method.invoke(state.getBlock(), state);
+        } catch (Exception e) {
+            return new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state));
+        }
+    }
+
     private static boolean drainEnergy(@NotNull ItemStack stack, long amount, boolean simulate) {
         IElectricItem electricItem = stack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
         if (electricItem == null) return false;
-
         return electricItem.discharge(amount, Integer.MAX_VALUE, true, false, simulate) >= amount;
     }
 
@@ -97,19 +191,14 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
 
     private int getMode(ItemStack stack) {
         if (!stack.hasTagCompound()) return 0;
-        if (stack.getTagCompound() != null) {
-            return stack.getTagCompound().getInteger(MODE_TAG);
-        }
-        return 0;
+        return stack.getTagCompound().getInteger(MODE_TAG);
     }
 
     private void setMode(ItemStack stack, int mode) {
         if (!stack.hasTagCompound()) {
             stack.setTagCompound(new NBTTagCompound());
         }
-        if (stack.getTagCompound() != null) {
-            stack.getTagCompound().setInteger(MODE_TAG, mode);
-        }
+        stack.getTagCompound().setInteger(MODE_TAG, mode);
     }
 
     private long getEnergyCostForMode(int mode) {
@@ -127,154 +216,37 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
 
         if (!player.world.isRemote) {
             String modeName = getModeName(newMode);
-            long energyCost = getEnergyCostForMode(newMode);
             player.sendMessage(new TextComponentTranslation(
                     "behavior.vajra.mode_switched",
-                    modeName, energyCost
+                    modeName
             ));
         }
     }
 
-    private boolean tryBreakBlock(World world, BlockPos pos, EntityPlayer player, ItemStack stack, boolean silkTouch) {
-        int mode = silkTouch ? 1 : 0;
-        long energyCost = getEnergyCostForMode(mode);
-
-        // 实际消耗能量
-        if (drainEnergy(stack, energyCost, true)) {
-            drainEnergy(stack, energyCost, false);
-        } else {
-            if (!world.isRemote) {
-                player.sendMessage(new TextComponentTranslation(
-                        "behavior.vajra.insufficient_energy",
-                        energyCost
-                ));
-            }
-            return false;
-        }
-
-        IBlockState state = world.getBlockState(pos);
-        Block block = state.getBlock();
-
-        // 检查是否是空气或不可破坏的方块
-        if (block.isAir(state, world, pos) || state.getBlockHardness(world, pos) < 0) {
-            return false;
-        }
-
-        // 获取掉落物
-        List<ItemStack> drops = new ArrayList<>();
-
-        //MTE
-        MetaTileEntity metaTileEntities = GTUtility.getMetaTileEntity(world, pos);
-        if (metaTileEntities != null) {
-            drops.add(metaTileEntities.getStackForm());
-            metaTileEntities.onRemoval();
-        }
-        //普通方块
-        else if (silkTouch) {
-            // 精准采集模式 - 尝试获取方块本身
-            int meta = block.getMetaFromState(state);
-            ItemStack silkDrop = new ItemStack(block,1,meta);
-            drops.add(silkDrop);
-        } else {
-            // 普通模式 - 正常掉落
-            drops = block.getDrops(world, pos, state, 0);
-        }
-
-        dropItemStackList(world, player, drops);
-
-        // 破坏方块
-        if (!world.isRemote) {
-            world.setBlockToAir(pos);
-        }
-
-        return true;
-    }
-
-    public void dropItemStackList(World world, EntityPlayer player, List<ItemStack> drops) {
-        // 给予玩家掉落物
-        if (!drops.isEmpty() && !world.isRemote) {
-            for (ItemStack drop : drops) {
-                if (!player.inventory.addItemStackToInventory(drop)) {
-                    // 背包满了，掉落在地上
-                    EntityItem entityItem = new EntityItem(world,
-                            player.posX, player.posY, player.posZ, drop);
-                    world.spawnEntity(entityItem);
-                }
-            }
-            player.openContainer.detectAndSendChanges();
-        }
-    }
-
+    @Override
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, EnumHand hand) {
         ItemStack heldItem = player.getHeldItem(hand);
         if (player.isSneaking()) {
-            // Shift+右键切换模式
             toggleMode(heldItem, player);
         }
         return pass(player.getHeldItem(hand));
     }
 
     @Override
-    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
-                                           float hitY, float hitZ, EnumHand hand) {
+    public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side,
+                                           float hitX, float hitY, float hitZ, EnumHand hand) {
         ItemStack heldItem = player.getHeldItem(hand);
         if (player.isSneaking()) {
-            // Shift+右键切换模式
             toggleMode(heldItem, player);
-        } else {
-            if (!world.isRemote) {
-                int mode = getMode(heldItem);
-                if (mode == 0) {
-                    if (tryBreakBlock(world, pos, player, heldItem, false)) {
-                        player.swingArm(hand);
-                        return EnumActionResult.SUCCESS;
-                    }
-                } else if (mode == 1) {
-                    if (tryBreakBlock(world, pos, player, heldItem, true)) {
-                        player.swingArm(hand);
-                        return EnumActionResult.SUCCESS;
-                    }
-
-                }
-            }
         }
         return EnumActionResult.SUCCESS;
     }
 
-    // 添加工具提示显示当前模式
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
         int mode = getMode(itemStack);
         String modeName = getModeName(mode);
-        long currentEnergyCost = getEnergyCostForMode(mode);
-        long otherEnergyCost = getEnergyCostForMode((mode + 1) % 2);
-        String otherModeName = getModeName((mode + 1) % 2);
-
-        IElectricItem electricItem = itemStack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-        if (electricItem != null) {
-            long charge = electricItem.getCharge();
-            long maxCharge = electricItem.getMaxCharge();
-            double percentage = (double) charge / maxCharge * 100;
-
-            lines.add(TextFormatting.AQUA + I18n.format("behavior.vajra.tooltip.mode_switch"));
-            lines.add(TextFormatting.GOLD + I18n.format("behavior.vajra.tooltip.current_mode", modeName));
-            lines.add(TextFormatting.GREEN + I18n.format("behavior.vajra.tooltip.current_energy_cost", currentEnergyCost));
-            lines.add(TextFormatting.GRAY + I18n.format("behavior.vajra.tooltip.other_energy_cost", otherModeName, otherEnergyCost));
-
-            TextFormatting chargeColor;
-            if (percentage > 75) chargeColor = TextFormatting.GREEN;
-            else if (percentage > 25) chargeColor = TextFormatting.YELLOW;
-            else chargeColor = TextFormatting.RED;
-
-            lines.add(TextFormatting.BLUE + I18n.format("behavior.vajra.tooltip.energy",
-                    chargeColor + String.valueOf(charge),
-                    String.valueOf(maxCharge),
-                    String.format("%.1f", percentage)));
-
-            // 计算可用次数
-            int availableUses = (int) (charge / currentEnergyCost);
-
-            lines.add(TextFormatting.LIGHT_PURPLE + I18n.format("behavior.vajra.tooltip.available_uses", availableUses));
-        }
+        lines.add(TextFormatting.GOLD + I18n.format("behavior.vajra.tooltip.current_mode", modeName));
+        lines.add(TextFormatting.AQUA + I18n.format("behavior.vajra.tooltip.mode_switch"));
     }
 }

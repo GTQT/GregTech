@@ -3121,40 +3121,22 @@ behavior.mining_laser.mode.explosive=Explosive Mode
 behavior.mining_laser.mode.3x3=3×3 Mode
 behavior.mining_laser.mode.unknown=Unknown Mode
 
-# Mining Laser Mode Descriptions
-behavior.mining_laser.mode.mining.description=Fire laser to mine blocks in a straight line
-behavior.mining_laser.mode.low_focus.description=Short-range low energy mode, may ignite blocks
-behavior.mining_laser.mode.long_range.description=Long-range high damage mode
-behavior.mining_laser.mode.horizontal.description=Long-range mode that can only be fired horizontally
-behavior.mining_laser.mode.super_heat.description=Smelt ores into finished products
-behavior.mining_laser.mode.scatter.description=5×5 scatter fire in 3×3 range
-behavior.mining_laser.mode.explosive.description=Creates explosion with armor-piercing effect
-behavior.mining_laser.mode.3x3.description=Forward mining with 3×3 cross-section
-
 # Mining Laser Tooltips
 behavior.mining_laser.tooltip.current_mode=Current Mode: %s
-behavior.mining_laser.tooltip.energy_cost=Mode Energy Cost: %s EU/use
 behavior.mining_laser.tooltip.mode_switch=Shift+Right-click to switch mode
-behavior.mining_laser.tooltip.energy=Energy: %s / %s EU (%s%%)
-behavior.mining_laser.tooltip.available_uses=Available Uses: %s times
-behavior.mining_laser.tooltip.all_modes=--- All Modes ---
 
 metaitem.vajra_hv.name=Vajra (§6HV§r)
 metaitem.vajra_ev.name=Vajra (§5EV§r)
 metaitem.vajra_iv.name=Vajra (§1IV§r)
+
 # Vajra Behavior Messages
 behavior.vajra.mode.normal=Normal Mode
 behavior.vajra.mode.silk_touch=Silk Touch Mode
-behavior.vajra.mode_switched=Vajra mode switched to: %s (%s EU/use)
-behavior.vajra.insufficient_energy=Insufficient energy! Requires %s EU
+behavior.vajra.mode_switched=Vajra mode switched to: %s
 
 # Vajra Tooltips
+behavior.vajra.tooltip.current_mode=Current Mode: %s
 behavior.vajra.tooltip.mode_switch=Shift+Right-click to switch mode
-behavior.vajra.tooltip.current_mode=Tool Mode: %s
-behavior.vajra.tooltip.current_energy_cost=Current Energy Cost: %s EU/use
-behavior.vajra.tooltip.other_energy_cost=%s Energy Cost: %s EU/use
-behavior.vajra.tooltip.energy=Energy: %s / %s EU (%s%%)
-behavior.vajra.tooltip.available_uses=Available Uses: %s times
 
 metaitem.item_magnet.lv.name=Low Voltage Item Magnet
 metaitem.item_magnet.hv.name=High Voltage Item Magnet

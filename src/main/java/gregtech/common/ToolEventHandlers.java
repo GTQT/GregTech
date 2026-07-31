@@ -20,6 +20,7 @@ import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TaskScheduler;
 import gregtech.client.renderer.handler.BlockHighlightRenderer;
+import gregtech.common.items.behaviors.VajraBehavior;
 import gregtech.common.items.behaviors.spray.AbstractSprayBehavior;
 import gregtech.common.items.tool.rotation.CustomBlockRotations;
 import gregtech.common.items.tool.rotation.ICustomRotationBehavior;
@@ -140,6 +141,27 @@ public class ToolEventHandlers {
                     event.setCancellationResult(EnumActionResult.SUCCESS);
                 }
             }
+        }
+    }
+
+    /**
+     * Handles Vajra instant block breaking on left-click.
+     * Intercepts left-click events and delegates to VajraBehavior.breakBlock().
+     */
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void onLeftClickBlock(@NotNull PlayerInteractEvent.LeftClickBlock event) {
+        EntityPlayer player = event.getEntityPlayer();
+        World world = event.getWorld();
+        ItemStack heldItem = player.getHeldItem(event.getHand());
+
+        if (!world.isRemote && VajraBehavior.isVajra(heldItem)) {
+            event.setCanceled(true);
+
+            int mode = heldItem.getTagCompound().getInteger("VajraMode");
+            boolean silkTouch = mode == 1;
+            long energyCost = silkTouch ? 32L : 8L; // VA[LV]=32, VA[ULV]=8
+
+            VajraBehavior.breakBlock(heldItem, player, world, event.getPos(), silkTouch, energyCost);
         }
     }
 

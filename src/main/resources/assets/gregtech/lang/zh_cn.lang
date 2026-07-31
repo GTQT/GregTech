@@ -3116,23 +3116,9 @@ behavior.mining_laser.mode.explosive=爆破模式
 behavior.mining_laser.mode.3x3=3×3模式
 behavior.mining_laser.mode.unknown=未知模式
 
-# Mining Laser Mode Descriptions
-behavior.mining_laser.mode.mining.description=发射激光挖掘一条直线上的方块
-behavior.mining_laser.mode.low_focus.description=短距离低能耗模式，可能点燃方块
-behavior.mining_laser.mode.long_range.description=长距离高伤害模式
-behavior.mining_laser.mode.horizontal.description=只能水平发射的远距模式
-behavior.mining_laser.mode.super_heat.description=将矿石烧制成成品
-behavior.mining_laser.mode.scatter.description=3×3范围内5×5散射发射
-behavior.mining_laser.mode.explosive.description=产生爆炸，具有穿甲效果
-behavior.mining_laser.mode.3x3.description=3×3断面向前挖掘
-
 # Mining Laser Tooltips
 behavior.mining_laser.tooltip.current_mode=当前模式: %s
-behavior.mining_laser.tooltip.energy_cost=模式耗电: %s EU/次
 behavior.mining_laser.tooltip.mode_switch=Shift+右键切换模式
-behavior.mining_laser.tooltip.energy=能量: %s / %s EU (%s%%)
-behavior.mining_laser.tooltip.available_uses=可用次数: %s 次
-behavior.mining_laser.tooltip.all_modes=--- 所有模式 ---
 
 metaitem.vajra_hv.name=金刚杵 (§6HV§r)
 metaitem.vajra_ev.name=金刚杵 (§5EV§r)
@@ -3141,16 +3127,11 @@ metaitem.vajra_iv.name=金刚杵 (§1IV§r)
 # Vajra Behavior Messages
 behavior.vajra.mode.normal=普通模式
 behavior.vajra.mode.silk_touch=精准采集模式
-behavior.vajra.mode_switched=金刚杵模式已切换至: %s (%s EU/次)
-behavior.vajra.insufficient_energy=能量不足! 需要 %s EU
+behavior.vajra.mode_switched=金刚杵模式已切换至: %s
 
 # Vajra Tooltips
+behavior.vajra.tooltip.current_mode=当前模式: %s
 behavior.vajra.tooltip.mode_switch=Shift+右键切换模式
-behavior.vajra.tooltip.current_mode=工具模式: %s
-behavior.vajra.tooltip.current_energy_cost=当前耗电: %s EU/次
-behavior.vajra.tooltip.other_energy_cost=%s耗电: %s EU/次
-behavior.vajra.tooltip.energy=能量: %s / %s EU (%s%%)
-behavior.vajra.tooltip.available_uses=可用次数: %s 次
 
 metaitem.item_magnet.lv.name=低压物品磁铁
 metaitem.item_magnet.hv.name=高压物品磁铁
