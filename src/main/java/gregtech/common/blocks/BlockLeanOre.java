@@ -56,19 +56,24 @@ import java.util.stream.Collectors;
  */
 public class BlockLeanOre extends Block implements IBlockOre {
 
-    public final PropertyStoneType STONE_TYPE;
+    public PropertyStoneType STONE_TYPE;
     public final Material material;
 
+    private static StoneType[] $values;
+
     public BlockLeanOre(Material material, StoneType[] allowedValues) {
-        super(net.minecraft.block.material.Material.ROCK);
+        super(material($values = allowedValues));
         setTranslationKey("lean_ore_block");
         setSoundType(SoundType.STONE);
         setHardness(2.0f);
         setResistance(3.0f);
         this.material = Objects.requireNonNull(material, "Material in BlockLeanOre can not be null!");
-        STONE_TYPE = PropertyStoneType.create("stone_type", allowedValues);
-        initBlockState();
+        // STONE_TYPE and blockState already initialized in createBlockState() during super() call
         setCreativeTab(GTCreativeTabs.TAB_GREGTECH_ORES);
+    }
+
+    private static net.minecraft.block.material.Material material(StoneType[] v) {
+        return net.minecraft.block.material.Material.ROCK;
     }
 
     @NotNull
@@ -85,13 +90,8 @@ public class BlockLeanOre extends Block implements IBlockOre {
     @NotNull
     @Override
     protected final BlockStateContainer createBlockState() {
-        return new BlockStateContainer(this);
-    }
-
-    protected void initBlockState() {
-        BlockStateContainer stateContainer = createStateContainer();
-        this.blockState = stateContainer;
-        setDefaultState(stateContainer.getBaseState());
+        this.STONE_TYPE = PropertyStoneType.create("stone_type", $values);
+        return new BlockStateContainer(this, STONE_TYPE);
     }
 
     @NotNull
@@ -202,10 +202,6 @@ public class BlockLeanOre extends Block implements IBlockOre {
     public boolean canRenderInLayer(@NotNull IBlockState state, @NotNull BlockRenderLayer layer) {
         return layer == BlockRenderLayer.CUTOUT_MIPPED ||
                 material.getProperty(PropertyKey.ORE).isEmissive() && layer == BloomEffectUtil.getEffectiveBloomLayer();
-    }
-
-    private BlockStateContainer createStateContainer() {
-        return new BlockStateContainer(this, STONE_TYPE);
     }
 
     @Override
