@@ -14,8 +14,6 @@
     "DamageSourceMixin",
     "EnchantmentCanApplyMixin",
     "MinecraftMixin",
-    "MixinBlockChest",
-    "MixinEntity",
     "RecipeRepairItemMixin",
     "WorldBlockStateMixin"
   ],

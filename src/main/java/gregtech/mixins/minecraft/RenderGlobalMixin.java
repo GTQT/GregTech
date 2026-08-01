@@ -42,7 +42,6 @@ public class RenderGlobalMixin {
                             return;
                         }
                     }
-
                 }
             }
         }
