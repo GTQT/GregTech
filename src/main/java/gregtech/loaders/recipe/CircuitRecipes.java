@@ -17,8 +17,7 @@ import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 import static gregtech.api.unification.ore.OrePrefix.*;
-import static gregtech.api.util.Mods.Names.GTQT_TEST;
-import static gregtech.api.util.Mods.Names.GT_STEAM;
+import static gregtech.api.util.Mods.Names.*;
 import static gregtech.common.items.MetaItems.*;
 
 public class CircuitRecipes {
@@ -39,7 +38,7 @@ public class CircuitRecipes {
                 .blastFurnaceTemp(1511)
                 .duration(1200).EUt(VA[MV]).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_TEST)) {
+        if (!Loader.isModLoaded(GTQT_CORE)) {
             // Boules
             BLAST_RECIPES.recipeBuilder()
                     .input(dust, Silicon, 32)
@@ -77,32 +76,34 @@ public class CircuitRecipes {
                     .duration(18000).EUt(VA[IV]).buildAndRegister();
         }
 
-        // Boule cutting
-        CUTTER_RECIPES.recipeBuilder()
-                .input(SILICON_BOULE)
-                .output(SILICON_WAFER, 16)
-                .duration(400).EUt(64).buildAndRegister();
+        if (!Loader.isModLoaded(GTQT_CORE)) {
+            // Boule cutting
+            CUTTER_RECIPES.recipeBuilder()
+                    .input(SILICON_BOULE)
+                    .output(SILICON_WAFER, 16)
+                    .duration(400).EUt(64).buildAndRegister();
 
-        CUTTER_RECIPES.recipeBuilder()
-                .input(PHOSPHORUS_BOULE)
-                .output(PHOSPHORUS_WAFER, 32)
-                .cleanroom(CleanroomType.CLEANROOM)
-                .duration(800).EUt(VA[HV]).buildAndRegister();
+            CUTTER_RECIPES.recipeBuilder()
+                    .input(PHOSPHORUS_BOULE)
+                    .output(PHOSPHORUS_WAFER, 32)
+                    .cleanroom(CleanroomType.CLEANROOM)
+                    .duration(800).EUt(VA[HV]).buildAndRegister();
 
-        CUTTER_RECIPES.recipeBuilder()
-                .input(NAQUADAH_BOULE)
-                .output(NAQUADAH_WAFER, 64)
-                .cleanroom(CleanroomType.CLEANROOM)
-                .duration(1600).EUt(VA[EV]).buildAndRegister();
+            CUTTER_RECIPES.recipeBuilder()
+                    .input(NAQUADAH_BOULE)
+                    .output(NAQUADAH_WAFER, 64)
+                    .cleanroom(CleanroomType.CLEANROOM)
+                    .duration(1600).EUt(VA[EV]).buildAndRegister();
 
-        if (!Loader.isModLoaded(GTQT_TEST)) {
             CUTTER_RECIPES.recipeBuilder()
                     .input(NEUTRONIUM_BOULE)
                     .output(NEUTRONIUM_WAFER, 64)
                     .output(NEUTRONIUM_WAFER, 32)
                     .cleanroom(CleanroomType.CLEANROOM)
                     .duration(2400).EUt(VA[IV]).buildAndRegister();
+        }
 
+        if (!Loader.isModLoaded(GTQT_TEST)) {
             // Wafer engraving
             LASER_ENGRAVER_RECIPES.recipeBuilder().duration(900).EUt(VA[MV]).input(SILICON_WAFER)
                     .notConsumable(craftingLens, Color.Red).output(INTEGRATED_LOGIC_CIRCUIT_WAFER).buildAndRegister();
