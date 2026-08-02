@@ -26,6 +26,7 @@ import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.logic.OCParams;
 import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
@@ -314,23 +315,30 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
         }
 
         public boolean canWorkWithMachines() {
-            if (machineChanged) {
-                findMachineStack();
-                machineChanged = false;
-                previousRecipe = null;
-                if (isDistinct()) {
-                    invalidatedInputList.clear();
-                } else {
-                    invalidInputsForRecipes = false;
-                }
-            }
+            refreshMachineStateIfChanged();
             return (!currentMachineStack.isEmpty() && this.activeRecipeMap != null);
         }
 
         @Nullable
         @Override
         public RecipeMap<?> getRecipeMap() {
+            // RecipeMap consumers such as pattern providers can query before the next recipe-search tick.
+            // Keep the cached map coherent with an event-driven machine-hatch change in that case.
+            refreshMachineStateIfChanged();
             return activeRecipeMap;
+        }
+
+        private void refreshMachineStateIfChanged() {
+            if (!machineChanged || !MetaTileEntityProcessingArray.this.isStructureFormed()) return;
+
+            findMachineStack();
+            machineChanged = false;
+            previousRecipe = null;
+            if (isDistinct()) {
+                invalidatedInputList.clear();
+            } else {
+                invalidInputsForRecipes = false;
+            }
         }
 
         public void findMachineStack() {
@@ -351,6 +359,15 @@ public class MetaTileEntityProcessingArray extends RecipeMapMultiblockController
                 holder.setWorld(this.metaTileEntity.getWorld());
 
                 updateCleanroom();
+            }
+
+            if (this.activeRecipeMap == null) {
+                String machineDescription = machine.isEmpty() ? "<empty>" :
+                        machine.getItem().getRegistryName() + "@" + machine.getMetadata() + "x" + machine.getCount();
+                String mteDescription = mte == null ? "<none>" : mte.getClass().getName();
+                GTLog.logger.warn("Processing Array at {} could not resolve a RecipeMap after a machine-hatch refresh: " +
+                                "machine={}, metaTileEntity={}, recipeMap=<none>",
+                        this.metaTileEntity.getPos(), machineDescription, mteDescription);
             }
 
             // Find the voltage tier of the machine.

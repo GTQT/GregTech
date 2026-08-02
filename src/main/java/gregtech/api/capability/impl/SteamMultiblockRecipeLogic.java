@@ -42,6 +42,8 @@ import java.util.Set;
 
 public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
 
+    private static final long BOUND_INPUT_RETRY_INTERVAL_TICKS = 100L;
+
     protected final Set<IItemHandlerModifiable> invalidatedInputList = new HashSet<>();
     // EU per mB
     private final double conversionRate;
@@ -103,6 +105,9 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
                         }
                         notifiedIter.remove();
                     }
+                }
+                if (retryInvalidatedIsolatedInputs()) {
+                    canWork = true;
                 }
                 ArrayList<IItemHandler> flattenedHandlers = new ArrayList<>();
                 for (IItemHandler ih : getInputBuses()) {
@@ -205,6 +210,11 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
     protected boolean prepareRecipeDistinct(Recipe recipe) {
         recipe = Recipe.trimRecipeOutputs(recipe, getRecipeMap(), metaTileEntity.getItemOutputLimit(),
                 metaTileEntity.getFluidOutputLimit());
+        if (recipe == null) {
+            whyFailed = "配方输出数量超过机器限制（物品输出槽:" + metaTileEntity.getItemOutputLimit() +
+                    ", 流体输出槽:" + metaTileEntity.getFluidOutputLimit() + "）";
+            return false;
+        }
 
         recipe = findParallelRecipe(
                 recipe,
@@ -268,6 +278,25 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
         return false;
     }
 
+    /** Recheck nonempty pattern buffers periodically when a missed notification leaves them invalidated. */
+    private boolean retryInvalidatedIsolatedInputs() {
+        if (metaTileEntity.getOffsetTimer() % BOUND_INPUT_RETRY_INTERVAL_TICKS != 0L) return false;
+        return invalidatedInputList.removeIf(input -> input instanceof IPatternBufferIsolatedHandler &&
+                hasBufferedInputs(input));
+    }
+
+    private static boolean hasBufferedInputs(IItemHandler input) {
+        for (int slot = 0; slot < input.getSlots(); slot++) {
+            if (!input.getStackInSlot(slot).isEmpty()) return true;
+        }
+        if (input instanceof IMultipleTankHandler tankHandler) {
+            for (int tank = 0; tank < tankHandler.getTanks(); tank++) {
+                if (tankHandler.getTankAt(tank).getFluidAmount() > 0) return true;
+            }
+        }
+        return false;
+    }
+
     protected boolean shouldUseDistinctInputBuses() {
         if (shouldUseIsolatedInputBuses()) return true;
         return metaTileEntity instanceof IDistinctBusController distinctController &&
@@ -316,6 +345,13 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     protected IMultipleTankHandler getInputTank(IItemHandler items) {
+        if (items instanceof IPatternBufferIsolatedHandler) {
+            // Keep each pattern buffer self-contained; shared fluid hatches belong only to ordinary input buses.
+            if (items instanceof IMultipleTankHandler tankHandler) {
+                return tankHandler;
+            }
+            return new FluidTankList(false);
+        }
         IMultipleTankHandler baseInputTank = getInputTank();
         var tanks = new ArrayList<>(baseInputTank.getFluidTanks());
         if (items instanceof IMultipleTankHandler tankHandler) {

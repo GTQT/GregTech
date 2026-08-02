@@ -27,6 +27,7 @@ import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.logic.ParallelLogic;
 import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GTQTUtility;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
@@ -44,10 +45,18 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static gregtech.api.recipes.logic.OverclockingLogic.subTickParallelOC;
 
 public class MultiblockRecipeLogic extends AbstractRecipeLogic {
+
+    private static final long BOUND_INPUT_FAILURE_LOG_INTERVAL_NANOS = 5_000_000_000L;
+    private static final long BOUND_INPUT_RETRY_INTERVAL_TICKS = 100L;
+    private static final long BOUND_CROSS_RECIPE_START_LOG_INTERVAL_NANOS = 30_000_000_000L;
+    private static final Map<String, Long> LAST_BOUND_INPUT_FAILURE_LOG_NANOS = new ConcurrentHashMap<>();
+    private static final Map<String, Long> LAST_BOUND_CROSS_RECIPE_START_LOG_NANOS = new ConcurrentHashMap<>();
 
     // Used for distinct mode
     protected int lastRecipeIndex = 0;
@@ -549,36 +558,44 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         int subTickParallel = Math.max(1, result.parallel());
 
         // --- Calculate parallel and total operations ---
-        long totalParallelBasis = (long) inputParallel * subTickParallel;
+        // A sub-tick OC can repeat a complete input-parallel group, but it must not turn a partial
+        // pattern-buffer request into a larger consumption request. The ordinary recipe path first builds the
+        // input-parallel recipe and then repeats that whole recipe for sub-tick OC; mirror that grouping here.
+        long plannedTotalOperations = (long) inputParallel * subTickParallel;
 
-        long totalSlotEUt = result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt;
+        long plannedSlotEUt = result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt;
 
         // Clamp totalSlotEUt to the allocated power budget (only when power multiplies with parallel)
-        if (shouldParallelMultiplyPower() && totalSlotEUt > ocPowerBudget) {
-            long perParallelEUt = Math.max(1, totalSlotEUt / inputParallel);
+        if (shouldParallelMultiplyPower() && plannedSlotEUt > ocPowerBudget) {
+            long perParallelEUt = Math.max(1, plannedSlotEUt / inputParallel);
             inputParallel = (int) (ocPowerBudget / Math.max(1, perParallelEUt));
             if (inputParallel <= 0) return false;
-            totalSlotEUt = perParallelEUt * inputParallel;
-            totalParallelBasis = (long) inputParallel * subTickParallel;
+            plannedSlotEUt = perParallelEUt * inputParallel;
+            plannedTotalOperations = (long) inputParallel * subTickParallel;
         }
 
-        // Re-check output space against total operations including sub-tick OC
-        int outputParallel = alloc.inputParallel; // original from phase 1
-        if (totalParallelBasis > outputParallel) {
-            outputParallel = ParallelLogic.limitByOutputMerging(trimmed, getOutputInventory(), getOutputTank(),
-                    (int) Math.min(Integer.MAX_VALUE, totalParallelBasis),
-                    metaTileEntity.canVoidRecipeItemOutputs(),
-                    metaTileEntity.canVoidRecipeFluidOutputs());
-            if (outputParallel == 0) {
-                this.isOutputsFull = true;
-                return false;
-            }
-            totalParallelBasis = outputParallel;
-            inputParallel = (int) Math.max(1, totalParallelBasis / subTickParallel);
-            totalParallelBasis = (long) inputParallel * subTickParallel;
+        int maximumPlannedOperations = saturatingOperationCount(plannedTotalOperations);
+        int availableOperations = ParallelLogic.getMaxRecipeMultiplier(trimmed, alloc.importInventory,
+                alloc.importFluids, maximumPlannedOperations);
+        int subTickGroups = Math.min(subTickParallel, availableOperations / inputParallel);
+        if (subTickGroups <= 0) {
+            return false;
         }
 
+        int outputOperations = ParallelLogic.limitByOutputMerging(trimmed, getOutputInventory(), getOutputTank(),
+                saturatingOperationCount((long) inputParallel * subTickGroups),
+                metaTileEntity.canVoidRecipeItemOutputs(), metaTileEntity.canVoidRecipeFluidOutputs());
+        subTickGroups = Math.min(subTickGroups, outputOperations / inputParallel);
+        if (subTickGroups <= 0) {
+            this.isOutputsFull = true;
+            return false;
+        }
+
+        int totalParallelBasis = saturatingOperationCount((long) inputParallel * subTickGroups);
         int finalParallel = inputParallel;
+        // result.eut() is the EU/t of one complete input-parallel group. Batch processing extends duration,
+        // while sub-tick groups run in the same tick and therefore add their EU/t.
+        long totalSlotEUt = saturatingMultiply(overclockedEUt, subTickGroups);
 
         // --- Batch processing ---
         int batchMultiplier = 1;
@@ -591,7 +608,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 int neededParallel = (int) Math.min(Integer.MAX_VALUE, totalParallelBasis * mid);
                 int available = ParallelLogic.getMaxRecipeMultiplier(
                         trimmed, alloc.importInventory, alloc.importFluids, neededParallel);
-                if (available >= neededParallel) {
+                int outputCapacity = ParallelLogic.limitByOutputMerging(trimmed, getOutputInventory(), getOutputTank(),
+                        neededParallel, metaTileEntity.canVoidRecipeItemOutputs(),
+                        metaTileEntity.canVoidRecipeFluidOutputs());
+                if (available >= neededParallel && outputCapacity >= neededParallel) {
                     bestBatch = mid;
                     lo = mid + 1;
                 } else {
@@ -629,7 +649,20 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         String recipeDisplayName = getRecipeDisplayName(trimmed, alloc.recipeMap, itemOutputs, fluidOutputs);
         alloc.slot.startRecipe(trimmed, finalDuration, totalSlotEUt, itemOutputs, fluidOutputs, finalParallel,
                 totalOperations, recipeDisplayName, alloc.basePowerDemand);
+        logBoundCrossRecipeSlotStarted(alloc, totalOperations, finalDuration, totalSlotEUt, recipeDisplayName);
         return true;
+    }
+
+    private static int saturatingOperationCount(long operations) {
+        if (operations <= 0) return 0;
+        return operations > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) operations;
+    }
+
+    private static long saturatingMultiply(long value, int multiplier) {
+        if (value == 0 || multiplier == 0) return 0;
+        if (value > 0 && value > Long.MAX_VALUE / multiplier) return Long.MAX_VALUE;
+        if (value < 0 && value < Long.MIN_VALUE / multiplier) return Long.MIN_VALUE;
+        return value * multiplier;
     }
 
     /**
@@ -745,8 +778,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return recipe.matches(true, importInventory, importFluids);
         }
 
-        // For multiple parallels, first verify the recipe matches (without consuming)
-        if (!recipe.matches(false, importInventory, importFluids)) {
+        // Verify the complete operation count before the first real extraction. The former single-recipe check
+        // allowed a sub-tick OC to consume a partial pattern-buffer batch and then fail after the buffer was empty.
+        if (ParallelLogic.getMaxRecipeMultiplier(recipe, importInventory, importFluids, parallelCount) < parallelCount ||
+                !recipe.matches(false, importInventory, importFluids)) {
             return false;
         }
 
@@ -849,6 +884,60 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         return false;
     }
 
+    private void logInvalidatedIsolatedInputs() {
+        int bufferedInputs = 0;
+        for (IItemHandlerModifiable input : invalidatedInputList) {
+            if (input instanceof IPatternBufferIsolatedHandler && hasBufferedInputs(input)) {
+                bufferedInputs++;
+            }
+        }
+        if (bufferedInputs == 0) return;
+
+        logBoundInputDiagnostic("INVALIDATED_ISOLATED_INPUTS_WAITING_FOR_NOTIFICATION", null, bufferedInputs);
+    }
+
+    /**
+     * Buffered pattern inputs can become runnable without receiving an inventory notification, for example after
+     * dynamic recipe registrations settle. Recheck only nonempty isolated buffers at a bounded cadence; ordinary
+     * distinct buses keep the existing notification-driven behavior.
+     */
+    private boolean retryInvalidatedIsolatedInputs() {
+        if (metaTileEntity.getOffsetTimer() % BOUND_INPUT_RETRY_INTERVAL_TICKS != 0L) return false;
+        return invalidatedInputList.removeIf(input -> input instanceof IPatternBufferIsolatedHandler &&
+                hasBufferedInputs(input));
+    }
+
+    private void logBoundInputNoRecipe(IItemHandlerModifiable input, @Nullable RecipeMap<?> recipeMap, String phase) {
+        if (!(input instanceof IRecipeMapBoundInput) || !hasBufferedInputs(input)) return;
+        logBoundInputDiagnostic(phase, recipeMap, 1);
+    }
+
+    private static boolean hasBufferedInputs(IItemHandler input) {
+        for (int slot = 0; slot < input.getSlots(); slot++) {
+            if (!input.getStackInSlot(slot).isEmpty()) return true;
+        }
+        if (input instanceof IMultipleTankHandler tankHandler) {
+            for (int tank = 0; tank < tankHandler.getTanks(); tank++) {
+                if (tankHandler.getTankAt(tank).getFluidAmount() > 0) return true;
+            }
+        }
+        return false;
+    }
+
+    private void logBoundInputDiagnostic(String phase, @Nullable RecipeMap<?> recipeMap, int bufferedInputs) {
+        RecipeMap<?> selectedMap = getConfiguredRecipeMap();
+        String controller = metaTileEntity.getClass().getSimpleName() + '@' + metaTileEntity.getPos();
+        String key = controller + ':' + phase;
+        long now = System.nanoTime();
+        Long previous = LAST_BOUND_INPUT_FAILURE_LOG_NANOS.put(key, now);
+        if (previous != null && now - previous < BOUND_INPUT_FAILURE_LOG_INTERVAL_NANOS) return;
+
+        GTLog.logger.warn("Map-bound isolated input diagnostic controller={} phase={} selectedRecipeMap={} " +
+                        "resolvedRecipeMap={} nonemptyInvalidatedBuffers={} totalInputBuses={}",
+                controller, phase, selectedMap == null ? "<none>" : selectedMap.getUnlocalizedName(),
+                recipeMap == null ? "<none>" : recipeMap.getUnlocalizedName(), bufferedInputs, getInputBuses().size());
+    }
+
     protected boolean shouldUseDistinctInputBuses() {
         if (shouldUseIsolatedInputBuses()) return true;
         return metaTileEntity instanceof IDistinctBusController distinctCtrl &&
@@ -894,6 +983,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      * @return a new FluidTankList with extra fluid tanks on top of the existing fluid tanks
      */
     protected IMultipleTankHandler getInputTank(IItemHandler items) {
+        if (items instanceof IPatternBufferIsolatedHandler) {
+            // A pattern buffer is a complete recipe transaction. Do not let it borrow a shared fluid hatch,
+            // otherwise a second request may make an incomplete buffer appear runnable.
+            if (items instanceof IMultipleTankHandler tankHandler) {
+                return tankHandler;
+            }
+            return new FluidTankList(false);
+        }
         IMultipleTankHandler baseInputTank = getInputTank();
         var tanks = new ArrayList<>(baseInputTank.getFluidTanks());
         if (items instanceof IMultipleTankHandler tankHandler) {
@@ -957,6 +1054,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                         notifiedIter.remove();
                     }
                 }
+                if (retryInvalidatedIsolatedInputs()) {
+                    canWork = true;
+                }
                 ArrayList<IItemHandler> flattenedHandlers = new ArrayList<>();
                 for (IItemHandler ih : getInputBuses()) {
                     if (ih instanceof ItemHandlerList) {
@@ -967,6 +1067,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
                 if (!invalidatedInputList.containsAll(flattenedHandlers)) {
                     canWork = true;
+                }
+                if (!canWork) {
+                    logInvalidatedIsolatedInputs();
                 }
                 return canWork;
         }
@@ -1043,6 +1146,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 // so it will always be the same
                 return;
             }
+            logBoundInputStartFailure(previousBus, previousMap, currentRecipe, "CACHED_RECIPE_START_FAILED");
             routedRecipeMap = null;
         }
 
@@ -1056,6 +1160,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             }
             RecipeMap<?> recipeMap = getRecipeMapForInput(bus);
             if (recipeMap == null) {
+                logBoundInputNoRecipe(bus, null, "BOUND_RECIPE_MAP_NOT_SELECTED");
                 invalidatedInputList.add(bus);
                 continue;
             }
@@ -1065,17 +1170,21 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             if (currentRecipe != null) {
                 routedRecipeMap = recipeMap;
                 if (checkRecipe(currentRecipe)) {
-                this.previousRecipe = currentRecipe;
-                this.previousDistinctRecipeMap = recipeMap;
-                currentDistinctInputBus = bus;
-                if (prepareRecipeDistinct(currentRecipe)) {
-                    lastRecipeIndex = i;
-                    return;
-                }
+                    this.previousRecipe = currentRecipe;
+                    this.previousDistinctRecipeMap = recipeMap;
+                    currentDistinctInputBus = bus;
+                    if (prepareRecipeDistinct(currentRecipe)) {
+                        lastRecipeIndex = i;
+                        return;
+                    }
+                    logBoundInputStartFailure(bus, recipeMap, currentRecipe, "RECIPE_START_FAILED");
+                } else {
+                    logBoundInputStartFailure(bus, recipeMap, currentRecipe, "CONTROLLER_REJECTED_RECIPE");
                 }
                 routedRecipeMap = null;
             }
             if (currentRecipe == null) {
+                logBoundInputNoRecipe(bus, recipeMap, "NO_RECIPE_MATCHED_BUFFER");
                 // no valid recipe found, invalidate this bus
                 invalidatedInputList.add(bus);
             }
@@ -1168,6 +1277,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected boolean prepareRecipeDistinct(Recipe recipe) {
         recipe = Recipe.trimRecipeOutputs(recipe, getRecipeMap(), metaTileEntity.getItemOutputLimit(),
                 metaTileEntity.getFluidOutputLimit());
+        if (recipe == null) {
+            whyFailed = "配方输出数量超过机器限制（物品输出槽:" + metaTileEntity.getItemOutputLimit() +
+                    ", 流体输出槽:" + metaTileEntity.getFluidOutputLimit() + "）";
+            return false;
+        }
 
         recipe = findParallelRecipe(
                 recipe,
@@ -1188,6 +1302,50 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         return false;
+    }
+
+    /**
+     * A map-bound buffer has supplied a complete recipe request. If it matches but cannot start, retain a
+     * rate-limited diagnostic so output, energy, and controller constraints are distinguishable from an input mismatch.
+     */
+    private void logBoundInputStartFailure(IItemHandlerModifiable input, @Nullable RecipeMap<?> recipeMap,
+                                           @Nullable Recipe recipe, String phase) {
+        if (!(input instanceof IRecipeMapBoundInput boundInput)) return;
+
+        String reason = getWhyFailed();
+        if (reason == null || reason.isEmpty()) reason = "recipe preparation returned false without a reason";
+        String controller = metaTileEntity.getClass().getSimpleName() + '@' + metaTileEntity.getPos();
+        String key = controller + ':' + phase + ':' + reason;
+        long now = System.nanoTime();
+        Long previous = LAST_BOUND_INPUT_FAILURE_LOG_NANOS.put(key, now);
+        if (previous != null && now - previous < BOUND_INPUT_FAILURE_LOG_INTERVAL_NANOS) return;
+
+        GTLog.logger.warn("Map-bound isolated input could not start controller={} selectedRecipeMap={} " +
+                        "boundRecipeMap={} phase={} reason={} recipeEUt={} itemOutputSlots={} fluidOutputTanks={}",
+                controller, recipeMap == null ? "<none>" : recipeMap.getUnlocalizedName(),
+                boundInput.getBoundRecipeMapName(), phase, reason, recipe == null ? "<none>" : recipe.getEUt(),
+                getOutputInventory().getSlots(), getOutputTank().getTanks());
+    }
+
+    /**
+     * A bounded start record distinguishes a real execution (where consumable inputs have already moved into a slot)
+     * from a pattern-buffer insertion failure without producing per-tick scheduler noise.
+     */
+    private void logBoundCrossRecipeSlotStarted(SlotAllocation allocation, int totalOperations, int duration,
+                                                long eut, String recipeDisplayName) {
+        if (!(allocation.importInventory instanceof IRecipeMapBoundInput boundInput)) return;
+
+        String controller = metaTileEntity.getClass().getSimpleName() + '@' + metaTileEntity.getPos();
+        String key = controller + ':' + boundInput.getBoundRecipeMapName() + ':' + recipeDisplayName;
+        long now = System.nanoTime();
+        Long previous = LAST_BOUND_CROSS_RECIPE_START_LOG_NANOS.put(key, now);
+        if (previous != null && now - previous < BOUND_CROSS_RECIPE_START_LOG_INTERVAL_NANOS) return;
+
+        GTLog.logger.info("Map-bound cross-recipe slot started controller={} boundRecipeMap={} slot={} recipe={} " +
+                        "operations={} duration={}t eut={} itemOutputs={} fluidOutputs={}",
+                controller, boundInput.getBoundRecipeMapName(), allocation.slot.getSlotIndex(), recipeDisplayName,
+                totalOperations, duration, eut, allocation.slot.getItemOutputs().size(),
+                allocation.slot.getFluidOutputs().size());
     }
 
     @Override
