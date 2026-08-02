@@ -217,6 +217,9 @@ public class GregtechDataCodes {
     public static final int UPDATE_ONLINE_STATUS = assignId();
     public static final int UPDATE_ME_POS= assignId();
 
+    // Processing Array
+    public static final int PROCESSING_ARRAY_RECIPE_MAP = assignId();
+
     // Everything below MUST be last in the class!
     public static final Int2ObjectMap<String> NAMES = new Int2ObjectArrayMap<>();
 

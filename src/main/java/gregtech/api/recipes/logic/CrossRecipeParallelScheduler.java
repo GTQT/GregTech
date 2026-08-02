@@ -3,6 +3,7 @@ package gregtech.api.recipes.logic;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.metatileentity.IVoidable;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
 
 import net.minecraft.nbt.NBTTagCompound;
@@ -17,6 +18,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Cross-Recipe Parallel Scheduler: manages dynamically created {@link RecipeSlot}s that can each run
@@ -69,6 +72,11 @@ import java.util.List;
  * @see RecipeSlot
  */
 public class CrossRecipeParallelScheduler {
+
+    private static final long OUTPUT_BLOCKED_LOG_INTERVAL_NANOS = 5_000_000_000L;
+    private static final Map<String, Long> LAST_OUTPUT_BLOCKED_LOG_NANOS = new ConcurrentHashMap<>();
+    private static final long OUTPUT_COMMITTED_LOG_INTERVAL_NANOS = 30_000_000_000L;
+    private static final Map<String, Long> LAST_OUTPUT_COMMITTED_LOG_NANOS = new ConcurrentHashMap<>();
 
     // --- Configuration ---
     private int parallelLimit;
@@ -202,18 +210,21 @@ public class CrossRecipeParallelScheduler {
             RecipeSlot slot = it.next();
             if (slot.isRunning()) {
                 if (slot.tick()) {
-                    // Slot just completed - output results and return to pool
+                    // A completed slot remains reserved until both output handlers have accepted every result.
+                    // Dropping it unconditionally loses the already-consumed inputs whenever an export hatch rejects.
+                    if (outputSlotResults(slot, outputInventory, outputFluids)) {
+                        completedParallel += Math.max(1, slot.getTotalOperations());
+                        it.remove();
+                        returnSlotToPool(slot);
+                    }
+                }
+            } else if (slot.isCompleted()) {
+                // Retry completed slots after output capacity changes.
+                if (outputSlotResults(slot, outputInventory, outputFluids)) {
                     completedParallel += Math.max(1, slot.getTotalOperations());
-                    outputSlotResults(slot, outputInventory, outputFluids);
                     it.remove();
                     returnSlotToPool(slot);
                 }
-            } else if (slot.isCompleted()) {
-                // Shouldn't normally reach here, but handle gracefully
-                completedParallel += Math.max(1, slot.getTotalOperations());
-                outputSlotResults(slot, outputInventory, outputFluids);
-                it.remove();
-                returnSlotToPool(slot);
             }
         }
         return completedParallel;
@@ -447,11 +458,51 @@ public class CrossRecipeParallelScheduler {
     /**
      * Outputs the results of a completed slot to the machine's export inventories.
      */
-    private void outputSlotResults(@NotNull RecipeSlot slot,
-                                   @NotNull IItemHandlerModifiable outputInventory,
-                                   @NotNull IMultipleTankHandler outputFluids) {
+    private boolean outputSlotResults(@NotNull RecipeSlot slot,
+                                      @NotNull IItemHandlerModifiable outputInventory,
+                                      @NotNull IMultipleTankHandler outputFluids) {
+        boolean itemsFit = GTTransferUtils.addItemsToItemHandler(outputInventory, true, slot.getItemOutputs());
+        boolean fluidsFit = GTTransferUtils.addFluidsToFluidHandler(outputFluids, true, slot.getFluidOutputs());
+        if (!itemsFit || !fluidsFit) {
+            logBlockedOutput(slot, outputInventory, outputFluids, itemsFit, fluidsFit);
+            return false;
+        }
         GTTransferUtils.addItemsToItemHandler(outputInventory, false, slot.getItemOutputs());
         GTTransferUtils.addFluidsToFluidHandler(outputFluids, false, slot.getFluidOutputs());
+        logCommittedOutput(slot, outputInventory, outputFluids);
+        return true;
+    }
+
+    /** A bounded completion record proves that a consumed cross-recipe slot reached the output handlers. */
+    private static void logCommittedOutput(@NotNull RecipeSlot slot,
+                                           @NotNull IItemHandlerModifiable outputInventory,
+                                           @NotNull IMultipleTankHandler outputFluids) {
+        String key = slot.getRecipeDisplayName() + ':' + slot.getSlotIndex() + ':' +
+                System.identityHashCode(outputInventory) + ':' + System.identityHashCode(outputFluids);
+        long now = System.nanoTime();
+        Long previous = LAST_OUTPUT_COMMITTED_LOG_NANOS.put(key, now);
+        if (previous != null && now - previous < OUTPUT_COMMITTED_LOG_INTERVAL_NANOS) return;
+
+        GTLog.logger.info("Cross-recipe output committed slot={} recipe={} operations={} itemOutputs={} " +
+                        "fluidOutputs={} itemOutputSlots={} fluidOutputTanks={}",
+                slot.getSlotIndex(), slot.getRecipeDisplayName(), slot.getTotalOperations(), slot.getItemOutputs(),
+                slot.getFluidOutputs(), outputInventory.getSlots(), outputFluids.getTanks());
+    }
+
+    private static void logBlockedOutput(@NotNull RecipeSlot slot,
+                                         @NotNull IItemHandlerModifiable outputInventory,
+                                         @NotNull IMultipleTankHandler outputFluids,
+                                         boolean itemsFit, boolean fluidsFit) {
+        String key = slot.getRecipeDisplayName() + ':' + slot.getSlotIndex() + ':' +
+                System.identityHashCode(outputInventory) + ':' + System.identityHashCode(outputFluids);
+        long now = System.nanoTime();
+        Long previous = LAST_OUTPUT_BLOCKED_LOG_NANOS.put(key, now);
+        if (previous != null && now - previous < OUTPUT_BLOCKED_LOG_INTERVAL_NANOS) return;
+
+        GTLog.logger.warn("Cross-recipe output is blocked; retaining completed slot={} recipe={} operations={} " +
+                        "itemsFit={} fluidsFit={} itemOutputSlots={} fluidOutputTanks={}",
+                slot.getSlotIndex(), slot.getRecipeDisplayName(), slot.getTotalOperations(), itemsFit, fluidsFit,
+                outputInventory.getSlots(), outputFluids.getTanks());
     }
 
     // ==================== Reset / Invalidate ====================
