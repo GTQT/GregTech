@@ -99,7 +99,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     @Nullable
-    private RecipeMap<?> getConfiguredRecipeMap() {
+    /**
+     * Returns the controller's currently selected recipe map before any per-input routing is applied.
+     * Controllers whose map is determined by runtime state may override this without changing the
+     * generic bound-input routing logic.
+     */
+    protected RecipeMap<?> getConfiguredRecipeMap() {
         if (metaTileEntity instanceof IMultipleRecipeMaps) {
             return ((IMultipleRecipeMaps) metaTileEntity).getCurrentRecipeMap();
         }
