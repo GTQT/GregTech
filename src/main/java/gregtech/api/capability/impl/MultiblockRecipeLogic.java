@@ -105,8 +105,15 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         IMultipleRecipeMaps controller = (IMultipleRecipeMaps) metaTileEntity;
         IRecipeMapBoundInput boundInput = (IRecipeMapBoundInput) input;
         if (!controller.supportsRecipeMapPatternRouting()) {
-            // Do not reinterpret queued routed inputs after the feature is turned off.
-            return boundInput.getBoundRecipeMapName() == null ? getConfiguredRecipeMap() : null;
+            // Standard multi-map controllers may execute bound inputs for their selected map, but cannot route
+            // them across modes unless they explicitly opt in to RecipeMap pattern routing.
+            RecipeMap<?> currentMap = getConfiguredRecipeMap();
+            String boundMapName = boundInput.getBoundRecipeMapName();
+            if (boundMapName == null ||
+                    (currentMap != null && boundMapName.equals(currentMap.getUnlocalizedName()))) {
+                return currentMap;
+            }
+            return null;
         }
 
         String mapName = boundInput.getBoundRecipeMapName();
