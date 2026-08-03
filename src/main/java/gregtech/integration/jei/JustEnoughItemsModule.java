@@ -35,14 +35,13 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.ToolItems;
 import gregtech.common.metatileentities.MetaTileEntities;
-import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.integration.IntegrationSubmodule;
-import gregtech.integration.jei.basic.GTFluidVeinCategory;
-import gregtech.integration.jei.basic.GTFluidVeinInfo;
 import gregtech.integration.jei.basic.CoolantCategory;
 import gregtech.integration.jei.basic.CoolantInfo;
 import gregtech.integration.jei.basic.FissionFuelCategory;
 import gregtech.integration.jei.basic.FissionFuelInfo;
+import gregtech.integration.jei.basic.GTFluidVeinCategory;
+import gregtech.integration.jei.basic.GTFluidVeinInfo;
 import gregtech.integration.jei.basic.GTOreCategory;
 import gregtech.integration.jei.basic.GTOreInfo;
 import gregtech.integration.jei.basic.MaterialTree;
@@ -58,6 +57,7 @@ import gregtech.integration.jei.recipe.GTRecipeWrapper;
 import gregtech.integration.jei.recipe.IntCircuitCategory;
 import gregtech.integration.jei.recipe.IntCircuitRecipeWrapper;
 import gregtech.integration.jei.recipe.RecipeMapCategory;
+import gregtech.integration.jei.utils.CollapsibleItemGroups;
 import gregtech.integration.jei.utils.MachineSubtypeHandler;
 import gregtech.integration.jei.utils.MetaItemSubtypeHandler;
 import gregtech.integration.jei.utils.ModularUIGuiHandler;
@@ -73,6 +73,7 @@ import net.minecraftforge.fml.common.event.FMLLoadCompleteEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
 import mezz.jei.Internal;
+import mezz.jei.api.ICollapsibleGroupRegistry;
 import mezz.jei.api.IGuiHelper;
 import mezz.jei.api.IJeiHelpers;
 import mezz.jei.api.IJeiRuntime;
@@ -214,6 +215,11 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
             subtypeRegistry.registerSubtypeInterpreter(Item.getItemFromBlock(registry.getBlock()),
                     new MachineSubtypeHandler());
         }
+    }
+
+    @Override
+    public void registerCollapsibleGroups(@NotNull ICollapsibleGroupRegistry registry) {
+        CollapsibleItemGroups.registerGroups(registry);
     }
 
     @Override

@@ -9785,3 +9785,30 @@ gregtech.machine.wireless_controller.tooltip.8=§7 Ti = 电容等级，C = 监�
 gregtech.machine.wireless_controller.tooltip.9=§7 仅 UHV 及以上等级的电容参与计算
 gregtech.machine.wireless_controller.tooltip.retention=§b本地保留比例：§f%s%%
 gregtech.machine.wireless_controller.tooltip.team=FTB 同组玩家自动共享同一网络，无需额外操作。
+
+# JEI Collapsible Groups
+gregtech.jei.group.cables=GT 线缆
+gregtech.jei.group.item_pipes=GT 物品管道
+gregtech.jei.group.fluid_pipes=GT 流体管道
+gregtech.jei.group.ores=GT 矿石
+gregtech.jei.group.frames=GT 框架
+gregtech.jei.group.lamps=GT 灯具
+gregtech.jei.group.storage_blocks=GT 存储方块
+gregtech.jei.group.fluid_cells=GT 流体单元
+gregtech.jei.group.molds=GT 模具
+gregtech.jei.group.extruder_shapes=GT 挤压机形状
+gregtech.jei.group.glass_lens=GT 玻璃透镜
+gregtech.jei.group.chemical_dyes=GT 化学染料
+gregtech.jei.group.fluid_buckets=GT 流体桶
+gregtech.jei.group.bee_combs=GT 蜂巢
+gregtech.jei.group.bee_drops=GT 蜜蜂产物
+gregtech.jei.group.heat_conductors=GT 热导管
+gregtech.jei.group.stone_variants=GT 石料变体
+gregtech.jei.group.forestry_bees=林业蜜蜂
+gregtech.jei.group.casting_molds=GT 浇铸模具
+gregtech.jei.group.disposable_tools=GT 一次性工具
+gregtech.jei.group.wireless_covers=GT 无线能源覆盖板
+gregtech.jei.group.warning_signs=GT 警示牌
+gregtech.jei.group.metal_sheets=GT 金属板
+gregtech.jei.group.panelling=GT 镶板
+gregtech.jei.group.electrodes=GT 林业电极

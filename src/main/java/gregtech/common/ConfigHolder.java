@@ -617,6 +617,12 @@ public class ConfigHolder {
         @Config.Comment({ "Whether to prefer the Material Tree over other categories in JEI", "Default: false" })
         public boolean preferMaterialTreeInJEI = false;
 
+        @Config.Comment({ "Collapse GT MetaPrefixItems and other variant-heavy items into JEI collapsible groups.",
+                "When enabled, items like dusts, plates, cables, pipes, etc. are folded into expandable groups.",
+                "Default: true" })
+        @Config.RequiresMcRestart
+        public boolean collapseGTItems = true;
+
         //是否运行Quit插件
         @Config.Comment({ "是否运行Quit插件", "Default: true" })
         public boolean runQuit = true;

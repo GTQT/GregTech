@@ -42,7 +42,8 @@ dependencies {
     compileOnly("org.projectlombok:lombok:1.18.34")
     annotationProcessor("org.projectlombok:lombok:1.18.34")
     // Published dependencies
-    api("codechicken:codechickenlib:3.2.3.358")
+    implementation rfg.deobf("curse.maven:codechicken-lib-1-8-242818:2779848")
+
     api("com.cleanroommc:modularui:3.1.5") { transitive = false }
     api("com.cleanroommc:groovyscript:1.2.0-hotfix1") { transitive = false }
     api("CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-4.1.20.700")

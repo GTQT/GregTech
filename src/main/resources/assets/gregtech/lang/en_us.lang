@@ -9802,3 +9802,30 @@ gregtech.machine.wireless_controller.tooltip.8=§7  T_i = capacitor tier, C = co
 gregtech.machine.wireless_controller.tooltip.9=§7  Only UHV-tier and higher capacitors are counted
 gregtech.machine.wireless_controller.tooltip.retention=§bLocal retention ratio: §f%s%%
 gregtech.machine.wireless_controller.tooltip.team=Players in the same FTB team automatically share one network.
+
+# JEI Collapsible Groups
+gregtech.jei.group.cables=GT Cables & Wires
+gregtech.jei.group.item_pipes=GT Item Pipes
+gregtech.jei.group.fluid_pipes=GT Fluid Pipes
+gregtech.jei.group.ores=GT Ores
+gregtech.jei.group.frames=GT Frame Boxes
+gregtech.jei.group.lamps=GT Lamps
+gregtech.jei.group.storage_blocks=GT Storage Blocks
+gregtech.jei.group.fluid_cells=GT Fluid Cells
+gregtech.jei.group.molds=GT Molds
+gregtech.jei.group.extruder_shapes=GT Extruder Shapes
+gregtech.jei.group.glass_lens=GT Glass Lenses
+gregtech.jei.group.chemical_dyes=GT Chemical Dyes
+gregtech.jei.group.fluid_buckets=GT Fluid Buckets
+gregtech.jei.group.bee_combs=GT Bee Combs
+gregtech.jei.group.bee_drops=GT Bee Drops
+gregtech.jei.group.heat_conductors=GT Heat Conductors
+gregtech.jei.group.stone_variants=GT Stone Variants
+gregtech.jei.group.forestry_bees=Forestry Bees
+gregtech.jei.group.casting_molds=GT Casting Molds
+gregtech.jei.group.disposable_tools=GT Disposable Tools
+gregtech.jei.group.wireless_covers=GT Wireless Covers
+gregtech.jei.group.warning_signs=GT Warning Signs
+gregtech.jei.group.metal_sheets=GT Metal Sheets
+gregtech.jei.group.panelling=GT Panelling
+gregtech.jei.group.electrodes=GT Electrodes
