@@ -186,10 +186,14 @@ public class CrossRecipeParallelScheduler {
      * @param outputFluids    the fluid output tank handler
      * @param energyDrawer    a function that attempts to draw the specified amount of energy.
      *                        Returns true if the draw was successful.
+     * @param voidItemOutputs whether item results may be voided after attempting insertion
+     * @param voidFluidOutputs whether fluid results may be voided after attempting insertion
      */
     public int tickSlots(@NotNull IItemHandlerModifiable outputInventory,
                          @NotNull IMultipleTankHandler outputFluids,
-                         @NotNull EnergyDrawer energyDrawer) {
+                         @NotNull EnergyDrawer energyDrawer,
+                         boolean voidItemOutputs,
+                         boolean voidFluidOutputs) {
         long totalEUt = getTotalEnergyConsumption();
         int completedParallel = 0;
 
@@ -210,9 +214,9 @@ public class CrossRecipeParallelScheduler {
             RecipeSlot slot = it.next();
             if (slot.isRunning()) {
                 if (slot.tick()) {
-                    // A completed slot remains reserved until both output handlers have accepted every result.
-                    // Dropping it unconditionally loses the already-consumed inputs whenever an export hatch rejects.
-                    if (outputSlotResults(slot, outputInventory, outputFluids)) {
+                    // A completed slot remains reserved until results are committed or configured to be voided.
+                    // Dropping it unconditionally loses already-consumed inputs whenever an export hatch rejects.
+                    if (outputSlotResults(slot, outputInventory, outputFluids, voidItemOutputs, voidFluidOutputs)) {
                         completedParallel += Math.max(1, slot.getTotalOperations());
                         it.remove();
                         returnSlotToPool(slot);
@@ -220,7 +224,7 @@ public class CrossRecipeParallelScheduler {
                 }
             } else if (slot.isCompleted()) {
                 // Retry completed slots after output capacity changes.
-                if (outputSlotResults(slot, outputInventory, outputFluids)) {
+                if (outputSlotResults(slot, outputInventory, outputFluids, voidItemOutputs, voidFluidOutputs)) {
                     completedParallel += Math.max(1, slot.getTotalOperations());
                     it.remove();
                     returnSlotToPool(slot);
@@ -460,9 +464,13 @@ public class CrossRecipeParallelScheduler {
      */
     private boolean outputSlotResults(@NotNull RecipeSlot slot,
                                       @NotNull IItemHandlerModifiable outputInventory,
-                                      @NotNull IMultipleTankHandler outputFluids) {
-        boolean itemsFit = GTTransferUtils.addItemsToItemHandler(outputInventory, true, slot.getItemOutputs());
-        boolean fluidsFit = GTTransferUtils.addFluidsToFluidHandler(outputFluids, true, slot.getFluidOutputs());
+                                      @NotNull IMultipleTankHandler outputFluids,
+                                      boolean voidItemOutputs,
+                                      boolean voidFluidOutputs) {
+        boolean itemsFit = voidItemOutputs ||
+                GTTransferUtils.addItemsToItemHandler(outputInventory, true, slot.getItemOutputs());
+        boolean fluidsFit = voidFluidOutputs ||
+                GTTransferUtils.addFluidsToFluidHandler(outputFluids, true, slot.getFluidOutputs());
         if (!itemsFit || !fluidsFit) {
             logBlockedOutput(slot, outputInventory, outputFluids, itemsFit, fluidsFit);
             return false;
