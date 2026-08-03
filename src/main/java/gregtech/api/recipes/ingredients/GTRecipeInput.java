@@ -1,15 +1,18 @@
 package gregtech.api.recipes.ingredients;
 
 import gregtech.api.recipes.ingredients.nbtmatch.NBTCondition;
+import gregtech.api.recipes.ingredients.nbtmatch.ListNBTCondition;
 import gregtech.api.recipes.ingredients.nbtmatch.NBTMatcher;
 import gregtech.api.util.GTLog;
 
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.oredict.OreDictionary;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectMap;
@@ -221,6 +224,132 @@ public abstract class GTRecipeInput {
             tag.setTag("fluid", input.getInputFluidStack().writeToNBT(new NBTTagCompound()));
         }
         tag.setInteger("amount", input.getAmount());
+        return tag;
+    }
+
+    /**
+     * Returns every stable fact that affects this input's recipe-matching semantics.
+     *
+     * <p>This is deliberately separate from {@link #writeToNBT(GTRecipeInput)}. The latter is a legacy
+     * round-trip format and stores an OreDictionary's runtime numeric ID, which is not valid as a persistent
+     * identity across a restart. This format is an identity record only and is not accepted by
+     * {@link #readFromNBT(NBTTagCompound)}.</p>
+     */
+    public static NBTTagCompound writePersistentIdentityToNBT(GTRecipeInput input) {
+        Objects.requireNonNull(input, "input");
+
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("inputClass", input.getClass().getName());
+        tag.setInteger("amount", input.getAmount());
+        tag.setBoolean("consumable", !input.isNonConsumable());
+        appendPersistentMatchingIdentity(tag, input);
+
+        if (input instanceof GTRecipeOreInput) {
+            tag.setString("kind", "ore_dict");
+            tag.setString("oreName", OreDictionary.getOreName(input.getOreDict()));
+        } else if (input instanceof GTRecipeFluidInput) {
+            tag.setString("kind", "fluid");
+            FluidStack fluid = input.getInputFluidStack();
+            if (fluid != null) {
+                tag.setTag("fluid", fluid.writeToNBT(new NBTTagCompound()));
+            }
+        } else {
+            tag.setString("kind", input instanceof IntCircuitIngredient ? "integrated_circuit" : "item_stacks");
+            NBTTagList stackList = new NBTTagList();
+            ItemStack[] stacks = input.getInputStacks();
+            if (stacks != null) {
+                for (ItemStack stack : stacks) {
+                    stackList.appendTag(stack == null ? new NBTTagCompound() : stack.serializeNBT());
+                }
+            }
+            tag.setTag("stacks", stackList);
+        }
+        return tag;
+    }
+
+    private static void appendPersistentMatchingIdentity(NBTTagCompound tag, GTRecipeInput input) {
+        NBTMatcher matcher = input.getNBTMatcher();
+        tag.setString("nbtMatcher", describePersistentMatcher(matcher));
+        NBTCondition condition = input.getNBTMatchingCondition();
+        if (condition != null) {
+            tag.setTag("nbtCondition", writePersistentConditionIdentity(condition));
+        }
+    }
+
+    private static String describePersistentMatcher(@Nullable NBTMatcher matcher) {
+        if (matcher == null) return "none";
+        if (matcher == NBTMatcher.ANY) return "any";
+        if (matcher == NBTMatcher.LESS_THAN) return "less_than";
+        if (matcher == NBTMatcher.LESS_THAN_OR_EQUAL_TO) return "less_than_or_equal_to";
+        if (matcher == NBTMatcher.GREATER_THAN) return "greater_than";
+        if (matcher == NBTMatcher.GREATER_THAN_OR_EQUAL_TO) return "greater_than_or_equal_to";
+        if (matcher == NBTMatcher.EQUAL_TO) return "equal_to";
+        if (matcher == NBTMatcher.RECURSIVE_EQUAL_TO) return "recursive_equal_to";
+        if (matcher == NBTMatcher.NOT_PRESENT_OR_DEFAULT) return "not_present_or_default";
+        if (matcher == NBTMatcher.NOT_PRESENT_OR_HAS_KEY) return "not_present_or_has_key";
+
+        // Unknown matcher implementations have no public persistence contract. Keep their identity run-local so a
+        // saved external matcher is rejected after restart instead of being mistaken for a different matcher.
+        return "custom:" + matcher.getClass().getName() + ':' +
+                Integer.toUnsignedString(System.identityHashCode(matcher));
+    }
+
+    private static NBTTagCompound writePersistentConditionIdentity(NBTCondition condition) {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("conditionClass", condition.getClass().getName());
+        tag.setString("tagType", condition.tagType == null ? "none" : condition.tagType.name());
+        tag.setString("key", condition.nbtKey == null ? "" : condition.nbtKey);
+        if (condition instanceof ListNBTCondition listCondition) {
+            tag.setString("listTagType", listCondition.listTagType == null ? "none" :
+                    listCondition.listTagType.name());
+        }
+        tag.setTag("value", writePersistentConditionValue(condition.value));
+        return tag;
+    }
+
+    private static NBTTagCompound writePersistentConditionValue(@Nullable Object value) {
+        NBTTagCompound tag = new NBTTagCompound();
+        if (value == null) {
+            tag.setString("kind", "null");
+        } else if (value instanceof NBTBase nbt) {
+            tag.setString("kind", "nbt");
+            tag.setTag("value", nbt.copy());
+        } else if (value instanceof NBTCondition condition) {
+            tag.setString("kind", "condition");
+            tag.setTag("value", writePersistentConditionIdentity(condition));
+        } else if (value instanceof List<?>) {
+            NBTTagList values = new NBTTagList();
+            for (Object element : (List<?>) value) {
+                if (!(element instanceof NBTBase nbt)) {
+                    return writeRunLocalConditionValue(value);
+                }
+                values.appendTag(nbt.copy());
+            }
+            tag.setString("kind", "nbt_list");
+            tag.setTag("value", values);
+        } else if (value instanceof byte[]) {
+            tag.setString("kind", "byte_array");
+            tag.setString("value", Arrays.toString((byte[]) value));
+        } else if (value instanceof int[]) {
+            tag.setString("kind", "int_array");
+            tag.setString("value", Arrays.toString((int[]) value));
+        } else if (value instanceof long[]) {
+            tag.setString("kind", "long_array");
+            tag.setString("value", Arrays.toString((long[]) value));
+        } else if (value instanceof Number || value instanceof Boolean || value instanceof String ||
+                value instanceof Character || value.getClass().isEnum()) {
+            tag.setString("kind", value.getClass().getName());
+            tag.setString("value", String.valueOf(value));
+        } else {
+            return writeRunLocalConditionValue(value);
+        }
+        return tag;
+    }
+
+    private static NBTTagCompound writeRunLocalConditionValue(Object value) {
+        NBTTagCompound tag = new NBTTagCompound();
+        tag.setString("kind", "custom:" + value.getClass().getName());
+        tag.setString("instance", Integer.toUnsignedString(System.identityHashCode(value)));
         return tag;
     }
 
