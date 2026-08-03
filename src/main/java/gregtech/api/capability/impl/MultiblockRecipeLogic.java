@@ -229,7 +229,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         int completedParallel = scheduler.tickSlots(
                 getOutputInventory(),
                 getOutputTank(),
-                (amount, simulate) -> drawEnergy(amount, simulate)
+                (amount, simulate) -> drawEnergy(amount, simulate),
+                metaTileEntity.canVoidRecipeItemOutputs(),
+                metaTileEntity.canVoidRecipeFluidOutputs()
         );
         if (completedParallel > 0) {
             onCrossRecipeSlotsCompleted(completedParallel);
@@ -631,6 +633,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         int totalOperations = (int) Math.min(Integer.MAX_VALUE, totalParallelBasis * batchMultiplier);
         int finalDuration = overclockedDuration * batchMultiplier;
 
+        // A cross-recipe slot normally draws energy on its next tick. Check the total demand now so inputs are not
+        // consumed for a slot that would immediately stall when the shared energy source is empty.
+        if (!canStartCrossRecipeSlot(totalSlotEUt)) {
+            return false;
+        }
+
         // --- Consume inputs ---
         if (!consumeRecipeInputs(trimmed, alloc.importInventory, alloc.importFluids, totalOperations)) {
             return false;
@@ -668,6 +676,33 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (value > 0 && value > Long.MAX_VALUE / multiplier) return Long.MAX_VALUE;
         if (value < 0 && value < Long.MIN_VALUE / multiplier) return Long.MIN_VALUE;
         return value * multiplier;
+    }
+
+    /**
+     * Verifies that the shared energy source can support the existing running slots and this candidate slot together.
+     * The check intentionally mirrors the aggregate draw performed by {@link CrossRecipeParallelScheduler#tickSlots}
+     * on the next tick.
+     */
+    protected boolean canStartCrossRecipeSlot(long candidateEUt) {
+        if (candidateEUt <= 0) {
+            return true;
+        }
+
+        long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getTotalEnergyConsumption();
+        long totalEUt = saturatingAdd(runningEUt, candidateEUt);
+        if (drawEnergy(totalEUt, true)) {
+            this.hasNotEnoughEnergy = false;
+            return true;
+        }
+
+        this.hasNotEnoughEnergy = true;
+        return false;
+    }
+
+    private static long saturatingAdd(long left, long right) {
+        if (right > 0 && left > Long.MAX_VALUE - right) return Long.MAX_VALUE;
+        if (right < 0 && left < Long.MIN_VALUE - right) return Long.MIN_VALUE;
+        return left + right;
     }
 
     /**
