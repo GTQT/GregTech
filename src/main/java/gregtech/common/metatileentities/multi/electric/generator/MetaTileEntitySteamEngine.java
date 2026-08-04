@@ -98,7 +98,7 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
-        tooltip.add(I18n.format("gcym.machine.steam_engine.tooltip.1", GTValues.VNF[GTValues.MV]));
+        tooltip.add(I18n.format("gregtech.machine.steam_engine.tooltip.1", GTValues.VNF[GTValues.MV]));
     }
 
     @Override

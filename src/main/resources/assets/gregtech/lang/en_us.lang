@@ -757,6 +757,9 @@ metaitem.circuit.integrated.jei_description=JEI is only showing recipes for the 
 
 metaitem.tool.mutliblock_preview.name=Multiblock Projector
 
+metaitem.tool.offhand_placer.name=放置副手工具
+metaitem.tool.offhand_placer.tooltip=右键在玩家位置前方一格放置副手手持方块
+
 # Structure Projector
 gregtech.tool.projector.tooltip1=§7Right-click Controller: Show hologram preview
 gregtech.tool.projector.tooltip2=§7Shift+Right-click Controller: Auto-build structure

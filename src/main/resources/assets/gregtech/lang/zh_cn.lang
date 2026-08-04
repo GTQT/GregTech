@@ -1474,6 +1474,9 @@ metaitem.tool.multiblock_remover.tooltip2=按住SHIFT键后右键单击多方块
 
 metaitem.tool.mutliblock_preview.name=多方块预览器
 
+metaitem.tool.offhand_placer.name=放置副手工具
+metaitem.tool.offhand_placer.tooltip=右键在玩家位置前方一格放置副手手持方块
+
 metaitem.stellar_fuel.name=恒星燃料
 metaitem.stellar_fuel.tooltip=§5浓缩恒星点火催化剂
 metaitem.stellar_fuel.tooltip2=§7用于启动诸神之锻炉

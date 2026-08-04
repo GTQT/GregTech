@@ -56,6 +56,7 @@ import gregtech.common.items.behaviors.LighterBehaviour;
 import gregtech.common.items.behaviors.MiningLaserBehavior;
 import gregtech.common.items.behaviors.MultiblockRemovalBehavior;
 import gregtech.common.items.behaviors.NanoSaberBehavior;
+import gregtech.common.items.behaviors.OffhandPlacerBehavior;
 import gregtech.common.items.behaviors.PipeNetPainterBehavior;
 import gregtech.common.items.behaviors.ProgrammableCircuit;
 import gregtech.common.items.behaviors.ProgrammingToolkit;
@@ -1567,8 +1568,12 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
+        OFFHAND_PLACER = addItem(1007, "tool.offhand_placer").addComponents(new OffhandPlacerBehavior())
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
         // Forge of the Gods - Stellar Fuel catalyst for battery startup
-        STELLAR_FUEL = addItem(1007, "stellar_fuel").setRarity(EnumRarity.EPIC);
+        STELLAR_FUEL = addItem(1009, "stellar_fuel").setRarity(EnumRarity.EPIC);
 
         registerWirelessCoverInput(1100);
         registerWirelessCoverOutput(1115);

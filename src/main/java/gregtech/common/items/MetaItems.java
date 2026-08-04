@@ -663,6 +663,7 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_BUILDER;
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_REMOVER;
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_PREVIEW;
+    public static MetaItem<?>.MetaValueItem OFFHAND_PLACER;
 
     // Forge of the Gods
     public static MetaItem<?>.MetaValueItem STELLAR_FUEL;

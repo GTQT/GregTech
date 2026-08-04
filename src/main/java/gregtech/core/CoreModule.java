@@ -11,6 +11,7 @@ import gregtech.api.cover.CoverDefinition;
 import gregtech.api.fluids.GTFluidRegistration;
 import gregtech.api.gui.UIFactory;
 import gregtech.api.items.gui.PlayerInventoryUIFactory;
+import gregtech.api.metatileentity.MachineBlockHighlighter;
 import gregtech.api.metatileentity.MetaTileEntityUIFactory;
 import gregtech.api.metatileentity.registry.MTEManager;
 import gregtech.api.metatileentity.registry.MTERegistry;
@@ -267,6 +268,7 @@ public class CoreModule implements IGregTechModule {
         GregTechAPI.networkHandler.registerPacket(PacketNotifyCapeChange.class);
         GregTechAPI.networkHandler.registerPacket(PacketReloadShaders.class);
         GregTechAPI.networkHandler.registerPacket(PacketClipboardNBTUpdate.class);
+        GregTechAPI.networkHandler.registerPacket(MachineBlockHighlighter.PacketMachineHighlight.class);
         GregTechAPI.networkHandler.registerPacket(PacketToolbeltSelectionChange.Server.class);
         GregTechAPI.networkHandler.registerPacket(PacketToolbeltSelectionChange.Client.class);
     }
