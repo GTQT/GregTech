@@ -31,6 +31,7 @@ public class PropertyKey<T extends IMaterialProperty> {
     public static final PropertyKey<ToxicProperty> TOXIC = new PropertyKey<>("toxic", ToxicProperty.class);
     public static final PropertyKey<RadioactiveProperty> RADIOACTIVE = new PropertyKey<>("radioactive",
             RadioactiveProperty.class);
+    public static final PropertyKey<ColdProperty> COLD = new PropertyKey<>("cold", ColdProperty.class);
 
     // Empty property used to allow property-less Materials without removing base type enforcement
     public static final PropertyKey<EmptyProperty> EMPTY = new PropertyKey<>("empty", EmptyProperty.class);

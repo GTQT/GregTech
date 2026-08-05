@@ -3,10 +3,7 @@ package gregtech.api.unification;
 import gregtech.api.util.GTLog;
 
 import com.google.common.base.CaseFormat;
-import crafttweaker.annotations.ZenRegister;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import stanhebben.zenscript.annotations.ZenClass;
-import stanhebben.zenscript.annotations.ZenMethod;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,8 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
-@ZenClass("mods.gregtech.material.Elements")
-@ZenRegister
 public class Elements {
 
     private static final Pattern namePattern = Pattern.compile("[A-Z]+[A-Za-z]*(-\\d+)?");
@@ -166,17 +161,14 @@ public class Elements {
 
     // TODO Cosmic Neutronium, other Gregicality Elements
 
-    @ZenMethod
     public static Element add(long protons, long neutrons, String name, String symbol) {
         return add(protons, neutrons, -1, null, name, symbol, false);
     }
 
-    @ZenMethod
     public static Element add(long protons, long neutrons, String name, String symbol, boolean isotope) {
         return add(protons, neutrons, -1, null, name, symbol, isotope);
     }
 
-    @ZenMethod
     public static Element add(long protons, long neutrons, double halfLifeSeconds, String decayTo, String name,
                               String symbol, boolean isIsotope) {
         validateNameAndSymbol(name, symbol);
@@ -224,7 +216,6 @@ public class Elements {
         return elementsView;
     }
 
-    @ZenMethod("getAllElements")
     public static Element[] getAllElementsCT() {
         return elementsView.toArray(new Element[0]);
     }
@@ -239,7 +230,6 @@ public class Elements {
         return elementsBySymbol.get(name); // symbol should be exact
     }
 
-    @ZenMethod
     public static Element get(String name) {
         if (name == null || name.isEmpty()) return null;
         Element e = elementsBySymbol.get(name);

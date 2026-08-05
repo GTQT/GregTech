@@ -98,11 +98,6 @@ public class Recipe {
     private final boolean hidden;
     private final GTRecipeCategory recipeCategory;
 
-    /**
-     * If this Recipe is a Crafttweaker recipe. Used for logging purposes
-     */
-    // TODO YEET
-    private final boolean isCTRecipe;
     private final boolean groovyRecipe;
     private final RecipePropertyStorage recipePropertyStorage;
 
@@ -118,7 +113,6 @@ public class Recipe {
                   int duration,
                   long EUt,
                   boolean hidden,
-                  boolean isCTRecipe,
                   @NotNull RecipePropertyStorage recipePropertyStorage,
                   @NotNull GTRecipeCategory recipeCategory) {
         this.recipePropertyStorage = recipePropertyStorage;
@@ -146,7 +140,6 @@ public class Recipe {
         this.EUt = EUt;
         this.hidden = hidden;
         this.recipeCategory = recipeCategory;
-        this.isCTRecipe = isCTRecipe;
         this.hashCode = makeHashCode();
         this.groovyRecipe = GroovyScriptModule.isCurrentlyRunning();
     }
@@ -155,7 +148,7 @@ public class Recipe {
     public Recipe copy() {
         return new Recipe(this.inputs, this.outputs, this.chancedOutputs, this.fluidInputs,
                 this.fluidOutputs, this.chancedFluidOutputs, this.mufflerDustList,this.duration,
-                this.EUt, this.hidden, this.isCTRecipe, this.recipePropertyStorage, this.recipeCategory);
+                this.EUt, this.hidden, this.recipePropertyStorage, this.recipeCategory);
     }
 
     /**
@@ -457,7 +450,6 @@ public class Recipe {
                 .append("duration", duration)
                 .append("EUt", EUt)
                 .append("hidden", hidden)
-                .append("CTRecipe", isCTRecipe)
                 .append("GSRecipe", groovyRecipe)
                 .toString();
     }
@@ -735,10 +727,6 @@ public class Recipe {
 
     public boolean isHidden() {
         return hidden;
-    }
-
-    public boolean getIsCTRecipe() {
-        return isCTRecipe;
     }
 
     public boolean isGroovyRecipe() {

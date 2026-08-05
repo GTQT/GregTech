@@ -56,7 +56,7 @@ import gregtech.api.util.SCUtility;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
-import gregtech.client.renderer.textures.SCTextures;
+import gregtech.client.renderer.texture.Textures;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockFissionCasing;
 import gregtech.common.blocks.MetaBlocks;
@@ -971,14 +971,14 @@ public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
 
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart sourcePart) {
-        return SCTextures.FISSION_REACTOR_TEXTURE;
+        return Textures.FISSION_REACTOR_TEXTURE;
     }
 
     @SideOnly(Side.CLIENT)
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
-        return SCTextures.FISSION_REACTOR_OVERLAY;
+        return Textures.FISSION_REACTOR_OVERLAY;
     }
 
     @Override

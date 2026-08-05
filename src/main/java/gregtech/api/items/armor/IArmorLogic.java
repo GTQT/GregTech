@@ -4,6 +4,7 @@ import gregtech.api.items.armor.ArmorMetaItem.ArmorMetaValueItem;
 
 import net.minecraft.client.gui.ScaledResolution;
 import net.minecraft.client.model.ModelBiped;
+import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
@@ -19,6 +20,8 @@ import com.google.common.collect.ImmutableMultimap;
 import com.google.common.collect.Multimap;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -90,5 +93,33 @@ public interface IArmorLogic {
      */
     default float getPoisonResistance() {
         return 1.0f;
+    }
+
+    /**
+     *
+     * @return the value to multiply electric shock damage by
+     */
+    default float getElectricResistance() {
+        return 1.0f;
+    }
+
+    /**
+     * Returns tooltip lines describing this armor's special resistances.
+     * Call from {@link #addToolComponents} or armor tick to display.
+     */
+    default List<String> getResistanceTooltips() {
+        List<String> lines = new ArrayList<>();
+        addResistanceLine(lines, "gregtech.armor.resistance.heat", getHeatResistance());
+        addResistanceLine(lines, "gregtech.armor.resistance.radiation", getRadiationResistance());
+        addResistanceLine(lines, "gregtech.armor.resistance.chemical", getPoisonResistance());
+        addResistanceLine(lines, "gregtech.armor.resistance.electric", getElectricResistance());
+        return lines;
+    }
+
+    static void addResistanceLine(List<String> lines, String key, float value) {
+        if (value < 1.0f) {
+            int pct = (int) ((1.0f - value) * 100);
+            lines.add(I18n.format(key, pct + "%"));
+        }
     }
 }

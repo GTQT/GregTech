@@ -19,6 +19,7 @@ import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
 import gregtech.api.nuclear.fission.FissionFuelRegistry;
 import gregtech.api.nuclear.fission.components.FuelRod;
 import gregtech.api.unification.material.properties.IFissionFuelStats;
+import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockFissionCasing;
 import gregtech.common.blocks.MetaBlocks;
@@ -166,6 +167,11 @@ public class MetaTileEntityFuelRodImportBus extends MetaTileEntityMultiblockNoti
             Textures.PIPE_IN_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
             Textures.ITEM_HATCH_INPUT_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
+    }
+
+    @Override
+    public ICubeRenderer getBaseTexture() {
+        return Textures.FISSION_REACTOR_TEXTURE;
     }
 
     @Override

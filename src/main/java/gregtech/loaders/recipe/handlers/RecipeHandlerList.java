@@ -13,5 +13,6 @@ public class RecipeHandlerList {
         ToolRecipeHandler.register();
         PolarizingRecipeHandler.register();
         RecyclingRecipeHandler.register();
+        AlloyBlastRecipeHandler.register();
     }
 }

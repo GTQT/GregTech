@@ -5,6 +5,9 @@ import gregtech.api.items.materialitem.MetaPrefixItem;
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.MetaItem.MetaValueItem;
 import gregtech.api.items.toolitem.IGTTool;
+import gregtech.api.metatileentity.ITieredMetaTileEntity;
+import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.properties.PropertyKey;
@@ -33,6 +36,7 @@ import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.NonNullList;
+import net.minecraft.util.ResourceLocation;
 
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import mezz.jei.api.ICollapsibleGroupRegistry;
@@ -85,6 +89,7 @@ public final class CollapsibleItemGroups {
         buildBeeDropGroup(registry);
         buildForestryBeeGroup(registry);
         buildElectrodeGroup(registry);
+        buildMachineTierGroups(registry);
         buildToolGroups(registry);
     }
 
@@ -328,6 +333,27 @@ public final class CollapsibleItemGroups {
                 ForestryModule.ELECTRODE_OBSIDIAN, ForestryModule.ELECTRODE_ORCHID,
                 ForestryModule.ELECTRODE_RUBBER, ForestryModule.ELECTRODE_TIN,
         });
+    }
+
+    /**
+     * One group per machine family — strips the voltage tier suffix ({@code .lv}, {@code .mv}, …)
+     * from each MTE id so that all voltage variants of the same machine fold together.
+     */
+    /** One group per tiered machine family — uses {@link ITieredMetaTileEntity#getTierlessTooltipKey()}. */
+    private static void buildMachineTierGroups(ICollapsibleGroupRegistry registry) {
+        Map<String, List<ItemStack>> buckets = new Object2ObjectOpenHashMap<>();
+        for (MTERegistry mteRegistry : GregTechAPI.mteManager.getRegistries()) {
+            for (ResourceLocation id : mteRegistry.getKeys()) {
+                MetaTileEntity mte = mteRegistry.getObject(id);
+                if (!(mte instanceof ITieredMetaTileEntity tiered)) continue;
+                String key = tiered.getTierlessTooltipKey();
+                buckets.computeIfAbsent(key, k -> new ArrayList<>()).add(mte.getStackForm());
+            }
+        }
+        for (Map.Entry<String, List<ItemStack>> entry : buckets.entrySet()) {
+            if (entry.getValue().size() < 2) continue;
+            addGroup(registry, "machine." + entry.getKey(), entry.getValue());
+        }
     }
 
     /** GT casting molds (empty, saw, hammer, wrench, etc.). */

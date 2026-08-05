@@ -1,16 +1,9 @@
 package gregtech.api.unification;
 
-import crafttweaker.annotations.ZenRegister;
-import stanhebben.zenscript.annotations.ZenClass;
-import stanhebben.zenscript.annotations.ZenGetter;
-import stanhebben.zenscript.annotations.ZenMethod;
-import stanhebben.zenscript.annotations.ZenProperty;
 
 /**
  * This is some kind of Periodic Table, which can be used to determine Properties of the Materials.
  */
-@ZenClass("mods.gregtech.material.Element")
-@ZenRegister
 public class Element {
 
     public final String name;
@@ -18,11 +11,8 @@ public class Element {
     public final long protons;
     public final long neutrons;
 
-    @ZenProperty("isotope")
     public final boolean isIsotope;
-    @ZenProperty("halfLifeSeconds")
     public final double halfLifeSeconds;
-    @ZenProperty("decayTo")
     public final String decayTo;
 
     /**
@@ -45,27 +35,22 @@ public class Element {
         this.isIsotope = isIsotope;
     }
 
-    @ZenGetter("name")
     public String getName() {
         return name;
     }
 
-    @ZenGetter("symbol")
     public String getSymbol() {
         return symbol;
     }
 
-    @ZenGetter("protons")
     public long getProtons() {
         return protons;
     }
 
-    @ZenGetter("neutrons")
     public long getNeutrons() {
         return neutrons;
     }
 
-    @ZenGetter("mass")
     public long getMass() {
         return protons + neutrons;
     }
@@ -75,7 +60,6 @@ public class Element {
     }
 
     @Override
-    @ZenMethod
     public String toString() {
         return name;
     }

@@ -4,12 +4,9 @@ import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.modules.ModuleContainerRegistryEvent;
 import gregtech.api.persistence.PersistentData;
-import gregtech.client.renderer.texture.GCYMTextures;
-import gregtech.client.renderer.textures.SCTextures;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.common.ConfigHolder;
 import gregtech.common.Difficulty;
-import gregtech.loaders.recipe.handlers.GCYMMaterialRecipeHandler;
 import gregtech.modules.GregTechModules;
 import gregtech.modules.ModuleManager;
 
@@ -43,7 +40,7 @@ import static gregtech.common.Difficulty.fromLevel;
      dependencies = "required:forge@[14.23.5.2847,);" + "required-after:codechickenlib@[3.2.3,);" +
              "required-after:modularui@[3.0.4,);" + "required-after:mixinbooter@[8.0,);" +
              "after:forestry;" + "after:extrabees;" + "after:extratrees;" + "after:genetics;" + "after:magicbees;" +
-             "after:jei@[4.15.0,);" + "after:crafttweaker@[4.1.20,);" + "after:groovyscript@[1.2.0,);" +
+             "after:jei@[4.15.0,);"  + "after:groovyscript@[1.2.0,);" +
              "after:theoneprobe;")
 public class GregTechMod {
 
@@ -78,11 +75,7 @@ public class GregTechMod {
     public void preInit(FMLPreInitializationEvent event) {
         moduleManager.onPreInit(event);
 
-        if (FMLCommonHandler.instance().getSide().isClient()) {
-            GCYMTextures.preInit();
-            SCTextures.preInit();
-        }
-        GCYMMaterialRecipeHandler.register();
+
 
     }
 

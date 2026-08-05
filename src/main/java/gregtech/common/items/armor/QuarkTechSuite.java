@@ -306,6 +306,11 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
         return 0.0f;
     }
 
+    @Override
+    public float getElectricResistance() {
+        return 0.0f;
+    }
+
     @SideOnly(Side.CLIENT)
     @Override
     public void drawHUD(ItemStack item) {
@@ -317,6 +322,7 @@ public class QuarkTechSuite extends ArmorLogicSuite implements IStepAssist {
     @Override
     public void addInfo(ItemStack itemStack, List<String> lines) {
         super.addInfo(itemStack, lines);
+        lines.addAll(getResistanceTooltips());
         if (SLOT == EntityEquipmentSlot.HEAD) {
             NBTTagCompound nbtData = GTUtility.getOrCreateNbtCompound(itemStack);
             boolean nv = nbtData.getBoolean("Nightvision");

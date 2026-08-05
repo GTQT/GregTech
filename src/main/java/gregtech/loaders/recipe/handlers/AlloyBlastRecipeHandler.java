@@ -8,12 +8,12 @@ import gregtech.api.unification.ore.OrePrefix;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public final class GCYMMaterialRecipeHandler {
+public final class AlloyBlastRecipeHandler {
 
-    private GCYMMaterialRecipeHandler() {}
+    private AlloyBlastRecipeHandler() {}
 
     public static void register() {
-        OrePrefix.ingot.addProcessingHandler(PropertyKey.ALLOY_BLAST, GCYMMaterialRecipeHandler::generateAlloyBlastRecipes);
+        OrePrefix.ingot.addProcessingHandler(PropertyKey.ALLOY_BLAST, AlloyBlastRecipeHandler::generateAlloyBlastRecipes);
     }
 
     /**

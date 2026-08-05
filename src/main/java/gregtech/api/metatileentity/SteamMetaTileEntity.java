@@ -18,6 +18,7 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleSidedCubeRenderer;
 import gregtech.client.utils.RenderUtil;
 import gregtech.common.ConfigHolder;
+import gregtech.common.gui.widgets.SteamGaugeWidget;
 
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.I18n;
@@ -48,6 +49,7 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import org.apache.commons.lang3.ArrayUtils;
@@ -158,6 +160,11 @@ public abstract class SteamMetaTileEntity extends MetaTileEntity {
         BooleanSyncValue hasNoSteam = new BooleanSyncValue(workableHandler::isHasNotEnoughEnergy);
         panelSyncManager.syncValue("has_energy", hasNoSteam);
 
+        IntSyncValue steamStored = new IntSyncValue(() -> steamFluidTank.getFluidAmount());
+        panelSyncManager.syncValue("steam_stored", steamStored);
+        IntSyncValue steamMax = new IntSyncValue(steamFluidTank::getCapacity);
+        panelSyncManager.syncValue("steam_max", steamMax);
+
         ModularPanel panel = map.getRecipeMapUI()
                 .constructPanel(this, builder -> builder
                         .setMaxSize(176, 170)
@@ -175,6 +182,9 @@ public abstract class SteamMetaTileEntity extends MetaTileEntity {
                         .size(16)
                         .right(7)
                         .top(46))
+                .child(new SteamGaugeWidget(steamStored, steamMax, isHighPressure)
+                        .left(-48)
+                        .top(0))
                 .child(SlotGroupWidget.playerInventory((index, widgetSlot) -> widgetSlot
                                 .background(GTGuiTextures.SLOT))
                         .horizontalCenter().bottom(7));

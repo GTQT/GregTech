@@ -17,14 +17,11 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 
 import com.google.common.base.Preconditions;
-import crafttweaker.annotations.ZenRegister;
 import it.unimi.dsi.fastutil.objects.Object2FloatMap;
 import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
 import org.apache.commons.lang3.Validate;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import stanhebben.zenscript.annotations.ZenClass;
-import stanhebben.zenscript.annotations.ZenMethod;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -46,8 +43,6 @@ import static gregtech.api.unification.ore.OrePrefix.Conditions.*;
 import static gregtech.api.unification.ore.OrePrefix.Flags.ENABLE_UNIFICATION;
 import static gregtech.api.unification.ore.OrePrefix.Flags.SELF_REFERENCING;
 
-@ZenClass("mods.gregtech.ore.OrePrefix")
-@ZenRegister
 public class OrePrefix {
 
     private final static Map<String, OrePrefix> PREFIXES = new HashMap<>();
@@ -790,7 +785,6 @@ public class OrePrefix {
         return (long) (M * materialAmounts.getFloat(material));
     }
 
-    @ZenMethod
     public static OrePrefix getPrefix(String prefixName) {
         return getPrefix(prefixName, null);
     }
@@ -895,12 +889,10 @@ public class OrePrefix {
         return ignoredMaterials.contains(material);
     }
 
-    @ZenMethod
     public void setIgnored(Material material) {
         ignoredMaterials.add(material);
     }
 
-    @ZenMethod
     public void removeIgnored(@NotNull Material material) {
         ignoredMaterials.remove(material);
     }
@@ -909,7 +901,6 @@ public class OrePrefix {
         return materialAmounts.containsKey(material);
     }
 
-    @ZenMethod
     public void modifyMaterialAmount(@NotNull Material material, float amount) {
         materialAmounts.put(material, amount);
     }

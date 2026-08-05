@@ -21,7 +21,7 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.tooltips.InformationHandler;
 import gregtech.client.renderer.ICubeRenderer;
-import gregtech.client.renderer.textures.SCTextures;
+import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockNuclearReactorCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.item.behaviors.NuclearComponentBehavior;
@@ -731,7 +731,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
     @SideOnly(Side.CLIENT)
     @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart iMultiblockPart) {
-        return SCTextures.NUCLEAR_REACTOR_CASING;
+        return Textures.NUCLEAR_REACTOR_CASING;
     }
 
     @SideOnly(Side.CLIENT)
@@ -745,7 +745,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
     @SideOnly(Side.CLIENT)
     @Override
     protected @NotNull ICubeRenderer getFrontOverlay() {
-        return SCTextures.NUCLEAR_REACTOR_OVERLAY;
+        return Textures.NUCLEAR_REACTOR_OVERLAY;
     }
 
     @Override

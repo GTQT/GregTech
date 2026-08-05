@@ -12,7 +12,6 @@ import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.client.renderer.textures.SCTextures;
 import gregtech.common.blocks.BlockMetalCasing;
 import gregtech.common.blocks.BlockNuclearCasing;
 import gregtech.common.blocks.MetaBlocks;
@@ -152,7 +151,7 @@ public class MetaTileEntitySpentFuelPool extends RecipeMapMultiblockController {
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
-        return SCTextures.SPENT_FUEL_POOL_OVERLAY;
+        return Textures.SPENT_FUEL_POOL_OVERLAY;
     }
 
     @Override

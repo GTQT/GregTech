@@ -1525,7 +1525,7 @@ public class MetaTileEntityLoader {
             registerMachineRecipe(MetaTileEntities.ENERGY_CONVERTER[3], " WW", "RMC", " WW", 'C', CIRCUIT, 'M', HULL,
                     'W', CABLE_HEX, 'R', new UnificationEntry(OrePrefix.cableGtHex, Materials.RedAlloy));
         }
-           }
+    }
 
     // Can only accept a subset of "Item" types:
     // - ItemStack

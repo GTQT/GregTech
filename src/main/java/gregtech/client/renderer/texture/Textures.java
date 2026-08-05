@@ -436,6 +436,9 @@ public class Textures {
             "machines/chemical_dehydrator");
     public static final OrientedOverlayRenderer LIGHTNING_PROCESSOR_OVERLAY = new OrientedOverlayRenderer(
             "machines/lightning_processor");
+    public static final OrientedOverlayRenderer RTG_OVERLAY=new OrientedOverlayRenderer(
+            "machines/rtg");
+
     // Simple Overlay Renderers
     public static final SimpleOverlayRenderer SCREEN = new SimpleOverlayRenderer("overlay/machine/overlay_screen");
     public static final SimpleOverlayRenderer DISPLAY = new SimpleOverlayRenderer("cover/overlay_display");
@@ -586,6 +589,19 @@ public class Textures {
     public static final OrientedOverlayRenderer TIERED_HATCH_OVERLAY =
             new OrientedOverlayRenderer("overlay/machine/tiered_hatch");
 
+    public static final OrientedOverlayRenderer FISSION_REACTOR_OVERLAY = new OrientedOverlayRenderer(
+            "multiblock/fission_reactor");
+    public static final OrientedOverlayRenderer SPENT_FUEL_POOL_OVERLAY = new OrientedOverlayRenderer(
+            "multiblock/spent_fuel_pool");
+    public static final OrientedOverlayRenderer GAS_CENTRIFUGE_OVERLAY = new OrientedOverlayRenderer(
+            "multiblock/gas_centrifuge");
+    public static final OrientedOverlayRenderer HEAT_EXCHANGER_OVERLAY = new OrientedOverlayRenderer(
+            "multiblock/heat_exchanger");
+    public static final OrientedOverlayRenderer NUCLEAR_REACTOR_OVERLAY = new OrientedOverlayRenderer(
+            "multiblock/nuclear_reactor");
+    public static final OrientedOverlayRenderer NUCLEAR_REACTOR_EXTEND_OVERLAY = new OrientedOverlayRenderer(
+            "multiblock/nuclear_reactor_extend");
+    
     //样板总成
     public static final SimpleOverlayRenderer ME_BUFFER_HATCH_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/me_buffer_hatch");
@@ -608,6 +624,18 @@ public class Textures {
     public static final ICubeRenderer COMPUTER_CASING = new SidedCubeRenderer("casings/computer/computer_casing");
     public static final ICubeRenderer ADVANCED_COMPUTER_CASING = new SidedCubeRenderer(
             "casings/computer/advanced_computer_casing");
+
+    public static final SimpleOverlayRenderer FISSION_REACTOR_TEXTURE = new SimpleOverlayRenderer
+            ("casings/fission/reactor_vessel");
+    public static final SimpleOverlayRenderer CONTROL_ROD = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_control_rod");
+    public static final SimpleOverlayRenderer CONTROL_ROD_MODERATED = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_control_rod_moderated");
+    public static final SimpleOverlayRenderer MODERATOR_PORT = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_moderator_port");
+    public static final SimpleOverlayRenderer NUCLEAR_REACTOR_CASING = new SimpleOverlayRenderer(
+            "casings/nuclear/nuclear_reactor_casing");
+
     public static final AlignedOrientedOverlayRenderer LD_ITEM_PIPE = new LDPipeOverlayRenderer("pipe/ld_item_pipe");
     public static final AlignedOrientedOverlayRenderer LD_FLUID_PIPE = new LDPipeOverlayRenderer("pipe/ld_fluid_pipe");
     public static final SimpleOverlayRenderer ROTOR_HOLDER_OVERLAY = new SimpleOverlayRenderer(

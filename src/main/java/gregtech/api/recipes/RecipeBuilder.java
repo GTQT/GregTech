@@ -46,7 +46,6 @@ import net.minecraftforge.fml.common.Optional;
 import com.cleanroommc.groovyscript.api.GroovyLog;
 import com.cleanroommc.groovyscript.api.IIngredient;
 import com.cleanroommc.groovyscript.helper.ingredient.OreDictIngredient;
-import crafttweaker.CraftTweakerAPI;
 import it.unimi.dsi.fastutil.ints.IntList;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -88,7 +87,6 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
     protected long EUt;
     protected boolean hidden = false;
     protected GTRecipeCategory category;
-    protected boolean isCTRecipe = false;
     protected int parallel = 0;
     protected EnumValidationResult recipeStatus = EnumValidationResult.VALID;
     protected RecipePropertyStorage recipePropertyStorage = RecipePropertyStorage.EMPTY;
@@ -1037,11 +1035,6 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         return (R) this;
     }
 
-    public R isCTRecipe() {
-        this.isCTRecipe = true;
-        return (R) this;
-    }
-
     public R setRecipeMap(RecipeMap<R> recipeMap) {
         this.recipeMap = recipeMap;
         return (R) this;
@@ -1082,7 +1075,7 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
                 new ChancedOutputList<>(this.chancedOutputLogic, chancedOutputs),
                 fluidInputs, fluidOutputs,
                 new ChancedOutputList<>(this.chancedFluidOutputLogic, chancedFluidOutputs),mufflerDustList,
-                duration, EUt, hidden, isCTRecipe, recipePropertyStorage, category));
+                duration, EUt, hidden, recipePropertyStorage, category));
     }
 
     protected EnumValidationResult validate() {
@@ -1093,31 +1086,18 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         }
         if (EUt == 0) {
             GTLog.logger.error("EU/t cannot be equal to 0", new Throwable());
-            if (isCTRecipe) {
-                CraftTweakerAPI.logError("EU/t cannot be equal to 0", new Throwable());
-            }
             recipeStatus = EnumValidationResult.INVALID;
         }
         if (duration <= 0) {
             GTLog.logger.error("Duration cannot be less or equal to 0", new Throwable());
-            if (isCTRecipe) {
-                CraftTweakerAPI.logError("Duration cannot be less or equal to 0", new Throwable());
-            }
             recipeStatus = EnumValidationResult.INVALID;
         }
         if (recipeMap != null) { // recipeMap can be null in tests
             if (category == null) {
                 GTLog.logger.error("Recipes must have a category", new Throwable());
-                if (isCTRecipe) {
-                    CraftTweakerAPI.logError("Recipes must have a category", new Throwable());
-                }
                 recipeStatus = EnumValidationResult.INVALID;
             } else if (category.getRecipeMap() != this.recipeMap) {
                 GTLog.logger.error("Cannot apply Category with incompatible RecipeMap", new Throwable());
-                if (isCTRecipe) {
-                    CraftTweakerAPI.logError("Cannot apply Category with incompatible RecipeMap",
-                            new Throwable());
-                }
                 recipeStatus = EnumValidationResult.INVALID;
             }
         }

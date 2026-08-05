@@ -1,11 +1,10 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
-import codechicken.lib.render.CCRenderState;
-import codechicken.lib.render.pipeline.IVertexOperation;
-import codechicken.lib.vec.Matrix4;
 import gregtech.api.capability.IControllable;
+import gregtech.api.capability.ICoolantHandler;
 import gregtech.api.capability.impl.FilteredItemHandler;
 import gregtech.api.capability.impl.FluidTankList;
+import gregtech.api.capability.impl.LockableFluidTank;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.gui.widgets.FluidContainerSlotWidget;
@@ -15,10 +14,14 @@ import gregtech.api.gui.widgets.TankWidget;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IFissionReactorHatch;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
+import gregtech.api.nuclear.fission.ICoolantStats;
+import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.ResourceLocation;
@@ -27,12 +30,11 @@ import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fluids.capability.CapabilityFluidHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemStackHandler;
+
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
-import gregtech.api.capability.ICoolantHandler;
-import gregtech.api.capability.impl.LockableFluidTank;
-import gregtech.api.metatileentity.multiblock.IFissionReactorHatch;
-import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
-import gregtech.api.nuclear.fission.ICoolantStats;
 
 import static gregtech.SCValues.FISSION_COOLANT_TANK_CAPACITY;
 import static gregtech.SCValues.FISSION_LOCK_UPDATE;
@@ -94,6 +96,11 @@ public class MetaTileEntityCoolantExportHatch extends MetaTileEntityMultiblockNo
             Textures.PIPE_OUT_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
             Textures.FLUID_HATCH_OUTPUT_OVERLAY.renderSided(getFrontFacing(), renderState, translation, pipeline);
         }
+    }
+
+    @Override
+    public ICubeRenderer getBaseTexture() {
+        return Textures.FISSION_REACTOR_TEXTURE;
     }
 
     @Override

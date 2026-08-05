@@ -6,6 +6,7 @@ package gregtech.common;
 
 import gregtech.api.damagesources.DamageSources;
 import gregtech.api.items.armor.ArmorMetaItem;
+import gregtech.api.util.EntityDamageUtil;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -86,6 +87,7 @@ public class DimensionHazardHandler {
 
         if (damage > 0.0f) {
             player.attackEntityFrom(hazard.damageSource.setDamageBypassesArmor(), damage);
+            EntityDamageUtil.damageArmorForHazard(player, hazard.damageSource, damage);
         }
     }
 }

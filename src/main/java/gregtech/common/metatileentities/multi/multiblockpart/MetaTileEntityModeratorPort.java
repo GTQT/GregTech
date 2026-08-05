@@ -1,17 +1,20 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
-
-import codechicken.lib.render.CCRenderState;
-import codechicken.lib.render.pipeline.IVertexOperation;
-import codechicken.lib.vec.Matrix4;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IFissionReactorHatch;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockNotifiablePart;
-import lombok.Getter;
+import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
+import gregtech.api.nuclear.fission.IModeratorStats;
+import gregtech.api.nuclear.fission.ModeratorRegistry;
+import gregtech.client.renderer.ICubeRenderer;
+import gregtech.client.renderer.texture.Textures;
+import gregtech.common.blocks.BlockFissionCasing;
+import gregtech.common.blocks.MetaBlocks;
+
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -19,15 +22,13 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
+
+import codechicken.lib.render.CCRenderState;
+import codechicken.lib.render.pipeline.IVertexOperation;
+import codechicken.lib.vec.Matrix4;
+import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import gregtech.api.metatileentity.multiblock.IFissionReactorHatch;
-import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
-import gregtech.api.nuclear.fission.IModeratorStats;
-import gregtech.api.nuclear.fission.ModeratorRegistry;
-import gregtech.client.renderer.textures.SCTextures;
-import gregtech.common.blocks.BlockFissionCasing;
-import gregtech.common.blocks.MetaBlocks;
 
 import java.util.List;
 
@@ -96,6 +97,11 @@ public class MetaTileEntityModeratorPort extends MetaTileEntityMultiblockNotifia
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
-        SCTextures.MODERATOR_PORT.renderSided(getFrontFacing(), renderState, translation, pipeline);
+        Textures.MODERATOR_PORT.renderSided(getFrontFacing(), renderState, translation, pipeline);
+    }
+
+    @Override
+    public ICubeRenderer getBaseTexture() {
+        return Textures.FISSION_REACTOR_TEXTURE;
     }
 }

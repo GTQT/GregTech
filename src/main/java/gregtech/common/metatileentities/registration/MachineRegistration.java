@@ -6,7 +6,6 @@ import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.util.GTUtility;
 import gregtech.client.particle.VanillaParticleEffects;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.client.renderer.textures.SCTextures;
 import gregtech.common.metatileentities.electric.MetaTileEntityGasCollector;
 import gregtech.common.metatileentities.electric.MetaTileEntityMiner;
 import gregtech.common.metatileentities.electric.MetaTileEntityRockBreaker;
@@ -389,7 +388,7 @@ public final class MachineRegistration {
 
         // Radioisotope Thermoelectric Generators, IDs 975-
         RTG[0] = registerMetaTileEntity(975,
-                new SimpleGeneratorMetaTileEntity(gregtechId("rtg.lv"), RecipeMaps.RTG_RECIPES, SCTextures.RTG_OVERLAY,
+                new SimpleGeneratorMetaTileEntity(gregtechId("rtg.lv"), RecipeMaps.RTG_RECIPES, Textures.RTG_OVERLAY,
                         1, GTUtility.genericGeneratorTankSizeFunction, 1) {
                     @Override
                     public double getPollutionAmount() {
@@ -397,7 +396,7 @@ public final class MachineRegistration {
                     }
                 });
         RTG[1] = registerMetaTileEntity(976,
-                new SimpleGeneratorMetaTileEntity(gregtechId("rtg.mv"), RecipeMaps.RTG_RECIPES, SCTextures.RTG_OVERLAY,
+                new SimpleGeneratorMetaTileEntity(gregtechId("rtg.mv"), RecipeMaps.RTG_RECIPES, Textures.RTG_OVERLAY,
                         2, GTUtility.genericGeneratorTankSizeFunction, 1) {
                     @Override
                     public double getPollutionAmount() {
@@ -405,7 +404,7 @@ public final class MachineRegistration {
                     }
                 });
         RTG[2] = registerMetaTileEntity(977,
-                new SimpleGeneratorMetaTileEntity(gregtechId("rtg.hv"), RecipeMaps.RTG_RECIPES, SCTextures.RTG_OVERLAY,
+                new SimpleGeneratorMetaTileEntity(gregtechId("rtg.hv"), RecipeMaps.RTG_RECIPES, Textures.RTG_OVERLAY,
                         3, GTUtility.genericGeneratorTankSizeFunction, 1) {
                     @Override
                     public double getPollutionAmount() {

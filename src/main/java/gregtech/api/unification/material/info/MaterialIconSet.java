@@ -1,19 +1,13 @@
 package gregtech.api.unification.material.info;
 
 import com.google.common.base.Preconditions;
-import crafttweaker.annotations.ZenRegister;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import stanhebben.zenscript.annotations.ZenClass;
-import stanhebben.zenscript.annotations.ZenGetter;
-import stanhebben.zenscript.annotations.ZenMethod;
 
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
-@ZenClass("mods.gregtech.material.MaterialIconSet")
-@ZenRegister
 public class MaterialIconSet {
 
     // Keep this before all the static instatiations not to reset it
@@ -92,18 +86,15 @@ public class MaterialIconSet {
         ICON_SETS.put(this.name, this);
     }
 
-    @ZenMethod("get")
     public static MaterialIconSet getByName(@NotNull String name) {
         return ICON_SETS.get(name.toLowerCase(Locale.ENGLISH));
     }
 
-    @ZenGetter("name")
     public String getName() {
         return name;
     }
 
     @Override
-    @ZenMethod
     public String toString() {
         return getName();
     }

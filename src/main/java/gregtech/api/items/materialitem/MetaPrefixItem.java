@@ -2,7 +2,6 @@ package gregtech.api.items.materialitem;
 
 import gregtech.api.GTValues;
 import gregtech.api.damagesources.DamageSources;
-import gregtech.api.items.armor.ArmorMetaItem;
 import gregtech.api.items.metaitem.StandardMetaItem;
 import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.unification.OreDictUnifier;
@@ -12,11 +11,10 @@ import gregtech.api.unification.material.info.MaterialIconSet;
 import gregtech.api.unification.material.properties.DustProperty;
 import gregtech.api.unification.material.properties.MaterialToolProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
-import gregtech.api.unification.material.properties.RadioactiveProperty;
-import gregtech.api.unification.material.properties.ToxicProperty;
 import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.UnificationEntry;
+import gregtech.api.util.EntityDamageUtil;
 import gregtech.common.ConfigHolder;
 import gregtech.common.creativetab.GTCreativeTabs;
 
@@ -33,7 +31,6 @@ import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.MobEffects;
 import net.minecraft.init.SoundEvents;
-import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.potion.PotionEffect;
@@ -186,93 +183,53 @@ public class MetaPrefixItem extends StandardMetaItem {
                     }
 
                     float heatDamage = prefix.heatDamageFunction.apply(material.getBlastTemperature());
-                    ItemStack armor = entity.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-                    if (!armor.isEmpty() && armor.getItem() instanceof ArmorMetaItem<?>) {
-                        ArmorMetaItem<?>.ArmorMetaValueItem metaValueItem = ((ArmorMetaItem<?>) armor.getItem())
-                                .getItem(armor);
-                        if (metaValueItem != null) heatDamage *= metaValueItem.getArmorLogic().getHeatResistance();
-                    }
-
                     if (heatDamage > 0.0) {
-                        entity.attackEntityFrom(DamageSources.getHeatDamage().setDamageBypassesArmor(), heatDamage);
+                        EntityDamageUtil.applyHazardDamage(entity, DamageSources.getHeatDamage(),
+                                heatDamage, EntityDamageUtil.ResistanceType.HEAT);
                     } else if (heatDamage < 0.0) {
-                        entity.attackEntityFrom(DamageSources.getFrostDamage().setDamageBypassesArmor(), -heatDamage);
+                        EntityDamageUtil.applyHazardDamage(entity, DamageSources.getFrostDamage(),
+                                -heatDamage, EntityDamageUtil.ResistanceType.FROST);
                     }
                 }
 
                 if (prefix.radiationDamageFunction != null) {
                     Material material = getMaterial(itemStack);
                     if (material == null || !material.hasProperty(PropertyKey.FISSION_FUEL)) return;
-
                     double radiationDamage = prefix.radiationDamageFunction.apply(material.getDecaysPerSecond());
-                    ItemStack armor = entity.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-                    if (!armor.isEmpty() && armor.getItem() instanceof ArmorMetaItem<?>) {
-                        ArmorMetaItem<?>.ArmorMetaValueItem metaValueItem = ((ArmorMetaItem<?>) armor.getItem())
-                                .getItem(armor);
-                        if (metaValueItem != null) {
-                            radiationDamage *= metaValueItem.getArmorLogic().getRadiationResistance();
-                        }
-                    }
-                    if (radiationDamage > 0.0) {
-                        entity.attackEntityFrom(DamageSources.getRadioactiveDamage().setDamageBypassesArmor(),
-                                (float) radiationDamage);
-                    }
+                    EntityDamageUtil.applyHazardDamage(entity, DamageSources.getRadioactiveDamage(),
+                            (float) radiationDamage, EntityDamageUtil.ResistanceType.RADIATION);
                 }
 
                 {
                     Material material = getMaterial(itemStack);
                     if (material != null && material.hasProperty(PropertyKey.RADIOACTIVE)) {
-                        RadioactiveProperty rp = material.getProperty(PropertyKey.RADIOACTIVE);
-                        float radDamage = rp.getRadioactivity();
-
-                        if (radDamage > 0.0f) {
-                            ItemStack armor = entity.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-                            if (!armor.isEmpty() && armor.getItem() instanceof ArmorMetaItem<?>) {
-                                ArmorMetaItem<?>.ArmorMetaValueItem metaValueItem = ((ArmorMetaItem<?>) armor.getItem())
-                                        .getItem(armor);
-                                if (metaValueItem != null) {
-                                    radDamage *= metaValueItem.getArmorLogic().getRadiationResistance();
-                                }
-                            }
-                            if (radDamage > 0.0f) {
-                                entity.attackEntityFrom(DamageSources.getRadioactiveDamage().setDamageBypassesArmor(),
-                                        radDamage);
-                            }
-                        }
+                        float radDamage = material.getProperty(PropertyKey.RADIOACTIVE).getRadioactivity();
+                        EntityDamageUtil.applyHazardDamage(entity, DamageSources.getRadioactiveDamage(),
+                                radDamage, EntityDamageUtil.ResistanceType.RADIATION);
                     }
                 }
 
                 {
                     Material material = getMaterial(itemStack);
                     if (material != null && material.hasProperty(PropertyKey.TOXIC)) {
-                        ToxicProperty toxicProperty = material.getProperty(PropertyKey.TOXIC);
-                        float poisonDamage = toxicProperty.getToxicity();
-
-                        // Apply OrePrefix-level multiplier if set
-                        if (prefix.poisonDamageFunction != null) {
-                            poisonDamage *= prefix.poisonDamageFunction.apply(material);
-                        }
-
+                        float poisonDamage = material.getProperty(PropertyKey.TOXIC).getToxicity();
+                        if (prefix.poisonDamageFunction != null) poisonDamage *= prefix.poisonDamageFunction.apply(material);
+                        poisonDamage *= EntityDamageUtil.getArmorResistance(entity, EntityDamageUtil.ResistanceType.POISON);
                         if (poisonDamage > 0.0f) {
-                            ItemStack armor = entity.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-                            if (!armor.isEmpty() && armor.getItem() instanceof ArmorMetaItem<?>) {
-                                ArmorMetaItem<?>.ArmorMetaValueItem metaValueItem = ((ArmorMetaItem<?>) armor.getItem())
-                                        .getItem(armor);
-                                if (metaValueItem != null) {
-                                    poisonDamage *= metaValueItem.getArmorLogic().getPoisonResistance();
-                                }
-                            }
-                            if (poisonDamage > 0.0f) {
-                                entity.attackEntityFrom(DamageSources.getChemicalDamage().setDamageBypassesArmor(),
-                                        poisonDamage);
-                                if (entity instanceof EntityLivingBase) {
-                                    ((EntityLivingBase) entity).addPotionEffect(
-                                            new PotionEffect(
-                                                    MobEffects.POISON,
-                                                    (int) (poisonDamage * 100), 1));
-                                }
-                            }
+                            entity.attackEntityFrom(DamageSources.getChemicalDamage().setDamageBypassesArmor(), poisonDamage);
+                            EntityDamageUtil.damageArmorForHazard(entity, DamageSources.getChemicalDamage(), poisonDamage);
+                            if (entity instanceof EntityLivingBase)
+                                ((EntityLivingBase) entity).addPotionEffect(new PotionEffect(MobEffects.POISON, (int)(poisonDamage * 100), 1));
                         }
+                    }
+                }
+
+                {
+                    Material material = getMaterial(itemStack);
+                    if (material != null && material.hasProperty(PropertyKey.COLD)) {
+                        float frostDamage = material.getProperty(PropertyKey.COLD).getColdDamage();
+                        EntityDamageUtil.applyHazardDamage(entity, DamageSources.getFrostDamage(),
+                                frostDamage, EntityDamageUtil.ResistanceType.FROST);
                     }
                 }
             }
@@ -355,20 +312,12 @@ public class MetaPrefixItem extends StandardMetaItem {
             if (material != null && itemEntity.ticksExisted % 40 == 0) {
                 double radiationDamage = prefix.radiationDamageFunction.apply(material.getDecaysPerSecond());
                 if (radiationDamage > 0.0) {
-                    AxisAlignedBB radBox = new AxisAlignedBB(
+                    AxisAlignedBB box = new AxisAlignedBB(
                             itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
                             itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
-                    List<EntityPlayer> players = itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, radBox);
-                    for (EntityPlayer player : players) {
-                        float finalDamage = (float) radiationDamage;
-                        ItemStack chest = player.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-                        if (!chest.isEmpty() && chest.getItem() instanceof ArmorMetaItem<?> armorItem) {
-                            ArmorMetaItem<?>.ArmorMetaValueItem meta = armorItem.getItem(chest);
-                            if (meta != null) {
-                                finalDamage *= meta.getArmorLogic().getRadiationResistance();
-                            }
-                        }
-                        player.attackEntityFrom(DamageSources.getRadioactiveDamage().setDamageBypassesArmor(), finalDamage);
+                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
+                        EntityDamageUtil.applyHazardDamage(player, DamageSources.getRadioactiveDamage(),
+                                (float) radiationDamage, EntityDamageUtil.ResistanceType.RADIATION);
                     }
                 }
             }
@@ -377,26 +326,14 @@ public class MetaPrefixItem extends StandardMetaItem {
         {
             Material material = getMaterial(itemEntity.getItem());
             if (material != null && material.hasProperty(PropertyKey.RADIOACTIVE) && itemEntity.ticksExisted % 40 == 0) {
-                RadioactiveProperty rp = material.getProperty(PropertyKey.RADIOACTIVE);
-                float radDamage = rp.getRadioactivity();
+                float radDamage = material.getProperty(PropertyKey.RADIOACTIVE).getRadioactivity();
                 if (radDamage > 0.0f) {
-                    AxisAlignedBB radBox = new AxisAlignedBB(
+                    AxisAlignedBB box = new AxisAlignedBB(
                             itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
                             itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
-                    List<EntityPlayer> players = itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, radBox);
-                    for (EntityPlayer player : players) {
-                        float finalDamage = radDamage;
-                        ItemStack chest = player.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-                        if (!chest.isEmpty() && chest.getItem() instanceof ArmorMetaItem<?> armorItem) {
-                            ArmorMetaItem<?>.ArmorMetaValueItem meta = armorItem.getItem(chest);
-                            if (meta != null) {
-                                finalDamage *= meta.getArmorLogic().getRadiationResistance();
-                            }
-                        }
-                        if (finalDamage > 0.0f) {
-                            player.attackEntityFrom(DamageSources.getRadioactiveDamage().setDamageBypassesArmor(),
-                                    finalDamage);
-                        }
+                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
+                        EntityDamageUtil.applyHazardDamage(player, DamageSources.getRadioactiveDamage(),
+                                radDamage, EntityDamageUtil.ResistanceType.RADIATION);
                     }
                 }
             }
@@ -407,20 +344,12 @@ public class MetaPrefixItem extends StandardMetaItem {
             if (material != null && itemEntity.ticksExisted % 40 == 0) {
                 float heatDamage = prefix.heatDamageFunction.apply(material.getBlastTemperature());
                 if (heatDamage > 0.0f) {
-                    AxisAlignedBB heatBox = new AxisAlignedBB(
+                    AxisAlignedBB box = new AxisAlignedBB(
                             itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
                             itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
-                    List<EntityPlayer> players = itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, heatBox);
-                    for (EntityPlayer player : players) {
-                        float finalDamage = heatDamage;
-                        ItemStack chest = player.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-                        if (!chest.isEmpty() && chest.getItem() instanceof ArmorMetaItem<?> armorItem) {
-                            ArmorMetaItem<?>.ArmorMetaValueItem meta = armorItem.getItem(chest);
-                            if (meta != null) {
-                                finalDamage *= meta.getArmorLogic().getHeatResistance();
-                            }
-                        }
-                        player.attackEntityFrom(DamageSources.getHeatDamage().setDamageBypassesArmor(), finalDamage);
+                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
+                        EntityDamageUtil.applyHazardDamage(player, DamageSources.getHeatDamage(),
+                                heatDamage, EntityDamageUtil.ResistanceType.HEAT);
                     }
                 }
             }
@@ -429,36 +358,35 @@ public class MetaPrefixItem extends StandardMetaItem {
         {
             Material material = getMaterial(itemEntity.getItem());
             if (material != null && material.hasProperty(PropertyKey.TOXIC) && itemEntity.ticksExisted % 40 == 0) {
-                ToxicProperty toxicProperty = material.getProperty(PropertyKey.TOXIC);
-                float poisonDamage = toxicProperty.getToxicity();
-
-                // Apply OrePrefix-level multiplier if set
-                if (prefix.poisonDamageFunction != null) {
-                    poisonDamage *= prefix.poisonDamageFunction.apply(material);
-                }
-
+                float poisonDamage = material.getProperty(PropertyKey.TOXIC).getToxicity();
+                if (prefix.poisonDamageFunction != null) poisonDamage *= prefix.poisonDamageFunction.apply(material);
                 if (poisonDamage > 0.0f) {
-                    AxisAlignedBB poisonBox = new AxisAlignedBB(
+                    AxisAlignedBB box = new AxisAlignedBB(
                             itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
                             itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
-                    List<EntityPlayer> players = itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, poisonBox);
-                    for (EntityPlayer player : players) {
-                        float finalDamage = poisonDamage;
-                        ItemStack chest = player.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-                        if (!chest.isEmpty() && chest.getItem() instanceof ArmorMetaItem<?> armorItem) {
-                            ArmorMetaItem<?>.ArmorMetaValueItem meta = armorItem.getItem(chest);
-                            if (meta != null) {
-                                finalDamage *= meta.getArmorLogic().getPoisonResistance();
-                            }
+                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
+                        float dmg = poisonDamage * EntityDamageUtil.getArmorResistance(player, EntityDamageUtil.ResistanceType.POISON);
+                        if (dmg > 0.0f) {
+                            player.attackEntityFrom(DamageSources.getChemicalDamage().setDamageBypassesArmor(), dmg);
+                            EntityDamageUtil.damageArmorForHazard(player, DamageSources.getChemicalDamage(), dmg);
+                            player.addPotionEffect(new PotionEffect(MobEffects.POISON, (int)(dmg * 100), 1));
                         }
-                        if (finalDamage > 0.0f) {
-                            player.attackEntityFrom(DamageSources.getChemicalDamage().setDamageBypassesArmor(),
-                                    finalDamage);
-                            player.addPotionEffect(
-                                    new PotionEffect(
-                                            MobEffects.POISON,
-                                            (int) (finalDamage * 100), 1));
-                        }
+                    }
+                }
+            }
+        }
+
+        {
+            Material material = getMaterial(itemEntity.getItem());
+            if (material != null && material.hasProperty(PropertyKey.COLD) && itemEntity.ticksExisted % 40 == 0) {
+                float frostDamage = material.getProperty(PropertyKey.COLD).getColdDamage();
+                if (frostDamage > 0.0f) {
+                    AxisAlignedBB box = new AxisAlignedBB(
+                            itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
+                            itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
+                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
+                        EntityDamageUtil.applyHazardDamage(player, DamageSources.getFrostDamage(),
+                                frostDamage, EntityDamageUtil.ResistanceType.FROST);
                     }
                 }
             }
@@ -584,6 +512,9 @@ public class MetaPrefixItem extends StandardMetaItem {
         }
         if (material.hasProperty(PropertyKey.FISSION_FUEL) || material.hasProperty(PropertyKey.RADIOACTIVE)) {
             lines.add(net.minecraft.client.resources.I18n.format("gregtech.material.tooltip.radioactive"));
+        }
+        if (material.hasProperty(PropertyKey.COLD)) {
+            lines.add(net.minecraft.client.resources.I18n.format("gregtech.material.tooltip.cold"));
         }
     }
 }

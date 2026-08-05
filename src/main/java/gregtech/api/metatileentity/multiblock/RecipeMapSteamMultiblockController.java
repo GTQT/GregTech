@@ -11,6 +11,7 @@ import gregtech.api.capability.impl.SteamMultiblockRecipeLogic;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MTETrait;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
+import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.recipes.Recipe;
@@ -19,6 +20,7 @@ import gregtech.api.util.GTQTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.common.ConfigHolder;
+import gregtech.common.gui.widgets.SteamGaugeWidget;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
@@ -33,6 +35,7 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -218,6 +221,22 @@ public abstract class RecipeMapSteamMultiblockController extends MultiblockWithD
     @Override
     public GTGuiTheme getUITheme() {
         return GTGuiTheme.BRONZE;
+    }
+
+    @Override
+    protected MultiblockUIFactory createUIFactory() {
+        return super.createUIFactory()
+                .addScreenChildren((parent, syncManager) -> {
+                    IntSyncValue steamStored = new IntSyncValue(
+                                    () -> recipeMapWorkable.getSteamFluidTankCombined().getFluidAmount());
+                    syncManager.syncValue("steam_stored_multi", steamStored);
+                    IntSyncValue steamMax = new IntSyncValue(
+                                    () -> recipeMapWorkable.getSteamFluidTankCombined().getCapacity());
+                    syncManager.syncValue("steam_max_multi", steamMax);
+                    parent.child(new SteamGaugeWidget(steamStored, steamMax, false)
+                            .left(-52)
+                            .top(0));
+                });
     }
 
     @Override

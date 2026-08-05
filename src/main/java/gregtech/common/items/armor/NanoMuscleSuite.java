@@ -150,12 +150,17 @@ public class NanoMuscleSuite extends ArmorLogicSuite implements IStepAssist {
 
     @Override
     public float getRadiationResistance() {
-        return 0.75f;
+        return 0.5f;
     }
 
     @Override
     public float getPoisonResistance() {
         return 0.5f;
+    }
+
+    @Override
+    public float getElectricResistance() {
+        return 0.0f;
     }
 
     @SideOnly(Side.CLIENT)
@@ -169,6 +174,7 @@ public class NanoMuscleSuite extends ArmorLogicSuite implements IStepAssist {
     @Override
     public void addInfo(ItemStack itemStack, List<String> lines) {
         super.addInfo(itemStack, lines);
+        addResistanceInfo(lines);
         if (SLOT == EntityEquipmentSlot.HEAD) {
             NBTTagCompound nbtData = GTUtility.getOrCreateNbtCompound(itemStack);
             boolean nv = nbtData.getBoolean("Nightvision");
@@ -181,5 +187,9 @@ public class NanoMuscleSuite extends ArmorLogicSuite implements IStepAssist {
             lines.add(I18n.format("metaarmor.tooltip.stepassist"));
             lines.add(I18n.format("metaarmor.tooltip.falldamage"));
         }
+    }
+
+    private void addResistanceInfo(List<String> lines) {
+        lines.addAll(getResistanceTooltips());
     }
 }

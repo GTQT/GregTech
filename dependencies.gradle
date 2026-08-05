@@ -46,7 +46,6 @@ dependencies {
 
     api("com.cleanroommc:modularui:3.1.5") { transitive = false }
     api("com.cleanroommc:groovyscript:1.2.0-hotfix1") { transitive = false }
-    api("CraftTweaker2:CraftTweaker2-MC1120-Main:1.12-4.1.20.700")
     api rfg.deobf("curse.maven:ctm-267602:2915363") // CTM 1.0.2.31
     // Non-published dependencies
     // Change any to devOnlyNonPublishable to test them in-game.

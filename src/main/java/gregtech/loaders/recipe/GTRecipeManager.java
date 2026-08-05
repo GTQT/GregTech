@@ -25,7 +25,6 @@ public final class GTRecipeManager {
         CraftingRecipeLoader.init();
         MetaTileEntityLoader.init();
         MetaTileEntityMachineRecipeLoader.init();
-        GCYMRecipeLoader.init();
         GodforgeRecipeLoader.init();
         RecipeHandlerList.register();
         ForgeRegistries.RECIPES.register(new DyeableRecipes());
@@ -35,6 +34,8 @@ public final class GTRecipeManager {
         DecayChamberRecipeLoader.load();
         FluidRecipeHandler.processCooling();
         NuclearReactorRecipeHandler.init();
+        MultiblockLoader.init();
+        ManualABSRecipes.register();
     }
 
     public static void loadLatest() {

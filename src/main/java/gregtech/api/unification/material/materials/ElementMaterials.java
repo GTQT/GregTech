@@ -7,6 +7,7 @@ import gregtech.api.unification.Elements;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.properties.BlastProperty;
 import gregtech.api.unification.material.properties.BlastProperty.GasTier;
+import gregtech.api.unification.material.properties.ColdProperty;
 import gregtech.api.unification.material.properties.MaterialToolProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.material.properties.RadioactiveProperty;
@@ -76,6 +77,7 @@ public class ElementMaterials {
                 .element(Elements.Ar)
                 .build();
         Argon.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
+        Argon.setProperty(PropertyKey.COLD, new ColdProperty(2.0f));
 
         Arsenic = Material.builder(6, gregtechId("arsenic"))
                 .ingot()
@@ -197,6 +199,7 @@ public class ElementMaterials {
                 .color(0x2D8C8C)
                 .element(Elements.Cl)
                 .build();
+        Chlorine.setProperty(PropertyKey.COLD, new ColdProperty(1.5f));
 
         Chrome = Material.builder(22, gregtechId("chrome"))
                 .ingot(3)
@@ -321,6 +324,7 @@ public class ElementMaterials {
                 .color(0x6EA7DC)
                 .element(Elements.F)
                 .build();
+        Fluorine.setProperty(PropertyKey.COLD, new ColdProperty(1.5f));
 
         Francium = Material.builder(37, gregtechId("francium"))
                 .ingot()
@@ -399,6 +403,7 @@ public class ElementMaterials {
                 .element(Elements.H)
                 .build();
         Hydrogen.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
+        Hydrogen.setProperty(PropertyKey.COLD, new ColdProperty(2.5f));
 
         Helium = Material.builder(46, gregtechId("helium"))
                 .gas()
@@ -412,6 +417,7 @@ public class ElementMaterials {
                 .element(Elements.He)
                 .build();
         Helium.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
+        Helium.setProperty(PropertyKey.COLD, new ColdProperty(3.0f));
 
         Helium3 = Material.builder(47, gregtechId("helium_3"))
                 .gas(new FluidBuilder()
@@ -477,6 +483,7 @@ public class ElementMaterials {
                 .element(Elements.Kr)
                 .build();
         Krypton.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
+        Krypton.setProperty(PropertyKey.COLD, new ColdProperty(1.8f));
 
         Lanthanum = Material.builder(53, gregtechId("lanthanum"))
                 .dust()
@@ -596,6 +603,7 @@ public class ElementMaterials {
                 .element(Elements.Ne)
                 .build();
         Neon.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
+        Neon.setProperty(PropertyKey.COLD, new ColdProperty(2.5f));
 
         Neptunium = Material.builder(68, gregtechId("neptunium"))
                 .ingot()
@@ -647,6 +655,7 @@ public class ElementMaterials {
                 .element(Elements.N)
                 .build();
         Nitrogen.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
+        Nitrogen.setProperty(PropertyKey.COLD, new ColdProperty(2.0f));
 
         Nobelium = Material.builder(73, gregtechId("nobelium"))
                 .ingot()
@@ -688,6 +697,7 @@ public class ElementMaterials {
                 .element(Elements.O)
                 .build();
         Oxygen.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
+        Oxygen.setProperty(PropertyKey.COLD, new ColdProperty(2.0f));
 
         Palladium = Material.builder(77, gregtechId("palladium"))
                 .ingot().fluid()
@@ -784,6 +794,7 @@ public class ElementMaterials {
                 .build();
         Radon.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
         Radon.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
+        Radon.setProperty(PropertyKey.COLD, new ColdProperty(1.5f));
 
         Radium = Material.builder(88, gregtechId("radium"))
                 .ingot()
@@ -1061,6 +1072,7 @@ public class ElementMaterials {
                 .element(Elements.Xe)
                 .build();
         Xenon.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
+        Xenon.setProperty(PropertyKey.COLD, new ColdProperty(1.5f));
 
         Ytterbium = Material.builder(120, gregtechId("ytterbium"))
                 .ingot()

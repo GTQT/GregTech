@@ -30,9 +30,6 @@ import gregtech.api.util.LocalizationUtils;
 import gregtech.api.util.Mods;
 import gregtech.api.util.ValidationResult;
 import gregtech.common.ConfigHolder;
-import gregtech.integration.crafttweaker.CTRecipeHelper;
-import gregtech.integration.crafttweaker.recipe.CTRecipe;
-import gregtech.integration.crafttweaker.recipe.CTRecipeBuilder;
 import gregtech.integration.groovy.GroovyScriptModule;
 import gregtech.integration.groovy.VirtualizedRecipeMap;
 import gregtech.modules.GregTechModules;
@@ -48,11 +45,6 @@ import net.minecraftforge.oredict.OreDictionary;
 
 import com.cleanroommc.groovyscript.api.GroovyLog;
 import com.google.common.collect.ImmutableList;
-import crafttweaker.CraftTweakerAPI;
-import crafttweaker.annotations.ZenRegister;
-import crafttweaker.api.item.IItemStack;
-import crafttweaker.api.liquid.ILiquidStack;
-import crafttweaker.api.minecraft.CraftTweakerMC;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ReferenceOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
@@ -61,15 +53,9 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.UnmodifiableView;
-import stanhebben.zenscript.annotations.Optional;
-import stanhebben.zenscript.annotations.ZenClass;
-import stanhebben.zenscript.annotations.ZenGetter;
-import stanhebben.zenscript.annotations.ZenMethod;
-import stanhebben.zenscript.annotations.ZenSetter;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -82,8 +68,6 @@ import java.util.function.DoubleSupplier;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-@ZenClass("mods.gregtech.recipe.RecipeMap")
-@ZenRegister
 public class RecipeMap<R extends RecipeBuilder<R>> {
 
     private static final Map<String, RecipeMap<?>> RECIPE_MAP_REGISTRY = new Object2ReferenceOpenHashMap<>();
@@ -173,17 +157,14 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         this.extraInputs = extraInputs;
     }
 
-    @ZenMethod
     public static List<RecipeMap<? extends RecipeBuilder<?>>> getRecipeMaps() {
         return ImmutableList.copyOf(RECIPE_MAP_REGISTRY.values());
     }
 
-    @ZenMethod
     public static RecipeMap<? extends RecipeBuilder<?>> getByName(String unlocalizedName) {
         return RECIPE_MAP_REGISTRY.get(unlocalizedName);
     }
 
-    @ZenMethod
     public ChanceBoostFunction getChanceFunction() {
         return chanceFunction;
     }
@@ -424,9 +405,6 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         boolean emptyInputs = recipe.getInputs().isEmpty() && recipe.getFluidInputs().isEmpty();
         if (emptyInputs) {
             GTLog.logger.error("Invalid amount of recipe inputs. Recipe inputs are empty.", new Throwable());
-            if (recipe.getIsCTRecipe()) {
-                CraftTweakerAPI.logError("Invalid amount of recipe inputs. Recipe inputs are empty.", new Throwable());
-            }
             recipeStatus = EnumValidationResult.INVALID;
         }
         boolean emptyOutputs = !this.allowEmptyOutput && recipe.getEUt() > 0 && recipe.getOutputs().isEmpty() &&
@@ -434,10 +412,6 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
                 recipe.getChancedFluidOutputs().getChancedEntries().isEmpty();
         if (emptyOutputs) {
             GTLog.logger.error("Invalid amount of recipe outputs. Recipe outputs are empty.", new Throwable());
-            if (recipe.getIsCTRecipe()) {
-                CraftTweakerAPI.logError("Invalid amount of outputs inputs. Recipe outputs are empty.",
-                        new Throwable());
-            }
             recipeStatus = EnumValidationResult.INVALID;
         }
 
@@ -445,11 +419,6 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         if (amount > getMaxInputs()) {
             GTLog.logger.error("Invalid amount of recipe inputs. Actual: {}. Should be at most {}.", amount,
                     getMaxInputs(), new Throwable());
-            if (recipe.getIsCTRecipe()) {
-                CraftTweakerAPI.logError(String.format(
-                                "Invalid amount of recipe inputs. Actual: %s. Should be at most %s.", amount, getMaxInputs()),
-                        new Throwable());
-            }
             recipeStatus = EnumValidationResult.INVALID;
         }
 
@@ -457,11 +426,6 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         if (amount > getMaxOutputs()) {
             GTLog.logger.error("Invalid amount of recipe outputs. Actual: {}. Should be at most {}.", amount,
                     getMaxOutputs(), new Throwable());
-            if (recipe.getIsCTRecipe()) {
-                CraftTweakerAPI
-                        .logError(String.format("Invalid amount of recipe outputs. Actual: %s. Should be at most %s.",
-                                amount, getMaxOutputs()), new Throwable());
-            }
             recipeStatus = EnumValidationResult.INVALID;
         }
 
@@ -469,12 +433,6 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         if (amount > getMaxFluidInputs()) {
             GTLog.logger.error("Invalid amount of recipe fluid inputs. Actual: {}. Should be at most {}.", amount,
                     getMaxFluidInputs(), new Throwable());
-            if (recipe.getIsCTRecipe()) {
-                CraftTweakerAPI.logError(
-                        String.format("Invalid amount of recipe fluid inputs. Actual: %s. Should be at most %s.",
-                                amount, getMaxFluidInputs()),
-                        new Throwable());
-            }
             recipeStatus = EnumValidationResult.INVALID;
         }
 
@@ -482,12 +440,6 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         if (amount > getMaxFluidOutputs()) {
             GTLog.logger.error("Invalid amount of recipe fluid outputs. Actual: {}. Should be at most {}.", amount,
                     getMaxFluidOutputs(), new Throwable());
-            if (recipe.getIsCTRecipe()) {
-                CraftTweakerAPI.logError(
-                        String.format("Invalid amount of recipe fluid outputs. Actual: %s. Should be at most %s.",
-                                amount, getMaxFluidOutputs()),
-                        new Throwable());
-            }
             recipeStatus = EnumValidationResult.INVALID;
         }
         return ValidationResult.newResult(recipeStatus, recipe);
@@ -994,21 +946,6 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
                         // handle the existing branch
                         if (!v.left().isPresent() || v.left().get() != recipe) {
                             // the recipe already there was not the one being added, so there is a conflict
-                            if (recipe.getIsCTRecipe()) {
-                                CraftTweakerAPI.logError(String.format(
-                                        "Recipe duplicate or conflict found in RecipeMap %s and was not added. See next lines for details.",
-                                        this.unlocalizedName));
-
-                                CraftTweakerAPI.logError(String.format("Attempted to add Recipe: %s",
-                                        CTRecipeHelper.getRecipeAddLine(this, recipe)));
-
-                                if (v.left().isPresent()) {
-                                    CraftTweakerAPI.logError(String.format("Which conflicts with: %s",
-                                            CTRecipeHelper.getRecipeAddLine(this, v.left().get())));
-                                } else {
-                                    CraftTweakerAPI.logError("Could not identify exact duplicate/conflict.");
-                                }
-                            }
                             if (recipe.isGroovyRecipe()) {
                                 GroovyLog log = GroovyLog.get();
                                 log.warn(
@@ -1294,36 +1231,14 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         return sound;
     }
 
-    @ZenMethod("findRecipe")
-    @Method(modid = Mods.Names.CRAFT_TWEAKER)
-    @Nullable
-    public CTRecipe ctFindRecipe(long maxVoltage, IItemStack[] itemInputs, ILiquidStack[] fluidInputs,
-                                 @Optional(valueLong = Integer.MAX_VALUE) int outputFluidTankCapacity) {
-        List<ItemStack> mcItemInputs = itemInputs == null ? Collections.emptyList() :
-                Arrays.stream(itemInputs).map(CraftTweakerMC::getItemStack).collect(Collectors.toList());
-        List<FluidStack> mcFluidInputs = fluidInputs == null ? Collections.emptyList() :
-                Arrays.stream(fluidInputs).map(CraftTweakerMC::getLiquidStack).collect(Collectors.toList());
-        Recipe backingRecipe = findRecipe(maxVoltage, mcItemInputs, mcFluidInputs, true);
-        return backingRecipe == null ? null : new CTRecipe(this, backingRecipe);
-    }
-
-    @ZenGetter("recipes")
-    @Method(modid = Mods.Names.CRAFT_TWEAKER)
-    public List<CTRecipe> ctGetRecipeList() {
-        return getRecipeList().stream().map(recipe -> new CTRecipe(this, recipe)).collect(Collectors.toList());
-    }
-
-    @ZenGetter("localizedName")
     public String getLocalizedName() {
         return LocalizationUtils.format(getTranslationKey());
     }
 
-    @ZenGetter("translationKey")
     public String getTranslationKey() {
         return "recipemap." + unlocalizedName + ".name";
     }
 
-    @ZenGetter("unlocalizedName")
     public String getUnlocalizedName() {
         return unlocalizedName;
     }
@@ -1361,11 +1276,6 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
                     if (r == recipeToRemove) {
                         found = r;
                     } else {
-                        // wasn't the correct recipe
-                        if (recipeToRemove.getIsCTRecipe()) {
-                            CraftTweakerAPI.logError(String.format("Failed to remove Recipe from RecipeMap %s: %s",
-                                    this.unlocalizedName, CTRecipeHelper.getRecipeRemoveLine(this, recipeToRemove)));
-                        }
                         if (ConfigHolder.misc.debug || GTValues.isDeobfEnvironment()) {
                             GTLog.logger.warn("Failed to remove recipe from RecipeMap {}. See next lines for details",
                                     this.unlocalizedName);
@@ -1396,18 +1306,10 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         return null;
     }
 
-    @ZenMethod("recipeBuilder")
-    @Method(modid = Mods.Names.CRAFT_TWEAKER)
-    public CTRecipeBuilder ctRecipeBuilder() {
-        return new CTRecipeBuilder(recipeBuilder());
-    }
-
-    @ZenGetter("maxInputs")
     public int getMaxInputs() {
         return maxInputs;
     }
 
-    @ZenSetter("maxInputs")
     public void setMaxInputs(int maxInputs) {
         this.maxInputs = Math.max(this.maxInputs, maxInputs);
         if (!recipeMapUI.canModifyItemInputs()) {
@@ -1417,12 +1319,10 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         }
     }
 
-    @ZenGetter("extraInputs")
     public int getExtraInput() {
         return extraInputs;
     }
 
-    @ZenSetter("extraInputs")
     public void setExtraInputs(int extraInputs) {
         this.extraInputs = Math.max(this.extraInputs, extraInputs);
         if (!recipeMapUI.canModifyItemInputs()) {
@@ -1432,12 +1332,10 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         }
     }
 
-    @ZenGetter("maxOutputs")
     public int getMaxOutputs() {
         return maxOutputs;
     }
 
-    @ZenSetter("maxOutputs")
     public void setMaxOutputs(int maxOutputs) {
         this.maxOutputs = Math.max(this.maxOutputs, maxOutputs);
         if (!recipeMapUI.canModifyItemOutputs()) {
@@ -1447,12 +1345,10 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         }
     }
 
-    @ZenGetter("maxFluidInputs")
     public int getMaxFluidInputs() {
         return maxFluidInputs;
     }
 
-    @ZenSetter("maxFluidInputs")
     public void setMaxFluidInputs(int maxFluidInputs) {
         this.maxFluidInputs = Math.max(this.maxFluidInputs, maxFluidInputs);
         if (!recipeMapUI.canModifyFluidInputs()) {
@@ -1462,12 +1358,10 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         }
     }
 
-    @ZenGetter("maxFluidOutputs")
     public int getMaxFluidOutputs() {
         return maxFluidOutputs;
     }
 
-    @ZenSetter("maxFluidOutputs")
     public void setMaxFluidOutputs(int maxFluidOutputs) {
         this.maxFluidOutputs = Math.max(this.maxFluidOutputs, maxFluidOutputs);
         if (!recipeMapUI.canModifyFluidOutputs()) {
@@ -1507,7 +1401,6 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
     }
 
     @Override
-    @ZenMethod
     public String toString() {
         return "RecipeMap{" + unlocalizedName + '}';
     }

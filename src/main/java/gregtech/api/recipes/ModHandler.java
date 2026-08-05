@@ -17,7 +17,6 @@ import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.DummyContainer;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.LocalizationUtils;
-import gregtech.api.util.Mods;
 import gregtech.api.util.world.DummyWorld;
 import gregtech.common.ConfigHolder;
 import gregtech.common.crafting.FluidReplaceRecipe;
@@ -41,8 +40,6 @@ import net.minecraftforge.fml.common.registry.ForgeRegistries;
 import net.minecraftforge.oredict.ShapelessOreRecipe;
 import net.minecraftforge.registries.IForgeRegistry;
 
-import crafttweaker.mc1120.actions.ActionAddFurnaceRecipe;
-import crafttweaker.mc1120.furnace.MCFurnaceManager;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -672,18 +669,12 @@ public final class ModHandler {
      * disable the config and remove the recipes manually
      */
     public static void removeSmeltingEBFMetals() {
-        Field actionAddFurnaceRecipe$output = null;
-
         Map<ItemStack, ItemStack> furnaceList = FurnaceRecipes.instance().getSmeltingList();
-
         Iterator<Map.Entry<ItemStack, ItemStack>> recipeIterator = furnaceList.entrySet().iterator();
 
-        outer:
         while (recipeIterator.hasNext()) {
             Map.Entry<ItemStack, ItemStack> recipe = recipeIterator.next();
-
             ItemStack output = recipe.getValue();
-            ItemStack input = recipe.getKey();
             MaterialStack ms = OreDictUnifier.getMaterial(output);
 
             if (ms != null) {
@@ -691,36 +682,7 @@ public final class ModHandler {
                 if (material.hasProperty(PropertyKey.BLAST)) {
                     ItemStack dust = OreDictUnifier.get(OrePrefix.dust, material);
                     ItemStack ingot = OreDictUnifier.get(OrePrefix.ingot, material);
-                    // Check if the inputs are actually dust -> ingot
-                    if (ingot.isItemEqual(output) && dust.isItemEqual(input)) {
-                        if (Mods.CraftTweaker.isModLoaded()) {
-                            if (actionAddFurnaceRecipe$output == null) {
-                                try {
-                                    actionAddFurnaceRecipe$output = ActionAddFurnaceRecipe.class
-                                            .getDeclaredField("output");
-                                    actionAddFurnaceRecipe$output.setAccessible(true);
-                                } catch (NoSuchFieldException e) {
-                                    GTLog.logger.error("Could not reflect Furnace output field", e);
-                                    return;
-                                }
-                            }
-                            for (ActionAddFurnaceRecipe aafr : MCFurnaceManager.recipesToAdd) {
-                                try {
-                                    // Check for equality, if the stack added into FurnaceManager..
-                                    // ..was a cached stack in an existing ActionAddFurnaceRecipe as well
-                                    if (actionAddFurnaceRecipe$output.get(aafr) == output) {
-                                        if (ConfigHolder.misc.debug) {
-                                            GTLog.logger.info(
-                                                    "Not removing Smelting Recipe for EBF material {} as it is added via CT",
-                                                    LocalizationUtils.format(material.getUnlocalizedName()));
-                                        }
-                                        continue outer;
-                                    }
-                                } catch (IllegalAccessException e) {
-                                    GTLog.logger.error("Could not get Furnace recipe output from field", e);
-                                }
-                            }
-                        }
+                    if (ingot.isItemEqual(output) && dust.isItemEqual(recipe.getKey())) {
                         recipeIterator.remove();
                         if (ConfigHolder.misc.debug) {
                             GTLog.logger.info("Removing Smelting Recipe for EBF material {}",

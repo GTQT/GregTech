@@ -11,6 +11,7 @@ import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.material.properties.WireProperties;
 import gregtech.api.unification.material.registry.MaterialRegistry;
+import gregtech.api.util.EntityDamageUtil;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.PipeRenderer;
@@ -142,7 +143,8 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
                 double amperage = cable.getAverageAmperage();
                 if (voltage > 0L && amperage > 0L) {
                     float damageAmount = (float) ((GTUtility.getTierByVoltage(voltage) + 1) * amperage * 4);
-                    entityLiving.attackEntityFrom(DamageSources.getElectricDamage(), damageAmount);
+                    EntityDamageUtil.applyHazardDamage(entityLiving, DamageSources.getElectricDamage(),
+                            damageAmount, EntityDamageUtil.ResistanceType.ELECTRIC);
                     if (entityLiving instanceof EntityPlayerMP) {
                         AdvancementTriggers.ELECTROCUTION_DEATH.trigger((EntityPlayerMP) entityLiving);
                     }

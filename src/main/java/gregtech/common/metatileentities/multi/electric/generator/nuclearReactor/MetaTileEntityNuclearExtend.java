@@ -10,7 +10,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
 import gregtech.api.mui.GTGuis;
 import gregtech.client.renderer.ICubeRenderer;
-import gregtech.client.renderer.textures.SCTextures;
+import gregtech.client.renderer.texture.Textures;
 import gregtech.common.item.behaviors.NuclearUpdateBehavior;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
@@ -111,7 +111,7 @@ public class MetaTileEntityNuclearExtend extends MetaTileEntityMultiblockPart
     }
 
     protected @NotNull ICubeRenderer getFrontOverlay() {
-        return SCTextures.NUCLEAR_REACTOR_EXTEND_OVERLAY;
+        return Textures.NUCLEAR_REACTOR_EXTEND_OVERLAY;
     }
 
     @Override

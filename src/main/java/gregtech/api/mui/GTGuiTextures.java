@@ -74,6 +74,10 @@ public class GTGuiTextures {
             "textures/gui/base/indicator_no_steam_steel.png");
     public static final UITexture TANK_ICON = fullImage("textures/gui/base/tank_icon.png");
 
+    // STEAM GAUGE
+    public static final UITexture STEAM_GAUGE_BG_BRONZE = fullImage("textures/gui/background/steam_dial_bronze.png");
+    public static final UITexture STEAM_GAUGE_BG_STEEL = fullImage("textures/gui/background/steam_dial_steel.png");
+
     // BACKGROUNDS
     public static final UITexture BACKGROUND = UITexture.builder()
             .location(GTValues.MODID, "textures/gui/base/background.png")

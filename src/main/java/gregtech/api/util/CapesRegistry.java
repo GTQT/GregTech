@@ -22,10 +22,7 @@ import net.minecraftforge.fml.common.Optional;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import crafttweaker.annotations.ZenRegister;
 import org.jetbrains.annotations.ApiStatus;
-import stanhebben.zenscript.annotations.ZenClass;
-import stanhebben.zenscript.annotations.ZenMethod;
 
 import java.io.File;
 import java.io.IOException;
@@ -39,8 +36,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-@ZenClass("mods.gregtech.util.CapesRegistry")
-@ZenRegister
 public class CapesRegistry {
 
     private static final Map<UUID, List<ResourceLocation>> UNLOCKED_CAPES = new HashMap<>();
@@ -223,13 +218,11 @@ public class CapesRegistry {
     private static final List<ResourceLocation> ctFreeCapes = new ArrayList<>();
 
     @Optional.Method(modid = Mods.Names.CRAFT_TWEAKER)
-    @ZenMethod
     public static void registerCape(String advancement, String cape) {
         ctRegisterCapes.add(new Tuple<>(new ResourceLocation(advancement), new ResourceLocation(cape)));
     }
 
     @Optional.Method(modid = Mods.Names.CRAFT_TWEAKER)
-    @ZenMethod
     public static void registerFreeCape(String cape) {
         ctFreeCapes.add(new ResourceLocation(cape));
     }

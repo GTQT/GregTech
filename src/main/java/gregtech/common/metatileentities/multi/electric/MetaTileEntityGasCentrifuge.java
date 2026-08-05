@@ -14,7 +14,6 @@ import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.client.renderer.textures.SCTextures;
 import gregtech.common.blocks.BlockBoilerCasing;
 import gregtech.common.blocks.BlockGasCentrifugeCasing;
 import gregtech.common.blocks.BlockNuclearCasing;
@@ -119,7 +118,7 @@ public class MetaTileEntityGasCentrifuge extends RecipeMapMultiblockController {
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
-        return SCTextures.GAS_CENTRIFUGE_OVERLAY;
+        return Textures.GAS_CENTRIFUGE_OVERLAY;
     }
 
     @Override

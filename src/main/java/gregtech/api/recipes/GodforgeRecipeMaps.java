@@ -1,18 +1,10 @@
 package gregtech.api.recipes;
 
-import gregtech.api.gui.GuiTextures;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.recipes.builders.SimpleRecipeBuilder;
 
-import crafttweaker.annotations.ZenRegister;
-import stanhebben.zenscript.annotations.ZenClass;
-import stanhebben.zenscript.annotations.ZenProperty;
-
-@ZenClass("mods.gregtech.recipe.GodforgeRecipeMaps")
-@ZenRegister
 public final class GodforgeRecipeMaps {
 
-    @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> GODFORGE_SMELTING_RECIPES = new RecipeMapBuilder<>(
             "godforge_smelting",
             new SimpleRecipeBuilder())
@@ -24,7 +16,6 @@ public final class GodforgeRecipeMaps {
                     .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW))
             .build();
 
-    @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> GODFORGE_PLASMA_RECIPES = new RecipeMapBuilder<>(
             "godforge_plasma",
             new SimpleRecipeBuilder())
@@ -36,7 +27,6 @@ public final class GodforgeRecipeMaps {
                     .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW))
             .build();
 
-    @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> GODFORGE_EXOTIC_MATTER_RECIPES = new RecipeMapBuilder<>(
             "godforge_exotic",
             new SimpleRecipeBuilder())
@@ -48,7 +38,6 @@ public final class GodforgeRecipeMaps {
                     .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW))
             .build();
 
-    @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> GODFORGE_MOLTEN_RECIPES = new RecipeMapBuilder<>(
             "godforge_molten",
             new SimpleRecipeBuilder())
@@ -60,7 +49,6 @@ public final class GodforgeRecipeMaps {
                     .progressBar(GTGuiTextures.PROGRESS_BAR_ARROW))
             .build();
 
-    @ZenProperty
     public static final RecipeMap<SimpleRecipeBuilder> GODFORGE_UPGRADE_COST_RECIPES = new RecipeMapBuilder<>(
             "godforge_upgrade_costs",
             new SimpleRecipeBuilder())

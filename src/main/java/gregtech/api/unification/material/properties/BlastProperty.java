@@ -2,7 +2,6 @@ package gregtech.api.unification.material.properties;
 
 import gregtech.integration.groovy.GroovyScriptModule;
 
-import crafttweaker.CraftTweakerAPI;
 import org.jetbrains.annotations.NotNull;
 
 public class BlastProperty implements IMaterialProperty {
@@ -149,7 +148,6 @@ public class BlastProperty implements IMaterialProperty {
         else if ("HIGHEST".equalsIgnoreCase(gasTierName)) return GasTier.HIGHEST;
         else {
             String message = "Gas Tier must be either \"LOW\", \"MID\", \"HIGH\", \"HIGHER\", or \"HIGHEST\"";
-            CraftTweakerAPI.logError(message);
             throw new IllegalArgumentException(
                     "Could not find valid gas tier for name: " + gasTierName + ". " + message);
         }

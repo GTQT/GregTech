@@ -11,7 +11,6 @@ import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.client.renderer.textures.SCTextures;
 import gregtech.common.blocks.BlockBoilerCasing.BoilerCasingType;
 import gregtech.common.blocks.BlockMetalCasing.MetalCasingType;
 import gregtech.common.blocks.MetaBlocks;
@@ -71,6 +70,6 @@ public class MetaTileEntityHeatExchanger extends NoEnergyMultiblockController {
     @NotNull
     @Override
     protected ICubeRenderer getFrontOverlay() {
-        return SCTextures.HEAT_EXCHANGER_OVERLAY;
+        return Textures.HEAT_EXCHANGER_OVERLAY;
     }
 }

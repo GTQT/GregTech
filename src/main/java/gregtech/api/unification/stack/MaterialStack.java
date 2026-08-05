@@ -3,19 +3,11 @@ package gregtech.api.unification.stack;
 import gregtech.api.unification.material.Material;
 import gregtech.api.util.SmallDigits;
 
-import crafttweaker.annotations.ZenRegister;
 import org.jetbrains.annotations.NotNull;
-import stanhebben.zenscript.annotations.ZenClass;
-import stanhebben.zenscript.annotations.ZenMethod;
-import stanhebben.zenscript.annotations.ZenProperty;
 
-@ZenClass("mods.gregtech.material.MaterialStack")
-@ZenRegister
 public class MaterialStack {
 
-    @ZenProperty
     public final Material material;
-    @ZenProperty
     public final long amount;
 
     public MaterialStack(Material material, long amount) {
@@ -23,18 +15,15 @@ public class MaterialStack {
         this.amount = amount;
     }
 
-    @ZenMethod
     public MaterialStack copy(long amount) {
         return new MaterialStack(material, amount);
     }
 
-    @ZenMethod
     public MaterialStack copy() {
         return new MaterialStack(material, amount);
     }
 
     @Override
-    @ZenMethod
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
@@ -50,7 +39,6 @@ public class MaterialStack {
         return material.hashCode();
     }
 
-    @ZenMethod("toString")
     @NotNull
     public String toFormatted() {
         final String chemicalFormula = material.getChemicalFormula();
