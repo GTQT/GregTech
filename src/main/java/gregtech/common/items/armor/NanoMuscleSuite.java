@@ -153,6 +153,11 @@ public class NanoMuscleSuite extends ArmorLogicSuite implements IStepAssist {
         return 0.75f;
     }
 
+    @Override
+    public float getPoisonResistance() {
+        return 0.5f;
+    }
+
     @SideOnly(Side.CLIENT)
     @Override
     public void drawHUD(ItemStack item) {

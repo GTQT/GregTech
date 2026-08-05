@@ -534,6 +534,10 @@ public class OrePrefix {
         prefix.heatDamageFunction = function;
     }
 
+    public static void setPoisonDamageFunction(OrePrefix prefix, Function<Material, Float> function) {
+        prefix.poisonDamageFunction = function;
+    }
+
     public static void init() {
         ingotHot.heatDamageFunction = (temp) -> ((temp - 1750) / 1000.0F) + 2;
         gemFlawless.maxStackSize = 32;
@@ -737,6 +741,7 @@ public class OrePrefix {
     public final List<MaterialStack> secondaryMaterials = new ArrayList<>();
     public Function<Integer, Float> heatDamageFunction = null; // Negative for Frost Damage
     public Function<Double, Double> radiationDamageFunction = null;
+    public Function<Material, Float> poisonDamageFunction = null;
     public Function<Material, List<String>> tooltipFunc;
 
     private String alternativeOreName = null;

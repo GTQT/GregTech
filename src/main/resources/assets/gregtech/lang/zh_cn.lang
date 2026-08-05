@@ -1450,6 +1450,21 @@ metaitem.hazmat.leggings.name=防化服护腿
 metaitem.hazmat.boots.name=防化服靴子
 metaitem.hazmat.helmet.name=防化服头盔
 
+metaitem.simple_gas_mask.name=简易防毒面具
+metaitem.gas_mask.name=防毒面具
+metaitem.gas_tank.name=氧气罐
+metaitem.rebreather_tank.name=循环呼吸罐
+metaitem.filtered_tank.name=过滤呼吸罐
+metaitem.asbestos.mask.name=石棉面具
+metaitem.asbestos.chestplate.name=石棉胸甲
+metaitem.asbestos.leggings.name=石棉护腿
+metaitem.asbestos.boots.name=石棉靴子
+
+metaitem.nomex.mask.name=诺梅克斯面具
+metaitem.nomex.chestplate.name=诺梅克斯胸甲
+metaitem.nomex.leggings.name=诺梅克斯护腿
+metaitem.nomex.boots.name=诺梅克斯靴子
+
 metaitem.nms.chestplate.name=纳米肌体™套装胸甲
 metaitem.nms.leggings.name=纳米肌体™套装护腿
 metaitem.nms.boots.name=纳米肌体™套装靴子
@@ -9815,3 +9830,7 @@ gregtech.jei.group.warning_signs=GT 警示牌
 gregtech.jei.group.metal_sheets=GT 金属板
 gregtech.jei.group.panelling=GT 镶板
 gregtech.jei.group.electrodes=GT 林业电极
+
+gregtech.material.tooltip.toxic=§c⚠ 有毒
+gregtech.material.tooltip.hot=§6⚠ 高温
+gregtech.material.tooltip.radioactive=§a⚠ 放射性

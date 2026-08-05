@@ -83,4 +83,12 @@ public interface IArmorLogic {
     default float getRadiationResistance() {
         return 1.0f;
     }
+
+    /**
+     *
+     * @return the value to multiply poison/toxic damage by
+     */
+    default float getPoisonResistance() {
+        return 1.0f;
+    }
 }

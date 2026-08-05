@@ -1459,6 +1459,21 @@ metaitem.hazmat.leggings.name=Hazmat Suite Leggings
 metaitem.hazmat.boots.name=Hazmat Suite Boots
 metaitem.hazmat.helmet.name=Hazmat Suite Helmet
 
+metaitem.simple_gas_mask.name=Simple Gas Mask
+metaitem.gas_mask.name=Gas Mask
+metaitem.gas_tank.name=Oxygen Tank
+metaitem.rebreather_tank.name=Rebreather Tank
+metaitem.filtered_tank.name=Filtered Tank
+metaitem.asbestos.mask.name=Asbestos Mask
+metaitem.asbestos.chestplate.name=Asbestos Chestplate
+metaitem.asbestos.leggings.name=Asbestos Leggings
+metaitem.asbestos.boots.name=Asbestos Boots
+
+metaitem.nomex.mask.name=Nomex Mask
+metaitem.nomex.chestplate.name=Nomex Chestplate
+metaitem.nomex.leggings.name=Nomex Leggings
+metaitem.nomex.boots.name=Nomex Boots
+
 metaitem.nms.chestplate.name=NanoMuscle™ Suite Chestplate
 metaitem.nms.leggings.name=NanoMuscle™ Suite Leggings
 metaitem.nms.boots.name=NanoMuscle™ Suite Boots
@@ -9832,3 +9847,7 @@ gregtech.jei.group.warning_signs=GT Warning Signs
 gregtech.jei.group.metal_sheets=GT Metal Sheets
 gregtech.jei.group.panelling=GT Panelling
 gregtech.jei.group.electrodes=GT Electrodes
+
+gregtech.material.tooltip.toxic=§c⚠ Toxic
+gregtech.material.tooltip.hot=§6⚠ Hot
+gregtech.material.tooltip.radioactive=§a⚠ Radioactive

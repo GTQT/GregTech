@@ -9,6 +9,8 @@ import gregtech.api.unification.material.properties.BlastProperty;
 import gregtech.api.unification.material.properties.BlastProperty.GasTier;
 import gregtech.api.unification.material.properties.MaterialToolProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
+import gregtech.api.unification.material.properties.RadioactiveProperty;
+import gregtech.api.unification.material.properties.ToxicProperty;
 
 import static gregtech.api.GTValues.*;
 import static gregtech.api.unification.material.Materials.*;
@@ -27,6 +29,7 @@ public class ElementMaterials {
                 .color(0xC3D1FF).iconSet(METALLIC)
                 .element(Elements.Ac)
                 .build();
+        Actinium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
 
         Aluminium = Material.builder(2, gregtechId("aluminium"))
                 .ingot()
@@ -51,6 +54,7 @@ public class ElementMaterials {
                 .element(Elements.Am)
                 .itemPipeProperties(64, 64)
                 .build();
+        Americium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
 
         Antimony = Material.builder(4, gregtechId("antimony"))
                 .ingot()
@@ -80,6 +84,7 @@ public class ElementMaterials {
                 .color(0x676756)
                 .element(Elements.As)
                 .build();
+        Arsenic.setProperty(PropertyKey.TOXIC, new ToxicProperty(0.5f));
 
         Astatine = Material.builder(7, gregtechId("astatine"))
                 .ingot()
@@ -88,6 +93,7 @@ public class ElementMaterials {
                 .color(0x241A24)
                 .element(Elements.At)
                 .build();
+        Astatine.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.0f));
 
         Barium = Material.builder(8, gregtechId("barium"))
                 .ingot()
@@ -102,6 +108,7 @@ public class ElementMaterials {
                 .color(0x645A88).iconSet(METALLIC)
                 .element(Elements.Bk)
                 .build();
+        Berkelium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.0f));
 
         Beryllium = Material.builder(10, gregtechId("beryllium"))
                 .ingot()
@@ -162,6 +169,7 @@ public class ElementMaterials {
                 .color(0xA85A12).iconSet(METALLIC)
                 .element(Elements.Cf)
                 .build();
+        Californium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(4.0f));
 
         Carbon = Material.builder(18, gregtechId("carbon"))
                 .ingot()
@@ -236,6 +244,7 @@ public class ElementMaterials {
                 .color(0x7B544E).iconSet(METALLIC)
                 .element(Elements.Cm)
                 .build();
+        Curium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.0f));
 
         Darmstadtium = Material.builder(27, gregtechId("darmstadtium"))
                 .ingot().fluid()
@@ -595,6 +604,7 @@ public class ElementMaterials {
                 .color(0x284D7B).iconSet(METALLIC)
                 .element(Elements.Np)
                 .build();
+        Neptunium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
 
         Nickel = Material.builder(69, gregtechId("nickel"))
                 .ingot()
@@ -704,6 +714,7 @@ public class ElementMaterials {
                 .color(0xC9D47E)
                 .element(Elements.Po)
                 .build();
+        Polonium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(5.0f));
 
         Platinum = Material.builder(80, gregtechId("platinum"))
                 .ingot()
@@ -720,6 +731,7 @@ public class ElementMaterials {
                 .color(0xF03232).iconSet(METALLIC)
                 .element(Elements.Pu239)
                 .build();
+        Plutonium239.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.0f));
 
         Plutonium241 = Material.builder(82, gregtechId("plutonium_241"))
                 .ingot(3)
@@ -728,6 +740,7 @@ public class ElementMaterials {
                 .color(0xFA4646).iconSet(SHINY)
                 .element(Elements.Pu241)
                 .build();
+        Plutonium241.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
 
         Potassium = Material.builder(83, gregtechId("potassium"))
                 .dust(1)
@@ -770,6 +783,7 @@ public class ElementMaterials {
                 .element(Elements.Rn)
                 .build();
         Radon.getProperty(PropertyKey.FLUID).setPrimaryKey(FluidStorageKeys.GAS);
+        Radon.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
 
         Radium = Material.builder(88, gregtechId("radium"))
                 .ingot()
@@ -777,6 +791,7 @@ public class ElementMaterials {
                 .color(0xFFFFCD).iconSet(SHINY)
                 .element(Elements.Ra)
                 .build();
+        Radium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.5f));
 
         Rhenium = Material.builder(89, gregtechId("rhenium"))
                 .ingot()
@@ -942,6 +957,7 @@ public class ElementMaterials {
                 .color(0x001E00).iconSet(SHINY)
                 .element(Elements.Th)
                 .build();
+        Thorium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(0.15f));
 
         Thallium = Material.builder(110, gregtechId("thallium"))
                 .ingot()
@@ -1016,6 +1032,7 @@ public class ElementMaterials {
                 .color(0x32F032).iconSet(METALLIC)
                 .element(Elements.U)
                 .build();
+        Uranium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(0.2f));
 
         Uranium235 = Material.builder(117, gregtechId("uranium_235"))
                 .dust(3)
@@ -1023,6 +1040,7 @@ public class ElementMaterials {
                 .color(0x46FA46).iconSet(SHINY)
                 .element(Elements.U235)
                 .build();
+        Uranium235.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(0.8f));
 
         Vanadium = Material.builder(118, gregtechId("vanadium"))
                 .ingot().fluid()
@@ -1160,6 +1178,7 @@ public class ElementMaterials {
                 .color(0x46FA46).iconSet(ROUGH)
                 .element(Elements.U238)
                 .build();
+        Uranium238.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(0.1f));
 
         Plutonium = Material.builder(132, gregtechId("plutonium"))
                 .ingot()
@@ -1167,104 +1186,147 @@ public class ElementMaterials {
                 .color(0xF03232).iconSet(ROUGH)
                 .element(Elements.Pu)
                 .build();
+        Plutonium.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
 
-        // Nuclear isotopes
+        // Nuclear isotopes — all radioactive
         Radium225 = Material.builder(133, gregtechId("radium_225"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xE0E0E0).element(Elements.Ra225).build();
+        Radium225.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.0f));
         Radium226 = Material.builder(134, gregtechId("radium_226"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xD3D3D3).element(Elements.Ra226).build();
+        Radium226.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Protactinium231 = Material.builder(135, gregtechId("protactinium_231"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x708090).element(Elements.Pa231).build();
+        Protactinium231.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Protactinium233 = Material.builder(136, gregtechId("protactinium_233"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x778899).element(Elements.Pa233).build();
+        Protactinium233.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.5f));
         Uranium232 = Material.builder(137, gregtechId("uranium_232"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x2F4F4F).element(Elements.U232).build();
+        Uranium232.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.0f));
         Uranium233 = Material.builder(138, gregtechId("uranium_233"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x3B3B3B).element(Elements.U233).build();
+        Uranium233.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Uranium234 = Material.builder(139, gregtechId("uranium_234"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x90EE90).element(Elements.U234).build();
+        Uranium234.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.0f));
         Uranium236 = Material.builder(140, gregtechId("uranium_236"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x8FBC8F).element(Elements.U236).build();
+        Uranium236.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.0f));
         Uranium237 = Material.builder(141, gregtechId("uranium_237"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x7CFC00).element(Elements.U237).build();
+        Uranium237.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.5f));
         Uranium239 = Material.builder(142, gregtechId("uranium_239"))
                 .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x46FA46).iconSet(SHINY).element(Elements.U239)
                 .build();
+        Uranium239.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Neptunium235 = Material.builder(143, gregtechId("neptunium_235"))
                 .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
                 .element(Elements.Np235).build();
+        Neptunium235.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
         Neptunium236 = Material.builder(144, gregtechId("neptunium_236"))
                 .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
                 .element(Elements.Np236).build();
+        Neptunium236.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Neptunium237 = Material.builder(145, gregtechId("neptunium_237"))
                 .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
                 .element(Elements.Np237).build();
+        Neptunium237.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
         Neptunium238 = Material.builder(146, gregtechId("neptunium_238"))
                 .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
                 .element(Elements.Np238).build();
+        Neptunium238.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.5f));
         Neptunium239 = Material.builder(147, gregtechId("neptunium_239"))
                 .ingot().dust().fluid().flags(GENERATE_PELLETS).color(0x284D7B).iconSet(METALLIC)
                 .element(Elements.Np239).build();
+        Neptunium239.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Plutonium236 = Material.builder(148, gregtechId("plutonium_236"))
                 .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
                 .iconSet(METALLIC).element(Elements.Pu236).build();
+        Plutonium236.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.0f));
         Plutonium237 = Material.builder(149, gregtechId("plutonium_237"))
                 .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
                 .iconSet(METALLIC).element(Elements.Pu237).build();
+        Plutonium237.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.5f));
         Plutonium238 = Material.builder(150, gregtechId("plutonium_238"))
                 .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
                 .iconSet(METALLIC).element(Elements.Pu238).build();
+        Plutonium238.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Plutonium240 = Material.builder(151, gregtechId("plutonium_240"))
                 .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
                 .iconSet(METALLIC).element(Elements.Pu240).build();
+        Plutonium240.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
         Plutonium242 = Material.builder(152, gregtechId("plutonium_242"))
                 .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
                 .iconSet(METALLIC).element(Elements.Pu242).build();
+        Plutonium242.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.0f));
         Plutonium243 = Material.builder(153, gregtechId("plutonium_243"))
                 .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
                 .iconSet(METALLIC).element(Elements.Pu243).build();
+        Plutonium243.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
         Plutonium244 = Material.builder(154, gregtechId("plutonium_244"))
                 .ingot().dust().liquid(new FluidBuilder().temperature(913)).flags(GENERATE_PELLETS).color(0xF03232)
                 .iconSet(METALLIC).element(Elements.Pu244).build();
+        Plutonium244.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(0.8f));
         Thorium228 = Material.builder(155, gregtechId("thorium_228"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xFF8C00).element(Elements.Th228).build();
+        Thorium228.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Thorium229 = Material.builder(156, gregtechId("thorium_229"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xFFD700).element(Elements.Th229).build();
+        Thorium229.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
         Thorium230 = Material.builder(157, gregtechId("thorium_230"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xFFA500).element(Elements.Th230).build();
+        Thorium230.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
         Thorium232 = Material.builder(158, gregtechId("thorium_232"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xB8860B).element(Elements.Th232).build();
+        Thorium232.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(0.1f));
         Thorium233 = Material.builder(159, gregtechId("thorium_233"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0xCD853F).element(Elements.Th233).build();
+        Thorium233.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Americium240 = Material.builder(160, gregtechId("americium_240"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x008B8B).element(Elements.Am240).build();
+        Americium240.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.5f));
         Americium241 = Material.builder(161, gregtechId("americium_241"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x00868B).element(Elements.Am241).build();
+        Americium241.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Americium242 = Material.builder(162, gregtechId("americium_242"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x008B45).element(Elements.Am242).build();
+        Americium242.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.5f));
         Americium243 = Material.builder(163, gregtechId("americium_243"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x006400).element(Elements.Am243).build();
+        Americium243.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Curium242 = Material.builder(164, gregtechId("curium_242"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x4169E1).element(Elements.Cm242).build();
+        Curium242.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.0f));
         Curium243 = Material.builder(165, gregtechId("curium_243"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x0000FF).element(Elements.Cm243).build();
+        Curium243.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.5f));
         Curium244 = Material.builder(166, gregtechId("curium_244"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x1E90FF).element(Elements.Cm244).build();
+        Curium244.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.5f));
         Curium245 = Material.builder(167, gregtechId("curium_245"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x0000EE).element(Elements.Cm245).build();
+        Curium245.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.0f));
         Curium246 = Material.builder(168, gregtechId("curium_246"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x0000CD).element(Elements.Cm246).build();
+        Curium246.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.5f));
         Curium247 = Material.builder(169, gregtechId("curium_247"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x0000AA).element(Elements.Cm247).build();
+        Curium247.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(2.0f));
         Curium248 = Material.builder(170, gregtechId("curium_248"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x000080).element(Elements.Cm248).build();
+        Curium248.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.5f));
         Curium250 = Material.builder(171, gregtechId("curium_250"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x191970).element(Elements.Cm250).build();
+        Curium250.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(1.0f));
         Berkelium249 = Material.builder(172, gregtechId("berkelium_249"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x696969).element(Elements.Bk249).build();
+        Berkelium249.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.0f));
         Californium249 = Material.builder(173, gregtechId("californium_249"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x708090).element(Elements.Cf249).build();
+        Californium249.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(3.5f));
         Californium252 = Material.builder(174, gregtechId("californium_252"))
                 .ingot().fluid().dust().flags(GENERATE_PELLETS).color(0x2F4F4F).element(Elements.Cf252).build();
+        Californium252.setProperty(PropertyKey.RADIOACTIVE, new RadioactiveProperty(4.0f));
     }
 }

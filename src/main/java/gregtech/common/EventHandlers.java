@@ -224,6 +224,8 @@ public class EventHandlers {
     public static void onPlayerTick(TickEvent.PlayerTickEvent event) {
         EntityPlayer player = event.player;
         if (event.phase == TickEvent.Phase.START && !player.world.isRemote) {
+            DimensionHazardHandler.onPlayerTick(player);
+
             IAttributeInstance movementSpeed = player.getEntityAttribute(SharedMonsterAttributes.MOVEMENT_SPEED);
             if (movementSpeed == null) return;
             AttributeModifier modifier = movementSpeed.getModifier(BlockUtility.WALKING_SPEED_UUID);

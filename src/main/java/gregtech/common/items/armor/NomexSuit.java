@@ -1,3 +1,12 @@
+/*
+ * Ported from Susy-Core (https://github.com/SymmetricDevs/Susy-Core)
+ * Copyright (c) 2023 SuperSymmetry contributors
+ * Licensed under LGPLv3
+ *
+ * Original source: supersymmetry.common.item.armor.AdvancedBreathingApparatus
+ *                  supersymmetry.common.item.armor.AdvancedBreathingTank (nomex variant)
+ * Modified for GregTech integration — plain armor, no oxygen system.
+ */
 package gregtech.common.items.armor;
 
 import gregtech.api.items.armor.IArmorLogic;
@@ -13,32 +22,39 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
 
-public class HazmatSuit implements IArmorLogic {
+/**
+ * Nomex fireproof suit. Full heat immunity, half radiation protection, higher durability.
+ */
+public class NomexSuit implements IArmorLogic {
 
     protected final EntityEquipmentSlot SLOT;
     protected final int maxDurability;
 
-    public HazmatSuit(EntityEquipmentSlot slot, int maxDurability) {
+    public NomexSuit(EntityEquipmentSlot slot, int maxDurability) {
         this.SLOT = slot;
         this.maxDurability = maxDurability;
     }
 
     @Override
     public EntityEquipmentSlot getEquipmentSlot(ItemStack itemStack) {
-        return this.SLOT;
+        return SLOT;
     }
 
     @Override
     public String getArmorTexture(ItemStack stack, Entity entity, EntityEquipmentSlot slot, String type) {
-        String armorTexture = "hazmat";
         return SLOT != EntityEquipmentSlot.LEGS ?
-                String.format("gregtech:textures/armor/%s_1.png", armorTexture) :
-                String.format("gregtech:textures/armor/%s_2.png", armorTexture);
+                "gregtech:textures/armor/nomex_1.png" :
+                "gregtech:textures/armor/nomex_2.png";
+    }
+
+    @Override
+    public float getHeatResistance() {
+        return 0.0f;
     }
 
     @Override
     public float getRadiationResistance() {
-        return 0.00f;
+        return 0.5f;
     }
 
     // ---- Durability ----

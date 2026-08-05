@@ -1,3 +1,12 @@
+/*
+ * Ported from Susy-Core (https://github.com/SymmetricDevs/Susy-Core)
+ * Copyright (c) 2023 SuperSymmetry contributors
+ * Licensed under LGPLv3
+ *
+ * Original source: supersymmetry.common.item.armor.AdvancedBreathingApparatus
+ *                  supersymmetry.common.item.armor.AdvancedBreathingTank
+ * Modified for GregTech integration — heat-only protection with durability.
+ */
 package gregtech.common.items.armor;
 
 import gregtech.api.items.armor.IArmorLogic;
@@ -13,32 +22,35 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
 
-public class HazmatSuit implements IArmorLogic {
+/**
+ * Asbestos protective suit providing full heat immunity across all four armor pieces.
+ * Uses NBT-based durability with Unbreaking support.
+ */
+public class AsbestosSuit implements IArmorLogic {
 
     protected final EntityEquipmentSlot SLOT;
     protected final int maxDurability;
 
-    public HazmatSuit(EntityEquipmentSlot slot, int maxDurability) {
+    public AsbestosSuit(EntityEquipmentSlot slot, int maxDurability) {
         this.SLOT = slot;
         this.maxDurability = maxDurability;
     }
 
     @Override
     public EntityEquipmentSlot getEquipmentSlot(ItemStack itemStack) {
-        return this.SLOT;
+        return SLOT;
     }
 
     @Override
     public String getArmorTexture(ItemStack stack, Entity entity, EntityEquipmentSlot slot, String type) {
-        String armorTexture = "hazmat";
         return SLOT != EntityEquipmentSlot.LEGS ?
-                String.format("gregtech:textures/armor/%s_1.png", armorTexture) :
-                String.format("gregtech:textures/armor/%s_2.png", armorTexture);
+                "gregtech:textures/armor/asbestos_1.png" :
+                "gregtech:textures/armor/asbestos_2.png";
     }
 
     @Override
-    public float getRadiationResistance() {
-        return 0.00f;
+    public float getHeatResistance() {
+        return 0.0f;
     }
 
     // ---- Durability ----

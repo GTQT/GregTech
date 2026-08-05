@@ -648,6 +648,23 @@ public final class MetaItems {
     public static ArmorMetaItem<?>.ArmorMetaValueItem NANO_CHESTPLATE_ADVANCED;
     public static ArmorMetaItem<?>.ArmorMetaValueItem QUANTUM_CHESTPLATE_ADVANCED;
 
+    public static ArmorMetaItem<?>.ArmorMetaValueItem SIMPLE_GAS_MASK;
+
+    public static ArmorMetaItem<?>.ArmorMetaValueItem GAS_MASK;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem GAS_TANK;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem REBREATHER_TANK;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem FILTERED_TANK;
+
+    public static ArmorMetaItem<?>.ArmorMetaValueItem ASBESTOS_MASK;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem ASBESTOS_CHESTPLATE;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem ASBESTOS_LEGGINGS;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem ASBESTOS_BOOTS;
+
+    public static ArmorMetaItem<?>.ArmorMetaValueItem NOMEX_MASK;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem NOMEX_CHESTPLATE;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem NOMEX_LEGGINGS;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem NOMEX_BOOTS;
+
     public static MetaItem<?>.MetaValueItem POWER_THRUSTER;
     public static MetaItem<?>.MetaValueItem POWER_THRUSTER_ADVANCED;
     public static MetaItem<?>.MetaValueItem GRAVITATION_ENGINE;
