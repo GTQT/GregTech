@@ -12,7 +12,6 @@ import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
-import gregtech.api.util.Mods;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockCompressed;
 import gregtech.common.blocks.BlockFrame;
@@ -27,10 +26,6 @@ import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.fluidpipe.BlockFluidPipe;
 import gregtech.common.pipelike.heat.BlockHeatConductor;
 import gregtech.common.pipelike.itempipe.BlockItemPipe;
-import gregtech.integration.forestry.ForestryModule;
-import gregtech.integration.forestry.bees.GTCombType;
-import gregtech.integration.forestry.bees.GTDropType;
-
 import net.minecraft.block.Block;
 import net.minecraft.creativetab.CreativeTabs;
 import net.minecraft.item.Item;
@@ -85,10 +80,6 @@ public final class CollapsibleItemGroups {
         buildDisposableToolGroup(registry);
         buildWirelessCoverGroup(registry);
         buildFluidBucketGroup(registry);
-        buildBeeCombGroup(registry);
-        buildBeeDropGroup(registry);
-        buildForestryBeeGroup(registry);
-        buildElectrodeGroup(registry);
         buildMachineTierGroups(registry);
         buildToolGroups(registry);
     }
@@ -282,63 +273,6 @@ public final class CollapsibleItemGroups {
         addGroup(registry, "panelling", stacks);
     }
 
-    /** GT bee combs ({@link GTCombType}). Only active when Forestry is loaded. */
-    private static void buildBeeCombGroup(ICollapsibleGroupRegistry registry) {
-        if (ForestryModule.COMBS == null) return;
-        List<ItemStack> stacks = new ArrayList<>();
-        for (GTCombType type : GTCombType.VALUES) {
-            if (!type.showInList) continue;
-            stacks.add(new ItemStack(ForestryModule.COMBS, 1, type.ordinal()));
-        }
-        addGroup(registry, "bee_combs", stacks);
-    }
-
-    /** GT bee produce drops ({@link GTDropType}). Only active when Forestry is loaded. */
-    private static void buildBeeDropGroup(ICollapsibleGroupRegistry registry) {
-        if (ForestryModule.DROPS == null) return;
-        List<ItemStack> stacks = new ArrayList<>();
-        for (GTDropType type : GTDropType.VALUES) {
-            stacks.add(new ItemStack(ForestryModule.DROPS, 1, type.ordinal()));
-        }
-        addGroup(registry, "bee_drops", stacks);
-    }
-
-    /** Forestry bee items (drone, princess, queen, larvae) — each meta is a different species. */
-    private static void buildForestryBeeGroup(ICollapsibleGroupRegistry registry) {
-        if (!Mods.Forestry.isModLoaded()) return;
-        List<ItemStack> stacks = new ArrayList<>();
-        // Forestry bee items only return sub-items when tab == Tabs.tabApiculture
-        CreativeTabs tab = forestry.api.core.Tabs.tabApiculture;
-        String[] beeIds = { "forestry:bee_drone_ge", "forestry:bee_princess_ge",
-                "forestry:bee_queen_ge", "forestry:bee_larvae_ge" };
-        for (String id : beeIds) {
-            Item item = Item.getByNameOrId(id);
-            if (item == null) continue;
-            NonNullList<ItemStack> sub = NonNullList.create();
-            item.getSubItems(tab, sub);
-            stacks.addAll(sub);
-        }
-        addGroup(registry, "forestry_bees", stacks);
-    }
-
-    /** GT Forestry electrodes. Only active when Forestry is loaded. */
-    private static void buildElectrodeGroup(ICollapsibleGroupRegistry registry) {
-        if (ForestryModule.ELECTRODE_APATITE == null) return;
-        addGroup(registry, "electrodes", new MetaValueItem[]{
-                ForestryModule.ELECTRODE_APATITE, ForestryModule.ELECTRODE_BLAZE,
-                ForestryModule.ELECTRODE_BRONZE, ForestryModule.ELECTRODE_COPPER,
-                ForestryModule.ELECTRODE_DIAMOND, ForestryModule.ELECTRODE_EMERALD,
-                ForestryModule.ELECTRODE_ENDER, ForestryModule.ELECTRODE_GOLD,
-                ForestryModule.ELECTRODE_IRON, ForestryModule.ELECTRODE_LAPIS,
-                ForestryModule.ELECTRODE_OBSIDIAN, ForestryModule.ELECTRODE_ORCHID,
-                ForestryModule.ELECTRODE_RUBBER, ForestryModule.ELECTRODE_TIN,
-        });
-    }
-
-    /**
-     * One group per machine family — strips the voltage tier suffix ({@code .lv}, {@code .mv}, …)
-     * from each MTE id so that all voltage variants of the same machine fold together.
-     */
     /** One group per tiered machine family — uses {@link ITieredMetaTileEntity#getTierlessTooltipKey()}. */
     private static void buildMachineTierGroups(ICollapsibleGroupRegistry registry) {
         Map<String, List<ItemStack>> buckets = new Object2ObjectOpenHashMap<>();
