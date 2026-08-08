@@ -285,6 +285,31 @@ public final class MachineRegistration {
                         gregtechId(String.format("%s.%s", "rock_breaker", voltageName)),
                         RecipeMaps.ROCK_BREAKER_RECIPES, Textures.ROCK_BREAKER_OVERLAY, tier));
 
+        // Tool Casters, IDs 665-679
+        registerSimpleMetaTileEntity(TOOL_CASTER, 665, "tool_caster", RecipeMaps.TOOL_CASTER_RECIPES,
+                Textures.TOOL_CASTER_OVERLAY,true);
+
+        // Bath Condensers, IDs 680-694
+        registerSimpleMetaTileEntity(BATH_CONDENSER, 680, "bath_condenser", RecipeMaps.BATH_CONDENSER_RECIPES,
+                Textures.BATH_CONDENSER_OVERLAY,true);
+
+        // Decay Chamber, IDs 695-709
+        registerSimpleMetaTileEntity(DECAY_CHAMBER, 695, "decay_chamber", RecipeMaps.DECAY_CHAMBER_RECIPES,
+                Textures.CHEMICAL_BATH_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
+
+        // Recycler IDs 710-724
+        registerSimpleMetaTileEntity(RECYCLER, 710, "recycler", RecipeMaps.RECYCLER_RECIPES, Textures.RECYCLER_OVERLAY,
+                true);
+
+        // Vulcanizing Press IDs 725-739
+        registerSimpleMetaTileEntity(VULCANIZING_PRESS, 725, "vulcanizing_press", RecipeMaps.VULCANIZING_PRESS_RECIPES,
+                Textures.VULCANIZING_PRESS_OVERLAY, true, GTUtility.defaultTankSizeFunction);
+
+        // Lightning Processor IDs 740-754
+        registerSimpleMetaTileEntity(LIGHTNING_PROCESSOR, 740, "lightning_processor",
+                RecipeMaps.LIGHTNING_PROCESSOR_RECIPES, Textures.LIGHTNING_PROCESSOR_OVERLAY, true,
+                GTUtility.defaultTankSizeFunction);
+
         // Laminator IDs 755-770
         registerSimpleMetaTileEntity(LAMINATOR, 755, "laminator", RecipeMaps.LAMINATOR_RECIPES,
                 Textures.LAMINATOR_OVERLAY, true);
@@ -319,29 +344,10 @@ public final class MachineRegistration {
                 RecipeMaps.CHEMICAL_DEHYDRATOR_RECIPES, Textures.CHEMICAL_DEHYDRATOR_OVERLAY, true,
                 GTUtility.defaultTankSizeFunction);
 
-        // Lightning Processor IDs 875-890
-        registerSimpleMetaTileEntity(LIGHTNING_PROCESSOR, 875, "lightning_processor",
-                RecipeMaps.LIGHTNING_PROCESSOR_RECIPES, Textures.LIGHTNING_PROCESSOR_OVERLAY, true,
-                GTUtility.defaultTankSizeFunction);
-
-        // Recycler IDs 890-905
-        registerSimpleMetaTileEntity(RECYCLER, 890, "recycler", RecipeMaps.RECYCLER_RECIPES, Textures.RECYCLER_OVERLAY,
-                true);
-
-        // Vulcanizing Press IDs 905-920
-        registerSimpleMetaTileEntity(VULCANIZING_PRESS, 905, "vulcanizing_press", RecipeMaps.VULCANIZING_PRESS_RECIPES,
-                Textures.VULCANIZING_PRESS_OVERLAY, true, GTUtility.defaultTankSizeFunction);
-
-        // Decay Chamber, IDs 920-935
-        registerSimpleMetaTileEntity(DECAY_CHAMBER, 920, "decay_chamber", RecipeMaps.DECAY_CHAMBER_RECIPES,
-                Textures.CHEMICAL_BATH_OVERLAY, true, GTUtility.hvCappedTankSizeFunction);
-
-        // Chunk Miner, IDs 935-940
-        MINER[0] = registerMetaTileEntity(935, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
-        MINER[1] = registerMetaTileEntity(936, new MetaTileEntityMiner(gregtechId("miner.mv"), 2, 80, 16, 2));
-        MINER[2] = registerMetaTileEntity(937, new MetaTileEntityMiner(gregtechId("miner.hv"), 3, 40, 24, 3));
-
-
+        // Chunk Miner, IDs 930-
+        MINER[0] = registerMetaTileEntity(930, new MetaTileEntityMiner(gregtechId("miner.lv"), 1, 160, 8, 1));
+        MINER[1] = registerMetaTileEntity(931, new MetaTileEntityMiner(gregtechId("miner.mv"), 2, 80, 16, 2));
+        MINER[2] = registerMetaTileEntity(932, new MetaTileEntityMiner(gregtechId("miner.hv"), 3, 40, 24, 3));
     }
 
     private static void registerGenerators() {

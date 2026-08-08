@@ -3,10 +3,7 @@ package gregtech.common.metatileentities.registration;
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
 import gregtech.api.capability.FeCompat;
-import gregtech.api.metatileentity.SimpleMachineMetaTileEntity;
-import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
-import gregtech.client.renderer.texture.Textures;
 import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.MetaTileEntityClipboard;
 import gregtech.common.metatileentities.converter.MetaTileEntityConverter;
@@ -17,6 +14,7 @@ import gregtech.common.metatileentities.electric.MetaTileEntityBlockBreaker;
 import gregtech.common.metatileentities.electric.MetaTileEntityCharger;
 import gregtech.common.metatileentities.electric.MetaTileEntityDiode;
 import gregtech.common.metatileentities.electric.MetaTileEntityDisposableBatteryBase;
+import gregtech.common.metatileentities.electric.MetaTileEntityEnergyDistributor;
 import gregtech.common.metatileentities.electric.MetaTileEntityFisher;
 import gregtech.common.metatileentities.electric.MetaTileEntityHull;
 import gregtech.common.metatileentities.electric.MetaTileEntityItemCollector;
@@ -71,22 +69,20 @@ public final class InfrastructureRegistration {
 
     public static void init() {
         // 4000-4019
-        register4000_BasicMisc();
+        registerBasicMisc();
         // 4020-4114
-        register4020_ElectricAndUtility();
-        // 4125-4244
-        register4125_HullsTransformersBatteries();
-        // 4250-4329
-        register4250_EnergyConverters();
-        // 4330-4339
-        register4330_BatteryBlocks();
+        registerElectricAndUtility();
+        // 4125-4339
+        registerHullsTransformersBatteries();
         // 4340-4465
-        register4340_Storage();
+        registerStorage();
+        // 4800-5000
+        registerBatteryBlocks();
     }
 
     // ======================== 4000-4019: 基础杂项 ========================
 
-    private static void register4000_BasicMisc() {
+    private static void registerBasicMisc() {
         // 4000
         LOCKED_SAFE = registerMetaTileEntity(4000,
                 new MetaTileEntityLockedSafe(gregtechId("locked_safe")));
@@ -130,7 +126,7 @@ public final class InfrastructureRegistration {
 
     // ======================== 4020-4114: 电力设施 & 实用设备 ========================
 
-    private static void register4020_ElectricAndUtility() {
+    private static void registerElectricAndUtility() {
         // ---- 4020-4033: World Accelerators ----
         if (ConfigHolder.machines.enableWorldAccelerators) {
             for (int i = 0; i < WORLD_ACCELERATOR.length; i++) {
@@ -194,27 +190,11 @@ public final class InfrastructureRegistration {
         BUFFER[2] = registerMetaTileEntity(4097, new MetaTileEntityBuffer(gregtechId("buffer.hv"), 3));
         BUFFER[3] = registerMetaTileEntity(4098, new MetaTileEntityBuffer(gregtechId("buffer.ev"), 4));
         BUFFER[4] = registerMetaTileEntity(4099, new MetaTileEntityBuffer(gregtechId("buffer.iv"), 5));
-
-        // ---- 4100-4104: Tool Casters ----
-        for (int i = 0; i < TOOL_CASTER.length; i++) {
-            String voltageName = GTValues.VN[i + 1].toLowerCase();
-            TOOL_CASTER[i] = new SimpleMachineMetaTileEntity(gregtechId("tool_caster." + voltageName),
-                    RecipeMaps.TOOL_CASTER_RECIPES, Textures.TOOL_CASTER_OVERLAY, i + 1, true);
-            registerMetaTileEntity(4100 + i, TOOL_CASTER[i]);
-        }
-
-        // ---- 4105-4109: Bath Condensers ----
-        for (int i = 0; i < BATH_CONDENSER.length; i++) {
-            String voltageName = GTValues.VN[i + 1].toLowerCase();
-            BATH_CONDENSER[i] = new SimpleMachineMetaTileEntity(gregtechId("bath_condenser." + voltageName),
-                    RecipeMaps.BATH_CONDENSER_RECIPES, Textures.BATH_CONDENSER_OVERLAY, i + 1, true);
-            registerMetaTileEntity(4105 + i, BATH_CONDENSER[i]);
-        }
     }
 
-    // ======================== 4125-4244: 船壳 / 变压器 / 二极管 / 电池缓存 ========================
+    // ======================== 4125-4339: 外壳 / 变压器 / 二极管 / 电池缓存 ========================
 
-    private static void register4125_HullsTransformersBatteries() {
+    private static void registerHullsTransformersBatteries() {
         // ---- 4125-4139: Hulls ----
         int endPos = GregTechAPI.isHighTier() ? HULL.length : Math.min(HULL.length - 1, GTValues.UV + 2);
         for (int i = 0; i < endPos; i++) {
@@ -265,12 +245,20 @@ public final class InfrastructureRegistration {
                         batteryBuffer);
             }
         }
-    }
 
-    // ======================== 4250-4329: 能源转换器 ========================
 
-    private static void register4250_EnergyConverters() {
-        int endPos = GregTechAPI.isHighTier() ? ENERGY_CONVERTER[0].length : GTValues.UHV + 1;
+        // ---- 4245-4260: Energy Distributors ----
+        endPos = GregTechAPI.isHighTier() ? ENERGY_DISTRIBUTOR.length :
+                Math.min(ENERGY_DISTRIBUTOR.length - 1, GTValues.UV + 2);
+
+        for (int i = 0; i < endPos; i++) {
+            ENERGY_DISTRIBUTOR[i] = registerMetaTileEntity(4245 + i,
+                    new MetaTileEntityEnergyDistributor(
+                            gregtechId("energy_distributor." + GTValues.VN[i].toLowerCase()), i));
+        }
+
+        // ---- 4260-4339: Energy Converters ----
+        endPos = GregTechAPI.isHighTier() ? ENERGY_CONVERTER[0].length : GTValues.UHV + 1;
         int[] amps = { 1, 4, 8, 16 };
         for (int i = 0; i < endPos; i++) {
             for (int j = 0; j < 4; j++) {
@@ -281,43 +269,14 @@ public final class InfrastructureRegistration {
 
                 String id = "energy_converter." + GTValues.VN[i].toLowerCase() + "." + amps[j];
                 MetaTileEntityConverter converter = new MetaTileEntityConverter(gregtechId(id), i, amps[j]);
-                ENERGY_CONVERTER[j][i] = registerMetaTileEntity(4250 + j + i * 4, converter);
+                ENERGY_CONVERTER[j][i] = registerMetaTileEntity(4260 + j + i * 4, converter);
             }
         }
     }
 
-    // ======================== 4330-4339: 一次性电池 ========================
-
-    private static void register4330_BatteryBlocks() {
-        ZINC_MANGANESE_CELL = registerMetaTileEntity(4330,
-                new MetaTileEntityDisposableBatteryBase(
-                        gregtechId("zinc_manganese_cell"), DisposableBatteryType.ZINC_MANGANESE));
-        LITHIUM_MANGANESE_CELL = registerMetaTileEntity(4331,
-                new MetaTileEntityDisposableBatteryBase(
-                        gregtechId("lithium_manganese_cell"), DisposableBatteryType.LITHIUM_MANGANESE));
-        NICKEL_CADMIUM_CELL = registerMetaTileEntity(4332,
-                new MetaTileEntityDisposableBatteryBase(
-                        gregtechId("nickel_cadmium_cell"), DisposableBatteryType.NICKEL_CADMIUM));
-        LEAD_ACID_BATTERY = registerMetaTileEntity(4333,
-                new MetaTileEntityDisposableBatteryBase(
-                        gregtechId("lead_acid_battery"), DisposableBatteryType.LEAD_ACID));
-        VANADIUM_FLOW_CELL = registerMetaTileEntity(4334,
-                new MetaTileEntityDisposableBatteryBase(
-                        gregtechId("vanadium_flow_cell"), DisposableBatteryType.VANADIUM_FLOW));
-        LFP_BATTERY = registerMetaTileEntity(4335,
-                new MetaTileEntityDisposableBatteryBase(
-                        gregtechId("lfp_battery"), DisposableBatteryType.LFP));
-        LCO_BATTERY = registerMetaTileEntity(4336,
-                new MetaTileEntityDisposableBatteryBase(
-                        gregtechId("lco_battery"), DisposableBatteryType.LCO));
-        NMC_BATTERY = registerMetaTileEntity(4337,
-                new MetaTileEntityDisposableBatteryBase(
-                        gregtechId("nmc_battery"), DisposableBatteryType.NMC));
-    }
-
     // ======================== 4340-4465: 存储 ========================
 
-    private static void register4340_Storage() {
+    private static void registerStorage() {
         // ---- 4340-4342: Quantum Storage Network ----
         QUANTUM_STORAGE_CONTROLLER = registerMetaTileEntity(4340,
                 new MetaTileEntityQuantumStorageController(gregtechId("quantum_storage_controller")));
@@ -450,4 +409,34 @@ public final class InfrastructureRegistration {
         NEUTRONIUM_CRATE = registerMetaTileEntity(4465,
                 new MetaTileEntityCrate(gregtechId("crate.neutronium"), Materials.Neutronium, 216, 24));
     }
+
+    // ======================== 4800-5000: 一次性电池 ========================
+
+    private static void registerBatteryBlocks() {
+        ZINC_MANGANESE_CELL = registerMetaTileEntity(4800,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("zinc_manganese_cell"), DisposableBatteryType.ZINC_MANGANESE));
+        LITHIUM_MANGANESE_CELL = registerMetaTileEntity(4801,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("lithium_manganese_cell"), DisposableBatteryType.LITHIUM_MANGANESE));
+        NICKEL_CADMIUM_CELL = registerMetaTileEntity(4802,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("nickel_cadmium_cell"), DisposableBatteryType.NICKEL_CADMIUM));
+        LEAD_ACID_BATTERY = registerMetaTileEntity(4803,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("lead_acid_battery"), DisposableBatteryType.LEAD_ACID));
+        VANADIUM_FLOW_CELL = registerMetaTileEntity(4804,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("vanadium_flow_cell"), DisposableBatteryType.VANADIUM_FLOW));
+        LFP_BATTERY = registerMetaTileEntity(4805,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("lfp_battery"), DisposableBatteryType.LFP));
+        LCO_BATTERY = registerMetaTileEntity(4806,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("lco_battery"), DisposableBatteryType.LCO));
+        NMC_BATTERY = registerMetaTileEntity(4807,
+                new MetaTileEntityDisposableBatteryBase(
+                        gregtechId("nmc_battery"), DisposableBatteryType.NMC));
+    }
+
 }

@@ -5327,6 +5327,31 @@ gregtech.machine.battery_buffer.max.4.name=4x上限压电池箱（§c§lMAX§r�
 gregtech.machine.battery_buffer.max.8.name=8x上限压电池箱（§c§lMAX§r）
 gregtech.machine.battery_buffer.max.16.name=16x上限压电池箱（§c§lMAX§r）
 
+# Energy Distributor
+gregtech.machine.energy_distributor.ulv.name=超低压能量分配器（§8ULV§r）
+gregtech.machine.energy_distributor.lv.name=低压能量分配器（§7LV§r）
+gregtech.machine.energy_distributor.mv.name=中压能量分配器（§bMV§r）
+gregtech.machine.energy_distributor.hv.name=高压能量分配器（§6HV§r）
+gregtech.machine.energy_distributor.ev.name=超高压能量分配器（§5EV§r）
+gregtech.machine.energy_distributor.iv.name=强导压能量分配器（§1IV§r）
+gregtech.machine.energy_distributor.luv.name=剧差压能量分配器（§dLuV§r）
+gregtech.machine.energy_distributor.zpm.name=零点压能量分配器（§cZPM§r）
+gregtech.machine.energy_distributor.uv.name=极限压能量分配器（§3UV§r）
+gregtech.machine.energy_distributor.uhv.name=极高压能量分配器（§4UHV§r）
+gregtech.machine.energy_distributor.uev.name=极超压能量分配器（§aUEV§r）
+gregtech.machine.energy_distributor.uiv.name=极巨压能量分配器（§2UIV§r）
+gregtech.machine.energy_distributor.uxv.name=极顶压能量分配器（§eUXV§r）
+gregtech.machine.energy_distributor.opv.name=过载压能量分配器（§9OpV§r）
+gregtech.machine.energy_distributor.max.name=上限压能量分配器（§c§lMAX§r）
+
+gregtech.machine.energy_distributor.tooltip.1=从正面分流到5个输出面，或从5个输入面汇聚到正面
+gregtech.machine.energy_distributor.tooltip.2=支持最大§e320A§7电流
+gregtech.machine.energy_distributor.tooltip.3=使用§f扳手§7更改正面朝向
+gregtech.machine.energy_distributor.tooltip.4=使用§f软锤§7切换§a分流§7/§c汇聚§7模式
+
+gregtech.top.energy_distributor.mode_distribute=模式： §a分流
+gregtech.top.energy_distributor.mode_combine=模式： §c汇聚
+
 # Disposable Battery Blocks (A-series)
 gregtech.machine.disposable_battery.max_capacity=§c总储量：§f%,d EU
 gregtech.machine.disposable_battery.single_use_warning=§4⚠ 一次性。耗尽后掉落化学副产物。

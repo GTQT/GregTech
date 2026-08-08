@@ -70,15 +70,26 @@ public class TextFormattingUtil {
         }
 
         int c = 0;
-        while (value.compareTo(metricBigSuffixValues[c]) >= 0) {
+        while (c < metricBigSuffixValues.length && value.compareTo(metricBigSuffixValues[c]) >= 0) {
             c++;
         }
 
-        return stb.append(value.divide(metricBigSuffixValues[c - 1]))
-                .append('.')
-                .append(value.toString(), 4, precision + 1)
-                .append(metricSuffixChars[c - 1])
-                .toString();
+        // The metric suffix system guarantees 1-3 integer digits, so the decimal part
+        // is computed from the remainder instead of extracting a fixed offset substring
+        BigInteger suffix = metricBigSuffixValues[c - 1];
+        BigInteger integerPart = value.divide(suffix);
+        BigInteger remainder = value.remainder(suffix);
+        int digits = Math.max(precision - 3, 0);
+        BigInteger decimalDivisor = suffix.divide(BigInteger.TEN.pow(digits));
+
+        if (digits > 0) {
+            stb.append(integerPart)
+                    .append('.')
+                    .append(String.format("%0" + digits + "d", remainder.divide(decimalDivisor).intValue()));
+        } else {
+            stb.append(integerPart);
+        }
+        return stb.append(metricSuffixChars[c - 1]).toString();
     }
 
     public static String formatBigIntToScientificString(BigInteger value, int precision) {

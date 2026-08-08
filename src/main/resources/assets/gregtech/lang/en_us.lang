@@ -5305,6 +5305,31 @@ gregtech.machine.battery_buffer.max.4.name=Maximum Voltage 4x Battery Buffer
 gregtech.machine.battery_buffer.max.8.name=Maximum Voltage 8x Battery Buffer
 gregtech.machine.battery_buffer.max.16.name=Maximum Voltage 16x Battery Buffer
 
+# Energy Distributor
+gregtech.machine.energy_distributor.ulv.name=Ultra Low Voltage Energy Distributor
+gregtech.machine.energy_distributor.lv.name=Low Voltage Energy Distributor
+gregtech.machine.energy_distributor.mv.name=Medium Voltage Energy Distributor
+gregtech.machine.energy_distributor.hv.name=High Voltage Energy Distributor
+gregtech.machine.energy_distributor.ev.name=Extreme Voltage Energy Distributor
+gregtech.machine.energy_distributor.iv.name=Insane Voltage Energy Distributor
+gregtech.machine.energy_distributor.luv.name=Ludicrous Voltage Energy Distributor
+gregtech.machine.energy_distributor.zpm.name=ZPM Voltage Energy Distributor
+gregtech.machine.energy_distributor.uv.name=Ultimate Voltage Energy Distributor
+gregtech.machine.energy_distributor.uhv.name=Ultra High Voltage Energy Distributor
+gregtech.machine.energy_distributor.uev.name=Ultra Excessive Voltage Energy Distributor
+gregtech.machine.energy_distributor.uiv.name=Ultra Immense Voltage Energy Distributor
+gregtech.machine.energy_distributor.uxv.name=Ultra Extreme Voltage Energy Distributor
+gregtech.machine.energy_distributor.opv.name=Overpowered Voltage Energy Distributor
+gregtech.machine.energy_distributor.max.name=Maximum Voltage Energy Distributor
+
+gregtech.machine.energy_distributor.tooltip.1=Distributes energy from front face to 5 output faces, or combines from 5 input faces to front face
+gregtech.machine.energy_distributor.tooltip.2=Supports up to §e320A§7
+gregtech.machine.energy_distributor.tooltip.3=Use §fWrench§7 to change front facing
+gregtech.machine.energy_distributor.tooltip.4=Use §fSoft Mallet§7 to toggle §aDistribute§7/§cCombine§7 mode
+
+gregtech.top.energy_distributor.mode_distribute=Mode: §aDistribute
+gregtech.top.energy_distributor.mode_combine=Mode: §cCombine
+
 # Disposable Battery Blocks (A-series)
 gregtech.machine.disposable_battery.max_capacity=§cTotal Charge: §f%,d EU
 gregtech.machine.disposable_battery.single_use_warning=§4⚠ Single-use. Drops chemical byproducts when depleted.

@@ -24,6 +24,7 @@ import gregtech.common.metatileentities.electric.MetaTileEntityDiode;
 import gregtech.common.metatileentities.electric.MetaTileEntityDisposableBatteryBase;
 import gregtech.common.metatileentities.electric.MetaTileEntityDustCollector;
 import gregtech.common.metatileentities.electric.MetaTileEntityElectricHeater;
+import gregtech.common.metatileentities.electric.MetaTileEntityEnergyDistributor;
 import gregtech.common.metatileentities.electric.MetaTileEntityFisher;
 import gregtech.common.metatileentities.electric.MetaTileEntityGasCollector;
 import gregtech.common.metatileentities.electric.MetaTileEntityHull;
@@ -430,6 +431,7 @@ public class MetaTileEntities {
     public static final MetaTileEntityQuantumChest[] QUANTUM_CHEST = new MetaTileEntityQuantumChest[10];
     public static final MetaTileEntityQuantumTank[] QUANTUM_TANK = new MetaTileEntityQuantumTank[10];
     public static final MetaTileEntityBuffer[] BUFFER = new MetaTileEntityBuffer[5];
+    public static final MetaTileEntityEnergyDistributor[] ENERGY_DISTRIBUTOR = new MetaTileEntityEnergyDistributor[GTValues.V.length]; // ULV-MAX
     public static final MetaTileEntityPump[] PUMP = new MetaTileEntityPump[9];
     public static final MetaTileEntityBlockBreaker[] BLOCK_BREAKER = new MetaTileEntityBlockBreaker[4];
     public static final MetaTileEntityMagicEnergyAbsorber[] MAGIC_ENERGY_ABSORBER = new MetaTileEntityMagicEnergyAbsorber[5];
