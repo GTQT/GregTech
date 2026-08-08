@@ -353,6 +353,13 @@ public final class StructureCheckState {
                                 world, centerPos, orientation, 0, 0, 0, candidate));
                 if (!pieceMatched) {
                     pieceSession.discardPieceContribution(piece);
+                    if (piece.isOptional()) {
+                        runtime.publishInactive();
+                        resultTable.add(PieceEvaluationResult.optionalUnmatched(
+                                piece, runtime.getState().getFixedTemplateWorldPositions(
+                                        centerPos, orientation)));
+                        continue;
+                    }
                     lastErrorPos = centerPos;
                     lastErrorMessage = "Piece '" + piece.getName() + "' failed pattern check";
                     StructureFailureTrace failure = createFailureTrace(
@@ -483,6 +490,11 @@ public final class StructureCheckState {
                     piece.checkOnSnapshot(
                             snapshot, checkOrigin, orientation, prior, runtime, pieceSession));
             if (!matched) {
+                if (piece.isOptional()) {
+                    runtime.publishInactive();
+                    progressDepth++;
+                    continue;
+                }
                 return StructureSnapshotResult.mismatch(
                         orientation.isFlipped(), piece.getName(), progressDepth);
             }

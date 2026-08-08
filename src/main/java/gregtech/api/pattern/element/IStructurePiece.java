@@ -62,6 +62,19 @@ public interface IStructurePiece {
     }
 
     /**
+     * Whether a fixed piece may remain unmatched without preventing the
+     * containing multiblock from forming.
+     *
+     * <p>Optional pieces still participate in event-driven invalidation: an
+     * unmatched optional piece watches its complete candidate volume so later
+     * construction can activate it without polling. Repeatable and
+     * dynamically-positioned pieces cannot be optional.
+     */
+    default boolean isOptional() {
+        return false;
+    }
+
+    /**
      * Whether user-facing tooling should expose this piece for preview, hint,
      * and construction operations.
      *

@@ -388,6 +388,13 @@ public class MultiPiecePattern {
 
             if (!runtime.isValidated()) {
                 session.discardPieceContribution(piece);
+                if (piece.isOptional()) {
+                    runtime.publishInactive();
+                    resultTable.add(PieceEvaluationResult.optionalUnmatched(
+                            piece, runtime.getState().getFixedTemplateWorldPositions(
+                                    pieceCenter, orientation)));
+                    continue;
+                }
                 StructureFailureTrace failure = createActiveGraphFailureTrace(
                         controller, controllerPos, orientation, piece.getName(),
                         describeCell(runtime.getState().getError()), activePieceDepth(piece),

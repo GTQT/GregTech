@@ -19,6 +19,7 @@ public final class PieceEvaluationResult {
 
     public enum Status {
         ACTIVE_MATCHED,
+        OPTIONAL_UNMATCHED,
         INACTIVE
     }
 
@@ -111,6 +112,24 @@ public final class PieceEvaluationResult {
                 LongSets.EMPTY_SET, LongSets.EMPTY_SET, null, StructureContribution.empty());
     }
 
+    /**
+     * Result for an optional fixed piece whose pattern is currently absent.
+     * It contributes no formed blocks or abilities, but retains its complete
+     * candidate volume as watched positions for event-driven rechecks.
+     */
+    @NotNull
+    public static PieceEvaluationResult optionalUnmatched(
+            @NotNull StructurePiece piece,
+            @NotNull LongSet watchedPositions) {
+        if (!piece.isOptional()) {
+            throw new IllegalArgumentException(
+                    "Only optional pieces may produce an optional-unmatched result: " + piece.getName());
+        }
+        return new PieceEvaluationResult(
+                piece, Status.OPTIONAL_UNMATCHED, null, new int[0],
+                LongSets.EMPTY_SET, watchedPositions, null, StructureContribution.empty());
+    }
+
     @NotNull
     public StructurePiece getPiece() {
         return piece;
@@ -123,6 +142,10 @@ public final class PieceEvaluationResult {
 
     public boolean isActive() {
         return status == Status.ACTIVE_MATCHED;
+    }
+
+    public boolean isOptionalUnmatched() {
+        return status == Status.OPTIONAL_UNMATCHED;
     }
 
     @Nullable

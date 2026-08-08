@@ -26,6 +26,8 @@ import net.minecraft.world.World;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import org.apache.commons.lang3.ArrayUtils;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
@@ -1898,6 +1900,37 @@ public final class PieceRuntimeState {
             }
         });
         return blocks;
+    }
+
+    /**
+     * Expand every cell of a fixed template into its world position without
+     * reading the world or mutating the match cache.
+     *
+     * <p>This is used by optional fixed pieces that did not match. Their
+     * candidate positions must still be registered with the event-driven
+     * structure index so a later block placement triggers a recheck.
+     *
+     * @throws IllegalStateException when the template contains a variable
+     * repetition aisle
+     */
+    @NotNull
+    public LongSet getFixedTemplateWorldPositions(@NotNull BlockPos centerPos,
+                                                  @NotNull StructureOrientation orientation) {
+        PieceTemplate.AisleDef[] aisles = template.getAisles();
+        int[] repetitions = new int[aisles.length];
+        for (int aisleIndex = 0; aisleIndex < aisles.length; aisleIndex++) {
+            PieceTemplate.AisleDef aisle = aisles[aisleIndex];
+            if (aisle.minRepeat() != aisle.maxRepeat()) {
+                throw new IllegalStateException(
+                        "Cannot expand candidate positions for a repeatable template");
+            }
+            repetitions[aisleIndex] = aisle.minRepeat();
+        }
+
+        LongOpenHashSet positions = new LongOpenHashSet();
+        visitFixedStructureCells(repetitions, centerPos, orientation, 0, 0, 0,
+                (cell, layerCounts) -> positions.add(cell.worldPos.toLong()));
+        return positions;
     }
 
     @NotNull

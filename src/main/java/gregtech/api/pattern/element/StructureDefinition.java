@@ -787,6 +787,12 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                     throw new IllegalStateException("Piece '" + name + "' references unresolved anchor '"
                             + entry.anchorPieceName + "'");
                 }
+                if (piece.isOptional() && (piece.isRepeatable()
+                        || entry.anchorPieceName != null
+                        || hasVariableTemplateRepetitions(piece))) {
+                    throw new IllegalStateException("Optional piece '" + name
+                            + "' must be fixed and use a static placement");
+                }
                 seenNames.add(name);
 
                 int[] axes = piece.getRepeatAxes();
@@ -810,6 +816,22 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
                     }
                 }
             }
+        }
+
+        private static boolean hasVariableTemplateRepetitions(@NotNull IStructurePiece piece) {
+            if (!(piece instanceof MutablePiece)) {
+                return false;
+            }
+            PieceTemplate template = ((MutablePiece) piece).template;
+            if (template == null) {
+                return false;
+            }
+            for (PieceTemplate.AisleDef aisle : template.getAisles()) {
+                if (aisle.minRepeat() != aisle.maxRepeat()) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
@@ -843,6 +865,17 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         @NotNull
         public PieceBuilder<T> centerOffset(int x, int y, int z) {
             piece.centerOffset = new int[]{x, y, z};
+            return this;
+        }
+
+        /**
+         * Allow this fixed piece to remain absent while the rest of the
+         * multiblock forms. Unmatched optional pieces retain a full candidate
+         * position watch set, so construction changes recheck them on demand.
+         */
+        @NotNull
+        public PieceBuilder<T> optional() {
+            piece.optional = true;
             return this;
         }
 
@@ -1053,6 +1086,7 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         @Nullable String[] repeatChannelNames;
         int[] centerOffset;
         boolean toolingVisible = true;
+        boolean optional;
 
         // For pieceFromTemplate(PieceTemplate): stores the canonical pre-built template.
         @Nullable PieceTemplate template;
@@ -1121,6 +1155,11 @@ public final class StructureDefinition<T extends MultiblockControllerBase> {
         @Override
         public boolean isToolingVisible() {
             return toolingVisible;
+        }
+
+        @Override
+        public boolean isOptional() {
+            return optional;
         }
 
         /** Convert to a standalone IStructurePiece (identity conversion). */

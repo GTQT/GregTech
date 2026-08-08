@@ -352,6 +352,16 @@ final class StructureCheckOperationService {
 
             if (!matched) {
                 pieceSession.discardPieceContribution(piece);
+                if (piece.isOptional()) {
+                    runtime.publishInactive();
+                    PieceEvaluationResult optionalUnmatched = PieceEvaluationResult.optionalUnmatched(
+                            piece, runtime.getState().getFixedTemplateWorldPositions(
+                                    centerPos, orientation));
+                    resultTable.add(optionalUnmatched);
+                    propagateChangedAspects(plan.getGraph(), baselineResult, optionalUnmatched,
+                            recheckPieces, prunedPieces);
+                    continue;
+                }
                 StructureFailureTrace failure = incrementalPieceFailureTrace(
                         request.getController(), request.requireControllerPos(), orientation,
                         piece.getName(), runtime.getState().getError(),

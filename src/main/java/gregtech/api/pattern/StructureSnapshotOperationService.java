@@ -99,6 +99,11 @@ final class StructureSnapshotOperationService {
                     piece.checkOnSnapshot(
                             snapshot, checkOrigin, orientation, prior, pieceRuntime, pieceSession));
             if (!matched) {
+                if (piece.isOptional()) {
+                    pieceRuntime.publishInactive();
+                    progressDepth++;
+                    continue;
+                }
                 return StructureSnapshotResult.mismatch(
                         orientation.isFlipped(), piece.getName(), progressDepth);
             }

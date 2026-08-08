@@ -67,6 +67,7 @@ public class StructurePiece {
     @Nullable
     private final StructureCondition<?> condition;
     private final boolean toolingVisible;
+    private final boolean optional;
 
     /**
      * Snapshot checker bound at construction time. Receives a per-call
@@ -112,6 +113,18 @@ public class StructurePiece {
                           @Nullable StructureCondition<?> condition,
                           @NotNull SnapshotChecker snapshotChecker,
                           boolean toolingVisible) {
+        this(name, template, offset, offsetMode, condition, snapshotChecker, toolingVisible, false);
+    }
+
+    /**
+     * Full constructor with tooling visibility and fixed-piece optionality.
+     */
+    public StructurePiece(@NotNull String name, @NotNull PieceTemplate template,
+                          @NotNull Vec3i offset, @NotNull OffsetMode offsetMode,
+                          @Nullable StructureCondition<?> condition,
+                          @NotNull SnapshotChecker snapshotChecker,
+                          boolean toolingVisible,
+                          boolean optional) {
         this.name = name;
         this.pieceTemplate = template;
         this.offset = offset;
@@ -119,6 +132,7 @@ public class StructurePiece {
         this.condition = condition;
         this.snapshotChecker = snapshotChecker;
         this.toolingVisible = toolingVisible;
+        this.optional = optional;
     }
 
     /**
@@ -190,6 +204,14 @@ public class StructurePiece {
 
     public boolean isToolingVisible() {
         return toolingVisible;
+    }
+
+    /**
+     * @return true when this fixed piece may remain unmatched while the parent
+     * multiblock remains formed.
+     */
+    public boolean isOptional() {
+        return optional;
     }
 
     /**

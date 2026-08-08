@@ -109,7 +109,7 @@ public final class StructureCompiler {
                              (snap, origin, orientation, prior, runtime, session) ->
                                      runtime.getState().checkPatternAtSnapshotExact(
                                              snap, origin, orientation, 0, 0, 0, session),
-                             p.isToolingVisible());
+                             p.isToolingVisible(), p.isOptional());
                     pieces.add(piece);
                     if (referenceCenterOffset == null) {
                         PieceTemplate.CenterOffset co = mp.template.getCenterOffset();
@@ -177,7 +177,7 @@ public final class StructureCompiler {
                          (snap, origin, orientation, prior, runtime, session) ->
                                  runtime.getState().checkPatternAtSnapshotExact(
                                          snap, origin, orientation, 0, 0, 0, session),
-                         p.isToolingVisible());
+                         p.isToolingVisible(), p.isOptional());
                 pieces.add(piece);
             }
         }

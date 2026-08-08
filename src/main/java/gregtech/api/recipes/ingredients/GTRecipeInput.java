@@ -253,7 +253,7 @@ public abstract class GTRecipeInput {
             if (fluid != null) {
                 tag.setTag("fluid", fluid.writeToNBT(new NBTTagCompound()));
             }
-        } else {
+        } else if (input instanceof GTRecipeItemInput || input instanceof IntCircuitIngredient) {
             tag.setString("kind", input instanceof IntCircuitIngredient ? "integrated_circuit" : "item_stacks");
             NBTTagList stackList = new NBTTagList();
             ItemStack[] stacks = input.getInputStacks();
@@ -263,6 +263,11 @@ public abstract class GTRecipeInput {
                 }
             }
             tag.setTag("stacks", stackList);
+        } else {
+            // Third-party input implementations do not expose a complete persistent identity contract. Keep them
+            // run-local so an external implementation cannot bind to a different recipe after restart.
+            tag.setString("kind", "custom");
+            tag.setString("instance", Integer.toUnsignedString(System.identityHashCode(input)));
         }
         return tag;
     }

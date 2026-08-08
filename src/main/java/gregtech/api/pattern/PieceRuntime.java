@@ -182,7 +182,7 @@ public final class PieceRuntime {
     /**
      * Publish a clean inactive piece state into an operation-local candidate.
      */
-    void publishInactive() {
+    public void publishInactive() {
         this.validated = true;
         this.dirty = false;
         this.positions = new LongOpenHashSet();
