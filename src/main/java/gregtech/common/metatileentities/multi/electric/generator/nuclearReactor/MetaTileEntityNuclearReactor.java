@@ -62,6 +62,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -179,11 +180,12 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
 
         if (reactorSimulator.isTransOut() && getOutputInventory().getSlots() > 0) {
             List<ItemStack> recoveryItems = reactorSimulator.getListToTransfer();
-            for (ItemStack stack : recoveryItems) {
+            for (Iterator<ItemStack> iterator = recoveryItems.iterator(); iterator.hasNext(); ) {
+                ItemStack stack = iterator.next();
                 ItemStack exist = GTTransferUtils.insertItem(getOutputInventory(), stack, true);
-                if (exist.getCount() == 0) {
+                if (exist.isEmpty()) {
                     GTTransferUtils.insertItem(getOutputInventory(), stack, false);
-                    reactorSimulator.getListToTransfer().remove(stack);
+                    iterator.remove();
                 }
             }
             if (reactorSimulator.getListToTransfer().isEmpty()) {
@@ -193,7 +195,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         if (getInputInventory().getSlots() > 0) {
             for (int i = 0; i < getInputInventory().getSlots(); i++) {
                 ItemStack stack = getInputInventory().getStackInSlot(i);
-                if (stack != ItemStack.EMPTY) {
+                if (!stack.isEmpty() && NuclearComponentBehavior.getInstanceFor(stack) != null) {
                     reactorSimulator.getListToAdd().add(stack);
                     getInputInventory().setStackInSlot(i, ItemStack.EMPTY);
                     reactorSimulator.setTransIn(true);
@@ -246,11 +248,12 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
             int y = slot / reactorWidth;
 
             ItemStack stack = componentHandler.getStackInSlot(slot);
-
-            if (stack.isEmpty()) {
+            ItemStack simulatorStack = reactorSimulator.getComponent(x, y);
+            if (!ItemStack.areItemStacksEqual(stack, simulatorStack)) {
                 reactorSimulator.removeComponent(x, y);
-            } else {
-                reactorSimulator.placeComponent(x, y, stack);
+                if (!stack.isEmpty()) {
+                    reactorSimulator.placeComponent(x, y, stack);
+                }
             }
         }
     }
@@ -260,14 +263,9 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
             for (int y = 0; y < reactorHeight; y++) {
                 int slot = y * reactorWidth + x;
                 ItemStack simulatorStack = reactorSimulator.getComponent(x, y);
-
-                if (!simulatorStack.isEmpty()) {
-                    ItemStack currentStack = componentHandler.getStackInSlot(slot);
-                    if (!currentStack.isEmpty() && currentStack.isItemEqual(simulatorStack)) {
-                        if (simulatorStack.hasTagCompound()) {
-                            currentStack.setTagCompound(simulatorStack.getTagCompound().copy());
-                        }
-                    }
+                ItemStack currentStack = componentHandler.getStackInSlot(slot);
+                if (!ItemStack.areItemStacksEqual(currentStack, simulatorStack)) {
+                    componentHandler.setStackInSlot(slot, simulatorStack.copy());
                 }
             }
         }

@@ -1814,10 +1814,10 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .addComponents(new ComponentHeatExchangerBehavior(120000, Materials.Bronze, 15));
         REACTOR_PLATING_BASIC = addItem(3137, "reactor_plating.basic")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new ReactorPlatingBehavior(Materials.Bronze, 1000, 0.1f));
+                .addComponents(new ReactorPlatingBehavior(1, Materials.Bronze, 1000, 0.1f));
         REACTOR_PLATING_ADVANCED = addItem(3138, "reactor_plating.advanced")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new ReactorPlatingBehavior(Materials.Lead, 2500, 0.25f));
+                .addComponents(new ReactorPlatingBehavior(1, Materials.Lead, 2500, 0.25f));
     }
 
     private void registerWirelessCoverInput(int baseId) {

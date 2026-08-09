@@ -19,10 +19,11 @@ public class ReactorPlatingBehavior extends NuclearComponentBehavior {
     @Getter
     private final float explosionResistance;
 
-    public ReactorPlatingBehavior(Material material,
+    public ReactorPlatingBehavior(int maxDurability,
+                                  Material material,
                                   int heatCapacityBoost,
                                   float explosionResistance) {
-        super(1);
+        super(Math.max(1, maxDurability));
         this.material = material;
         this.heatCapacityBoost = Math.max(0, heatCapacityBoost);
         this.explosionResistance = Math.max(0.0f, Math.min(1.0f, explosionResistance));

@@ -8371,6 +8371,8 @@ gregtech.machine.moderator_port.name=慢化剂端口
 gregtech.machine.moderator_port.tooltip=仅在下方为§f慢化剂方块§7时才能成型运作
 
 gregtech.machine.nuclear_reactor.name=核反应堆
+gregtech.nuclear_reactor.irradiation.minimum_flux=Minimum neutron flux: %s
+gregtech.nuclear_reactor.irradiation.progress=Irradiation: %s / %s
 gregtech.machine.nuclear_extend_hatch.name=反应堆拓展仓
 
 # ME Parts

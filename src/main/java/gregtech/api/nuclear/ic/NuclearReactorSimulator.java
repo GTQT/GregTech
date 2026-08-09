@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.nbt.NBTTagList;
 import gregtech.common.item.behaviors.*;
 
 import org.jetbrains.annotations.NotNull;
@@ -26,6 +27,7 @@ public class NuclearReactorSimulator {
     private final List<GridPosition> heatVentPositions = new ArrayList<>();
     private final List<GridPosition> coolantCellPositions = new ArrayList<>();
     private final List<GridPosition> reflectorPositions = new ArrayList<>();
+    private final List<GridPosition> irradiationTargetPositions = new ArrayList<>();
 
     @Getter
     @Setter
@@ -47,6 +49,8 @@ public class NuclearReactorSimulator {
     private int maxHeatCapacity = 10000;
     @Getter
     private long currentOutput = 0;
+    @Getter
+    private int currentNeutronFlux = 0;
     @Getter
     private int totalFuelRods = 0;
     @Getter
@@ -87,7 +91,7 @@ public class NuclearReactorSimulator {
         if (transIn) {
             for (int x = 0; x < gridWidth; x++) {
                 for (int y = 0; y < gridHeight; y++) {
-                    if (componentGrid[x][y] == ItemStack.EMPTY && !listToAdd.isEmpty()) {
+                    if (componentGrid[x][y].isEmpty() && !listToAdd.isEmpty()) {
                         componentGrid[x][y] = listToAdd.get(0);
                         listToAdd.remove(0);
                     }
@@ -116,6 +120,8 @@ public class NuclearReactorSimulator {
 
         applyCooling();
 
+        processIrradiationTargets();
+
         calculateHeatBalance();
 
         checkSafetyStatus();
@@ -140,6 +146,7 @@ public class NuclearReactorSimulator {
         heatVentPositions.clear();
         coolantCellPositions.clear();
         reflectorPositions.clear();
+        irradiationTargetPositions.clear();
 
         for (int x = 0; x < gridWidth; x++) {
             for (int y = 0; y < gridHeight; y++) {
@@ -166,6 +173,8 @@ public class NuclearReactorSimulator {
                         explosionResistance = Math.min(1.0f,
                                 explosionResistance + plating.getExplosionResistance());
                     }
+                } else if (isIrradiationTarget(stack)) {
+                    irradiationTargetPositions.add(new GridPosition(x, y));
                 }
             }
         }
@@ -181,6 +190,7 @@ public class NuclearReactorSimulator {
     private void calculateFuelRodOutput() {
         long totalEnergy = 0;
         int totalHeat = 0;
+        int totalNeutronFlux = 0;
 
         for (GridPosition pos : fuelRodPositions) {
             ItemStack stack = componentGrid[pos.x][pos.y];
@@ -199,14 +209,30 @@ public class NuclearReactorSimulator {
 
             totalEnergy += finalEnergy;
             totalHeat += finalHeat;
+            totalNeutronFlux += Math.round(fuelRod.getNeutronEmission() * reflectorBonus * 100.0f);
 
             lastEnergyOutput[pos.x][pos.y] = finalEnergy;
             lastHeatOutput[pos.x][pos.y] = finalHeat;
         }
 
         currentOutput = totalEnergy;
+        currentNeutronFlux = totalNeutronFlux;
         currentHeat += totalHeat;
         totalHeatProduced += totalHeat;
+    }
+
+    private void processIrradiationTargets() {
+        if (currentNeutronFlux <= 0) return;
+
+        for (GridPosition pos : irradiationTargetPositions) {
+            ItemStack stack = componentGrid[pos.x][pos.y];
+            IrradiationTargetBehavior target = getIrradiationTargetBehavior(stack);
+            if (target == null || !target.advanceExposure(stack, currentNeutronFlux)) continue;
+
+            transOut = true;
+            listToTransfer.add(target.getIrradiatedProduct());
+            componentGrid[pos.x][pos.y] = ItemStack.EMPTY;
+        }
     }
 
     private void applyHeatDissipation() {
@@ -363,6 +389,8 @@ public class NuclearReactorSimulator {
         heatVentPositions.clear();
         coolantCellPositions.clear();
         reflectorPositions.clear();
+        irradiationTargetPositions.clear();
+        currentNeutronFlux = 0;
     }
 
     private boolean isFuelRod(ItemStack stack) {
@@ -389,6 +417,10 @@ public class NuclearReactorSimulator {
         return getPlatingBehavior(stack) != null;
     }
 
+    private boolean isIrradiationTarget(ItemStack stack) {
+        return getIrradiationTargetBehavior(stack) != null;
+    }
+
     private FuelRodBehavior getFuelRodBehavior(ItemStack stack) {
         return FuelRodBehavior.getInstanceFor(stack);
     }
@@ -411,6 +443,10 @@ public class NuclearReactorSimulator {
 
     private ReactorPlatingBehavior getPlatingBehavior(ItemStack stack) {
         return ReactorPlatingBehavior.getInstanceFor(stack);
+    }
+
+    private IrradiationTargetBehavior getIrradiationTargetBehavior(ItemStack stack) {
+        return IrradiationTargetBehavior.getInstanceFor(stack);
     }
 
     private NuclearComponentBehavior getComponentBehavior(ItemStack stack) {
@@ -517,6 +553,10 @@ public class NuclearReactorSimulator {
         nbt.setLong("TotalHeatProduced", totalHeatProduced);
         nbt.setInteger("MaxHeatReached", maxHeatReached);
         nbt.setFloat("ExplosionResistance", explosionResistance);
+        nbt.setBoolean("TransOut", transOut);
+        nbt.setBoolean("TransIn", transIn);
+        writeItemList(nbt, "TransferQueue", listToTransfer);
+        writeItemList(nbt, "InputQueue", listToAdd);
 
         // 保存网格数据
         NBTTagCompound gridNBT = new NBTTagCompound();
@@ -535,6 +575,26 @@ public class NuclearReactorSimulator {
         return nbt;
     }
 
+    private static void writeItemList(NBTTagCompound nbt, String key, List<ItemStack> stacks) {
+        NBTTagList stackList = new NBTTagList();
+        for (ItemStack stack : stacks) {
+            if (stack.isEmpty()) continue;
+            NBTTagCompound stackNbt = new NBTTagCompound();
+            stack.writeToNBT(stackNbt);
+            stackList.appendTag(stackNbt);
+        }
+        nbt.setTag(key, stackList);
+    }
+
+    private static void readItemList(NBTTagCompound nbt, String key, List<ItemStack> stacks) {
+        stacks.clear();
+        NBTTagList stackList = nbt.getTagList(key, TAG_COMPOUND);
+        for (int i = 0; i < stackList.tagCount(); i++) {
+            ItemStack stack = new ItemStack(stackList.getCompoundTagAt(i));
+            if (!stack.isEmpty()) stacks.add(stack);
+        }
+    }
+
     public void readFromNBT(NBTTagCompound nbt) {
         currentHeat = nbt.getInteger("CurrentHeat");
         maxHeatCapacity = Math.max(10000, nbt.getInteger("MaxHeatCapacity"));
@@ -546,6 +606,13 @@ public class NuclearReactorSimulator {
         totalHeatProduced = nbt.getLong("TotalHeatProduced");
         maxHeatReached = nbt.getInteger("MaxHeatReached");
         explosionResistance = nbt.getFloat("ExplosionResistance");
+        transOut = nbt.getBoolean("TransOut");
+        transIn = nbt.getBoolean("TransIn");
+        readItemList(nbt, "TransferQueue", listToTransfer);
+        readItemList(nbt, "InputQueue", listToAdd);
+        transOut |= !listToTransfer.isEmpty();
+        transIn |= !listToAdd.isEmpty();
+        currentNeutronFlux = 0;
 
         int savedWidth = nbt.getInteger("GridWidth");
         int savedHeight = nbt.getInteger("GridHeight");
