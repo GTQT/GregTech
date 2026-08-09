@@ -15,8 +15,6 @@ import gregtech.api.pattern.StructureCondition;
 import gregtech.api.pattern.StructureExternalDependencies;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureOrientation;
-import gregtech.api.pattern.casing.GTStructureChannels;
-import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureDefinition;
@@ -1419,25 +1417,6 @@ public class MetaTileEntityForgeOfGods extends MultiblockWithDisplayBase {
     @Override
     protected boolean allowsAsyncStructureCheck() {
         return false;
-    }
-
-    @Override
-    @NotNull
-    public List<StructureChannel> getSupportedChannels() {
-        List<StructureChannel> channels = new ArrayList<>(super.getSupportedChannels());
-        channels.add(GTStructureChannels.STRUCTURE_PIECE);
-        return channels;
-    }
-
-    @Override
-    @NotNull
-    public int[] getChannelRange(@NotNull StructureChannel channel) {
-        if (channel == GTStructureChannels.STRUCTURE_PIECE) {
-            // 0=main only, 1=beam_shaft, 2=first_ring, 3=second_ring, 4=third_ring
-            int pieceCount = multiPiecePattern != null ? multiPiecePattern.getToolingPieceCount() : 0;
-            return new int[] { 0, pieceCount };
-        }
-        return super.getChannelRange(channel);
     }
 
     /**

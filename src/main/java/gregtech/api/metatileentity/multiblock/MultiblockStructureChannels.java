@@ -51,6 +51,12 @@ final class MultiblockStructureChannels {
             collectChannelsFromTemplateInto(piece.getTemplate(), seenNames);
         }
 
+        // Piece selection is a tooling concern rather than a cell predicate, so it
+        // cannot be discovered while scanning template elements above.
+        if (multiPiecePattern.getToolingPieceCount() > 1) {
+            seenNames.add(GTStructureChannels.STRUCTURE_PIECE.getName());
+        }
+
         List<StructureChannel> channels = new ArrayList<>();
         addResolvedChannels(seenNames, channels);
         return channels;
