@@ -66,7 +66,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-import static gregtech.SCValues.SYNC_REACTOR_STATE;
+import static gregtech.api.capability.GregtechDataCodes.SYNC_REACTOR_STATE;
 import static gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.NuclearAbility.STOP_WORK;
 import static net.minecraftforge.common.util.Constants.NBT.TAG_COMPOUND;
 

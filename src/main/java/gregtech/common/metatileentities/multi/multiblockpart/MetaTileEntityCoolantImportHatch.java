@@ -46,8 +46,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
-import static gregtech.SCValues.FISSION_COOLANT_TANK_CAPACITY;
-import static gregtech.SCValues.FISSION_LOCK_UPDATE;
+import static gregtech.api.capability.GregtechDataCodes.FISSION_LOCK_UPDATE;
 
 public class MetaTileEntityCoolantImportHatch extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<ICoolantHandler>, ICoolantHandler,
@@ -64,7 +63,7 @@ public class MetaTileEntityCoolantImportHatch extends MetaTileEntityMultiblockNo
 
     @Override
     protected FluidTankList createImportFluidHandler() {
-        this.fluidTank = new LockableFluidTank(FISSION_COOLANT_TANK_CAPACITY, this, false);
+        this.fluidTank = new LockableFluidTank(1_024_000, this, false);
         return new FluidTankList(false, fluidTank);
     }
 

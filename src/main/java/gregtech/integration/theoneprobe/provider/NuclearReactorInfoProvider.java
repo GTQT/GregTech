@@ -1,6 +1,6 @@
 package gregtech.integration.theoneprobe.provider;
 
-import gregtech.SCValues;
+import gregtech.api.GTValues;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -29,7 +29,7 @@ public class NuclearReactorInfoProvider implements IProbeInfoProvider {
 
     @Override
     public String getID() {
-        return SCValues.MODID + ":nuclear_reactor_provider";
+        return GTValues.MODID + ":nuclear_reactor_provider";
     }
 
     @Override

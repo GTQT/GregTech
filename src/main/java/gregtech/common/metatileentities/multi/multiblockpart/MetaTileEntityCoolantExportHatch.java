@@ -36,8 +36,7 @@ import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
 
-import static gregtech.SCValues.FISSION_COOLANT_TANK_CAPACITY;
-import static gregtech.SCValues.FISSION_LOCK_UPDATE;
+import static gregtech.api.capability.GregtechDataCodes.FISSION_LOCK_UPDATE;
 
 public class MetaTileEntityCoolantExportHatch extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<ICoolantHandler>, ICoolantHandler,
@@ -176,7 +175,7 @@ public class MetaTileEntityCoolantExportHatch extends MetaTileEntityMultiblockNo
 
     @Override
     protected FluidTankList createExportFluidHandler() {
-        this.fluidTank = new LockableFluidTank(FISSION_COOLANT_TANK_CAPACITY, this, true);
+        this.fluidTank = new LockableFluidTank(1_024_000, this, true);
         return new FluidTankList(false, fluidTank);
     }
 

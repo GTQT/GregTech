@@ -1,6 +1,6 @@
 package gregtech.common.metatileentities.multi.electric.generator.nuclearReactor;
 
-import gregtech.SCValues;
+import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.ICoolantHandler;
 import gregtech.api.capability.IFuelRodHandler;
 import gregtech.api.capability.IMaintenanceHatch;
@@ -52,7 +52,6 @@ import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.RelativeDirection;
-import gregtech.api.util.SCUtility;
 import gregtech.api.util.TextComponentUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.ICubeRenderer;
@@ -863,14 +862,14 @@ public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
                 if (Math.pow(outerI - Math.floor(diameter / 2.), 2) +
                         Math.pow(j - Math.floor(diameter / 2.), 2) >
                         Math.pow(radius + 0.5f, 2)) {
-                    interiorSlice[i] = SCUtility.replace(interiorSlice[i], j, 'B');
+                    interiorSlice[i] = GTUtility.replace(interiorSlice[i], j, 'B');
                 }
 
                 int outerJ = j + (int) Math.signum(j - (diameter / 2));
                 if (Math.pow(i - Math.floor(diameter / 2.), 2) +
                         Math.pow(outerJ - Math.floor(diameter / 2.), 2) >
                         Math.pow(radius + 0.5f, 2)) {
-                    interiorSlice[i] = SCUtility.replace(interiorSlice[i], j, 'B');
+                    interiorSlice[i] = GTUtility.replace(interiorSlice[i], j, 'B');
                 }
             }
         }
@@ -1088,7 +1087,7 @@ public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
         this.kEff = this.fissionReactor.kEff;
         this.controlRodInsertion = this.fissionReactor.controlRodInsertion;
         this.totalDepletion = this.fissionReactor.fuelDepletion;
-        writeCustomData(SCValues.SYNC_REACTOR_STATS, (packetBuffer -> {
+        writeCustomData(GregtechDataCodes.SYNC_REACTOR_STATS, (packetBuffer -> {
             packetBuffer.writeDouble(this.temperature);
             packetBuffer.writeDouble(this.maxTemperature);
             packetBuffer.writeDouble(this.pressure);
@@ -1106,7 +1105,7 @@ public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
     public void receiveCustomData(int dataId, PacketBuffer buf) {
         super.receiveCustomData(dataId, buf);
 
-        if (dataId == SCValues.SYNC_REACTOR_STATS) {
+        if (dataId == GregtechDataCodes.SYNC_REACTOR_STATS) {
             this.temperature = buf.readDouble();
             this.maxTemperature = buf.readDouble();
             this.pressure = buf.readDouble();
@@ -1116,7 +1115,7 @@ public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
             this.kEff = buf.readDouble();
             this.controlRodInsertion = buf.readDouble();
             this.totalDepletion = buf.readDouble();
-        } else if (dataId == SCValues.SYNC_LOCKING_STATE) {
+        } else if (dataId == GregtechDataCodes.SYNC_LOCKING_STATE) {
             this.lockingState = buf.readEnumValue(LockingState.class);
             this.scheduleRenderUpdate();
         }
@@ -1278,7 +1277,7 @@ public class MetaTileEntityFissionReactor extends MultiblockWithDisplayBase
 
     protected void setLockingState(LockingState lockingState) {
         if (this.lockingState != lockingState) {
-            writeCustomData(SCValues.SYNC_LOCKING_STATE, (buf) -> buf.writeEnumValue(lockingState));
+            writeCustomData(GregtechDataCodes.SYNC_LOCKING_STATE, (buf) -> buf.writeEnumValue(lockingState));
         }
         this.lockingState = lockingState;
     }

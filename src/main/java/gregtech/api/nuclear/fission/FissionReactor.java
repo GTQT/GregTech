@@ -1,20 +1,18 @@
 package gregtech.api.nuclear.fission;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidStack;
-
 import gregtech.api.nuclear.fission.components.ControlRod;
 import gregtech.api.nuclear.fission.components.CoolantChannel;
 import gregtech.api.nuclear.fission.components.FuelRod;
 import gregtech.api.nuclear.fission.components.ReactorComponent;
 import gregtech.common.ConfigHolder;
 
-import static gregtech.SCValues.FISSION_COOLANT_TANK_CAPACITY;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraftforge.fluids.Fluid;
+import net.minecraftforge.fluids.FluidStack;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class FissionReactor {
 
@@ -574,7 +572,7 @@ public class FissionReactor {
         coolantMass = 0;
         for (CoolantChannel channel : coolantChannels) {
             FluidStack tryFluidDrain = channel.getInputHandler().getFluidTank()
-                    .drain(FISSION_COOLANT_TANK_CAPACITY, false);
+                    .drain(1_024_000, false);
             if (tryFluidDrain != null) {
                 int drained = tryFluidDrain.amount;
 

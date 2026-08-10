@@ -119,6 +119,14 @@ public class GregtechDataCodes {
     // Assembly Line
     public static final int UPDATE_PARTICLE = assignId();
 
+    // Fission Hatches
+    public static final int FISSION_LOCK_UPDATE = assignId();
+
+    // Fission Reactor
+    public static final int SYNC_REACTOR_STATS = assignId();
+    public static final int SYNC_LOCKING_STATE = assignId();
+    public static final int SYNC_REACTOR_STATE = assignId();
+
     // Central Monitor
     public static final int UPDATE_ALL = assignId();
     public static final int UPDATE_COVERS = assignId();

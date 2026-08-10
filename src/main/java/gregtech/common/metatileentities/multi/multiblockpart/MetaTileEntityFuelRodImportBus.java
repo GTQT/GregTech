@@ -46,7 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.util.List;
 
-import static gregtech.SCValues.FISSION_LOCK_UPDATE;
+import static gregtech.api.capability.GregtechDataCodes.FISSION_LOCK_UPDATE;
 
 public class MetaTileEntityFuelRodImportBus extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IFuelRodHandler>, IFuelRodHandler,

@@ -1475,4 +1475,15 @@ public class GTUtility {
         if (Interactable.hasAltDown()) adjust *= 64;
         return adjust;
     }
+
+    public static String replace(String str, int index, char replace) {
+        if (str == null) {
+            return null;
+        } else if (index < 0 || index >= str.length()) {
+            return str;
+        }
+        char[] chars = str.toCharArray();
+        chars[index] = replace;
+        return String.valueOf(chars);
+    }
 }

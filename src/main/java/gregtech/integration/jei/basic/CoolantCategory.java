@@ -1,22 +1,24 @@
 package gregtech.integration.jei.basic;
 
 import gregtech.api.gui.GuiTextures;
-import gregtech.integration.jei.basic.BasicRecipeCategory;
+import gregtech.common.metatileentities.MetaTileEntities;
+
+import net.minecraft.client.Minecraft;
+
 import mezz.jei.api.IGuiHelper;
 import mezz.jei.api.gui.IDrawable;
 import mezz.jei.api.gui.IGuiFluidStackGroup;
 import mezz.jei.api.gui.IRecipeLayout;
 import mezz.jei.api.ingredients.IIngredients;
 import mezz.jei.api.recipe.IRecipeWrapper;
-import net.minecraft.client.Minecraft;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import gregtech.SCValues;
-import gregtech.common.metatileentities.MetaTileEntities;
+
+import static gregtech.api.GTValues.MODID;
 
 public class CoolantCategory extends BasicRecipeCategory<CoolantInfo, CoolantInfo> {
 
-    public static final String UID = SCValues.MODID + ".coolant";
+    public static final String UID = MODID + ".coolant";
 
     protected final IDrawable slot;
     private final IDrawable icon;
@@ -59,11 +61,5 @@ public class CoolantCategory extends BasicRecipeCategory<CoolantInfo, CoolantInf
     @Override
     public IRecipeWrapper getRecipeWrapper(@NotNull CoolantInfo recipe) {
         return recipe;
-    }
-
-    @NotNull
-    @Override
-    public String getModName() {
-        return SCValues.MODID;
     }
 }
