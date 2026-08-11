@@ -526,7 +526,6 @@ public class ConfigHolder {
         public ArmorHud armorHud = new ArmorHud();
 
         @Config.Name("Wireless HUD Location")
-        @Config.RequiresMcRestart
         public WirelessHud wirelessHud = new WirelessHud();
 
         @Config.Comment("Config options for Shaders and Post-processing Effects")
@@ -623,10 +622,6 @@ public class ConfigHolder {
         @Config.RequiresMcRestart
         public boolean collapseGTItems = true;
 
-        //是否运行Quit插件
-        @Config.Comment({ "是否运行Quit插件", "Default: true" })
-        public boolean runQuit = true;
-
         public static class GuiConfig {
 
             @Config.Comment({ "The scrolling speed of widgets", "Default: 13" })
@@ -638,7 +633,11 @@ public class ConfigHolder {
                     "Default: true" })
             public boolean smoothProgressBars = true;
         }
+
         public static class WirelessHud {
+            @Config.Comment({ "Whether the wireless HUD is enabled.", "Default: true" })
+            public boolean enabled = true;
+
             @Config.Comment({ "X of HUD.", "Default: 5" })
             @Config.RangeInt(min = 0, max = 255)
             public int hudOffsetX = 5;
@@ -647,6 +646,31 @@ public class ConfigHolder {
             @Config.RangeInt(min = 0, max = 255)
             public int hudOffsetY = 40;
 
+            @Config.Comment({ "Whether to show the gradient power bar.", "Default: true" })
+            public boolean showPowerBar = true;
+
+            @Config.Comment({ "Whether to show the 5m/1h difference text.", "Default: true" })
+            public boolean showTimeDifference = true;
+
+            @Config.Comment({ "Whether to show the power chart.", "Default: true" })
+            public boolean showPowerChart = true;
+
+            @Config.Comment({ "Width of the power chart.", "Default: 150" })
+            @Config.RangeInt(min = 50, max = 500)
+            public int chartWidth = 150;
+
+            @Config.Comment({ "Height of the power chart.", "Default: 100" })
+            @Config.RangeInt(min = 30, max = 300)
+            public int chartHeight = 100;
+
+            @Config.Comment({ "Draw the stored energy line in the power chart.", "Default: true" })
+            public boolean chartShowStored = true;
+
+            @Config.Comment({ "Draw the input rate line in the power chart.", "Default: false" })
+            public boolean chartShowInput = false;
+
+            @Config.Comment({ "Draw the output rate line in the power chart.", "Default: false" })
+            public boolean chartShowOutput = false;
         }
         public static class ArmorHud {
 
