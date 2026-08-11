@@ -383,8 +383,6 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
     public void writeInitialSyncData(PacketBuffer buf) {
         super.writeInitialSyncData(buf);
 
-        buf.writeInt(reactorWidth);
-        buf.writeInt(reactorHeight);
         buf.writeInt(currentHeat);
         buf.writeInt(maxHeatCapacity);
         buf.writeLong(currentOutput);
