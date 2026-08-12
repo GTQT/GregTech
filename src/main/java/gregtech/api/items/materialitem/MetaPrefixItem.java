@@ -15,6 +15,7 @@ import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.EntityDamageUtil;
+import gregtech.api.util.RadiationEffectUtil;
 import gregtech.common.ConfigHolder;
 import gregtech.common.creativetab.GTCreativeTabs;
 
@@ -198,6 +199,9 @@ public class MetaPrefixItem extends StandardMetaItem {
                     double radiationDamage = prefix.radiationDamageFunction.apply(material.getDecaysPerSecond());
                     EntityDamageUtil.applyHazardDamage(entity, DamageSources.getRadioactiveDamage(),
                             (float) radiationDamage, EntityDamageUtil.ResistanceType.RADIATION);
+                    if (radiationDamage > 0.0 && entity instanceof EntityPlayer player) {
+                        RadiationEffectUtil.applyDebuff(player, (float) radiationDamage);
+                    }
                 }
 
                 {
@@ -206,6 +210,9 @@ public class MetaPrefixItem extends StandardMetaItem {
                         float radDamage = material.getProperty(PropertyKey.RADIOACTIVE).getRadioactivity();
                         EntityDamageUtil.applyHazardDamage(entity, DamageSources.getRadioactiveDamage(),
                                 radDamage, EntityDamageUtil.ResistanceType.RADIATION);
+                        if (radDamage > 0.0f && entity instanceof EntityPlayer player) {
+                            RadiationEffectUtil.applyDebuff(player, radDamage);
+                        }
                     }
                 }
 
