@@ -131,6 +131,7 @@ import gregtech.common.metatileentities.multi.electric.godforge.module.MTESmelti
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAccelerateHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAutoMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCleaningMaintenanceHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCloudComputationHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComputationHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityControlRodPort;
@@ -492,10 +493,10 @@ public class MetaTileEntities {
 
     public static MetaTileEntityPassthroughHatchComputation PASSTHROUGH_HATCH_COMPUTATION;
     public static MetaTileEntityPassthroughHatchLaser PASSTHROUGH_HATCH_LASER;
-    public static MetaTileEntityComputationHatch[] COMPUTATION_HATCH_RECEIVER = new MetaTileEntityComputationHatch[
-            GTValues.V.length - 1];
-    public static MetaTileEntityComputationHatch[] COMPUTATION_HATCH_TRANSMITTER = new MetaTileEntityComputationHatch[
-            GTValues.V.length - 1];
+    public static MetaTileEntityComputationHatch[] COMPUTATION_HATCH_RECEIVER = new MetaTileEntityComputationHatch[GTValues.V.length - 1];
+    public static MetaTileEntityComputationHatch[] COMPUTATION_HATCH_TRANSMITTER = new MetaTileEntityComputationHatch[GTValues.V.length - 1];
+    public static MetaTileEntityCloudComputationHatch[] CLOUD_COMPUTATION_HATCH_UPLINK = new MetaTileEntityCloudComputationHatch[GTValues.V.length - 1];
+    public static MetaTileEntityCloudComputationHatch[] CLOUD_COMPUTATION_HATCH_DOWNLINK = new MetaTileEntityCloudComputationHatch[GTValues.V.length - 1];
     public static MetaTileEntityObjectHolder OBJECT_HOLDER;
     public static MetaTileEntityHPCAEmpty HPCA_EMPTY_COMPONENT;
     public static MetaTileEntityHPCAComputation HPCA_COMPUTATION_COMPONENT;

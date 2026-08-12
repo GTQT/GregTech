@@ -11,5 +11,7 @@ public class NetworkHandler {
     public static void registerMessages() {
         INSTANCE.registerMessage(CPacketRequestNetworkInfo.Handler.class, CPacketRequestNetworkInfo.class, id++, Side.SERVER);
         INSTANCE.registerMessage(SPacketWirelessNetworkInfo.Handler.class, SPacketWirelessNetworkInfo.class, id++, Side.CLIENT);
+        INSTANCE.registerMessage(CPacketRequestComputationInfo.Handler.class, CPacketRequestComputationInfo.class, id++, Side.SERVER);
+        INSTANCE.registerMessage(SPacketWirelessComputationInfo.Handler.class, SPacketWirelessComputationInfo.class, id++, Side.CLIENT);
     }
 }

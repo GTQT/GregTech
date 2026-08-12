@@ -7870,6 +7870,42 @@ gregtech.machine.computation_hatch.receiver.tooltip=为多方块结构输入算�
 gregtech.machine.computation_hatch.tier=§a仓口等级§r：%s
 gregtech.machine.computation_hatch.computation=§e算力流量§r：%s CWU/t
 
+gregtech.machine.cloud_computation_hatch.uplink.ulv.name=§8ULV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.lv.name=§7LV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.mv.name=§bMV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.hv.name=§6HV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.ev.name=§5EV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.iv.name=§1IV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.luv.name=§dLuV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.zpm.name=§cZPM§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.uv.name=§3UV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.uhv.name=§4UHV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.uev.name=§aUEV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.uiv.name=§2UIV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.uxv.name=§eUXV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.opv.name=§9OpV§r云计算数据上行仓
+gregtech.machine.cloud_computation_hatch.uplink.max.name=§c§lMAX§r云计算数据上行仓
+
+gregtech.machine.cloud_computation_hatch.downlink.ulv.name=§8ULV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.lv.name=§7LV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.mv.name=§bMV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.hv.name=§6HV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.ev.name=§5EV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.iv.name=§1IV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.luv.name=§dLuV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.zpm.name=§cZPM§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.uv.name=§3UV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.uhv.name=§4UHV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.uev.name=§aUEV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.uiv.name=§2UIV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.uxv.name=§eUXV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.opv.name=§9OpV§r云计算数据下行仓
+gregtech.machine.cloud_computation_hatch.downlink.max.name=§c§lMAX§r云计算数据下行仓
+
+gregtech.machine.cloud_computation_hatch.uplink.tooltip=将多方块的算力上传至无线算力网络，供同队伍的下行仓使用。
+gregtech.machine.cloud_computation_hatch.downlink.tooltip=从无线算力网络获取算力，供多方块配方使用。无需连接光学管道。
+gregtech.machine.cloud_computation_hatch.channel_hint=请在UI内自行选择频道，上行仓与下行仓需选择同一频道。
+
 gregtech.machine.data_access_hatch.optical.receiver.name=光学数据靶仓
 gregtech.machine.data_access_hatch.optical.receiver.tooltip=为多方块结构输入研究数据
 gregtech.machine.data_access_hatch.optical.transmitter.name=光学数据源仓
@@ -8223,69 +8259,69 @@ gregtech.machine.tiered_hatch.max.name=控制单元(MaX)
 
 gregtech.machine.tiered_hatch.tooltip=最高允许%s§7的电压.
 
-gregtech.machine.thread_hatch.lv.name=线程控制仓(LV)
-gregtech.machine.thread_hatch.mv.name=线程控制仓(MV)
-gregtech.machine.thread_hatch.hv.name=线程控制仓(HV)
-gregtech.machine.thread_hatch.ev.name=线程控制仓(EV)
-gregtech.machine.thread_hatch.iv.name=线程控制仓(IV)
-gregtech.machine.thread_hatch.luv.name=线程控制仓(LuV)
-gregtech.machine.thread_hatch.zpm.name=线程控制仓(ZPM)
-gregtech.machine.thread_hatch.uv.name=线程控制仓(UV)
-gregtech.machine.thread_hatch.uhv.name=线程控制仓(UHV)
-gregtech.machine.thread_hatch.uev.name=线程控制仓(UEV)
-gregtech.machine.thread_hatch.uiv.name=线程控制仓(UIV)
-gregtech.machine.thread_hatch.uxv.name=线程控制仓(UXV)
-gregtech.machine.thread_hatch.opv.name=线程控制仓(OPV)
-gregtech.machine.thread_hatch.max.name=线程控制仓(Max)
+gregtech.machine.thread_hatch.lv.name=§7LV§r线程控制仓
+gregtech.machine.thread_hatch.mv.name=§bMV§r线程控制仓
+gregtech.machine.thread_hatch.hv.name=§6HV§r线程控制仓
+gregtech.machine.thread_hatch.ev.name=§5EV§r线程控制仓
+gregtech.machine.thread_hatch.iv.name=§1IV§r线程控制仓
+gregtech.machine.thread_hatch.luv.name=§dLuV§r线程控制仓
+gregtech.machine.thread_hatch.zpm.name=§cZPM§r线程控制仓
+gregtech.machine.thread_hatch.uv.name=§3UV§r线程控制仓
+gregtech.machine.thread_hatch.uhv.name=§4UHV§r线程控制仓
+gregtech.machine.thread_hatch.uev.name=§aUEV§r线程控制仓
+gregtech.machine.thread_hatch.uiv.name=§2UIV§r线程控制仓
+gregtech.machine.thread_hatch.uxv.name=§eUXV§r线程控制仓
+gregtech.machine.thread_hatch.opv.name=§9OpV§r线程控制仓
+gregtech.machine.thread_hatch.max.name=§c§lMAX§r线程控制仓
 
 gregtech.machine.thread_hatch.tooltip=最多可同时处理§b%s§7个核心的任务。
 gregtech.machine.thread_hatch.display=调整多方块的独立核心数量。
 
-gregtech.machine.overclock_hatch.uv.name=超频仓(UV)
-gregtech.machine.overclock_hatch.uhv.name=超频仓(UHV)
-gregtech.machine.overclock_hatch.uev.name=超频仓(UEV)
-gregtech.machine.overclock_hatch.uiv.name=超频仓(UIV)
-gregtech.machine.overclock_hatch.uxv.name=超频仓(UXV)
-gregtech.machine.overclock_hatch.opv.name=超频仓(OPV)
-gregtech.machine.overclock_hatch.max.name=超频仓(Max)
+gregtech.machine.overclock_hatch.uv.name=§3UV§r超频仓
+gregtech.machine.overclock_hatch.uhv.name=§4UHV§r超频仓
+gregtech.machine.overclock_hatch.uev.name=§aUEV§r超频仓
+gregtech.machine.overclock_hatch.uiv.name=§2UIV§r超频仓
+gregtech.machine.overclock_hatch.uxv.name=§eUXV§r超频仓
+gregtech.machine.overclock_hatch.opv.name=§9OpV§r超频仓
+gregtech.machine.overclock_hatch.max.name=§c§lMAX§r超频仓
 
 gregtech.machine.overclock_hatch.tooltip.1=超频仓会在每次超频时调整一次机器的耗时倍数。
 gregtech.machine.overclock_hatch.tooltip.2=每次超频时，将耗时倍数乘以1/%s，乘算叠加。
 
-gregtech.machine.accelerate_hatch.lv.name=加速仓(LV)
-gregtech.machine.accelerate_hatch.mv.name=加速仓(MV)
-gregtech.machine.accelerate_hatch.hv.name=加速仓(HV)
-gregtech.machine.accelerate_hatch.ev.name=加速仓(EV)
-gregtech.machine.accelerate_hatch.iv.name=加速仓(IV)
-gregtech.machine.accelerate_hatch.luv.name=加速仓(LuV)
-gregtech.machine.accelerate_hatch.zpm.name=加速仓(ZPM)
-gregtech.machine.accelerate_hatch.uv.name=加速仓(UV)
-gregtech.machine.accelerate_hatch.uhv.name=加速仓(UHV)
-gregtech.machine.accelerate_hatch.uev.name=加速仓(UEV)
-gregtech.machine.accelerate_hatch.uiv.name=加速仓(UIV)
-gregtech.machine.accelerate_hatch.uxv.name=加速仓(UXV)
-gregtech.machine.accelerate_hatch.opv.name=加速仓(OPV)
-gregtech.machine.accelerate_hatch.max.name=加速仓(Max)
+gregtech.machine.accelerate_hatch.lv.name=§7LV§r加速仓
+gregtech.machine.accelerate_hatch.mv.name=§bMV§r加速仓
+gregtech.machine.accelerate_hatch.hv.name=§6HV§r加速仓
+gregtech.machine.accelerate_hatch.ev.name=§5EV§r加速仓
+gregtech.machine.accelerate_hatch.iv.name=§1IV§r加速仓
+gregtech.machine.accelerate_hatch.luv.name=§dLuV§r加速仓
+gregtech.machine.accelerate_hatch.zpm.name=§cZPM§r加速仓
+gregtech.machine.accelerate_hatch.uv.name=§3UV§r加速仓
+gregtech.machine.accelerate_hatch.uhv.name=§4UHV§r加速仓
+gregtech.machine.accelerate_hatch.uev.name=§aUEV§r加速仓
+gregtech.machine.accelerate_hatch.uiv.name=§2UIV§r加速仓
+gregtech.machine.accelerate_hatch.uxv.name=§eUXV§r加速仓
+gregtech.machine.accelerate_hatch.opv.name=§9OpV§r加速仓
+gregtech.machine.accelerate_hatch.max.name=§c§lMAX§r加速仓
 
 gregtech.machine.accelerate_hatch.tooltip.1=加速仓可以直接调整机器的耗时倍数，在原计算结果之上乘算。
 gregtech.machine.accelerate_hatch.tooltip.2=可提供低至%s%%的耗时倍率。
 
 # Dust Collector
-gregtech.machine.dust_collector.ulv.name=§8ULV§r 除尘器
-gregtech.machine.dust_collector.lv.name=§7LV§r 除尘器
-gregtech.machine.dust_collector.mv.name=§bMV§r 除尘器
-gregtech.machine.dust_collector.hv.name=§6HV§r 除尘器
-gregtech.machine.dust_collector.ev.name=§5EV§r 除尘器
-gregtech.machine.dust_collector.iv.name=§1IV§r 除尘器
-gregtech.machine.dust_collector.luv.name=§dLuV§r 除尘器
-gregtech.machine.dust_collector.zpm.name=§cZPM§r 除尘器
-gregtech.machine.dust_collector.uv.name=§3UV§r 除尘器
-gregtech.machine.dust_collector.uhv.name=§4UHV§r 除尘器
-gregtech.machine.dust_collector.uev.name=§aUEV§r 除尘器
-gregtech.machine.dust_collector.uiv.name=§2UIV§r 除尘器
-gregtech.machine.dust_collector.uxv.name=§eUXV§r 除尘器
-gregtech.machine.dust_collector.opv.name=§9OpV§r 除尘器
-gregtech.machine.dust_collector.max.name=§c§lMAX§r 除尘器
+gregtech.machine.dust_collector.ulv.name=§8ULV§r除尘器
+gregtech.machine.dust_collector.lv.name=§7LV§r除尘器
+gregtech.machine.dust_collector.mv.name=§bMV§r除尘器
+gregtech.machine.dust_collector.hv.name=§6HV§r除尘器
+gregtech.machine.dust_collector.ev.name=§5EV§r除尘器
+gregtech.machine.dust_collector.iv.name=§1IV§r除尘器
+gregtech.machine.dust_collector.luv.name=§dLuV§r除尘器
+gregtech.machine.dust_collector.zpm.name=§cZPM§r除尘器
+gregtech.machine.dust_collector.uv.name=§3UV§r除尘器
+gregtech.machine.dust_collector.uhv.name=§4UHV§r除尘器
+gregtech.machine.dust_collector.uev.name=§aUEV§r除尘器
+gregtech.machine.dust_collector.uiv.name=§2UIV§r除尘器
+gregtech.machine.dust_collector.uxv.name=§eUXV§r除尘器
+gregtech.machine.dust_collector.opv.name=§9OpV§r除尘器
+gregtech.machine.dust_collector.max.name=§c§lMAX§r除尘器
 
 gregtech.machine.dust_collector.tooltip.1=从消声仓中收集灰烬
 gregtech.machine.dust_collector.tooltip.2=允许安装在消声仓前方，不影响消声仓检测
@@ -9830,6 +9866,16 @@ gregtech.machine.wireless_controller.tooltip.8=§7 Ti = 电容等级，C = 监�
 gregtech.machine.wireless_controller.tooltip.9=§7 仅 UHV 及以上等级的电容参与计算
 gregtech.machine.wireless_controller.tooltip.retention=§b本地保留比例：§f%s%%
 gregtech.machine.wireless_controller.tooltip.team=FTB 同组玩家自动共享同一网络，无需额外操作。
+
+# 无线算力网络 GUI
+gregtech.wireless.gui.compute.cwut=等级算力: %s CWU/t
+gregtech.wireless.gui.compute.allocated=已分配: %s CWU/t
+gregtech.wireless.gui.compute.allocated_per_second=分配速率: %s CWU/s
+gregtech.wireless.gui.compute.capacity=信道容量: %s CWU/t
+gregtech.wireless.gui.compute.nodes=已注册上行节点: %s
+gregtech.wireless.gui.compute.mode.uplink=上行（提供算力）
+gregtech.wireless.gui.compute.mode.downlink=下行（获取算力）
+gregtech.wireless.gui.tab.information=信道信息
 
 # JEI Collapsible Groups
 gregtech.jei.group.cables=GT 线缆

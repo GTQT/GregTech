@@ -8,6 +8,7 @@ import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAccelerateHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityAutoMaintenanceHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCleaningMaintenanceHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCloudComputationHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComplexDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityComputationHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityControlRodPort;
@@ -83,7 +84,6 @@ public final class MultiblockPartRegistration {
         registerWirelessHatches();
         registerMaintenanceHatches();
         registerSpecialHatches();
-
     }
 
     // ---- Item/Fluid IO Buses and Hatches ----
@@ -439,11 +439,16 @@ public final class MultiblockPartRegistration {
         for (int i = 0; i < COMPUTATION_HATCH_RECEIVER.length - 1; i++) {
             String voltageName = GTValues.VN[i + 1].toLowerCase();
             COMPUTATION_HATCH_RECEIVER[i] = registerMetaTileEntity(3240 + i,
-                    new MetaTileEntityComputationHatch(gregtechId("computation_hatch.receiver." + voltageName), i + 1,
-                            false));
+                    new MetaTileEntityComputationHatch(gregtechId("computation_hatch.receiver." + voltageName), i + 1, false));
             COMPUTATION_HATCH_TRANSMITTER[i] = registerMetaTileEntity(3255 + i,
-                    new MetaTileEntityComputationHatch(gregtechId("computation_hatch.transmitter." + voltageName),
-                            i + 1, true));
+                    new MetaTileEntityComputationHatch(gregtechId("computation_hatch.transmitter." + voltageName), i + 1, true));
+        }
+        for (int i = 0; i < CLOUD_COMPUTATION_HATCH_UPLINK.length; i++) {
+            String voltageName = GTValues.VN[i + 1].toLowerCase();
+            CLOUD_COMPUTATION_HATCH_UPLINK[i] = registerMetaTileEntity(3270 + i,
+                    new MetaTileEntityCloudComputationHatch(gregtechId("cloud_computation_hatch.uplink." + voltageName), i + 1, true));
+            CLOUD_COMPUTATION_HATCH_DOWNLINK[i] = registerMetaTileEntity(3285 + i,
+                    new MetaTileEntityCloudComputationHatch(gregtechId("cloud_computation_hatch.downlink." + voltageName), i + 1, false));
         }
         for (int i = 0; i < ROTOR_HOLDER.length; i++) {
             String voltageName = GTValues.VN[i + 3].toLowerCase();

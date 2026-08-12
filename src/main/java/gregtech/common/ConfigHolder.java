@@ -528,6 +528,10 @@ public class ConfigHolder {
         @Config.Name("Wireless HUD Location")
         public WirelessHud wirelessHud = new WirelessHud();
 
+        @Config.Comment("Configuration for the wireless computation HUD.")
+        @Config.Name("Wireless Computation HUD")
+        public WirelessComputationHud wirelessComputationHud = new WirelessComputationHud();
+
         @Config.Comment("Config options for Shaders and Post-processing Effects")
         @Config.Name("Shader Options")
         public ShaderOptions shader = new ShaderOptions();
@@ -672,6 +676,42 @@ public class ConfigHolder {
             @Config.Comment({ "Draw the output rate line in the power chart.", "Default: false" })
             public boolean chartShowOutput = false;
         }
+        public static class WirelessComputationHud {
+            @Config.Comment({ "Whether the wireless computation HUD is enabled.", "Default: true" })
+            public boolean enabled = true;
+
+            @Config.Comment({ "X of HUD.", "Default: 5" })
+            @Config.RangeInt(min = 0, max = 255)
+            public int hudOffsetX = 5;
+
+            @Config.Comment({ "Y of HUD.", "Default: 40" })
+            @Config.RangeInt(min = 0, max = 255)
+            public int hudOffsetY = 40;
+
+            @Config.Comment({ "Whether to show the utilization gradient bar.", "Default: true" })
+            public boolean showUtilizationBar = true;
+
+            @Config.Comment({ "Whether to show the 5m/1h difference text.", "Default: true" })
+            public boolean showTimeDifference = true;
+
+            @Config.Comment({ "Whether to show the allocation chart.", "Default: true" })
+            public boolean showChart = true;
+
+            @Config.Comment({ "Width of the chart.", "Default: 150" })
+            @Config.RangeInt(min = 50, max = 500)
+            public int chartWidth = 150;
+
+            @Config.Comment({ "Height of the chart.", "Default: 100" })
+            @Config.RangeInt(min = 30, max = 300)
+            public int chartHeight = 100;
+
+            @Config.Comment({ "Draw the allocated CWU/t line in the chart.", "Default: true" })
+            public boolean chartShowAllocated = true;
+
+            @Config.Comment({ "Draw the allocation rate line in the chart.", "Default: false" })
+            public boolean chartShowRate = false;
+        }
+
         public static class ArmorHud {
 
             @Config.Comment({ "Sets HUD location", "1 - left-upper corner", "2 - right-upper corner",

@@ -10,7 +10,7 @@ import java.util.UUID;
  * The wireless pool is truly unbounded — there is no capacity limit.
  * Physical storage capacity is managed by individual PSS units.
  */
-public final class WirelessNetworkView {
+public final class WirelessNetworkView implements ChannelInfo {
 
     public static final WirelessNetworkView EMPTY = new WirelessNetworkView(
             null, -1, "No Network", BigInteger.ZERO,

@@ -5,7 +5,7 @@ import gregtech.api.gui.Widget;
 import gregtech.api.gui.resources.FluxWirelessTextures;
 import gregtech.api.util.Position;
 import gregtech.api.util.Size;
-import gregtech.api.wireless.WirelessNetworkView;
+import gregtech.api.wireless.ChannelInfo;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.renderer.GlStateManager;
@@ -28,13 +28,13 @@ public class FluxChannelListWidget extends Widget {
     private static final int ROW_WIDTH = 146;
     private static final int MAX_ROWS = 10;
 
-    private final Supplier<List<WirelessNetworkView>> channelSupplier;
+    private final Supplier<List<? extends ChannelInfo>> channelSupplier;
     private final IntSupplier selectedSupplier;
     private final IntConsumer selectionExecutor;
     private final List<ChannelEntry> channels = new ArrayList<>();
     private int selectedChannel;
 
-    public FluxChannelListWidget(int x, int y, Supplier<List<WirelessNetworkView>> channelSupplier,
+    public FluxChannelListWidget(int x, int y, Supplier<List<? extends ChannelInfo>> channelSupplier,
                                  IntSupplier selectedSupplier, IntConsumer selectionExecutor) {
         super(new Position(x, y), new Size(ROW_WIDTH, ROW_HEIGHT * MAX_ROWS));
         this.channelSupplier = channelSupplier;
@@ -106,7 +106,7 @@ public class FluxChannelListWidget extends Widget {
     public void handleClientAction(int id, PacketBuffer buffer) {
         if (id != 2) return;
         int selected = buffer.readVarInt();
-        for (WirelessNetworkView channel : channelSupplier.get()) {
+        for (ChannelInfo channel : channelSupplier.get()) {
             if (channel.getChannelId() == selected) {
                 selectionExecutor.accept(selected);
                 return;
@@ -124,9 +124,9 @@ public class FluxChannelListWidget extends Widget {
         }
     }
 
-    private static List<ChannelEntry> entries(List<WirelessNetworkView> source) {
+    private static List<ChannelEntry> entries(List<? extends ChannelInfo> source) {
         List<ChannelEntry> entries = new ArrayList<>();
-        for (WirelessNetworkView channel : source) {
+        for (ChannelInfo channel : source) {
             entries.add(new ChannelEntry(channel.getChannelId(), channel.getNetworkName()));
         }
         entries.sort(Comparator.comparing(entry -> entry.name, String.CASE_INSENSITIVE_ORDER));

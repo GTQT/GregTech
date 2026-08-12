@@ -18,6 +18,7 @@ public class CommandWireless extends CommandTreeBase {
         addSubcommand(new CommandWirelessJoin());
         addSubcommand(new CommandWirelessLeave());
         addSubcommand(new CommandWirelessCleanup());
+        addSubcommand(new CommandWirelessCompute());
     }
 
     @NotNull
