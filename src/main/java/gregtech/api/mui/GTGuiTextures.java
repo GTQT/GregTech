@@ -1042,6 +1042,7 @@ public class GTGuiTextures {
     public static final UITexture UNSELECTED_OPTION = fullImage("textures/gui/picture/unselected_option");
     public static final UITexture BACKGROUND_TEXT_FIELD = fullImage("textures/gui/background/screen_blue");
     public static final UITexture PICTURE_INFO = fullImage("textures/gui/picture/information_round");
+    public static final UITexture RACK_LARGE = fullImage("textures/gui/picture/rack_large");
     public static final UITexture BACKGROUND_STAR = fullImage("textures/gui/background/star");
     public static final UITexture BACKGROUND_STANDARD = UITexture.builder()
         .location(GTValues.MODID, "gui/background/singleblock_default")

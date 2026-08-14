@@ -118,7 +118,9 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
             IBlockState casing = controller.getCasingBlock(this);
             if (casing != null) return this.hatchTexture = new VisualStateRenderer(casing);
             return this.hatchTexture = controller.getBaseTexture(this);
-        } else if (this.hatchTexture != null) {
+        } else if (this.hatchTexture != null && !(this.hatchTexture instanceof VisualStateRenderer)) {
+            // 结构失效：VisualStateRenderer 绑定 casing 外观与 SOLID 渲染层，
+            // 失效后 MTE 改在 CUTOUT_MIPPED 层渲染，继续复用会导致面丢失（透明），必须回退。
             if (hatchTexture != Textures.getInactiveTexture(hatchTexture)) {
                 return this.hatchTexture = Textures.getInactiveTexture(hatchTexture);
             }

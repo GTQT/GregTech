@@ -712,10 +712,7 @@ public class DeclarativePatternBuilder {
         if (piece.centerOffset[0] != 0
                 || piece.centerOffset[1] != 0
                 || piece.centerOffset[2] != 0) {
-            template = compiler.buildPieceTemplate(new int[]{
-                    piece.centerOffset[0], piece.centerOffset[1], piece.centerOffset[2],
-                    0, 0
-            });
+            template = compiler.buildPieceTemplate(piece.centerOffset);
         } else {
             template = compiler.buildPieceTemplate();
         }
@@ -853,7 +850,8 @@ public class DeclarativePatternBuilder {
         int[][] ranges = new int[0][0];
         int[] steps = new int[0];
         String[] rawChannelNames;
-        int[] centerOffset = {0, 0, 0};
+        // [x, y, z, minZ, maxZ] —— z 方向对齐用 maxZ，minZ/maxZ 为中心 aisle 之前的累计层数
+        int[] centerOffset = {0, 0, 0, 0, 0};
 
         // Characters already mapped for multi-axis piece (avoid duplicates)
         final List<Character> mappedChars = new ArrayList<>();
@@ -905,7 +903,21 @@ public class DeclarativePatternBuilder {
 
         /** Set the center offset for this piece. */
         public PieceBuilder centerOffset(int x, int y, int z) {
-            piece.centerOffset = new int[]{x, y, z};
+            piece.centerOffset = new int[]{x, y, z, 0, 0};
+            return this;
+        }
+
+        /**
+         * Set the full center offset for this piece.
+         *
+         * @param x    controller x offset within the pattern
+         * @param y    controller y offset within the pattern
+         * @param z    controller z offset (aisle index) within the pattern
+         * @param minZ cumulative min aisle count before the center aisle
+         * @param maxZ cumulative max aisle count before the center aisle (z-alignment uses this)
+         */
+        public PieceBuilder centerOffset(int x, int y, int z, int minZ, int maxZ) {
+            piece.centerOffset = new int[]{x, y, z, minZ, maxZ};
             return this;
         }
 
@@ -1064,7 +1076,16 @@ public class DeclarativePatternBuilder {
 
         /** Set the center offset. */
         public MultiAxisPieceBuilder centerOffset(int x, int y, int z) {
-            piece.centerOffset = new int[]{x, y, z};
+            piece.centerOffset = new int[]{x, y, z, 0, 0};
+            return this;
+        }
+
+        /**
+         * Set the full center offset (x, y, z, minZ, maxZ).
+         * z-alignment uses maxZ; minZ/maxZ = cumulative aisle counts before the center aisle.
+         */
+        public MultiAxisPieceBuilder centerOffset(int x, int y, int z, int minZ, int maxZ) {
+            piece.centerOffset = new int[]{x, y, z, minZ, maxZ};
             return this;
         }
 

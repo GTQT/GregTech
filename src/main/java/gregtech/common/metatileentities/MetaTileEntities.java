@@ -112,6 +112,7 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwit
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityProcessingArray;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPyrolyseOven;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityQuantumComputer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityResearchStation;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntitySpentFuelPool;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityVacuumFreezer;
@@ -183,6 +184,8 @@ import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntity
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAComputation;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCACooler;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAEmpty;
+import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCComponentRack;
+import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCUncertaintyHatch;
 import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamGrinder;
 import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamOven;
 import gregtech.common.metatileentities.primitive.MetaTileEntityCharcoalPileIgniter;
@@ -508,6 +511,10 @@ public class MetaTileEntities {
     public static MetaTileEntityHPCAAdvancedComputation HPCA_ULTIMATE_COMPUTATION_COMPONENT;
     public static MetaTileEntityHPCAAdvancedCooler HPCA_SUPER_COOLER_COMPONENT;
     public static MetaTileEntityHPCAAdvancedCooler HPCA_ULTIMATE_COOLER_COMPONENT;
+    // Quantum Computer
+    public static MetaTileEntityQuantumComputer QUANTUM_COMPUTER;
+    public static MetaTileEntityQCComponentRack QC_RACK;
+    public static MetaTileEntityQCUncertaintyHatch QC_UNCERTAINTY_HATCH;
     public static MetaTileEntityParallelHatch[] PARALLEL_HATCH = new MetaTileEntityParallelHatch[GTValues.V.length - 1];
     public static MetaTileEntityTieredHatch[] TIERED_HATCH = new MetaTileEntityTieredHatch[GTValues.V.length];
     public static MetaTileEntityParallelHatch CREATIVE_PARALLEL_HATCH;

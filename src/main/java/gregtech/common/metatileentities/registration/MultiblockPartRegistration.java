@@ -60,6 +60,8 @@ import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntity
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAComputation;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCACooler;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAEmpty;
+import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCComponentRack;
+import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCUncertaintyHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamFluidHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamItemBus;
@@ -424,6 +426,11 @@ public final class MultiblockPartRegistration {
                 new MetaTileEntityHPCAAdvancedCooler(gregtechId("hpca.ultimate_cooler_component"), false, true));
         HPCA_BRIDGE_COMPONENT = registerMetaTileEntity(3229,
                 new MetaTileEntityHPCABridge(gregtechId("hpca.bridge_component")));
+
+        QC_RACK = registerMetaTileEntity(3431,
+                new MetaTileEntityQCComponentRack(gregtechId("qc.component_rack")));
+        QC_UNCERTAINTY_HATCH = registerMetaTileEntity(3432,
+                new MetaTileEntityQCUncertaintyHatch(gregtechId("qc.uncertainty_hatch")));
 
         DATA_ACCESS_HATCH[0] = registerMetaTileEntity(3230,
                 new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.i"), GTValues.MV, false));

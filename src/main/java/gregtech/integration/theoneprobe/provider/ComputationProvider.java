@@ -7,6 +7,7 @@ import gregtech.api.util.TextComponentUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityHPCA;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwitch;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityQuantumComputer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityResearchStation;
 
 import net.minecraft.block.state.IBlockState;
@@ -46,6 +47,10 @@ public class ComputationProvider implements IProbeInfoProvider {
 
                 if (metaTileEntity instanceof MetaTileEntityNetworkSwitch && ((MetaTileEntityNetworkSwitch) metaTileEntity).isStructureFormed()) {
                     displayCWUInfo(info, "gregtech.multiblock.computation.max", ((MetaTileEntityNetworkSwitch) metaTileEntity).getMaxCWUt());
+                }
+
+                if (metaTileEntity instanceof MetaTileEntityQuantumComputer && ((MetaTileEntityQuantumComputer) metaTileEntity).isStructureFormed()) {
+                    displayCWUInfo(info, "gregtech.multiblock.computation.max", ((MetaTileEntityQuantumComputer) metaTileEntity).getMaxCWUt());
                 }
             }
         }

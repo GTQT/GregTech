@@ -81,6 +81,7 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwit
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityProcessingArray;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPyrolyseOven;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityQuantumComputer;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityResearchStation;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntitySpentFuelPool;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityVacuumFreezer;
@@ -328,6 +329,9 @@ public final class MultiblockRegistration {
                 new MetaTileEntityHPCA(gregtechId("high_performance_computing_array")));
 
         NETWORK_SWITCH = registerMetaTileEntity(1268, new MetaTileEntityNetworkSwitch(gregtechId("network_switch")));
+
+        QUANTUM_COMPUTER = registerMetaTileEntity(1269,
+                new MetaTileEntityQuantumComputer(gregtechId("quantum_computer")));
 
         // 电网系统
 

@@ -6714,6 +6714,25 @@ gregtech.machine.high_performance_computing_array.tooltip.2=用于生产§f算�
 gregtech.machine.high_performance_computing_array.tooltip.3=需要HPCA组件来生产§fCWU/t§7（计算工作单元）。
 gregtech.multiblock.high_performance_computing_array.description=高性能计算阵列（HPCA）是个多方块结构，用于为更复杂的装配线研究数据提供计算工作单元（CWU/t）。该结构中有3×3的区域可以以任意方式填充HPCA组件，不同的组件提供不同数量的算力，冷却与能源成本，并且影响热量的产出与冷却液的消耗。当存在桥接组件时，HPCA可以连接入网络交换机，让不同来源的算力整合并输出到一个或多个目的地。
 
+gregtech.machine.quantum_computer.name=量子计算机
+gregtech.machine.quantum_computer.tooltip.1=超级计算机的最终形态
+gregtech.machine.quantum_computer.tooltip.2=用于生产§f算力§7（同时会产生热量）。
+gregtech.machine.quantum_computer.tooltip.3=在Rack舱中放入量子电路以生产§fCWU/t§7，通过流体舱注入冷却液进行主动水冷。
+gregtech.multiblock.quantum_computer.description=量子计算机（Quantum Computer）是高性能计算阵列的上位：2 列宽的可变长度结构（3~14 层），每层并排 2 个Rack舱。Rack舱内放入量子电路（circuit 矿辞）作为计算组件，档位越高算力与产热越高。热量通过流体输入舱注入的冷却液（PCBCoolant）进行主动水冷抵消，每层 Rack 提供固定的冷却能力。不确定性舱内含 4×4 矩阵平衡小游戏：点击格子交换数值，使 3×3 焦点指示器覆盖区域的对称数值配平（绿=配平、红=未配平），全部激活焦点配平后机器才产出算力；解析模式由结构层数决定（1~5，越高越难）。温度过高时计算组件会被销毁！
+
+gregtech.machine.qc.component_rack.name=量子计算机组件机架
+gregtech.machine.qc.component_rack.tooltip.1=量子计算机的组件槽位
+gregtech.machine.qc.component_rack.tooltip.2=放入量子电路（运行中/高温时锁定）
+gregtech.machine.qc.uncertainty_hatch.name=未定元解析器
+gregtech.machine.qc.uncertainty_hatch.tooltip.1=解析量子不确定性：维持 4×4 矩阵对称平衡
+gregtech.machine.qc.uncertainty_hatch.tooltip.2=点击格子交换数值使焦点区域对称配平；全部激活焦点配平时量子计算机才可运行
+gregtech.machine.qc.uncertainty_hatch.mode=§7解析模式：§b%d
+gregtech.machine.qc.uncertainty_hatch.status.resolved=§a不确定性已解析
+gregtech.machine.qc.uncertainty_hatch.status.unresolved=§c不确定性未解析
+gregtech.machine.qc.uncertainty_hatch.cell_tooltip=§7点击选中，再次点击另一格交换数值
+gregtech.machine.qc.uncertainty_hatch.cell_value=§7数值：§b%d
+gregtech.machine.qc.uncertainty_hatch.focal_tooltip=§7焦点：配平其影响区域的对称数值
+
 gregtech.machine.central_monitor.name=中央监控器
 gregtech.multiblock.central_monitor.low_power=供能不足
 gregtech.multiblock.central_monitor.height=屏幕高度：%d
@@ -8863,6 +8882,8 @@ gregtech.multiblock.ability.output_laser=激光输出仓
 gregtech.multiblock.ability.computation_data_reception=计算数据接收仓
 gregtech.multiblock.ability.computation_data_transmission=计算数据发送仓
 gregtech.multiblock.ability.hpca_component=HPCA组件
+gregtech.multiblock.ability.qc_component=量子计算机组件机架
+gregtech.multiblock.ability.qc_uncertainty=量子不确定性舱
 gregtech.multiblock.ability.object_holder=物体持有器
 gregtech.multiblock.ability.wireless_controller=无线控制器
 gregtech.multiblock.ability.thread_hatch=线程仓
@@ -9019,6 +9040,17 @@ gregtech.multiblock.hpca.temperature=温度：%,d °C
 gregtech.multiblock.hpca.hover_for_info=悬停以显示细节
 gregtech.multiblock.hpca.error_damaged=计算组件损坏！
 gregtech.multiblock.hpca.error_temperature=温度超过100℃，可能导致计算组件损坏！
+
+gregtech.multiblock.quantum_computer.energy=使用：%s / %s EU/t (%s)
+gregtech.multiblock.quantum_computer.computation=§7提供：§b%,d / %,d CWU/t
+gregtech.multiblock.quantum_computer.temperature=温度：%,d °C
+gregtech.multiblock.quantum_computer.mode=§7解析模式：§b%d§7（最高 %d）
+gregtech.multiblock.quantum_computer.warning_unresolved=不确定性未解析，无法产出算力！
+gregtech.multiblock.quantum_computer.warning_temperature=温度过高，计算组件可能被销毁！
+gregtech.multiblock.quantum_computer.error_temperature=温度超过1000℃，计算组件正在被销毁！
+gregtech.multiblock.quantum_computer.warning_no_computation=没有计算组件！
+gregtech.multiblock.quantum_computer.warning_low_cooling=散热不足！
+gregtech.multiblock.quantum_computer.warning_structure_header=量子计算机警告：
 gregtech.multiblock.hpca.warning_temperature=温度超过50℃，超过100℃时可能导致计算组件损坏！
 gregtech.multiblock.hpca.warning_temperature_active_cool=充分利用主动冷却组件
 gregtech.multiblock.hpca.warning_structure_header=结构警告：

@@ -6718,6 +6718,25 @@ gregtech.machine.high_performance_computing_array.tooltip.2=Used to generate §f
 gregtech.machine.high_performance_computing_array.tooltip.3=Requires HPCA components to generate §fCWU/t§7 (Compute Work Units).
 gregtech.multiblock.high_performance_computing_array.description=The High Performance Computing Array (HPCA) is a multiblock structure used for creating Compute Work Units (CWU/t) for more complex Assembly Line Research Data. The structure has a flexible 3x3 area which can be filled in any way with HPCA components. Different components can provide different amounts of Computation, Cooling, as well as Energy Cost, Coolant Cost, and Heat Production. When used with a Bridge Component, the HPCA can connect to Network Switches for combining and routing Computation from multiple sources to one or more destinations.
 
+gregtech.machine.quantum_computer.name=Quantum Computer
+gregtech.machine.quantum_computer.tooltip.1=The final form of the supercomputer
+gregtech.machine.quantum_computer.tooltip.2=Used to generate §fComputation§7 (and heat).
+gregtech.machine.quantum_computer.tooltip.3=Place quantum circuits in Component Racks to generate §fCWU/t§7, and supply coolant via a fluid hatch for active liquid cooling.
+gregtech.multiblock.quantum_computer.description=The Quantum Computer is the successor to the High Performance Computing Array: a 2-wide variable-length structure (3~14 layers) with 2 Component Racks per layer. Place quantum circuits (circuit ore dictionary) in the Racks as computation components; higher tiers produce more computation and heat. Heat is offset by active liquid cooling: coolant (PCBCoolant) is drained from a fluid input hatch, with each Rack providing a fixed cooling amount. The Uncertainty Hatch hosts a 4x4 matrix balancing minigame: click cells to swap values and balance the focal point areas symmetrically (green=balanced, red=not); computation only flows when all active focal points are balanced. The resolution mode is set by the structure length (1~5, harder at higher modes). Components are destroyed if the temperature gets too high!
+
+gregtech.machine.qc.component_rack.name=Quantum Computer Component Rack
+gregtech.machine.qc.component_rack.tooltip.1=Component slots of the Quantum Computer
+gregtech.machine.qc.component_rack.tooltip.2=Accepts quantum circuits (locked while running/overheating)
+gregtech.machine.qc.uncertainty_hatch.name=Quantum Uncertainty Hatch
+gregtech.machine.qc.uncertainty_hatch.tooltip.1=Resolve quantum uncertainty: keep the 4x4 matrix symmetrically balanced
+gregtech.machine.qc.uncertainty_hatch.tooltip.2=Click cells to swap values and balance the focal point areas symmetrically. The Quantum Computer only runs when all active focal points are balanced
+gregtech.machine.qc.uncertainty_hatch.mode=§7Resolution Mode: §b%d
+gregtech.machine.qc.uncertainty_hatch.status.resolved=§aUncertainty Resolved
+gregtech.machine.qc.uncertainty_hatch.status.unresolved=§cUncertainty Unresolved
+gregtech.machine.qc.uncertainty_hatch.cell_tooltip=§7Click to select, click another cell to swap values
+gregtech.machine.qc.uncertainty_hatch.cell_value=§7Value: §b%d
+gregtech.machine.qc.uncertainty_hatch.focal_tooltip=§7Focal point: balance the symmetric values in its area
+
 gregtech.machine.central_monitor.name=Central Monitor
 gregtech.multiblock.central_monitor.low_power=Low Power
 gregtech.multiblock.central_monitor.height=Screen Height: %d
@@ -8870,6 +8889,8 @@ gregtech.multiblock.ability.output_laser=Laser Output Hatch
 gregtech.multiblock.ability.computation_data_reception=Computation Data Reception Hatch
 gregtech.multiblock.ability.computation_data_transmission=Computation Data Transmission Hatch
 gregtech.multiblock.ability.hpca_component=HPCA Component
+gregtech.multiblock.ability.qc_component=Quantum Computer Component Rack
+gregtech.multiblock.ability.qc_uncertainty=Quantum Uncertainty Hatch
 gregtech.multiblock.ability.object_holder=Object Holder
 gregtech.multiblock.ability.wireless_controller=Wireless Controller
 gregtech.multiblock.ability.thread_hatch=Thread Hatch
@@ -9033,6 +9054,17 @@ gregtech.multiblock.hpca.error_temperature=Temperature above 100C, components ma
 gregtech.multiblock.hpca.warning_temperature=Temperature above 50C, components may be damaged at 100C!
 gregtech.multiblock.hpca.warning_temperature_active_cool=Fully utilizing active coolers
 gregtech.multiblock.hpca.warning_structure_header=Structure Warnings:
+
+gregtech.multiblock.quantum_computer.energy=Using: %s / %s EU/t (%s)
+gregtech.multiblock.quantum_computer.computation=§7Providing: §b%,d / %,d CWU/t
+gregtech.multiblock.quantum_computer.temperature=Temperature: %,d °C
+gregtech.multiblock.quantum_computer.mode=§7Resolution Mode: §b%d§7 (max %d)
+gregtech.multiblock.quantum_computer.warning_unresolved=Uncertainty unresolved, computation blocked!
+gregtech.multiblock.quantum_computer.warning_temperature=Temperature high, components may be destroyed!
+gregtech.multiblock.quantum_computer.error_temperature=Temperature above 1000C, components are being destroyed!
+gregtech.multiblock.quantum_computer.warning_no_computation=No computation components in structure!
+gregtech.multiblock.quantum_computer.warning_low_cooling=Not enough cooling!
+gregtech.multiblock.quantum_computer.warning_structure_header=Quantum Computer Warnings:
 gregtech.multiblock.hpca.warning_multiple_bridges=- Multiple bridges in structure (provides no additional benefit)
 gregtech.multiblock.hpca.warning_no_computation=- No computation providers
 gregtech.multiblock.hpca.warning_low_cooling=- Not enough cooling

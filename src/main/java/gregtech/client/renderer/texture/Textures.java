@@ -784,6 +784,12 @@ public class Textures {
             "overlay/machine/hpca/empty");
     public static final SimpleOverlayRenderer HPCA_HEAT_SINK_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/hpca/heat_sink");
+    public static final SimpleOverlayRenderer QC_UNCERTAINTY_HATCH_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/hpca/uncertainty");
+    public static final SimpleOverlayRenderer QC_UNCERTAINTY_HATCH_ACTIVE_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/hpca/uncertainty_active");
+
+
     public static final SimpleOverlayRenderer ALARM_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_alarm");
     public static final SimpleOverlayRenderer ALARM_OVERLAY_ACTIVE = new SimpleOverlayRenderer(

@@ -90,11 +90,11 @@ public class MetaTileEntityHPCA extends MultiblockWithDisplayBase
     private static final double IDLE_TEMPERATURE = 200;
     private static final double DAMAGE_TEMPERATURE = 1000;
 
-    private static final StructureDefinition STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
+    private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:high_performance_computing_array", () -> DeclarativePatternBuilder.start()
                     .piece("top")
                     .aisle("AA", "CC", "CC", "CC", "AA")
-                    .repeatablePiece("body", 3, 14)
+                    .repeatablePiece("body", 3, 3)
                     .aisle("VA", "XV", "XV", "XV", "VA")
                     .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
                     .piece("bottom")

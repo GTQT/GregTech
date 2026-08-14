@@ -14,6 +14,8 @@ import gregtech.api.capability.IOpticalComputationHatch;
 import gregtech.api.capability.IOpticalDataAccessHatch;
 import gregtech.api.capability.IOverclockHatch;
 import gregtech.api.capability.IParallelHatch;
+import gregtech.api.capability.IQCComponentHatch;
+import gregtech.api.capability.IQCUncertaintyHatch;
 import gregtech.api.capability.IRotorHolder;
 import gregtech.api.capability.IThreadHatch;
 import gregtech.api.capability.IWirelessController;
@@ -119,6 +121,10 @@ public class MultiblockAbility<T> {
 
     public static final MultiblockAbility<IHPCAComponentHatch> HPCA_COMPONENT = ability(
             "hpca_component", IHPCAComponentHatch.class);
+    public static final MultiblockAbility<IQCComponentHatch> QC_COMPONENT = ability(
+            "qc_component", IQCComponentHatch.class);
+    public static final MultiblockAbility<IQCUncertaintyHatch> QC_UNCERTAINTY = ability(
+            "qc_uncertainty", IQCUncertaintyHatch.class);
     public static final MultiblockAbility<IObjectHolder> OBJECT_HOLDER = ability(
             "object_holder", IObjectHolder.class);
 
