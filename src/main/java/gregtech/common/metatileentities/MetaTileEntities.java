@@ -185,6 +185,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntity
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCACooler;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAEmpty;
 import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCComponentRack;
+import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCCreativeUncertaintyHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCUncertaintyHatch;
 import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamGrinder;
 import gregtech.common.metatileentities.multi.steam.MetaTileEntitySteamOven;
@@ -515,18 +516,20 @@ public class MetaTileEntities {
     public static MetaTileEntityQuantumComputer QUANTUM_COMPUTER;
     public static MetaTileEntityQCComponentRack QC_RACK;
     public static MetaTileEntityQCUncertaintyHatch QC_UNCERTAINTY_HATCH;
+    // Components
     public static MetaTileEntityParallelHatch[] PARALLEL_HATCH = new MetaTileEntityParallelHatch[GTValues.V.length - 1];
     public static MetaTileEntityTieredHatch[] TIERED_HATCH = new MetaTileEntityTieredHatch[GTValues.V.length];
-    public static MetaTileEntityParallelHatch CREATIVE_PARALLEL_HATCH;
-    public static MetaTileEntityOverclockHatch CREATIVE_OVERCLOCK_HATCH;
-    public static MetaTileEntityAccelerateHatch CREATIVE_ACCELERATE_HATCH;
-    public static MetaTileEntityThreadHatch CREATIVE_THREAD_HATCH;
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length - 1];
     public static MetaTileEntityOverclockHatch[] OVERCLOCK_HATCH = new MetaTileEntityOverclockHatch[GTValues.V.length - 1];
     public static MetaTileEntityAccelerateHatch[] ACCELERATE_HATCH = new MetaTileEntityAccelerateHatch[GTValues.V.length - 1];
     public static MetaTileEntityHeatSensor HEAT_SENSOR;
     public static MetaTileEntityCreativeInputBus CREATIVE_INPUT_BUS;
     public static MetaTileEntityCreativeInputHatch CREATIVE_INPUT_HATCH;
+    public static MetaTileEntityParallelHatch CREATIVE_PARALLEL_HATCH;
+    public static MetaTileEntityOverclockHatch CREATIVE_OVERCLOCK_HATCH;
+    public static MetaTileEntityAccelerateHatch CREATIVE_ACCELERATE_HATCH;
+    public static MetaTileEntityThreadHatch CREATIVE_THREAD_HATCH;
+    public static MetaTileEntityQCCreativeUncertaintyHatch QC_CREATIVE_UNCERTAINTY_HATCH;
     // STEAM AGE SECTION
     public static SteamCoalBoiler STEAM_BOILER_COAL_BRONZE;
     public static SteamCoalBoiler STEAM_BOILER_COAL_STEEL;

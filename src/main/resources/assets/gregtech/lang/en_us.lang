@@ -5220,6 +5220,9 @@ gregtech.machine.creative_parallel_hatch.name=Creative Parallel Hatch
 gregtech.machine.creative_overclock_hatch.name=Creative Overclock Hatch
 gregtech.machine.creative_accelerate_hatch.name=Creative Accelerate Hatch
 gregtech.machine.creative_thread_hatch.name=Creative Thread Hatch
+gregtech.machine.creative_uncertainty_hatch.name=Creative Quantum Uncertainty Hatch
+gregtech.machine.creative_uncertainty_hatch.tooltip=Always runs at max resolution mode
+
 gregtech.creative_tooltip.1=§7You just need
 gregtech.creative_tooltip.2= Creative Mode
 gregtech.creative_tooltip.3=§7 to use this
@@ -6206,6 +6209,18 @@ gregtech.machine.hpca.component_type.computation_cooling=§cRequires up to: §f%
 gregtech.machine.hpca.component_type.bridge=Allows §fHPCA§7 to connect to §fNetwork Switches§7
 gregtech.machine.hpca.component_type.damaged=Can be damaged by HPCA overheating!
 
+gregtech.machine.qc.component_rack.name=Quantum Computer Component Rack
+gregtech.machine.qc.component_rack.tooltip.1=Component slots of the Quantum Computer
+gregtech.machine.qc.component_rack.tooltip.2=Accepts quantum circuits (locked while running/overheating)
+gregtech.machine.qc.uncertainty_hatch.name=Quantum Uncertainty Hatch
+gregtech.machine.qc.uncertainty_hatch.tooltip.1=Resolve quantum uncertainty: keep the 4x4 matrix symmetrically balanced
+gregtech.machine.qc.uncertainty_hatch.tooltip.2=Click cells to swap values and balance the focal point areas symmetrically. The Quantum Computer only runs when all active focal points are balanced
+gregtech.machine.qc.uncertainty_hatch.mode=§7Resolution Mode: §b%d
+gregtech.machine.qc.uncertainty_hatch.status.resolved=§aUncertainty Resolved
+gregtech.machine.qc.uncertainty_hatch.status.unresolved=§cUncertainty Unresolved
+gregtech.machine.qc.uncertainty_hatch.cell_tooltip=§7Click to select, click another cell to swap values
+gregtech.machine.qc.uncertainty_hatch.cell_value=§7Value: §b%d
+gregtech.machine.qc.uncertainty_hatch.focal_tooltip=§7Focal point: balance the symmetric values in its area
 # General machinery
 gregtech.machine.basic.input_from_output_side.allow=Allow Input from Output Side
 gregtech.machine.basic.input_from_output_side.disallow=Disallow Input from Output Side
@@ -6723,19 +6738,6 @@ gregtech.machine.quantum_computer.tooltip.1=The final form of the supercomputer
 gregtech.machine.quantum_computer.tooltip.2=Used to generate §fComputation§7 (and heat).
 gregtech.machine.quantum_computer.tooltip.3=Place quantum circuits in Component Racks to generate §fCWU/t§7, and supply coolant via a fluid hatch for active liquid cooling.
 gregtech.multiblock.quantum_computer.description=The Quantum Computer is the successor to the High Performance Computing Array: a 2-wide variable-length structure (3~14 layers) with 2 Component Racks per layer. Place quantum circuits (circuit ore dictionary) in the Racks as computation components; higher tiers produce more computation and heat. Heat is offset by active liquid cooling: coolant (PCBCoolant) is drained from a fluid input hatch, with each Rack providing a fixed cooling amount. The Uncertainty Hatch hosts a 4x4 matrix balancing minigame: click cells to swap values and balance the focal point areas symmetrically (green=balanced, red=not); computation only flows when all active focal points are balanced. The resolution mode is set by the structure length (1~5, harder at higher modes). Components are destroyed if the temperature gets too high!
-
-gregtech.machine.qc.component_rack.name=Quantum Computer Component Rack
-gregtech.machine.qc.component_rack.tooltip.1=Component slots of the Quantum Computer
-gregtech.machine.qc.component_rack.tooltip.2=Accepts quantum circuits (locked while running/overheating)
-gregtech.machine.qc.uncertainty_hatch.name=Quantum Uncertainty Hatch
-gregtech.machine.qc.uncertainty_hatch.tooltip.1=Resolve quantum uncertainty: keep the 4x4 matrix symmetrically balanced
-gregtech.machine.qc.uncertainty_hatch.tooltip.2=Click cells to swap values and balance the focal point areas symmetrically. The Quantum Computer only runs when all active focal points are balanced
-gregtech.machine.qc.uncertainty_hatch.mode=§7Resolution Mode: §b%d
-gregtech.machine.qc.uncertainty_hatch.status.resolved=§aUncertainty Resolved
-gregtech.machine.qc.uncertainty_hatch.status.unresolved=§cUncertainty Unresolved
-gregtech.machine.qc.uncertainty_hatch.cell_tooltip=§7Click to select, click another cell to swap values
-gregtech.machine.qc.uncertainty_hatch.cell_value=§7Value: §b%d
-gregtech.machine.qc.uncertainty_hatch.focal_tooltip=§7Focal point: balance the symmetric values in its area
 
 gregtech.machine.central_monitor.name=Central Monitor
 gregtech.multiblock.central_monitor.low_power=Low Power

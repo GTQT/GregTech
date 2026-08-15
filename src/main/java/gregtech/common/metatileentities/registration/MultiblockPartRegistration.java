@@ -61,6 +61,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntity
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCACooler;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAEmpty;
 import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCComponentRack;
+import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCCreativeUncertaintyHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCUncertaintyHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamFluidHatch;
 import gregtech.common.metatileentities.steam.multiblockpart.MetaTileEntityHugeSteamHatch;
@@ -427,20 +428,20 @@ public final class MultiblockPartRegistration {
         HPCA_BRIDGE_COMPONENT = registerMetaTileEntity(3229,
                 new MetaTileEntityHPCABridge(gregtechId("hpca.bridge_component")));
 
-        QC_RACK = registerMetaTileEntity(3431,
+        QC_RACK = registerMetaTileEntity(3230,
                 new MetaTileEntityQCComponentRack(gregtechId("qc.component_rack")));
-        QC_UNCERTAINTY_HATCH = registerMetaTileEntity(3432,
+        QC_UNCERTAINTY_HATCH = registerMetaTileEntity(3231,
                 new MetaTileEntityQCUncertaintyHatch(gregtechId("qc.uncertainty_hatch")));
 
-        DATA_ACCESS_HATCH[0] = registerMetaTileEntity(3230,
+        DATA_ACCESS_HATCH[0] = registerMetaTileEntity(3235,
                 new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.i"), GTValues.MV, false));
-        DATA_ACCESS_HATCH[1] = registerMetaTileEntity(3231,
+        DATA_ACCESS_HATCH[1] = registerMetaTileEntity(3236,
                 new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.ii"), EV, false));
-        DATA_ACCESS_HATCH[2] = registerMetaTileEntity(3232,
+        DATA_ACCESS_HATCH[2] = registerMetaTileEntity(3237,
                 new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.iii"), GTValues.LuV, false));
-        DATA_ACCESS_HATCH[3] = registerMetaTileEntity(3233,
+        DATA_ACCESS_HATCH[3] = registerMetaTileEntity(3238,
                 new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.iv"), GTValues.UV, false));
-        DATA_ACCESS_HATCH[4] = registerMetaTileEntity(3234,
+        DATA_ACCESS_HATCH[4] = registerMetaTileEntity(3239,
                 new MetaTileEntityDataAccessHatch(gregtechId("data_access_hatch.creative"), GTValues.MAX, true));
 
         for (int i = 0; i < COMPUTATION_HATCH_RECEIVER.length - 1; i++) {
@@ -559,5 +560,7 @@ public final class MultiblockPartRegistration {
                 new MetaTileEntityCreativeInputBus(gregtechId("creative_input_bus")));
         CREATIVE_INPUT_HATCH = registerMetaTileEntity(3905,
                 new MetaTileEntityCreativeInputHatch(gregtechId("creative_input_hatch")));
+        QC_CREATIVE_UNCERTAINTY_HATCH = registerMetaTileEntity(3906,
+                new MetaTileEntityQCCreativeUncertaintyHatch(gregtechId("creative_uncertainty_hatch")));
     }
 }

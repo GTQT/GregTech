@@ -13,6 +13,8 @@ import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 
+import gregtech.client.utils.TooltipHelper;
+
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
@@ -133,8 +135,10 @@ public class MetaTileEntityCreativeInputBus extends MetaTileEntityMultiblockNoti
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
-                               boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
+        super.addInformation(stack, player, tooltip, advanced);
+        tooltip.add(I18n.format("gregtech.creative_tooltip.1") + TooltipHelper.RAINBOW +
+                I18n.format("gregtech.creative_tooltip.2") + I18n.format("gregtech.creative_tooltip.3"));
         tooltip.add(I18n.format("gregtech.machine.creative_input_bus.tooltip"));
     }
 

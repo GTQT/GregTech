@@ -277,43 +277,6 @@ public class ComputerRecipes {
                 .cleanroom(CleanroomType.CLEANROOM)
                 .duration(200).EUt(VA[ZPM]).buildAndRegister();
 
-        // ---- Quantum Computer ----
-
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .inputs(COMPUTER_CASING.getItemVariant(BlockComputerCasing.CasingType.ADVANCED_COMPUTER_CASING))
-                .input(ITEM_IMPORT_BUS[LuV])
-                .input(circuit, Tier.UV, 4)
-                .input(FIELD_GENERATOR_LuV, 2)
-                .fluidInputs(PCBCoolant.getFluid(2000))
-                .output(QC_RACK)
-                .cleanroom(CleanroomType.CLEANROOM)
-                .duration(400).EUt(VA[LuV]).buildAndRegister();
-
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .inputs(COMPUTER_CASING.getItemVariant(BlockComputerCasing.CasingType.ADVANCED_COMPUTER_CASING))
-                .input(circuit, Tier.UV, 2)
-                .input(SENSOR_UV, 1)
-                .input(CONVEYOR_MODULE_LuV, 1)
-                .fluidInputs(Polybenzimidazole.getFluid(L * 2))
-                .output(QC_UNCERTAINTY_HATCH)
-                .cleanroom(CleanroomType.CLEANROOM)
-                .duration(300).EUt(VA[LuV]).buildAndRegister();
-
-        ASSEMBLY_LINE_RECIPES.recipeBuilder()
-                .input(HIGH_PERFORMANCE_COMPUTING_ARRAY)
-                .input(QUANTUM_MAINFRAME_ZPM, 8)
-                .input(FIELD_GENERATOR_ZPM, 8)
-                .input(SENSOR_ZPM, 8)
-                .input(EMITTER_UV, 4)
-                .input(OPTICAL_PIPES[0], 32)
-                .fluidInputs(Polybenzimidazole.getFluid(L * 16))
-                .output(QUANTUM_COMPUTER)
-                .stationResearch(b -> b
-                        .researchStack(NETWORK_SWITCH.getStackForm())
-                        .CWUt(CWT[UV])
-                        .EUt(VA[ZPM]))
-                .duration(1800).EUt(100000).buildAndRegister();
-
         ASSEMBLER_RECIPES.recipeBuilder()
                 .inputs(COMPUTER_CASING.getItemVariant(BlockComputerCasing.CasingType.COMPUTER_CASING))
                 .input(ITEM_IMPORT_BUS[LuV])

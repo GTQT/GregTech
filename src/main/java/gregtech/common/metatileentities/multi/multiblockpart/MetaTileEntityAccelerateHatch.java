@@ -15,6 +15,8 @@ import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.OrientedOverlayRenderer;
 
+import gregtech.client.utils.TooltipHelper;
+
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -157,6 +159,10 @@ public class MetaTileEntityAccelerateHatch extends MetaTileEntityMultiblockPart
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
         super.addInformation(stack, player, tooltip, advanced);
+        if (getTier() == GTValues.MAX) {
+            tooltip.add(I18n.format("gregtech.creative_tooltip.1") + TooltipHelper.RAINBOW +
+                    I18n.format("gregtech.creative_tooltip.2") + I18n.format("gregtech.creative_tooltip.3"));
+        }
         tooltip.add(I18n.format("gregtech.machine.accelerate_hatch.tooltip.1"));
         tooltip.add(I18n.format("gregtech.machine.accelerate_hatch.tooltip.2", this.minPercentage));
         tooltip.add(I18n.format("gregtech.universal.disabled"));
