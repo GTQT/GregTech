@@ -65,7 +65,7 @@ public class MetaTileEntityQCUncertaintyHatch extends MetaTileEntityMultiblockPa
     private byte status = STATUS_ALL_FAIL;
 
     public MetaTileEntityQCUncertaintyHatch(ResourceLocation metaTileEntityId) {
-        super(metaTileEntityId, GTValues.ZPM);
+        super(metaTileEntityId, GTValues.UV);
         regenerate();
     }
 
