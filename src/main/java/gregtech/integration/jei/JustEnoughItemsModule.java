@@ -59,6 +59,7 @@ import gregtech.integration.jei.recipe.IntCircuitRecipeWrapper;
 import gregtech.integration.jei.recipe.RecipeMapCategory;
 import gregtech.integration.jei.utils.CollapsibleForestryGroups;
 import gregtech.integration.jei.utils.CollapsibleItemGroups;
+import gregtech.integration.jei.utils.CollapsibleTicGroups;
 import gregtech.integration.jei.utils.MachineSubtypeHandler;
 import gregtech.integration.jei.utils.MetaItemSubtypeHandler;
 import gregtech.integration.jei.utils.ModularUIGuiHandler;
@@ -107,6 +108,7 @@ import java.util.stream.Stream;
 import static gregtech.api.unification.material.info.MaterialFlags.GENERATE_BOLT_SCREW;
 import static gregtech.api.unification.material.info.MaterialFlags.GENERATE_RING;
 import static gregtech.api.util.Mods.Names.FORESTRY;
+import static gregtech.api.util.Mods.Names.TINKERS_CONSTRUCT;
 import static net.minecraftforge.fml.common.Loader.isModLoaded;
 
 @JEIPlugin
@@ -225,6 +227,8 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
         CollapsibleItemGroups.registerGroups(registry);
         if(isModLoaded(FORESTRY))
             CollapsibleForestryGroups.registerGroups(registry);
+        if(isModLoaded(TINKERS_CONSTRUCT))
+            CollapsibleTicGroups.registerGroups(registry);
     }
 
     @Override

@@ -1,6 +1,6 @@
 package gregtech.integration.theoneprobe.element;
 
-import gregtech.api.utils.TranslationUtils;
+import gregtech.api.util.TranslationUtils;
 import gregtech.integration.theoneprobe.TheOneProbeModule;
 
 import net.minecraftforge.fluids.FluidRegistry;

@@ -59,6 +59,11 @@ public class TooltipBuilder {
         return this;
     }
 
+    public TooltipBuilder structureFrom(String path) {
+        components.add(new StructureFromComponent(path));
+        return this;
+    }
+
     public TooltipBuilder addBatch() {
         components.add(new BatchComponent());
         return this;

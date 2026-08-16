@@ -1,6 +1,4 @@
-package gregtech.api.utils;
-
-import gregtech.api.util.GTLog;
+package gregtech.api.util;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;

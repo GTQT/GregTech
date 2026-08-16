@@ -2,8 +2,8 @@ package gregtech.integration.theoneprobe.element;
 
 import gregtech.api.gui.IFluidStyle;
 import gregtech.api.gui.impl.FluidStyle;
+import gregtech.api.util.FluidStackHelper;
 import gregtech.api.util.TextFormattingUtil;
-import gregtech.api.utils.FluidStackHelper;
 import gregtech.client.utils.RenderUtil;
 import gregtech.integration.theoneprobe.TheOneProbeModule;
 
