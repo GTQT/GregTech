@@ -68,6 +68,13 @@ public class StoneType implements Comparable<StoneType> {
     }
 
     public static StoneType computeStoneType(IBlockState state, IBlockAccess world, BlockPos pos) {
+        // Fast path: for blocks with the vanilla isReplaceableOreGen the result only depends on the state
+        // (isReplaceableOreGen(state, world, pos, predicate) == predicate.test(state)), so the registry
+        // scan is memoized per blockstate. Blocks overriding isReplaceableOreGen may consult world/pos,
+        // so they keep the uncached probe path below.
+        if (StoneTypeCache.isStateOnly(state.getBlock())) {
+            return StoneTypeCache.getOrCompute(state, StoneType::computeByPredicate);
+        }
         // First: check if this Block's isReplaceableOreGen even considers the predicate passed through
         boolean dummy$isReplaceableOreGen = state.getBlock().isReplaceableOreGen(state, world, pos, dummyPredicate);
         if (hasDummyPredicateRan.get()) {
@@ -85,11 +92,22 @@ public class StoneType implements Comparable<StoneType> {
             // It is not considered, but the test still returned true (this means the impl was probably very lazily
             // done)
             // We have to test against the IBlockState ourselves to see if there's a suitable StoneType
-            for (StoneType stoneType : STONE_TYPE_REGISTRY) {
-                if (stoneType.predicate.test(state)) {
-                    // Found suitable match
-                    return stoneType;
-                }
+            return computeByPredicate(state);
+        }
+        return null;
+    }
+
+    /**
+     * Scans the registry for the first stone type whose predicate accepts the state.
+     *
+     * <p>Equivalent to testing every predicate against the state; only used where the queried block's
+     * isReplaceableOreGen is known to be state-only (see {@link StoneTypeCache}).</p>
+     */
+    private static StoneType computeByPredicate(IBlockState state) {
+        for (StoneType stoneType : STONE_TYPE_REGISTRY) {
+            if (stoneType.predicate.test(state)) {
+                // Found suitable match
+                return stoneType;
             }
         }
         return null;

@@ -82,9 +82,7 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
     public void update() {
         super.update();
         if (!getWorld().isRemote && getOffsetTimer() % 20 == 0 && isStructureFormed()) {
-            if (biomeModifier == 0) {
-                biomeModifier = getAmount();
-            } else if (biomeModifier > 0) {
+            if (biomeModifier > 0) {
                 waterTank.fill(Materials.Water.getFluid(getFluidProduction()), true);
             }
         }
@@ -130,6 +128,7 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         initializeAbilities();
+        biomeModifier = getAmount();
     }
 
     @Override
@@ -140,7 +139,7 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
 
     private void initializeAbilities() {
         List<IFluidTank> tanks = getAbilities(MultiblockAbility.PUMP_FLUID_HATCH);
-        if (tanks == null || tanks.size() == 0) {
+        if (tanks == null || tanks.isEmpty()) {
             tanks = getAbilities(MultiblockAbility.EXPORT_FLUIDS);
             this.hatchModifier = tanks.get(0).getCapacity() == 8000 ? 2 : 4;
         } else {
@@ -151,10 +150,11 @@ public class MetaTileEntityPrimitiveWaterPump extends MultiblockControllerBase i
 
     private void resetTileAbilities() {
         this.waterTank = new FluidTank(0);
+        biomeModifier = 0;
     }
 
     @Override
-    protected StructureDefinition<?> createStructureDefinition() {
+    protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
     }
 
