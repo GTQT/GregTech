@@ -17,7 +17,7 @@ import org.lwjgl.input.Keyboard;
 
 public final class MultiblockToolModeKeyHandler {
     private static final KeyBinding SWITCH_MODE = new KeyBinding(
-            "key.gregtech.multiblock_tool.switch_mode", Keyboard.KEY_M, "key.categories.gregtech");
+            "gregtech.key.multiblock_tool.switch_mode", Keyboard.KEY_M, "key.categories.gregtech");
     private static boolean initialized;
 
     private MultiblockToolModeKeyHandler() {}

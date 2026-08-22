@@ -9,6 +9,7 @@ import gregtech.api.capability.impl.NotifiableFluidTank;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IColorChannelPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuiTextures;
@@ -50,7 +51,15 @@ import java.util.Collections;
 import java.util.List;
 
 public class MetaTileEntityCreativeInputHatch extends MetaTileEntityMultiblockNotifiablePart
-        implements IMultiblockAbilityPart<IFluidTank>, IGhostSlotConfigurable {
+        implements IMultiblockAbilityPart<IFluidTank>, IGhostSlotConfigurable, IColorChannelPart {
+
+    /**
+     * 创造模式仓无法回溯所属仓参与颜色分组,不显示指示灯。
+     */
+    @Override
+    public boolean showColorChannelPatch() {
+        return false;
+    }
 
     private static final int ROW_SIZE = 9;
     private static final int TEMPLATE_TANKS = ROW_SIZE * ROW_SIZE;

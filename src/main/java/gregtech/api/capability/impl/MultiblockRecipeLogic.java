@@ -27,15 +27,18 @@ import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.logic.ParallelLogic;
 import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
+import gregtech.api.util.ColorUtil;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTQTUtility;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
+import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.Tuple;
 import net.minecraftforge.fluids.FluidStack;
+import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
@@ -1127,11 +1130,198 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         if (shouldUseDistinctInputBuses()) {
+            short mask = getHatchColorsMask();
+            if (mask != 0) {
+                trySearchNewRecipeDistinctByColorChannels(mask);
+                return;
+            }
             trySearchNewRecipeDistinct();
             return;
         }
 
+        short mask = getHatchColorsMask();
+        if (mask != 0) {
+            trySearchNewRecipeByColorChannels(mask);
+            return;
+        }
+
         trySearchNewRecipeCombined();
+    }
+
+    /**
+     * 所有输入仓颜色的位掩码(0-15 每色一位);未染色不占位,全部未染色时返回 0。
+     */
+    protected short getHatchColorsMask() {
+        MultiblockControllerBase controller = (MultiblockControllerBase) metaTileEntity;
+        short mask = 0;
+        for (IItemHandlerModifiable bus : controller.getAbilities(MultiblockAbility.IMPORT_ITEMS)) {
+            int idx = colorIndexOf(bus);
+            if (idx >= 0) mask |= (short) (1 << idx);
+        }
+        for (IFluidTank tank : controller.getAbilities(MultiblockAbility.IMPORT_FLUIDS)) {
+            int idx = colorIndexOf(tank);
+            if (idx >= 0) mask |= (short) (1 << idx);
+        }
+        return mask;
+    }
+
+    /**
+     * 输入仓的染料色索引(0-15);未染色或不可判色返回 -1(公共输入,不占位)。
+     * 仓注册到能力列表的是内部处理器,从 {@link NotifiableItemStackHandler} /
+     * {@link NotifiableFluidTank} 回溯所属仓;无法回溯的(创造仓/总成)判 -1。
+     */
+    protected int colorIndexOf(Object handler) {
+        MetaTileEntity mte = ownerOf(handler);
+        if (mte == null || !mte.isPainted()) return -1;
+        EnumDyeColor dye = ColorUtil.getDyeColorFromRGB(mte.getPaintingColor());
+        return dye == null ? -1 : dye.getMetadata();
+    }
+
+    private static @Nullable MetaTileEntity ownerOf(Object handler) {
+        if (handler instanceof MetaTileEntity mte) return mte;
+        if (handler instanceof NotifiableItemStackHandler h && !h.notifiableEntities.isEmpty())
+            return h.notifiableEntities.get(0);
+        if (handler instanceof NotifiableFluidTank tank && !tank.notifiableEntities.isEmpty())
+            return tank.notifiableEntities.get(0);
+        return null;
+    }
+
+    protected List<IItemHandlerModifiable> getInputBusesForColor(int color) {
+        MultiblockControllerBase controller = (MultiblockControllerBase) metaTileEntity;
+        List<IItemHandlerModifiable> result = new ArrayList<>();
+        for (IItemHandlerModifiable bus : controller.getAbilities(MultiblockAbility.IMPORT_ITEMS)) {
+            int idx = colorIndexOf(bus);
+            if (idx < 0 || idx == color) result.add(bus);
+        }
+        return result;
+    }
+
+    /**
+     * 通道流体:同色(含未染色)流体仓 + 同色总线上的 DualHandler 流体槽。
+     * 语义与 {@link #getInputTank()} 一致,仅把"全部仓"收缩为该通道的仓。
+     */
+    protected IMultipleTankHandler getInputTankForColor(int color) {
+        MultiblockControllerBase controller = (MultiblockControllerBase) metaTileEntity;
+        boolean allowMerge = ((IRecipeMapHolder) metaTileEntity).getInputFluidInventory().allowSameFluidFill();
+        List<IFluidTank> channelTanks = new ArrayList<>();
+        for (IFluidTank tank : controller.getAbilities(MultiblockAbility.IMPORT_FLUIDS)) {
+            int idx = colorIndexOf(tank);
+            if (idx < 0 || idx == color) channelTanks.add(tank);
+        }
+        List<IMultipleTankHandler> inputFluids = new ArrayList<>();
+        inputFluids.add(new FluidTankList(allowMerge, channelTanks));
+        for (IItemHandlerModifiable bus : getInputBusesForColor(color)) {
+            if (bus instanceof IPatternBufferIsolatedHandler) continue;
+            if (bus instanceof IMultipleTankHandler dualHandler) inputFluids.add(dualHandler);
+        }
+        return GTQTUtility.mergeTankHandlers(inputFluids, allowMerge);
+    }
+
+    /**
+     * 按颜色掩码逐通道查找,每通道只使用同色(含未染色)仓的输入,第一个成功启动的通道即返回。
+     */
+    protected void trySearchNewRecipeByColorChannels(short mask) {
+        long maxVoltage = getMaxVoltage();
+        for (int color = 0; color < 16; color++) {
+            if ((mask & (1 << color)) == 0) continue;
+            List<IItemHandlerModifiable> channelBuses = getInputBusesForColor(color);
+            IItemHandlerModifiable channelInventory = new ItemHandlerList(channelBuses);
+            IMultipleTankHandler channelFluids = getInputTankForColor(color);
+            if (tryFindRecipeForChannel(maxVoltage, channelInventory, channelFluids)) return;
+        }
+        this.invalidInputsForRecipes = true;
+        whyFailed = "NoneRecipes";
+    }
+
+    /**
+     * 单个颜色通道内查找并准备配方(仿 {@link AbstractRecipeLogic#trySearchNewRecipe()} 的非并行部分)。
+     *
+     * @return 配方成功启动返回 true
+     */
+    protected boolean tryFindRecipeForChannel(long maxVoltage, IItemHandlerModifiable channelInventory,
+                                              IMultipleTankHandler channelFluids) {
+        Recipe currentRecipe = null;
+        if (isRecipeLockEnable() && previousRecipe != null) {
+            if (previousRecipe.getEUt() <= maxVoltage &&
+                    previousRecipe.matches(false, channelInventory, channelFluids)) {
+                currentRecipe = previousRecipe;
+            } else {
+                this.invalidInputsForRecipes = true;
+                whyFailed = "无法运行锁定的配方";
+                return false;
+            }
+        } else {
+            if (checkPreviousRecipeForChannel(channelInventory, channelFluids)) {
+                currentRecipe = this.previousRecipe;
+            }
+            if (currentRecipe == null) {
+                currentRecipe = findRecipe(maxVoltage, channelInventory, channelFluids);
+            }
+        }
+
+        if (currentRecipe != null) {
+            this.previousRecipe = currentRecipe;
+            if (checkRecipe(currentRecipe)) {
+                return prepareRecipe(currentRecipe, channelInventory, channelFluids);
+            }
+        }
+        return false;
+    }
+
+    protected boolean checkPreviousRecipeForChannel(IItemHandlerModifiable channelInventory,
+                                                    IMultipleTankHandler channelFluids) {
+        if (this.previousRecipe == null) return false;
+        if (this.previousRecipe.getEUt() > this.getMaxVoltage()) return false;
+        return this.previousRecipe.matches(false, channelInventory, channelFluids);
+    }
+
+    /**
+     * 颜色通道版 distinct:外层按颜色通道,内层同色组内逐仓独立查找;
+     * 流体侧每通道共享通道流体(与 distinct 的"流体共享"语义一致,只是收缩到通道内)。
+     */
+    protected void trySearchNewRecipeDistinctByColorChannels(short mask) {
+        long maxVoltage = getMaxVoltage();
+        for (int color = 0; color < 16; color++) {
+            if ((mask & (1 << color)) == 0) continue;
+            List<IItemHandlerModifiable> channelBuses = getInputBusesForColor(color);
+            if (channelBuses.isEmpty()) continue;
+            IMultipleTankHandler channelFluids = getInputTankForColor(color);
+            for (IItemHandlerModifiable bus : channelBuses) {
+                if (invalidatedInputList.contains(bus)) continue;
+                RecipeMap<?> recipeMap = getRecipeMapForInput(bus);
+                if (recipeMap == null) {
+                    logBoundInputNoRecipe(bus, null, "BOUND_RECIPE_MAP_NOT_SELECTED");
+                    invalidatedInputList.add(bus);
+                    continue;
+                }
+                IMultipleTankHandler busFluids = getBusFluidsInChannel(bus, channelFluids);
+                Recipe currentRecipe = findRecipe(recipeMap, maxVoltage, bus, busFluids);
+                if (currentRecipe != null) {
+                    routedRecipeMap = recipeMap;
+                    currentDistinctInputBus = bus;
+                    this.previousRecipe = currentRecipe;
+                    this.previousDistinctRecipeMap = recipeMap;
+                    if (checkRecipe(currentRecipe) && prepareRecipeDistinct(currentRecipe, bus, busFluids)) {
+                        return;
+                    }
+                    routedRecipeMap = null;
+                }
+                if (currentRecipe == null) {
+                    logBoundInputNoRecipe(bus, recipeMap, "NO_RECIPE_MATCHED_BUFFER");
+                    invalidatedInputList.add(bus);
+                }
+            }
+            routedRecipeMap = null;
+        }
+    }
+
+    protected IMultipleTankHandler getBusFluidsInChannel(IItemHandlerModifiable bus,
+                                                         IMultipleTankHandler channelFluids) {
+        if (bus instanceof IPatternBufferIsolatedHandler) {
+            if (bus instanceof IMultipleTankHandler tankHandler) return tankHandler;
+            return new FluidTankList(false);
+        }
+        return channelFluids;
     }
 
     /**
@@ -1315,6 +1505,15 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     protected boolean prepareRecipeDistinct(Recipe recipe) {
+        return prepareRecipeDistinct(recipe, currentDistinctInputBus, getInputTank(currentDistinctInputBus));
+    }
+
+    /**
+     * 指定输入总线与流体的 distinct 配方准备,消耗从给定的输入(而非全量仓)提取。
+     * 颜色通道版 distinct 传入通道流体,保证不消耗其他颜色通道的输入。
+     */
+    protected boolean prepareRecipeDistinct(Recipe recipe, IItemHandlerModifiable inputBus,
+                                            IMultipleTankHandler inputFluid) {
         recipe = Recipe.trimRecipeOutputs(recipe, getRecipeMap(), metaTileEntity.getItemOutputLimit(),
                 metaTileEntity.getFluidOutputLimit());
         if (recipe == null) {
@@ -1325,16 +1524,15 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         recipe = findParallelRecipe(
                 recipe,
-                currentDistinctInputBus,
-                getInputTank(currentDistinctInputBus),
+                inputBus,
+                inputFluid,
                 getOutputInventory(),
                 getOutputTank(),
                 getMaxParallelVoltage(),
                 getParallelLimit());
 
         if (recipe != null) {
-            recipe = setupAndConsumeRecipeInputs(recipe, currentDistinctInputBus,
-                    getInputTank(currentDistinctInputBus));
+            recipe = setupAndConsumeRecipeInputs(recipe, inputBus, inputFluid);
             if (recipe != null) {
                 setupRecipe(recipe);
                 return true;

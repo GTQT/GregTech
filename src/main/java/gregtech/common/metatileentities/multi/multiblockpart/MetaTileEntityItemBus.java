@@ -13,6 +13,7 @@ import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IColorChannelPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuiTextures;
@@ -62,7 +63,12 @@ import static gregtech.api.util.GTUtility.collapseInventorySlotContents;
 
 public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IItemHandlerModifiable>, IControllable,
-                   IGhostSlotConfigurable {
+                   IGhostSlotConfigurable, IColorChannelPart {
+
+    @Override
+    public boolean showColorChannelPatch() {
+        return !isExportHatch;
+    }
 
     @Nullable
     protected GhostCircuitItemStackHandler circuitInventory;

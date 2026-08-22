@@ -14,6 +14,7 @@ import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IColorChannelPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuiTextures;
@@ -64,7 +65,11 @@ import java.util.List;
 
 public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IFluidTank>, IControllable,
-                   IGhostSlotConfigurable {
+                   IGhostSlotConfigurable, IColorChannelPart {
+    @Override
+    public boolean showColorChannelPatch() {
+        return !isExportHatch;
+    }
 
     public static final int INITIAL_INVENTORY_SIZE = 8000;
 

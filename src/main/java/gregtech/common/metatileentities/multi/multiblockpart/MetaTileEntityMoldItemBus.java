@@ -13,6 +13,7 @@ import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IColorChannelPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
@@ -64,7 +65,7 @@ import java.util.List;
 
 public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IItemHandlerModifiable>, IControllable,
-                   IGhostSlotConfigurable {
+                   IGhostSlotConfigurable, IColorChannelPart {
 
     @Nullable
     protected GhostMoldItemStackHandler moldInventory;

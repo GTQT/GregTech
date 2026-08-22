@@ -9,6 +9,7 @@ import gregtech.api.items.itemhandlers.FilteredFluidTank;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.IColorChannelPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuis;
@@ -49,7 +50,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotifiablePart
-        implements IMultiblockAbilityPart<IFluidTank>, IControllable {
+        implements IMultiblockAbilityPart<IFluidTank>, IControllable, IColorChannelPart {
+    @Override
+    public boolean showColorChannelPatch() {
+        return !isExportHatch;
+    }
+
 
     private static final int BASE_TANK_SIZE = 8000;
 

@@ -138,6 +138,12 @@ public class Textures {
             "casings/quantum/quantum_indicator_connected");
     public static final SimpleOverlayRenderer QUANTUM_INDICATOR_POWERED = new SimpleOverlayRenderer(
             "casings/quantum/quantum_indicator_powered");
+
+    public static final SimpleOverlayRenderer COLOR_CHANNEL_INDICATOR_COLORED = new SimpleOverlayRenderer(
+            "casings/color/color_channel_indicator_colored");
+    public static final SimpleOverlayRenderer COLOR_CHANNEL_INDICATOR_FRAME = new SimpleOverlayRenderer(
+            "casings/color/color_channel_indicator_frame");
+
     // Simple Sided Cube Renderers
     public static final SimpleSidedCubeRenderer STEAM_CASING_BRONZE = new SimpleSidedCubeRenderer(
             "casings/steam/bronze");

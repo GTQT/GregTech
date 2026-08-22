@@ -2,14 +2,17 @@ package gregtech.common.metatileentities.multi.multiblockpart;
 
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.multiblock.IColorChannelPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
+import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOrientedCubeRenderer;
 import gregtech.client.renderer.texture.cube.VisualStateRenderer;
 import gregtech.client.renderer.texture.custom.FireboxActiveRenderer;
+import gregtech.client.utils.RenderUtil;
 import gregtech.common.creativetab.GTCreativeTabs;
 
 import net.minecraft.block.state.IBlockState;
@@ -27,6 +30,7 @@ import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.Nullable;
 
 import static gregtech.api.capability.GregtechDataCodes.SYNC_CONTROLLER;
 
@@ -59,14 +63,33 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
     @Override
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         ICubeRenderer baseTexture = getBaseTexture();
-        pipeline = ArrayUtils.add(pipeline,
-                new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering())));
+        IVertexOperation[] basePipeline = pipeline;
+
+        boolean colorChannelPart = this instanceof IColorChannelPart part && part.showColorChannelPatch();
+        if (!colorChannelPart) {
+            pipeline = ArrayUtils.add(pipeline,
+                    new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering())));
+        }
 
         if (baseTexture instanceof FireboxActiveRenderer || baseTexture instanceof SimpleOrientedCubeRenderer) {
             baseTexture.renderOriented(renderState, translation, pipeline, getFrontFacing());
         } else {
             baseTexture.render(renderState, translation, pipeline);
         }
+
+        if (colorChannelPart && isPainted()) {
+            renderColorChannelIndicator(renderState, translation, basePipeline);
+        }
+    }
+
+    @SideOnly(Side.CLIENT)
+    protected void renderColorChannelIndicator(CCRenderState renderState, Matrix4 translation,
+                                               IVertexOperation[] pipeline) {
+        IVertexOperation[] ops = ArrayUtils.add(pipeline,
+                new ColourMultiplier(GTUtility.convertRGBtoOpaqueRGBA_CL(getPaintingColorForRendering())));
+        Textures.COLOR_CHANNEL_INDICATOR_COLORED.renderSided(getFrontFacing(), renderState,
+                RenderUtil.adjustTrans(translation, getFrontFacing(), 1), ops);
+        Textures.COLOR_CHANNEL_INDICATOR_FRAME.renderSided(getFrontFacing(), renderState, translation, pipeline);
     }
 
     public int getTier() {
@@ -138,6 +161,18 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
     @Override
     public boolean isValidFrontFacing(EnumFacing facing) {
         return true;
+    }
+
+    @Override
+    public void setPaintingColor(int paintingColor, @Nullable EnumFacing side) {
+        super.setPaintingColor(paintingColor, side);
+        // 染色变化影响颜色通道分组,立即通知控制器重查配方(喷涂本身不触发仓输入通知)
+        if (getWorld() != null && !getWorld().isRemote) {
+            MultiblockControllerBase controller = getController();
+            if (controller instanceof RecipeMapMultiblockController recipeMapController) {
+                recipeMapController.getRecipeMapWorkable().forceRecipeRecheck();
+            }
+        }
     }
 
     @Override
