@@ -37,10 +37,59 @@ public class ConfigHolder {
     @Config.Name("Tool and Armor Options")
     public static ToolOptions tools = new ToolOptions();
 
+    @Config.Comment("Multiblock universal tool mover limits and safety options")
+    @Config.Name("Multiblock Universal Tool Options")
+    public static MultiblockToolOptions multiblockMover = new MultiblockToolOptions();
+
     @Config.Comment("Config options for World Generation features")
     @Config.Name("Worldgen Options")
     @Config.RequiresMcRestart
     public static WorldGenOptions worldgen = new WorldGenOptions();
+
+    public static class MultiblockToolOptions {
+
+        @Config.RangeInt(min = 1, max = 16384)
+        public int maxBlocks = 4096;
+
+        @Config.RangeInt(min = 1, max = 256)
+        public int maxAxisLength = 64;
+
+        @Config.RangeInt(min = 1, max = 1024)
+        public int maxDistance = 128;
+
+        @Config.Comment("Distance used when placing a mover preview while pointing at air")
+        @Config.RangeInt(min = 1, max = 64)
+        public int airTargetDistance = 8;
+
+        @Config.RangeInt(min = 100, max = 72000)
+        public int sessionTimeoutTicks = 1200;
+
+        @Config.RangeInt(min = 1, max = 20)
+        public int previewCollisionRefreshTicks = 5;
+
+        public boolean enableEffects = true;
+        public boolean enableBlockModelPreview = true;
+
+        @Config.RangeInt(min = 0, max = 16384)
+        public int maxModelPreviewBlocks = 4096;
+
+        public boolean enableRotation = true;
+
+        @Config.RangeInt(min = 0)
+        public int rotationEnergyPerQuarterTurn = 250000;
+
+        @Config.RangeInt(min = 1, max = 60000)
+        public int performanceWarnMillis = 50;
+
+        @Config.RangeInt(min = 0)
+        public int baseEnergyCost = 100000;
+
+        @Config.RangeInt(min = 0)
+        public int energyPerBlock = 1000;
+
+        @Config.RangeInt(min = 0)
+        public int energyPerTileEntity = 5000;
+    }
 
     //原版优化 Vanilla Optimize
     @Config.Comment("Config options for Vanilla Optimize")

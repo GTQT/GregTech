@@ -19,6 +19,9 @@ import gregtech.client.model.customtexture.MetadataSectionCTM;
 import gregtech.client.event.CreativeSprayClientHandler;
 import gregtech.client.renderer.handler.FacadeRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
+import gregtech.client.renderer.handler.multiblock.MoverRotationKeyHandler;
+import gregtech.client.renderer.handler.multiblock.MultiblockMoverPreviewRenderer;
+import gregtech.client.renderer.handler.multiblock.MultiblockToolModeKeyHandler;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
 import gregtech.client.renderer.pipe.HeatConductorRenderer;
@@ -39,6 +42,8 @@ import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.ToolItems;
 import gregtech.common.items.behaviors.spray.CreativeSprayBehavior;
+import gregtech.common.network.multiblock.ClearMoverPreviewPacket;
+import gregtech.common.network.multiblock.StartMoverPreviewPacket;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.Minecraft;
@@ -448,6 +453,9 @@ public class ClientProxy extends CommonProxy {
 
         MinecraftForge.EVENT_BUS.register(KeyBind.class);
         MinecraftForge.EVENT_BUS.register(new ClientWirelessHUD());
+        MinecraftForge.EVENT_BUS.register(new MultiblockMoverPreviewRenderer());
+        MoverRotationKeyHandler.init();
+        MultiblockToolModeKeyHandler.init();
     }
 
     @Override
@@ -466,5 +474,15 @@ public class ClientProxy extends CommonProxy {
     @Override
     public boolean isFancyGraphics() {
         return Minecraft.getMinecraft().gameSettings.fancyGraphics;
+    }
+
+    @Override
+    public void startMultiblockMoverPreview(StartMoverPreviewPacket packet) {
+        MultiblockMoverPreviewRenderer.start(packet);
+    }
+
+    @Override
+    public void clearMultiblockMoverPreview(ClearMoverPreviewPacket packet) {
+        MultiblockMoverPreviewRenderer.clear(packet.getSessionId());
     }
 }

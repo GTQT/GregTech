@@ -42,27 +42,14 @@ public class MiscRecipeLoader {
                 OreDictUnifier.get("paneGlass"), 'B', new ItemStack(Items.BOOK),
                 'P', new UnificationEntry(plate, WroughtIron), 'W', new UnificationEntry(wireGtSingle, RedAlloy));
 
-        // Multiblock Builder
-        ModHandler.addShapedRecipe(true, "multiblock_builder", MULTIBLOCK_BUILDER.getStackForm(),
-                "wCE", "SRC", "RSd",
-                'C', new UnificationEntry(circuit, MarkerMaterials.Tier.HV),
-                'E', new UnificationEntry(gem, EnderEye),
-                'S', new UnificationEntry(screw, StainlessSteel),
-                'R', new UnificationEntry(stick, StainlessSteel));
-
-        ModHandler.addShapedRecipe(true, "multiblock_remover", MULTIBLOCK_REMOVER.getStackForm(),
-                "CwE", "SRC", "RSd",
-                'C', new UnificationEntry(circuit, MarkerMaterials.Tier.HV),
-                'E', new UnificationEntry(gem, EnderEye),
-                'S', new UnificationEntry(screw, StainlessSteel),
-                'R', new UnificationEntry(stick, StainlessSteel));
-
-        ModHandler.addShapedRecipe(true, "multiblock_preview", MULTIBLOCK_PREVIEW.getStackForm(),
-                "CEw", "SRC", "RSd",
+        // Unified projector/builder, remover and transactional mover.
+        ModHandler.addShapedRecipe(true, "multiblock_tool", MULTIBLOCK_TOOL.getStackForm(),
+                "wCE", "SBS", "RdR",
                 'C', new UnificationEntry(circuit, MarkerMaterials.Tier.IV),
                 'E', QUANTUM_EYE,
                 'S', new UnificationEntry(screw, Titanium),
-                'R', new UnificationEntry(stick, Titanium));
+                'R', new UnificationEntry(stick, Titanium),
+                'B', LAPOTRON_CRYSTAL);
 
         // Potin Recipe
         ModHandler.addShapelessRecipe("potin_dust", OreDictUnifier.get(dust, Potin, 8),

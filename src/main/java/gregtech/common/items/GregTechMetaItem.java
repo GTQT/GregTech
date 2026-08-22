@@ -59,6 +59,7 @@ import gregtech.common.items.behaviors.ItemMagnetBehavior;
 import gregtech.common.items.behaviors.LighterBehaviour;
 import gregtech.common.items.behaviors.MiningLaserBehavior;
 import gregtech.common.items.behaviors.MultiblockRemovalBehavior;
+import gregtech.common.items.behaviors.MultiblockToolBehavior;
 import gregtech.common.items.behaviors.NanoSaberBehavior;
 import gregtech.common.items.behaviors.OffhandPlacerBehavior;
 import gregtech.common.items.behaviors.PipeNetPainterBehavior;
@@ -1555,17 +1556,24 @@ public final class GregTechMetaItem extends StandardMetaItem {
         LOGO = addItem(1003, "logo").setInvisible();
         LOGO.getMetaItem().addPropertyOverride(new ResourceLocation("xmas"), (s, w, e) -> GTValues.XMAS.get() ? 1 : 0);
 
-        MULTIBLOCK_BUILDER = addItem(1004, "tool.multiblock_builder").addComponents(new StructureBuilderBehavior())
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        // Metadata 1004/1005 stay loadable for old worlds and scripts, but are hidden.
+        // Their legacy default modes are derived from metadata until the player presses M.
+        MULTIBLOCK_BUILDER = addItem(1004, "tool.multiblock_builder")
+                .addComponents(ElectricStats.createElectricItem(64_000_000L, GTValues.IV))
+                .addComponents(new MultiblockToolBehavior())
+                .setMaxStackSize(1).setInvisible();
 
-        MULTIBLOCK_REMOVER = addItem(1005, "tool.multiblock_remover").addComponents(new MultiblockRemovalBehavior())
-                .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MULTIBLOCK_REMOVER = addItem(1005, "tool.multiblock_remover")
+                .addComponents(ElectricStats.createElectricItem(64_000_000L, GTValues.IV))
+                .addComponents(new MultiblockToolBehavior())
+                .setMaxStackSize(1).setInvisible();
 
-        MULTIBLOCK_PREVIEW = addItem(1006, "tool.mutliblock_preview").addComponents(new StructureProjectorBehavior())
+        MULTIBLOCK_PREVIEW = addItem(1006, "tool.multiblock_tool")
+                .addComponents(ElectricStats.createElectricItem(64_000_000L, GTValues.IV))
+                .addComponents(new MultiblockToolBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+        MULTIBLOCK_TOOL = MULTIBLOCK_PREVIEW;
 
         OFFHAND_PLACER = addItem(1007, "tool.offhand_placer").addComponents(new OffhandPlacerBehavior())
                 .setMaxStackSize(1)

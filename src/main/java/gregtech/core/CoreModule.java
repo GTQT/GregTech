@@ -48,6 +48,7 @@ import gregtech.common.blocks.BlockCleanroomCasing;
 import gregtech.common.blocks.BlockWireCoil;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.command.CommandHand;
+import gregtech.common.command.MultiblockMoverRecoveryCommand;
 import gregtech.common.command.CommandRecipeCheck;
 import gregtech.common.command.CommandShaders;
 import gregtech.common.command.CommandStructureTrace;
@@ -57,6 +58,7 @@ import gregtech.common.covers.CoverBehaviors;
 import gregtech.common.covers.filter.oreglob.impl.OreGlobParser;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.ToolItems;
+import gregtech.common.items.behaviors.multiblock.mover.MoverSessionManager;
 import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.metatileentities.electric.MetaTileEntityAlarm;
 import gregtech.common.wireless.WirelessComputationServiceImpl;
@@ -145,6 +147,7 @@ public class CoreModule implements IGregTechModule {
 
     @Override
     public void preInit(FMLPreInitializationEvent event) {
+        MoverSessionManager.init();
         MinecraftForge.EVENT_BUS.register(wirelessEnergyService);
         MinecraftForge.EVENT_BUS.register(wirelessComputationService);
         GregTechAPIInternal.preInit();
@@ -367,6 +370,7 @@ public class CoreModule implements IGregTechModule {
         GregTechAPI.commandManager.addCommand(new CommandRecipeCheck());
         GregTechAPI.commandManager.addCommand(new CommandShaders());
         GregTechAPI.commandManager.addCommand(new CommandStructureTrace());
+        GregTechAPI.commandManager.addCommand(new MultiblockMoverRecoveryCommand());
         GregTechAPI.commandManager.addCommand(new CommandWireless());
         CapesRegistry.load();
     }

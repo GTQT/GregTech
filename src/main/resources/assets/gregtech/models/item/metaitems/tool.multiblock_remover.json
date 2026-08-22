@@ -15,6 +15,18 @@
         "gregtech:auto_mode": 1.0
       },
       "model": "gregtech:item/metaitems/tool.multiblock_remover.auto"
+    },
+    {
+      "predicate": {
+        "gregtech:multiblock_tool_mode": 1.0
+      },
+      "model": "gregtech:item/metaitems/tool.multiblock_tool.remove"
+    },
+    {
+      "predicate": {
+        "gregtech:multiblock_tool_mode": 2.0
+      },
+      "model": "gregtech:item/metaitems/tool.multiblock_tool.move"
     }
   ]
 }

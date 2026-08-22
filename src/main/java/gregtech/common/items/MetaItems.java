@@ -680,6 +680,8 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_BUILDER;
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_REMOVER;
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_PREVIEW;
+    /** Canonical unified preview/build, removal and movement tool (metadata 1006). */
+    public static MetaItem<?>.MetaValueItem MULTIBLOCK_TOOL;
     public static MetaItem<?>.MetaValueItem OFFHAND_PLACER;
 
     // Forge of the Gods

@@ -41,6 +41,8 @@ import gregtech.common.covers.GTQTCoverBehavior;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.ToolItems;
 import gregtech.common.network.NetworkHandler;
+import gregtech.common.network.multiblock.ClearMoverPreviewPacket;
+import gregtech.common.network.multiblock.StartMoverPreviewPacket;
 import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.cable.ItemBlockCable;
 import gregtech.common.pipelike.fluidpipe.BlockFluidPipe;
@@ -573,4 +575,8 @@ public class CommonProxy {
     public boolean isFancyGraphics() {
         return true;
     }
+
+    public void startMultiblockMoverPreview(StartMoverPreviewPacket packet) {}
+
+    public void clearMultiblockMoverPreview(ClearMoverPreviewPacket packet) {}
 }

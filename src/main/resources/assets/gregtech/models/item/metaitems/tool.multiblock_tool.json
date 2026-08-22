@@ -1,0 +1,16 @@
+{
+  "parent": "item/generated",
+  "textures": {
+    "layer0": "gregtech:items/metaitems/tool.multiblock_tool.project"
+  },
+  "overrides": [
+    {
+      "predicate": { "gregtech:multiblock_tool_mode": 1 },
+      "model": "gregtech:item/metaitems/tool.multiblock_tool.remove"
+    },
+    {
+      "predicate": { "gregtech:multiblock_tool_mode": 2 },
+      "model": "gregtech:item/metaitems/tool.multiblock_tool.move"
+    }
+  ]
+}
