@@ -51,11 +51,6 @@ import java.util.List;
 
 public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IFluidTank>, IControllable, IColorChannelPart {
-    @Override
-    public boolean showColorChannelPatch() {
-        return !isExportHatch;
-    }
-
 
     private static final int BASE_TANK_SIZE = 8000;
 
@@ -227,6 +222,11 @@ public class MetaTileEntityMultiFluidHatch extends MetaTileEntityMultiblockNotif
         tooltip.add(I18n.format("gregtech.tool_action.screwdriver.access_covers"));
         tooltip.add(I18n.format("gregtech.tool_action.wrench.set_facing"));
         super.addToolUsages(stack, world, tooltip, advanced);
+    }
+
+    @Override
+    public boolean showColorChannelPatch() {
+        return !isExportHatch;
     }
 
     @Override

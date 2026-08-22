@@ -15,7 +15,6 @@ import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
-import gregtech.api.metatileentity.multiblock.IColorChannelPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuiTextures;
@@ -79,15 +78,7 @@ import static net.minecraft.util.text.TextFormatting.GREEN;
 public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifiablePart implements
                                                                                         IMultiblockAbilityPart<IItemHandlerModifiable>,
                                                                                         IControllable,
-                                                                                        IGhostSlotConfigurable, IColorChannelPart {
-    /**
-     * 总成仓在仓口隔离(distinct)模式下天然逐仓隔离,染色隔离对其无意义,不显示指示灯。
-     */
-    @Override
-    public boolean showColorChannelPatch() {
-        return false;
-    }
-
+                                                                                        IGhostSlotConfigurable {
 
     @Nullable
     protected GhostCircuitItemStackHandler circuitInventory;

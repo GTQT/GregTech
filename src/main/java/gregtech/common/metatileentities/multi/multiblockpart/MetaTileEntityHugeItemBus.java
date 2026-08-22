@@ -66,11 +66,6 @@ import static net.minecraft.util.text.TextFormatting.GREEN;
 public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IItemHandlerModifiable>, IControllable,
                    IGhostSlotConfigurable, IColorChannelPart {
-    @Override
-    public boolean showColorChannelPatch() {
-        return !isExportHatch;
-    }
-
 
     @Nullable
     protected GhostCircuitItemStackHandler circuitInventory;
@@ -490,5 +485,10 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
     public void onRemoval() {
         super.onRemoval();
         GTTransferUtils.dropInventoryItems(getWorld(), getPos(), largeSlotItemStackHandler);
+    }
+
+    @Override
+    public boolean showColorChannelPatch() {
+        return !isExportHatch;
     }
 }

@@ -64,12 +64,6 @@ import static gregtech.api.util.GTUtility.collapseInventorySlotContents;
 public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IItemHandlerModifiable>, IControllable,
                    IGhostSlotConfigurable, IColorChannelPart {
-
-    @Override
-    public boolean showColorChannelPatch() {
-        return !isExportHatch;
-    }
-
     @Nullable
     protected GhostCircuitItemStackHandler circuitInventory;
     private IItemHandlerModifiable actualImportItems;
@@ -528,4 +522,10 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         tooltip.add(I18n.format("gregtech.tool_action.wrench.set_facing"));
         super.addToolUsages(stack, world, tooltip, advanced);
     }
+
+    @Override
+    public boolean showColorChannelPatch() {
+        return !isExportHatch;
+    }
+
 }

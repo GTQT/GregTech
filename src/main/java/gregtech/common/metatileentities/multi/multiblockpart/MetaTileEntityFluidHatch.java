@@ -66,11 +66,6 @@ import java.util.List;
 public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiablePart
         implements IMultiblockAbilityPart<IFluidTank>, IControllable,
                    IGhostSlotConfigurable, IColorChannelPart {
-    @Override
-    public boolean showColorChannelPatch() {
-        return !isExportHatch;
-    }
-
     public static final int INITIAL_INVENTORY_SIZE = 8000;
 
     // only holding this for convenience
@@ -465,5 +460,10 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
             if (!isExportHatch) return IFilter.noPriority();
             return !locked || lockedFluid == null ? IFilter.noPriority() : IFilter.whitelistPriority(1);
         }
+    }
+
+    @Override
+    public boolean showColorChannelPatch() {
+        return !isExportHatch;
     }
 }
