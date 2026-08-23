@@ -20,7 +20,7 @@ public class NuclearMachineRecipeLoader {
     public static void init() {
         // Nuclear Casing
         ASSEMBLER_RECIPES.recipeBuilder().EUt(48).duration(280)
-                .input(plateDouble, Inconel)
+                .input(plateDouble, Inconel718)
                 .input(plate, Steel, 5)
                 .input(frameGt, Steel)
                 .outputs(MetaBlocks.FISSION_CASING.getItemVariant(
@@ -28,7 +28,7 @@ public class NuclearMachineRecipeLoader {
                 .buildAndRegister();
 
         ASSEMBLER_RECIPES.recipeBuilder().EUt(48).duration(280)
-                .input(pipeLargeFluid, Inconel)
+                .input(pipeLargeFluid, Inconel718)
                 .input(frameGt, Steel)
                 .outputs(MetaBlocks.FISSION_CASING.getItemVariant(
                         BlockFissionCasing.FissionCasingType.COOLANT_CHANNEL))
@@ -75,7 +75,7 @@ public class NuclearMachineRecipeLoader {
         // Nuclear Technology
 
         ASSEMBLER_RECIPES.recipeBuilder()
-                .input(pipeLargeFluid, Inconel)
+                .input(pipeLargeFluid, Inconel718)
                 .input(HULL[EV])
                 .fluidInputs(Polyethylene.getFluid(144))
                 .circuitMeta(1)
@@ -83,7 +83,7 @@ public class NuclearMachineRecipeLoader {
                 .duration(300).EUt(VA[EV]).buildAndRegister();
 
         ASSEMBLER_RECIPES.recipeBuilder()
-                .input(pipeLargeFluid, Inconel)
+                .input(pipeLargeFluid, Inconel718)
                 .input(HULL[EV])
                 .fluidInputs(Polyethylene.getFluid(144))
                 .circuitMeta(2)

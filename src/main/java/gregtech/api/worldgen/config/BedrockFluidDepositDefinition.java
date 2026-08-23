@@ -1,16 +1,8 @@
 package gregtech.api.worldgen.config;
 
-import gregtech.api.util.GTLog;
-import gregtech.api.util.LocalizationUtils;
-import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinHandler;
-
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fluids.Fluid;
-import net.minecraftforge.fluids.FluidRegistry;
-
-import com.google.gson.JsonObject;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -39,56 +31,6 @@ public class BedrockFluidDepositDefinition implements IWorldgenDefinition {
         this.depositName = depositName;
     }
 
-    @Override
-    public boolean initializeFromConfig(@NotNull JsonObject configRoot) {
-        // the weight value for determining which vein will appear
-        this.weight = configRoot.get("weight").getAsInt();
-        // the [minimum, maximum) yield of the vein
-        this.yields[0] = configRoot.get("yield").getAsJsonObject().get("min").getAsInt();
-        this.yields[1] = configRoot.get("yield").getAsJsonObject().get("max").getAsInt();
-        // amount of fluid the vein gets depleted by
-        this.depletionAmount = configRoot.get("depletion").getAsJsonObject().get("amount").getAsInt();
-        // the chance [0, 100] that the vein will deplete by depletionAmount
-        this.depletionChance = Math.max(0,
-                Math.min(100, configRoot.get("depletion").getAsJsonObject().get("chance").getAsInt()));
-
-        // the fluid which the vein contains
-        Fluid fluid = FluidRegistry.getFluid(configRoot.get("fluid").getAsString());
-        if (fluid != null) {
-            this.storedFluid = fluid;
-        } else {
-            GTLog.logger.error("Bedrock Fluid Vein {} cannot have a null fluid!", this.depositName,
-                    new RuntimeException());
-            return false;
-        }
-        // vein name for JEI display
-        if (configRoot.has("name")) {
-            this.assignedName = LocalizationUtils.format(configRoot.get("name").getAsString());
-        }
-        // vein description for JEI display
-        if (configRoot.has("description")) {
-            this.description = configRoot.get("description").getAsString();
-        }
-        // yield after the vein is depleted
-        if (configRoot.get("depletion").getAsJsonObject().has("depleted_yield")) {
-            this.depletedYield = configRoot.get("depletion").getAsJsonObject().get("depleted_yield").getAsInt();
-        }
-        // additional weighting changes determined by biomes
-        if (configRoot.has("biome_modifier")) {
-            this.biomeWeightModifier = WorldConfigUtils.createBiomeWeightModifier(configRoot.get("biome_modifier"));
-        }
-        // filtering of dimensions to determine where the vein can generate
-        if (configRoot.has("dimension_filter")) {
-            this.dimensionFilter = WorldConfigUtils.createWorldPredicate(configRoot.get("dimension_filter"));
-        }
-        BedrockFluidVeinHandler.addFluidDeposit(this);
-        return true;
-    }
-
-    /**
-     * Must be converted using {@link gregtech.api.util.FileUtility#slashToNativeSep(String)}
-     * before it can be used as a file path
-     */
     @Override
     public String getDepositName() {
         return depositName;
@@ -141,6 +83,49 @@ public class BedrockFluidDepositDefinition implements IWorldgenDefinition {
 
     public Predicate<WorldProvider> getDimensionFilter() {
         return dimensionFilter;
+    }
+
+    // === Package-private setters, used by BedrockFluidDepositBuilder ===
+
+    void setWeight(int weight) {
+        this.weight = weight;
+    }
+
+    void setAssignedName(String assignedName) {
+        this.assignedName = assignedName;
+    }
+
+    void setDescription(String description) {
+        this.description = description;
+    }
+
+    void setYields(int minimumYield, int maximumYield) {
+        this.yields[0] = minimumYield;
+        this.yields[1] = maximumYield;
+    }
+
+    void setDepletionAmount(int depletionAmount) {
+        this.depletionAmount = depletionAmount;
+    }
+
+    void setDepletionChance(int depletionChance) {
+        this.depletionChance = depletionChance;
+    }
+
+    void setDepletedYield(int depletedYield) {
+        this.depletedYield = depletedYield;
+    }
+
+    void setStoredFluid(Fluid storedFluid) {
+        this.storedFluid = storedFluid;
+    }
+
+    void setBiomeWeightModifier(Function<Biome, Integer> biomeWeightModifier) {
+        this.biomeWeightModifier = biomeWeightModifier;
+    }
+
+    void setDimensionFilter(Predicate<WorldProvider> dimensionFilter) {
+        this.dimensionFilter = dimensionFilter;
     }
 
     @Override

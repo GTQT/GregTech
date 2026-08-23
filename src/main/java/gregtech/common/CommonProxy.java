@@ -213,6 +213,7 @@ public class CommonProxy {
         registry.register(ASPHALT);
         registry.register(RUBBER_LOG);
         registry.register(TREE_TAP);
+        registry.register(BEDROCK_FLUID_SPRING);
         registry.register(RUBBER_LEAVES);
         registry.register(RUBBER_SAPLING);
         registry.register(PLANKS);
@@ -409,6 +410,7 @@ public class CommonProxy {
         registry.register(createItemBlock(TREATED_WOOD_FENCE, ItemBlock::new));
         registry.register(createItemBlock(RUBBER_WOOD_FENCE_GATE, ItemBlock::new));
         registry.register(createItemBlock(TREATED_WOOD_FENCE_GATE, ItemBlock::new));
+        registry.register(createItemBlock(BEDROCK_FLUID_SPRING, ItemBlock::new));
         registry.register(createItemBlock(BRITTLE_CHARCOAL, ItemBlock::new));
         registry.register(createItemBlock(RUBBER_LOG, ItemBlock::new));
         registry.register(createItemBlock(RUBBER_LEAVES, ItemBlock::new));

@@ -1,13 +1,10 @@
 package gregtech.api.worldgen.filler;
 
-import gregtech.api.worldgen.config.FillerConfigUtils;
 import gregtech.api.worldgen.config.FillerConfigUtils.LayeredFillerEntry;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
-
-import com.google.gson.JsonObject;
 
 import java.util.Collections;
 import java.util.List;
@@ -15,13 +12,10 @@ import java.util.Random;
 
 public class LayeredBlockFiller extends BlockFiller {
 
-    private LayeredFillerEntry fillerEntry;
+    private final LayeredFillerEntry fillerEntry;
 
-    public LayeredBlockFiller() {}
-
-    @Override
-    public void loadFromConfig(JsonObject object) {
-        this.fillerEntry = FillerConfigUtils.createLayeredFiller(object);
+    public LayeredBlockFiller(LayeredFillerEntry fillerEntry) {
+        this.fillerEntry = fillerEntry;
     }
 
     @Override

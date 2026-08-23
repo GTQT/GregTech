@@ -1,33 +1,21 @@
 package gregtech.api.worldgen.shape;
 
-import gregtech.api.worldgen.config.OreConfigUtils;
-
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.Vec3i;
 
-import com.google.gson.JsonObject;
 import org.apache.commons.lang3.ArrayUtils;
 
 import java.util.Random;
 
 public class SingleBlockGenerator extends ShapeGenerator {
 
-    private int minBlocksCount;
-    private int maxBlocksCount;
-
-    public SingleBlockGenerator() {}
+    private final int minBlocksCount;
+    private final int maxBlocksCount;
 
     public SingleBlockGenerator(int minBlocksCount, int maxBlocksCount) {
         this.minBlocksCount = minBlocksCount;
         this.maxBlocksCount = maxBlocksCount;
-    }
-
-    @Override
-    public void loadFromConfig(JsonObject object) {
-        int[] blocksCount = OreConfigUtils.getIntRange(object.get("blocks_count"));
-        this.minBlocksCount = blocksCount[0];
-        this.maxBlocksCount = blocksCount[1];
     }
 
     @Override

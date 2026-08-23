@@ -48,12 +48,11 @@ import gregtech.common.blocks.BlockCleanroomCasing;
 import gregtech.common.blocks.BlockWireCoil;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.command.CommandHand;
-import gregtech.common.command.MultiblockMoverRecoveryCommand;
 import gregtech.common.command.CommandRecipeCheck;
 import gregtech.common.command.CommandShaders;
 import gregtech.common.command.CommandStructureTrace;
+import gregtech.common.command.MultiblockMoverRecoveryCommand;
 import gregtech.common.command.wireless.CommandWireless;
-import gregtech.common.command.worldgen.CommandWorldgen;
 import gregtech.common.covers.CoverBehaviors;
 import gregtech.common.covers.filter.oreglob.impl.OreGlobParser;
 import gregtech.common.items.MetaItems;
@@ -365,7 +364,6 @@ public class CoreModule implements IGregTechModule {
         GregTechAPI.commandManager = commandManager;
         commandManager.registerServerCommand(event);
 
-        GregTechAPI.commandManager.addCommand(new CommandWorldgen());
         GregTechAPI.commandManager.addCommand(new CommandHand());
         GregTechAPI.commandManager.addCommand(new CommandRecipeCheck());
         GregTechAPI.commandManager.addCommand(new CommandShaders());

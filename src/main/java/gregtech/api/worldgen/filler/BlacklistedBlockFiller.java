@@ -1,12 +1,8 @@
 package gregtech.api.worldgen.filler;
 
-import gregtech.api.worldgen.config.FillerConfigUtils;
-
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
-
-import com.google.gson.JsonObject;
 
 import java.util.Collections;
 import java.util.List;
@@ -14,12 +10,8 @@ import java.util.Random;
 
 public class BlacklistedBlockFiller extends BlockFiller {
 
-    private FillerEntry blockStateFiller;
+    private final FillerEntry blockStateFiller;
     private final List<IBlockState> blacklist;
-
-    public BlacklistedBlockFiller(List<IBlockState> blacklist) {
-        this.blacklist = blacklist;
-    }
 
     public BlacklistedBlockFiller(List<IBlockState> blacklist, FillerEntry blockStateFiller) {
         this.blacklist = blacklist;
@@ -28,11 +20,6 @@ public class BlacklistedBlockFiller extends BlockFiller {
 
     public List<IBlockState> getBlacklist() {
         return blacklist;
-    }
-
-    @Override
-    public void loadFromConfig(JsonObject object) {
-        this.blockStateFiller = FillerConfigUtils.createBlockStateFiller(object.get("value"));
     }
 
     @Override

@@ -914,8 +914,10 @@ public class UnknownCompositionMaterials {
         Corium = Material.builder(1734, gregtechId("corium"))
                 .liquid(new FluidBuilder().temperature(2500).density(8.0D).viscosity(10000))
                 .color(0x7A6B50).iconSet(DULL).flags(NO_UNIFICATION, STICKY, GLOWING).build();
+
         SpentUraniumFuelSolution = Material.builder(1735, gregtechId("spent_uranium_fuel_solution"))
                 .liquid().color(0x384536).build();
+
         RadonRichGasMixture = Material.builder(1736, gregtechId("radon_rich_gas_mixture"))
                 .gas().color(0xd78dd9).build();
     }

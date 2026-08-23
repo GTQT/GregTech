@@ -1,9 +1,6 @@
 package gregtech.api.worldgen.config;
 
-import gregtech.api.util.GTUtility;
-
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.world.DimensionType;
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.WorldProviderEnd;
 import net.minecraft.world.WorldProviderHell;
@@ -11,128 +8,95 @@ import net.minecraft.world.biome.Biome;
 import net.minecraftforge.common.BiomeDictionary;
 import net.minecraftforge.common.BiomeDictionary.Type;
 import net.minecraftforge.fml.common.registry.GameRegistry;
+import net.minecraftforge.fml.relauncher.ReflectionHelper;
 
-import com.google.common.base.Preconditions;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map.Entry;
-import java.util.Set;
+import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class WorldConfigUtils {
 
-    public static Predicate<WorldProvider> createWorldPredicate(JsonElement element) {
-        Preconditions.checkArgument(element.isJsonArray(), "World filter should be array!");
-        JsonArray predicateArray = element.getAsJsonArray();
-        ArrayList<Predicate<WorldProvider>> allPredicates = new ArrayList<>();
+    private WorldConfigUtils() {}
 
-        for (JsonElement worldPredicate : predicateArray) {
-            String stringValue = worldPredicate.getAsString();
-            if (stringValue.equals("is_surface_world")) {
-                allPredicates.add(WorldProvider::isSurfaceWorld);
-                continue;
-            } else if (stringValue.equals("is_nether")) {
-                allPredicates.add(wp -> wp instanceof WorldProviderHell);
-                continue;
-            }else if (stringValue.equals("is_end")) {
-                allPredicates.add(wp -> wp instanceof WorldProviderEnd);
-                continue;
-            }
-            Function<WorldProvider, String> stringSupplier = null;
-            if (stringValue.startsWith("dimension_id:")) {
-                String filterValue = stringValue.substring(13);
-                if (filterValue.contains(",")) {
-                    Set<Integer> dimensionIds = Arrays.stream(filterValue.split(","))
-                            .map(String::trim)
-                            .map(Integer::parseInt)
-                            .collect(Collectors.toSet());
-                    allPredicates.add(provider -> dimensionIds.contains(provider.getDimension()));
-                } else if (filterValue.indexOf(':') == -1) {
-                    int dimensionId = Integer.parseInt(filterValue);
-                    allPredicates.add(provider -> provider.getDimension() == dimensionId);
-                } else {
-                    int indexOf = filterValue.indexOf(':');
-                    int indexOfExclusive = indexOf + 1;
-                    int minDimensionId = indexOf == 0 ? -Integer.MAX_VALUE :
-                            Integer.parseInt(filterValue.substring(0, indexOf));
-                    int maxDimensionId = indexOfExclusive == filterValue.length() ? Integer.MAX_VALUE :
-                            Integer.parseInt(filterValue.substring(indexOfExclusive));
-                    allPredicates.add(provider -> provider.getDimension() >= minDimensionId &&
-                            provider.getDimension() <= maxDimensionId);
-                }
-            } else if (stringValue.startsWith("name:")) {
-                stringSupplier = provider -> provider.getDimensionType().getName();
-                stringValue = stringValue.substring(5);
-            } else if (stringValue.startsWith("provider_class:")) {
-                stringSupplier = provider -> provider.getClass().getSimpleName();
-                stringValue = stringValue.substring(15);
-            } else throw new IllegalArgumentException("Unknown world predicate: " + stringValue);
-            if (stringSupplier != null) {
-                if (stringValue.startsWith("*")) {
-                    Pattern pattern = Pattern.compile(stringValue.substring(1));
-                    Function<WorldProvider, String> finalStringSupplier = stringSupplier;
-                    allPredicates.add(provider -> pattern.matcher(finalStringSupplier.apply(provider)).matches());
-                } else {
-                    String finalStringValue = stringValue;
-                    Function<WorldProvider, String> finalStringSupplier1 = stringSupplier;
-                    allPredicates
-                            .add(provider -> finalStringValue.equalsIgnoreCase(finalStringSupplier1.apply(provider)));
-                }
-            }
-        }
-
-        return provider -> allPredicates.stream().anyMatch(p -> p.test(provider));
+    public static Predicate<WorldProvider> predicateIsSurfaceWorld() {
+        return WorldProvider::isSurfaceWorld;
     }
 
-    public static Function<Biome, Integer> createBiomeWeightModifier(JsonElement element) {
-        if (!element.isJsonObject())
-            throw new IllegalArgumentException("Biome weight modifier should be object!");
-        JsonObject object = element.getAsJsonObject();
-        String influenceType = object.get("type").getAsString();
+    public static Predicate<WorldProvider> predicateIsNether() {
+        return wp -> wp instanceof WorldProviderHell;
+    }
 
-        switch (influenceType) {
-            case "biome_map": {
-                HashMap<Biome, Integer> backedMap = new HashMap<>();
-                for (Entry<String, JsonElement> elementEntry : object.entrySet()) {
-                    if (elementEntry.getKey().equals("type")) continue; // skip type
-                    ResourceLocation biomeName = new ResourceLocation(elementEntry.getKey());
-                    Biome biome = GameRegistry.findRegistry(Biome.class).getValue(biomeName);
-                    if (biome == null)
-                        throw new IllegalArgumentException("Couldn't find biome with name " + biomeName);
-                    backedMap.put(biome, elementEntry.getValue().getAsInt());
-                }
-                return biome -> backedMap.getOrDefault(biome, 0);
-            }
-            case "biome_dictionary": {
-                HashMap<Type, Integer> backedMap = new HashMap<>();
-                for (Entry<String, JsonElement> elementEntry : object.entrySet()) {
-                    if (elementEntry.getKey().equals("type")) continue; // skip type
-                    String tagName = elementEntry.getKey().toUpperCase();
-                    Type type = GTUtility.getBiomeTypeTagByName(tagName);
-                    if (type == null)
-                        throw new IllegalArgumentException("Couldn't find biome dictionary tag " + tagName);
-                    backedMap.put(type, elementEntry.getValue().getAsInt());
-                }
-                return biome -> {
-                    int totalModifier = 0;
-                    for (Entry<Type, Integer> entry : backedMap.entrySet()) {
-                        if (BiomeDictionary.hasType(biome, entry.getKey())) {
-                            totalModifier += entry.getValue();
-                        }
-                    }
-                    return totalModifier;
-                };
-            }
-            default:
-                throw new IllegalArgumentException("Unknown biome influence type: " + influenceType);
+    public static Predicate<WorldProvider> predicateIsEnd() {
+        return wp -> wp instanceof WorldProviderEnd;
+    }
+
+    public static Predicate<WorldProvider> predicateDimension(int dimension) {
+        return provider -> provider.getDimension() == dimension;
+    }
+
+    public static Predicate<WorldProvider> predicateDimensionName(String name) {
+        return provider -> name.equalsIgnoreCase(provider.getDimensionType().getName());
+    }
+
+    /**
+     * 按生物群系字典标签构建权重修正，规则与原 biome_dictionary JSON 一致
+     *
+     * @param dictionaryModifiers 字典标签名(如 "ocean")→ 权重
+     */
+    public static Function<Biome, Integer> biomeWeightModifierDictionary(Map<String, Integer> dictionaryModifiers) {
+        HashMap<Type, Integer> backedMap = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : dictionaryModifiers.entrySet()) {
+            String tagName = entry.getKey();
+            Type type = resolveBiomeDictionaryType(tagName);
+            if (type == null)
+                throw new IllegalArgumentException("Couldn't find biome dictionary tag " + tagName);
+            backedMap.put(type, entry.getValue());
         }
+        return biome -> {
+            int totalModifier = 0;
+            for (Map.Entry<Type, Integer> entry : backedMap.entrySet()) {
+                if (BiomeDictionary.hasType(biome, entry.getKey())) {
+                    totalModifier += entry.getValue();
+                }
+            }
+            return totalModifier;
+        };
+    }
+
+    /**
+     * 解析生物群系字典标签，兼容大小写与命名空间前缀差异：
+     * 传入 "sandy" / "SANDY" / "overworld/sandy" / "OVERWORLD/SANDY" 均可匹配
+     */
+    private static Type resolveBiomeDictionaryType(String tagName) {
+        // 剥离可选的前缀（如 "overworld/sandy" → "sandy"）
+        String suffix = tagName.substring(tagName.lastIndexOf('/') + 1);
+        Map<String, Type> byName = ReflectionHelper.getPrivateValue(BiomeDictionary.Type.class, null, "byName");
+        if (byName != null) {
+            for (Map.Entry<String, Type> entry : byName.entrySet()) {
+                String key = entry.getKey();
+                if (key.equalsIgnoreCase(tagName) || key.equalsIgnoreCase(suffix)) {
+                    return entry.getValue();
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * 按生物群系注册名构建权重修正，规则与原 biome_map JSON 一致
+     *
+     * @param biomeMap 生物群系注册名(如 "minecraft:ocean")→ 权重
+     */
+    public static Function<Biome, Integer> biomeWeightModifierMap(Map<String, Integer> biomeMap) {
+        HashMap<Biome, Integer> backedMap = new HashMap<>();
+        for (Map.Entry<String, Integer> entry : biomeMap.entrySet()) {
+            ResourceLocation biomeName = new ResourceLocation(entry.getKey());
+            Biome biome = GameRegistry.findRegistry(Biome.class).getValue(biomeName);
+            if (biome == null)
+                throw new IllegalArgumentException("Couldn't find biome with name " + biomeName);
+            backedMap.put(biome, entry.getValue());
+        }
+        return biome -> backedMap.getOrDefault(biome, 0);
     }
 }

@@ -6,7 +6,6 @@ import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.stack.UnificationEntry;
 import gregtech.api.util.GTLog;
-import gregtech.api.worldgen.config.OreConfigUtils;
 import gregtech.api.worldgen.config.OreDepositDefinition;
 import gregtech.api.worldgen.generator.GridEntryInfo;
 import gregtech.common.blocks.MetaBlocks;
@@ -24,29 +23,17 @@ import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.IFluidBlock;
 
-import com.google.gson.JsonObject;
-
 import java.util.Collection;
 import java.util.Random;
 
 public class SurfaceRockPopulator implements VeinChunkPopulator {
 
-    private Material material;
+    private final Material material;
     private int failedGenerationCounter = 0;
-
-    public SurfaceRockPopulator() {}
 
     public SurfaceRockPopulator(Material material) {
         this.material = material;
     }
-
-    @Override
-    public void loadFromConfig(JsonObject object) {
-        this.material = OreConfigUtils.getMaterialByName(object.get("material").getAsString());
-    }
-
-    @Override
-    public void initializeForVein(OreDepositDefinition definition) {}
 
     private static boolean hasUndergroundMaterials(Collection<IBlockState> generatedBlocks) {
         for (IBlockState blockState : generatedBlocks) {

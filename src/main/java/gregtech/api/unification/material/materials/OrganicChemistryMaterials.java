@@ -393,30 +393,28 @@ public class OrganicChemistryMaterials {
                 .components(Carbon, 1, Hydrogen, 4, Oxygen, 1)
                 .build();
 
-        // FREE ID 1053
-
-        Ethanol = Material.builder(1054, gregtechId("ethanol"))
+        Ethanol = Material.builder(1053, gregtechId("ethanol"))
                 .liquid(new FluidBuilder().customStill().alternativeName("bio.ethanol"))
                 .color(0xFC4C04)
                 .flags(DISABLE_DECOMPOSITION)
                 .components(Carbon, 2, Hydrogen, 6, Oxygen, 1)
                 .build();
 
-        Toluene = Material.builder(1055, gregtechId("toluene"))
+        Toluene = Material.builder(1054, gregtechId("toluene"))
                 .liquid(new FluidBuilder().customStill())
                 .color(0x712400)
                 .flags(DISABLE_DECOMPOSITION)
                 .components(Carbon, 7, Hydrogen, 8)
                 .build();
 
-        DiphenylIsophtalate = Material.builder(1056, gregtechId("diphenyl_isophthalate"))
+        DiphenylIsophtalate = Material.builder(1055, gregtechId("diphenyl_isophthalate"))
                 .fluid()
                 .color(0x246E57)
                 .flags(DISABLE_DECOMPOSITION)
                 .components(Carbon, 20, Hydrogen, 14, Oxygen, 4)
                 .build();
 
-        PhthalicAcid = Material.builder(1057, gregtechId("phthalic_acid"))
+        PhthalicAcid = Material.builder(1056, gregtechId("phthalic_acid"))
                 .liquid(new FluidBuilder().attribute(FluidAttributes.ACID))
                 .color(0xD1D1D1)
                 .flags(DISABLE_DECOMPOSITION)
@@ -424,7 +422,7 @@ public class OrganicChemistryMaterials {
                 .build()
                 .setFormula("C6H4(CO2H)2", true);
 
-        Dimethylbenzene = Material.builder(1058, gregtechId("dimethylbenzene"))
+        Dimethylbenzene = Material.builder(1057, gregtechId("dimethylbenzene"))
                 .fluid()
                 .color(0x669C40)
                 .flags(DISABLE_DECOMPOSITION)
@@ -432,7 +430,7 @@ public class OrganicChemistryMaterials {
                 .build()
                 .setFormula("C6H4(CH3)2", true);
 
-        Diaminobenzidine = Material.builder(1059, gregtechId("diaminobenzidine"))
+        Diaminobenzidine = Material.builder(1058, gregtechId("diaminobenzidine"))
                 .fluid()
                 .color(0x337D59)
                 .flags(DISABLE_DECOMPOSITION)
@@ -440,7 +438,7 @@ public class OrganicChemistryMaterials {
                 .build()
                 .setFormula("(C6H3(NH2)2)2", true);
 
-        Dichlorobenzidine = Material.builder(1060, gregtechId("dichlorobenzidine"))
+        Dichlorobenzidine = Material.builder(1059, gregtechId("dichlorobenzidine"))
                 .fluid()
                 .color(0xA1DEA6)
                 .flags(DISABLE_DECOMPOSITION)
@@ -448,32 +446,48 @@ public class OrganicChemistryMaterials {
                 .build()
                 .setFormula("(C6H3Cl(NH2))2", true);
 
-        Nitrochlorobenzene = Material.builder(1061, gregtechId("nitrochlorobenzene"))
+        Nitrochlorobenzene = Material.builder(1060, gregtechId("nitrochlorobenzene"))
                 .fluid()
                 .color(0x8FB51A)
                 .flags(DISABLE_DECOMPOSITION)
                 .components(Carbon, 6, Hydrogen, 4, Chlorine, 1, Nitrogen, 1, Oxygen, 2)
                 .build();
 
-        Chlorobenzene = Material.builder(1062, gregtechId("chlorobenzene"))
+        Chlorobenzene = Material.builder(1061, gregtechId("chlorobenzene"))
                 .fluid()
                 .color(0x326A3E)
                 .flags(DISABLE_DECOMPOSITION)
                 .components(Carbon, 6, Hydrogen, 5, Chlorine, 1)
                 .build();
 
-        Octane = Material.builder(1063, gregtechId("octane"))
+        Octane = Material.builder(1062, gregtechId("octane"))
                 .fluid()
                 .flags(DISABLE_DECOMPOSITION)
                 .color(0x8A0A09)
                 .components(Carbon, 8, Hydrogen, 18)
                 .build();
 
-        EthylTertButylEther = Material.builder(1064, gregtechId("ethyl_tertbutyl_ether"))
+        AntiKnockAgent = Material.builder(1063, gregtechId("anti_knock_agent"))
                 .fluid()
                 .flags(DISABLE_DECOMPOSITION)
                 .color(0xB15C06)
                 .components(Carbon, 6, Hydrogen, 14, Oxygen, 1)
+                .build();
+
+        // MTBE反应混合物（丁烯）
+        MTBEReactionMixtureButene = new Material.Builder(1064, gregtechId("mtbe_reaction_mixture_butene"))
+                .fluid()
+                .flags(DISABLE_DECOMPOSITION)
+                .color(0xFFFFFF)
+                .components(Carbon, 5, Hydrogen, 12, Oxygen, 1)
+                .build();
+
+        // MTBE反应混合物（丁烷）
+        MTBEReactionMixtureButane = new Material.Builder(1065, gregtechId("mtbe_reaction_mixture_butane"))
+                .fluid()
+                .flags(DISABLE_DECOMPOSITION)
+                .color(0xFFFFFF)
+                .components(Carbon, 5, Hydrogen, 14, Oxygen, 1)
                 .build();
 
         Ethylbenzene = Material.builder(1066, gregtechId("ethylbenzene"))

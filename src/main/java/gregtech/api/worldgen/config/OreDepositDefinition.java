@@ -1,7 +1,6 @@
 package gregtech.api.worldgen.config;
 
 import gregtech.api.unification.ore.StoneType;
-import gregtech.api.util.LocalizationUtils;
 import gregtech.api.util.WorldBlockPredicate;
 import gregtech.api.worldgen.filler.BlockFiller;
 import gregtech.api.worldgen.populator.IVeinPopulator;
@@ -9,9 +8,6 @@ import gregtech.api.worldgen.shape.ShapeGenerator;
 
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.biome.Biome;
-
-import com.google.gson.JsonObject;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
 import java.util.function.Function;
@@ -46,56 +42,6 @@ public class OreDepositDefinition implements IWorldgenDefinition {
         this.depositName = depositName;
     }
 
-    @Override
-    public boolean initializeFromConfig(@NotNull JsonObject configRoot) {
-        this.weight = configRoot.get("weight").getAsInt();
-        this.density = configRoot.get("density").getAsFloat();
-        if (configRoot.has("name")) {
-            this.assignedName = LocalizationUtils.format(configRoot.get("name").getAsString());
-        }
-        if (configRoot.has("description")) {
-            this.description = configRoot.get("description").getAsString();
-        }
-        if (configRoot.has("priority")) {
-            this.priority = configRoot.get("priority").getAsInt();
-        }
-        if (configRoot.has("count_as_vein")) {
-            this.countAsVein = configRoot.get("count_as_vein").getAsBoolean();
-        }
-        if (configRoot.has("min_height")) {
-            this.heightLimit[0] = configRoot.get("min_height").getAsInt();
-        }
-        if (configRoot.has("max_height")) {
-            this.heightLimit[1] = configRoot.get("max_height").getAsInt();
-        }
-        if (configRoot.has("biome_modifier")) {
-            this.biomeWeightModifier = WorldConfigUtils.createBiomeWeightModifier(configRoot.get("biome_modifier"));
-        }
-        if (configRoot.has("dimension_filter")) {
-            this.dimensionFilter = WorldConfigUtils.createWorldPredicate(configRoot.get("dimension_filter"));
-        }
-        if (configRoot.has("generation_predicate")) {
-            this.generationPredicate = PredicateConfigUtils
-                    .createBlockStatePredicate(configRoot.get("generation_predicate"));
-        }
-        if (configRoot.has("vein_populator")) {
-            JsonObject object = configRoot.get("vein_populator").getAsJsonObject();
-            this.veinPopulator = WorldGenRegistry.INSTANCE.createVeinPopulator(object);
-        }
-        this.blockFiller = WorldGenRegistry.INSTANCE.createBlockFiller(configRoot.get("filler").getAsJsonObject());
-        this.shapeGenerator = WorldGenRegistry.INSTANCE
-                .createShapeGenerator(configRoot.get("generator").getAsJsonObject());
-
-        if (veinPopulator != null) {
-            veinPopulator.initializeForVein(this);
-        }
-        return true;
-    }
-
-    /**
-     * Must be converted using {@link gregtech.api.util.FileUtility#slashToNativeSep(String)}
-     * before it can be used as a file path
-     */
     @Override
     public String getDepositName() {
         return depositName;
@@ -163,6 +109,61 @@ public class OreDepositDefinition implements IWorldgenDefinition {
 
     public ShapeGenerator getShapeGenerator() {
         return shapeGenerator;
+    }
+
+    // === Package-private setters, used by DepositBuilder ===
+
+    void setWeight(int weight) {
+        this.weight = weight;
+    }
+
+    void setPriority(int priority) {
+        this.priority = priority;
+    }
+
+    void setDensity(float density) {
+        this.density = density;
+    }
+
+    void setAssignedName(String assignedName) {
+        this.assignedName = assignedName;
+    }
+
+    void setDescription(String description) {
+        this.description = description;
+    }
+
+    void setHeightLimit(int minHeight, int maxHeight) {
+        this.heightLimit[0] = minHeight;
+        this.heightLimit[1] = maxHeight;
+    }
+
+    void setCountAsVein(boolean countAsVein) {
+        this.countAsVein = countAsVein;
+    }
+
+    void setBiomeWeightModifier(Function<Biome, Integer> biomeWeightModifier) {
+        this.biomeWeightModifier = biomeWeightModifier;
+    }
+
+    void setDimensionFilter(Predicate<WorldProvider> dimensionFilter) {
+        this.dimensionFilter = dimensionFilter;
+    }
+
+    void setGenerationPredicate(WorldBlockPredicate generationPredicate) {
+        this.generationPredicate = generationPredicate;
+    }
+
+    void setVeinPopulator(IVeinPopulator veinPopulator) {
+        this.veinPopulator = veinPopulator;
+    }
+
+    void setBlockFiller(BlockFiller blockFiller) {
+        this.blockFiller = blockFiller;
+    }
+
+    void setShapeGenerator(ShapeGenerator shapeGenerator) {
+        this.shapeGenerator = shapeGenerator;
     }
 
     @Override

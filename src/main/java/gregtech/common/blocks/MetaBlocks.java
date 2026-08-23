@@ -34,6 +34,8 @@ import gregtech.client.renderer.pipe.ItemPipeRenderer;
 import gregtech.client.renderer.pipe.LaserPipeRenderer;
 import gregtech.client.renderer.pipe.OpticalPipeRenderer;
 import gregtech.common.ConfigHolder;
+import gregtech.common.blocks.bedrock.BlockBedrockFluidSpring;
+import gregtech.common.blocks.bedrock.TileEntityBedrockFluidSpring;
 import gregtech.common.blocks.explosive.BlockITNT;
 import gregtech.common.blocks.explosive.BlockPowderbarrel;
 import gregtech.common.blocks.foam.BlockFoam;
@@ -186,6 +188,7 @@ public class MetaBlocks {
     public static BlockRubberLeaves RUBBER_LEAVES;
     public static BlockRubberSapling RUBBER_SAPLING;
     public static BlockTreeTap TREE_TAP;
+    public static BlockBedrockFluidSpring BEDROCK_FLUID_SPRING;
     public static BlockGregPlanks PLANKS;
     public static BlockGregWoodSlab WOOD_SLAB;
     public static BlockGregWoodSlab DOUBLE_WOOD_SLAB;
@@ -361,6 +364,8 @@ public class MetaBlocks {
         RUBBER_LOG.setRegistryName("rubber_log");
         TREE_TAP = new BlockTreeTap();
         TREE_TAP.setRegistryName("tree_tap");
+        BEDROCK_FLUID_SPRING = new BlockBedrockFluidSpring();
+        BEDROCK_FLUID_SPRING.setRegistryName("bedrock_fluid_spring");
         RUBBER_LEAVES = new BlockRubberLeaves();
         RUBBER_LEAVES.setRegistryName("rubber_leaves");
         RUBBER_SAPLING = new BlockRubberSapling();
@@ -521,6 +526,7 @@ public class MetaBlocks {
         GameRegistry.registerTileEntity(TileEntityItemPipeTickable.class, gregtechId("item_pipe_active"));
         GameRegistry.registerTileEntity(GodforgeRenderTileEntity.class, gregtechId("godforge_render"));
         GameRegistry.registerTileEntity(TileEntityTreeTap.class, gregtechId("tree_tap"));
+        GameRegistry.registerTileEntity(TileEntityBedrockFluidSpring.class, gregtechId("bedrock_fluid_spring"));
     }
 
     @SideOnly(Side.CLIENT)
@@ -551,6 +557,7 @@ public class MetaBlocks {
         registerItemModel(RUBBER_LEAVES);
         registerItemModel(RUBBER_SAPLING);
         registerItemModel(TREE_TAP);
+        registerItemModel(BEDROCK_FLUID_SPRING);
         registerItemModel(PLANKS);
         registerItemModel(LD_ITEM_PIPE);
         registerItemModel(LD_FLUID_PIPE);

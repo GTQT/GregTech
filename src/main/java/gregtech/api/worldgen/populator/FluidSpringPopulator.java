@@ -8,40 +8,16 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.BlockFluidBase;
 
-import com.google.gson.JsonObject;
-
-import java.util.List;
 import java.util.Random;
-import java.util.stream.Collectors;
 
 public class FluidSpringPopulator implements VeinBufferPopulator {
 
-    private IBlockState fluidState;
-    private float springGenerationChance;
-
-    public FluidSpringPopulator() {}
+    private final IBlockState fluidState;
+    private final float springGenerationChance;
 
     public FluidSpringPopulator(IBlockState fluidState, float springGenerationChance) {
         this.fluidState = fluidState;
         this.springGenerationChance = springGenerationChance;
-    }
-
-    @Override
-    public void loadFromConfig(JsonObject object) {
-        this.springGenerationChance = object.get("chance").getAsFloat();
-    }
-
-    @Override
-    public void initializeForVein(OreDepositDefinition definition) {
-        List<IBlockState> possibleStates = definition.getBlockFiller().getAllPossibleStates().stream()
-                .flatMap(it -> it.getPossibleResults().stream())
-                .collect(Collectors.toList());
-        this.fluidState = possibleStates.stream().filter(it -> it.getPropertyKeys().contains(BlockFluidBase.LEVEL))
-                .findFirst().orElse(null);
-        if (fluidState == null) {
-            String message = "Can't find fluid block for spring in vein %s. Blocks in vein: %s";
-            throw new IllegalArgumentException(String.format(message, definition.getDepositName(), possibleStates));
-        }
     }
 
     @Override

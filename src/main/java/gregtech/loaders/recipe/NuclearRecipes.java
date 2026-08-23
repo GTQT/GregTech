@@ -65,17 +65,6 @@ public class NuclearRecipes {
                 .output(dust, THOR, 5)
                 .buildAndRegister();
 
-        // Inconel 718
-        MIXER_RECIPES.recipeBuilder().duration(200).EUt(VA[EV])
-                .input(dust, Nickel, 5)
-                .input(dust, Chrome, 2)
-                .input(dust, Iron, 2)
-                .input(dust, Niobium)
-                .input(dust, Molybdenum)
-                .circuitMeta(4)
-                .output(dust, Inconel, 11)
-                .buildAndRegister();
-
         CHEMICAL_RECIPES.recipeBuilder().duration(200).EUt(VA[LV])
                 .fluidInputs(DepletedUraniumHexafluoride.getFluid(1000))
                 .fluidInputs(Water.getFluid(2000))
@@ -347,7 +336,7 @@ public class NuclearRecipes {
 
         ASSEMBLER_RECIPES.recipeBuilder().duration(200).EUt(VA[MV])
                 .input(plate, Zircaloy4, 4)
-                .input(spring, Inconel, 1)
+                .input(spring, Inconel718, 1)
                 .input(round, StainlessSteel, 2)
                 .output(MetaItems.FUEL_CLADDING)
                 .buildAndRegister();

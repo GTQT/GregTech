@@ -2,42 +2,32 @@ package gregtech.api.worldgen.populator;
 
 import gregtech.api.util.GTLog;
 import gregtech.api.worldgen.config.OreDepositDefinition;
-import gregtech.api.worldgen.config.PredicateConfigUtils;
 import gregtech.api.worldgen.generator.GridEntryInfo;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
-import net.minecraft.util.JsonUtils;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraft.world.WorldType;
-
-import com.google.gson.JsonObject;
 
 import java.util.Random;
 
 public class SurfaceBlockPopulator implements VeinChunkPopulator {
 
-    private IBlockState blockState;
-    private int minIndicatorAmount;
-    private int maxIndicatorAmount;
+    private final IBlockState blockState;
+    private final int minIndicatorAmount;
+    private final int maxIndicatorAmount;
     private int failedGenerationCounter = 0;
 
-    public SurfaceBlockPopulator() {}
-
     public SurfaceBlockPopulator(IBlockState blockState) {
+        this(blockState, 1, 3);
+    }
+
+    public SurfaceBlockPopulator(IBlockState blockState, int minIndicatorAmount, int maxIndicatorAmount) {
         this.blockState = blockState;
+        this.minIndicatorAmount = minIndicatorAmount;
+        this.maxIndicatorAmount = maxIndicatorAmount;
     }
-
-    @Override
-    public void loadFromConfig(JsonObject object) {
-        this.blockState = PredicateConfigUtils.parseBlockStateDefinition(object.getAsJsonObject("block"));
-        this.minIndicatorAmount = JsonUtils.getInt(object, "min_amount", 1);
-        this.maxIndicatorAmount = JsonUtils.getInt(object, "max_amount", 3);
-    }
-
-    @Override
-    public void initializeForVein(OreDepositDefinition definition) {}
 
     /**
      * Generates the Surface Block for an underground vein. Spawns the Surface Block on top of the applicable topmost

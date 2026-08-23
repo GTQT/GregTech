@@ -731,7 +731,7 @@ public class MetaTileEntityLoader {
                 "FFF",
                 "PCP", "FFF",
                 'C', new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.HV),
-                'P', new UnificationEntry(OrePrefix.pipeLargeFluid, Materials.Inconel),
+                'P', new UnificationEntry(OrePrefix.pipeLargeFluid, Materials.Inconel718),
                 'F', MetaBlocks.METAL_CASING.getItemVariant(STEEL_SOLID));
 
         ModHandler.addShapedRecipe(true, "gas_centrifuge", MetaTileEntities.GAS_CENTRIFUGE.getStackForm(), "FFF",

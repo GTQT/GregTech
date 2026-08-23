@@ -2,24 +2,17 @@ package gregtech.api.worldgen.shape;
 
 import net.minecraft.util.math.Vec3i;
 
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-
 public class LayeredGenerator extends EllipsoidGenerator {
 
-    private int yRadius;
+    private final int yRadius;
 
-    public LayeredGenerator() {}
+    public LayeredGenerator(int radiusMin, int radiusMax) {
+        this(radiusMin, radiusMax, 3); // default number of layers
+    }
 
-    @Override
-    public void loadFromConfig(JsonObject object) {
-        super.loadFromConfig(object);
-        JsonElement element = object.get("layers");
-        if (element != null) {
-            yRadius = element.getAsInt() / 2;
-        } else {
-            yRadius = 3; // default number of layers
-        }
+    public LayeredGenerator(int radiusMin, int radiusMax, int yRadius) {
+        super(radiusMin, radiusMax);
+        this.yRadius = yRadius;
     }
 
     @Override

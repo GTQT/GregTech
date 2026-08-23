@@ -1,8 +1,7 @@
 package gregtech.loaders.recipe.chemistry;
 
 import static gregtech.api.GTValues.*;
-import static gregtech.api.recipes.RecipeMaps.CHEMICAL_RECIPES;
-import static gregtech.api.recipes.RecipeMaps.LARGE_CHEMICAL_RECIPES;
+import static gregtech.api.recipes.RecipeMaps.*;
 import static gregtech.api.unification.material.Materials.*;
 
 public class FuelRecipeChains {
@@ -32,25 +31,47 @@ public class FuelRecipeChains {
                 .fluidOutputs(NitrousOxide.getFluid(1000))
                 .buildAndRegister();
 
-        // Ethyl Tert-Butyl Ether
-        CHEMICAL_RECIPES.recipeBuilder().EUt(VA[HV]).duration(400)
+        // Anti-Knock Agent
+        LARGE_CHEMICAL_RECIPES.recipeBuilder().EUt(VA[HV]).duration(SECOND)
                 .fluidInputs(Butene.getFluid(1000))
-                .fluidInputs(Ethanol.getFluid(1000))
-                .fluidOutputs(EthylTertButylEther.getFluid(1000))
+                .fluidInputs(Methanol.getFluid(1000))
+                .circuitMeta(24)
+                .fluidOutputs(MTBEReactionMixtureButene.getFluid(1000))
                 .buildAndRegister();
 
-        LARGE_CHEMICAL_RECIPES.recipeBuilder().EUt(VA[EV]).duration(50)
+        LARGE_CHEMICAL_RECIPES.recipeBuilder().EUt(VA[HV]).duration(SECOND)
+                .fluidInputs(Butane.getFluid(1000))
+                .fluidInputs(Methanol.getFluid(1000))
+                .circuitMeta(24)
+                .fluidOutputs(MTBEReactionMixtureButane.getFluid(1000))
+                .buildAndRegister();
+
+        DISTILLATION_RECIPES.recipeBuilder().EUt(VA[MV]).duration(2 * SECOND)
+                .fluidInputs(MTBEReactionMixtureButene.getFluid(900))
+                .fluidOutputs(AntiKnockAgent.getFluid(400))
+                .fluidOutputs(Methanol.getFluid(500))
+                .fluidOutputs(Butene.getFluid(400))
+                .buildAndRegister();
+
+        DISTILLATION_RECIPES.recipeBuilder().EUt(VA[MV]).duration(2 * SECOND)
+                .fluidInputs(MTBEReactionMixtureButane.getFluid(900))
+                .fluidOutputs(AntiKnockAgent.getFluid(400))
+                .fluidOutputs(Methanol.getFluid(500))
+                .fluidOutputs(Butane.getFluid(400))
+                .buildAndRegister();
+
+        LARGE_CHEMICAL_RECIPES.recipeBuilder().EUt(VA[EV]).duration(2 * SECOND + 10 * TICK)
                 .fluidInputs(Gasoline.getFluid(20000))
                 .fluidInputs(Octane.getFluid(2000))
-                .fluidInputs(NitrousOxide.getFluid(2000))
+                .fluidInputs(NitrousOxide.getFluid(6000))
                 .fluidInputs(Toluene.getFluid(1000))
-                .fluidInputs(EthylTertButylEther.getFluid(1000))
+                .fluidInputs(AntiKnockAgent.getFluid(3000))
                 .circuitMeta(24)
                 .fluidOutputs(HighOctaneGasoline.getFluid(32000))
                 .buildAndRegister();
 
         // Nitrobenzene
-        CHEMICAL_RECIPES.recipeBuilder().EUt(VA[HV]).duration(160)
+        CHEMICAL_RECIPES.recipeBuilder().EUt(VA[HV]).duration(8 * SECOND)
                 .fluidInputs(Benzene.getFluid(5000))
                 .fluidInputs(NitrationMixture.getFluid(2000))
                 .fluidInputs(DistilledWater.getFluid(2000))

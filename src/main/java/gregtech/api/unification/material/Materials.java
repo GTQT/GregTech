@@ -378,11 +378,6 @@ public class Materials {
     public static Material Tungstate;
     public static Material Ultimet;
     public static Material Uraninite;
-    public static Material HighEnrichedUraniumHexafluoride;
-    public static Material LowEnrichedUraniumDioxide;
-    public static Material HighEnrichedUraniumDioxide;
-    public static Material DepletedUraniumDioxide;
-    public static Material FissilePlutoniumDioxide;
     public static Material Uvarovite;
     public static Material VanadiumGallium;
     public static Material WroughtIron;
@@ -509,7 +504,6 @@ public class Materials {
     public static Material HafniumTetrachloride;
     public static Material Zircaloy4;
     public static Material Inconel718;
-    public static Material Inconel;
     public static Material HighGradeSolderingAlloy;
     public static Material AntimonyTelluride;
     public static Material Alumina;
@@ -522,6 +516,11 @@ public class Materials {
     public static Material HighGradeMOX;
     public static Material FBR;
     public static Material THOR;
+    public static Material HighEnrichedUraniumDioxide;
+    public static Material DepletedUraniumDioxide;
+    public static Material FissilePlutoniumDioxide;
+    public static Material LowEnrichedUraniumDioxide;
+    public static Material HighEnrichedUraniumHexafluoride;
 
     /**
      * Organic chemistry
@@ -587,7 +586,9 @@ public class Materials {
     public static Material Nitrochlorobenzene;
     public static Material Chlorobenzene;
     public static Material Octane;
-    public static Material EthylTertButylEther;
+    public static Material AntiKnockAgent;
+    public static Material MTBEReactionMixtureButene;
+    public static Material MTBEReactionMixtureButane;
     public static Material Ethylbenzene;
     public static Material Naphthalene;
     public static Material Nitrobenzene;

@@ -1,12 +1,8 @@
 package gregtech.api.worldgen.filler;
 
-import gregtech.api.worldgen.config.FillerConfigUtils;
-
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
-
-import com.google.gson.JsonObject;
 
 import java.util.Collections;
 import java.util.List;
@@ -14,17 +10,10 @@ import java.util.Random;
 
 public class SimpleBlockFiller extends BlockFiller {
 
-    private FillerEntry fillerEntry;
-
-    public SimpleBlockFiller() {}
+    private final FillerEntry fillerEntry;
 
     public SimpleBlockFiller(FillerEntry blockStateFiller) {
         this.fillerEntry = blockStateFiller;
-    }
-
-    @Override
-    public void loadFromConfig(JsonObject object) {
-        this.fillerEntry = FillerConfigUtils.createBlockStateFiller(object.get("value"));
     }
 
     @Override

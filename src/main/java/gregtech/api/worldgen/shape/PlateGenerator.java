@@ -1,43 +1,34 @@
 package gregtech.api.worldgen.shape;
 
-import gregtech.api.worldgen.config.OreConfigUtils;
-
 import net.minecraft.util.math.Vec3i;
-
-import com.google.gson.JsonObject;
 
 import java.util.Random;
 
 public class PlateGenerator extends ShapeGenerator {
 
-    private int minLength;
-    private int maxLength;
-    private int minDepth;
-    private int maxDepth;
-    private int minHeight;
-    private int maxHeight;
-    private float floorSharpness;
-    private float roofSharpness;
+    private final int minLength;
+    private final int maxLength;
+    private final int minDepth;
+    private final int maxDepth;
+    private final int minHeight;
+    private final int maxHeight;
+    private final float floorSharpness;
+    private final float roofSharpness;
 
-    public PlateGenerator() {}
+    public PlateGenerator(int minLength, int maxLength, int minDepth, int maxDepth, int minHeight, int maxHeight) {
+        this(minLength, maxLength, minDepth, maxDepth, minHeight, maxHeight, 0.3f, 0.7f);
+    }
 
-    @Override
-    public void loadFromConfig(JsonObject object) {
-        int[] length = OreConfigUtils.getIntRange(object.get("length"));
-        int[] depth = OreConfigUtils.getIntRange(object.get("depth"));
-        int[] height = OreConfigUtils.getIntRange(object.get("height"));
-        this.minLength = length[0];
-        this.maxLength = length[1];
-        this.minDepth = depth[0];
-        this.maxDepth = depth[1];
-        this.minHeight = height[0];
-        this.maxHeight = height[1];
-        if (object.has("floor_sharpness")) {
-            this.floorSharpness = object.get("floor_sharpness").getAsFloat();
-        } else this.floorSharpness = 0.3f;
-        if (object.has("roof_sharpness")) {
-            this.roofSharpness = object.get("roof_sharpness").getAsFloat();
-        } else this.roofSharpness = 0.7f;
+    public PlateGenerator(int minLength, int maxLength, int minDepth, int maxDepth, int minHeight, int maxHeight,
+                          float floorSharpness, float roofSharpness) {
+        this.minLength = minLength;
+        this.maxLength = maxLength;
+        this.minDepth = minDepth;
+        this.maxDepth = maxDepth;
+        this.minHeight = minHeight;
+        this.maxHeight = maxHeight;
+        this.floorSharpness = floorSharpness;
+        this.roofSharpness = roofSharpness;
     }
 
     @Override

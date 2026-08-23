@@ -345,7 +345,7 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
 
     /**
      * Scatters lean ore blocks in a hollow sphere around each vein:
-     * from {@code veinRadius} to {@code 2 * veinRadius} horizontally, same Y range as the vein.
+     * from {@code veinRadius} to {@code 2 * veinRadius} in 3D distance from the vein center.
      * Probability linearly decreases from 1/4 (inner) to 1/16 (outer).
      */
     private void scatterLeanOres(World world, int chunkX, int chunkZ) {
@@ -372,8 +372,9 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
             Set<Material> materials = collectPrimaryMaterials(definition);
             if (materials.isEmpty()) continue;
 
-            int yMin = veinCenter.getY() - 4;
-            int yMax = veinCenter.getY() + 4;
+            // 球壳垂直范围：以矿脉中心为球心，上下各 2 倍半径
+            int yMin = veinCenter.getY() - 2 * veinRadius;
+            int yMax = veinCenter.getY() + 2 * veinRadius;
             int yRange = yMax - yMin;
 
             long seed = worldSeed ^ ((long) chunkX << 32) ^ chunkZ ^
@@ -387,18 +388,23 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
 
                     int ddx = worldX - veinCenter.getX();
                     int ddz = worldZ - veinCenter.getZ();
-                    int distSq = ddx * ddx + ddz * ddz;
-
-                    if (distSq < innerRadiusSq || distSq > outerRadiusSq) continue;
-
-                    double dist = Math.sqrt(distSq);
-                    double distRatio = (dist - veinRadius) / veinRadius;
-                    double prob = LEAN_ORE_PROB_INNER +
-                            (LEAN_ORE_PROB_OUTER - LEAN_ORE_PROB_INNER) * distRatio;
+                    int horizontalDistSq = ddx * ddx + ddz * ddz;
+                    // 水平距离已超出球壳外径时，任意高度都不可能落在球壳内，快速剪枝
+                    if (horizontalDistSq > outerRadiusSq) continue;
 
                     for (int dy = 0; dy <= yRange; dy++) {
                         int y = yMin + dy;
                         if (y <= 0) continue;
+
+                        int ddy = y - veinCenter.getY();
+                        int distSq = horizontalDistSq + ddy * ddy;
+                        if (distSq < innerRadiusSq || distSq > outerRadiusSq) continue;
+
+                        double dist = Math.sqrt(distSq);
+                        double distRatio = (dist - veinRadius) / veinRadius;
+                        double prob = LEAN_ORE_PROB_INNER +
+                                (LEAN_ORE_PROB_OUTER - LEAN_ORE_PROB_INNER) * distRatio;
+
                         if (rand.nextFloat() > prob) continue;
 
                         for (Material material : materials) {

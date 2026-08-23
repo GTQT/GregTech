@@ -15,9 +15,6 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.registry.GameRegistry;
 
-import com.google.gson.JsonArray;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -44,17 +41,6 @@ public class OreConfigUtils {
             throw new IllegalArgumentException("Couldn't find any blocks matching " + oreDictName + " oredict tag");
         }
         return allBlocks;
-    }
-
-    public static Map<StoneType, IBlockState> getOreStateMap(String stringDeclaration) {
-        String materialName;
-        if (stringDeclaration.startsWith("ore:")) {
-            materialName = stringDeclaration.substring(4);
-        } else {
-            throw new IllegalArgumentException("Invalid string ore declaration: " + stringDeclaration);
-        }
-        Material material = getMaterialByName(materialName);
-        return getOreForMaterial(material);
     }
 
     @NotNull
@@ -88,24 +74,5 @@ public class OreConfigUtils {
         if (block == null)
             throw new IllegalArgumentException("Block with identifier " + blockName + " not found!");
         return block;
-    }
-
-    public static int[] getIntRange(JsonElement element) {
-        if (element.isJsonArray()) {
-            JsonArray dataArray = element.getAsJsonArray();
-            int max = dataArray.get(1).getAsInt();
-            int min = Math.min(max, dataArray.get(0).getAsInt());
-            return new int[] { min, max };
-        } else if (element.isJsonObject()) {
-            JsonObject dataObject = element.getAsJsonObject();
-            int max = dataObject.get("max").getAsInt();
-            int min = Math.min(max, dataObject.get("min").getAsInt());
-            return new int[] { min, max };
-        } else if (element.isJsonPrimitive()) {
-            int size = element.getAsInt();
-            return new int[] { size, size };
-        } else {
-            throw new IllegalArgumentException("size range not defined");
-        }
     }
 }
