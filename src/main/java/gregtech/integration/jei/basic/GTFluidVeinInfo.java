@@ -4,6 +4,7 @@ import gregtech.api.util.FileUtility;
 import gregtech.api.worldgen.config.BedrockFluidDepositDefinition;
 import gregtech.integration.jei.utils.JEIResourceDepositCategoryUtils;
 
+import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fluids.FluidStack;
@@ -89,7 +90,8 @@ public class GTFluidVeinInfo implements IRecipeWrapper {
     }
 
     public String getName() {
-        return name;
+        // assignedName is a translation key; resolve it at display time
+        return I18n.format(name);
     }
 
     public String getDescription() {

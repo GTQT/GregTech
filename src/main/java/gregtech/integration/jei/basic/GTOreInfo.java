@@ -345,7 +345,8 @@ public class GTOreInfo implements IRecipeWrapper {
     }
 
     public String getVeinName() {
-        return name;
+        // assignedName is a translation key; resolve it at display time
+        return I18n.format(name);
     }
 
     public int getMaxHeight() {
