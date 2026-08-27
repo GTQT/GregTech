@@ -1714,9 +1714,16 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     public final void toggleMuffled() {
-        muffled = !muffled;
+        setMuffled(!muffled);
+    }
+
+    /** Sets the persisted machine sound suppression state. */
+    public final void setMuffled(boolean muffled) {
+        if (this.muffled == muffled) return;
+        this.muffled = muffled;
         if (!getWorld().isRemote) {
             writeCustomData(UPDATE_SOUND_MUFFLED, buf -> buf.writeBoolean(muffled));
+            markDirty();
         }
     }
 

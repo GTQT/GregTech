@@ -210,7 +210,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
                 }
             }
 
-            if (autoCollapse()) {
+            if (isAutoCollapse()) {
                 IItemHandlerModifiable itemHandler = largeSlotItemStackHandler;
                 if (!isAttachedToMultiBlock() || (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
                         getNotifiedItemInputList().contains(itemHandler))) {
@@ -476,7 +476,7 @@ public class MetaTileEntityHugeDualHatch extends MetaTileEntityMultiblockNotifia
         }
     }
 
-    public boolean autoCollapse() {
+    public boolean isAutoCollapse() {
         return autoCollapse;
     }
 

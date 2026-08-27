@@ -474,6 +474,27 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         }
     }
 
+    @Nullable
+    public NBTTagCompound getOutputFilterData() {
+        return itemFilterContainer == null ? null : itemFilterContainer.serializeNBT();
+    }
+
+    public void setOutputFilterData(@Nullable NBTTagCompound data) {
+        if (itemFilterContainer == null) {
+            if (data != null && !data.isEmpty()) {
+                throw new IllegalStateException("This item bus does not support an output filter");
+            }
+            return;
+        }
+        itemFilterContainer.deserializeNBT(data == null ? new NBTTagCompound() : data.copy());
+        markDirty();
+        notifyBlockUpdate();
+    }
+
+    public ItemStack getOutputFilterStack() {
+        return itemFilterContainer == null ? ItemStack.EMPTY : itemFilterContainer.getFilterStack().copy();
+    }
+
     @Override
     public void setGhostCustomStack(@NotNull ItemStack stack) {
         if (this.circuitInventory == null) {

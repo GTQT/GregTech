@@ -239,6 +239,27 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
         }
     }
 
+    public void setOutputFacingItems(EnumFacing outputFacing) {
+        this.outputFacingItems = outputFacing;
+        syncOutputFacings();
+    }
+
+    public void setOutputFacingFluids(EnumFacing outputFacing) {
+        this.outputFacingFluids = outputFacing;
+        syncOutputFacings();
+    }
+
+    private void syncOutputFacings() {
+        if (!getWorld().isRemote) {
+            notifyBlockUpdate();
+            writeCustomData(UPDATE_OUTPUT_FACING, buf -> {
+                buf.writeByte(getOutputFacingItems().getIndex());
+                buf.writeByte(getOutputFacingFluids().getIndex());
+            });
+            markDirty();
+        }
+    }
+
     @Override
     public void setFrontFacing(EnumFacing frontFacing) {
         super.setFrontFacing(frontFacing);

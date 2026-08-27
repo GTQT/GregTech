@@ -188,7 +188,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
                 }
             }
 
-            if (autoCollapse()) {
+            if (isAutoCollapse()) {
                 IItemHandlerModifiable itemHandler = isExportHatch ? getExportItems() : super.getImportItems();
                 if (!isAttachedToMultiBlock() || (isExportHatch ? getNotifiedItemOutputList().contains(itemHandler) :
                         getNotifiedItemInputList().contains(itemHandler))) {
@@ -453,7 +453,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         }
     }
 
-    public boolean autoCollapse() {
+    public boolean isAutoCollapse() {
         return autoCollapse;
     }
 

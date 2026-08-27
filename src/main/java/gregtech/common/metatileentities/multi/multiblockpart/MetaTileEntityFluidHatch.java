@@ -393,11 +393,11 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
         super.addToolUsages(stack, world, tooltip, advanced);
     }
 
-    private boolean isLocked() {
+    public boolean isLocked() {
         return this.locked;
     }
 
-    private void setLocked(boolean locked) {
+    public void setLocked(boolean locked) {
         if (!isExportHatch || this.locked == locked) return;
         this.locked = locked;
 
@@ -411,6 +411,20 @@ public class MetaTileEntityFluidHatch extends MetaTileEntityMultiblockNotifiable
         }
         this.lockedFluid = null;
         fluidTank.onContentsChanged();
+    }
+
+    @Nullable
+    public FluidStack getLockedFluid() {
+        return lockedFluid == null ? null : lockedFluid.copy();
+    }
+
+    public void setLockedFluid(@Nullable FluidStack lockedFluid) {
+        if (!isExportHatch) return;
+        this.lockedFluid = lockedFluid == null ? null : lockedFluid.copy();
+        if (this.lockedFluid != null) this.lockedFluid.amount = 1;
+        this.locked = this.locked || this.lockedFluid != null;
+        fluidTank.onContentsChanged();
+        if (!getWorld().isRemote) markDirty();
     }
 
     protected class HatchFluidTank extends NotifiableFluidTank implements IFilteredFluidContainer, IFilter<FluidStack> {

@@ -262,7 +262,16 @@ public class MetaTileEntityDrum extends MetaTileEntity {
     }
 
     private void toggleOutput() {
-        isAutoOutput = !isAutoOutput;
+        setAutoOutput(!isAutoOutput);
+    }
+
+    public boolean isAutoOutput() {
+        return isAutoOutput;
+    }
+
+    public void setAutoOutput(boolean autoOutput) {
+        if (this.isAutoOutput == autoOutput) return;
+        this.isAutoOutput = autoOutput;
         if (!getWorld().isRemote) {
             notifyBlockUpdate();
             writeCustomData(UPDATE_AUTO_OUTPUT, buf -> buf.writeBoolean(isAutoOutput));
