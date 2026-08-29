@@ -111,18 +111,7 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                     recipeMapWorkable.get(recipeMapWorkable.size() - 1);
             recipeMapWorkable = new ArrayList<>();
             for (int i = 0; i < currentThread; i++) {
-                recipeMapWorkable.add(new MultiblockRecipeLogic(this) {
-
-                    @Override
-                    public long getMaximumOverclockVoltage() {
-                        // In CROSS_RECIPE mode, the scheduler manages power distribution internally,
-                        // so each thread gets the full voltage budget.
-                        if (isCrossRecipeMode()) {
-                            return super.getMaximumOverclockVoltage();
-                        }
-                        return super.getMaximumOverclockVoltage() / currentThread;
-                    }
-                });
+                recipeMapWorkable.add(createThreadRecipeLogic(currentThread));
             }
             if (configured != null) {
                 for (MultiblockRecipeLogic logic : recipeMapWorkable) {
@@ -130,6 +119,28 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                 }
             }
         }
+    }
+
+    /**
+     * Creates one recipe logic instance for a thread refresh. Subclasses that need their own logic type override this
+     * rather than {@link #refreshThread(int)}, so the rebuild keeps carrying the player-configured toggles over.
+     *
+     * @param threadCount the thread count the list is being rebuilt for
+     * @return the logic instance to add to the list
+     */
+    protected MultiblockRecipeLogic createThreadRecipeLogic(int threadCount) {
+        return new MultiblockRecipeLogic(this) {
+
+            @Override
+            public long getMaximumOverclockVoltage() {
+                // In CROSS_RECIPE mode, the scheduler manages power distribution internally,
+                // so each thread gets the full voltage budget.
+                if (isCrossRecipeMode()) {
+                    return super.getMaximumOverclockVoltage();
+                }
+                return super.getMaximumOverclockVoltage() / threadCount;
+            }
+        };
     }
 
     @Override
