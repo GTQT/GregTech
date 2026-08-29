@@ -4,6 +4,7 @@ import gregtech.api.capability.IAccelerateMultiblock;
 import gregtech.api.capability.IOverclockMultiblock;
 import gregtech.api.capability.IParallelMultiblock;
 import gregtech.api.capability.impl.GCYMMultiblockRecipeLogic;
+import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.multiblock.AdvanceMultiMapMultiblockController;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
@@ -50,14 +51,8 @@ public abstract class GCYMAdvanceRecipeMapMultiblockController extends AdvanceMu
     }
 
     @Override
-    public void refreshThread(int currentThread) {
-        if (currentThread == 0) return;
-        if (!isActive()) {
-            recipeMapWorkable = new ArrayList<>();
-            for (int i = 0; i < currentThread; i++) {
-                recipeMapWorkable.add(new GCYMMultiblockRecipeLogic(this));
-            }
-        }
+    protected MultiblockRecipeLogic createThreadRecipeLogic(int threadCount) {
+        return new GCYMMultiblockRecipeLogic(this);
     }
 
     @Override

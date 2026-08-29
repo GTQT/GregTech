@@ -33,6 +33,7 @@ import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.TaskScheduler;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.BloomEffectUtil;
 import gregtech.client.utils.RenderUtil;
@@ -910,9 +911,17 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     public void onLoad() {
-        for (EnumFacing side : EnumFacing.VALUES) {
-            this.sidedRedstoneInput[side.getIndex()] = GTUtility.getRedstonePower(getWorld(), getPos(), side);
-        }
+        World world = getWorld();
+        if (world == null || world.isRemote) return;
+        // Reading redstone here would happen while the chunk is still being loaded, so defer the initial
+        // read to the next tick when all neighbours are safely available.
+        TaskScheduler.scheduleTask(world, () -> {
+            if (!isValid()) return false;
+            for (EnumFacing side : EnumFacing.VALUES) {
+                this.sidedRedstoneInput[side.getIndex()] = GTUtility.getRedstonePower(world, getPos(), side);
+            }
+            return false;
+        });
     }
 
     public void onUnload() {}

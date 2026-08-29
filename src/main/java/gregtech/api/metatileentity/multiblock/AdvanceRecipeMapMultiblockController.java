@@ -104,22 +104,43 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     public void refreshThread(int currentThread) {
         if (currentThread == 0) return;
         if (!isActive()) {
+            // Every logic registers under the same trait name, so the last one is the instance that NBT and initial
+            // sync data restore. Its configuration has to survive the rebuild below, otherwise batch mode and the
+            // other button states are silently reset each time the structure forms.
+            MultiblockRecipeLogic configured = recipeMapWorkable == null || recipeMapWorkable.isEmpty() ? null :
+                    recipeMapWorkable.get(recipeMapWorkable.size() - 1);
             recipeMapWorkable = new ArrayList<>();
             for (int i = 0; i < currentThread; i++) {
-                recipeMapWorkable.add(new MultiblockRecipeLogic(this) {
-
-                    @Override
-                    public long getMaximumOverclockVoltage() {
-                        // In CROSS_RECIPE mode, the scheduler manages power distribution internally,
-                        // so each thread gets the full voltage budget.
-                        if (isCrossRecipeMode()) {
-                            return super.getMaximumOverclockVoltage();
-                        }
-                        return super.getMaximumOverclockVoltage() / currentThread;
-                    }
-                });
+                recipeMapWorkable.add(createThreadRecipeLogic(currentThread));
+            }
+            if (configured != null) {
+                for (MultiblockRecipeLogic logic : recipeMapWorkable) {
+                    logic.copyUserSettingsFrom(configured);
+                }
             }
         }
+    }
+
+    /**
+     * Creates one recipe logic instance for a thread refresh. Subclasses that need their own logic type override this
+     * rather than {@link #refreshThread(int)}, so the rebuild keeps carrying the player-configured toggles over.
+     *
+     * @param threadCount the thread count the list is being rebuilt for
+     * @return the logic instance to add to the list
+     */
+    protected MultiblockRecipeLogic createThreadRecipeLogic(int threadCount) {
+        return new MultiblockRecipeLogic(this) {
+
+            @Override
+            public long getMaximumOverclockVoltage() {
+                // In CROSS_RECIPE mode, the scheduler manages power distribution internally,
+                // so each thread gets the full voltage budget.
+                if (isCrossRecipeMode()) {
+                    return super.getMaximumOverclockVoltage();
+                }
+                return super.getMaximumOverclockVoltage() / threadCount;
+            }
+        };
     }
 
     @Override
@@ -367,11 +388,11 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         super.writeToNBT(data);
         data.setBoolean("isDistinct", isDistinct);
         data.setInteger("thread", thread);
-        int i = 0;
-        for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable) {
-            if (recipeMapWorkable.progressTime == 0) continue;
-            data.setTag("rp" + i, recipeMapWorkable.serializeNBT());
-            i++;
+        // Indexed by list position so the tags line up with the logics they came from when they are read back.
+        for (int i = 0; i < recipeMapWorkable.size(); i++) {
+            MultiblockRecipeLogic logic = recipeMapWorkable.get(i);
+            if (logic.progressTime == 0) continue;
+            data.setTag("rp" + i, logic.serializeNBT());
         }
 
         return data;
@@ -383,10 +404,13 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         isDistinct = data.getBoolean("isDistinct");
         thread = data.getInteger("thread");
         refreshThread(thread);
-        int i = 0;
-        for (MultiblockRecipeLogic multiblockRecipeLogic : recipeMapWorkable) {
-            multiblockRecipeLogic.deserializeNBT(data.getCompoundTag("rp" + i));
-            i++;
+        // Only logics with progress in flight are written out, so an absent tag must be skipped: deserializing an
+        // empty compound would reset the configuration that was just restored from the trait data.
+        for (int i = 0; i < recipeMapWorkable.size(); i++) {
+            String key = "rp" + i;
+            if (data.hasKey(key)) {
+                recipeMapWorkable.get(i).deserializeNBT(data.getCompoundTag(key));
+            }
         }
     }
 
