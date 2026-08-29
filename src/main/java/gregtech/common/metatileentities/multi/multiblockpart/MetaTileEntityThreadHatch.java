@@ -224,7 +224,10 @@ public class MetaTileEntityThreadHatch extends MetaTileEntityMultiblockPart
     @Override
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
-        this.currentThread = data.getInteger("currentThread");
+        // Hatches saved before this tag existed have no value to read, and a tag out of range would survive here
+        // because only setCurrentThread clamps. Either way a zero would make the controller hand out zero threads.
+        this.currentThread = data.hasKey("currentThread") ?
+                MathHelper.clamp(data.getInteger("currentThread"), 1, this.maxThread) : this.maxThread;
     }
 
     @Override

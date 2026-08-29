@@ -1475,6 +1475,25 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
     }
 
+    /**
+     * Copies the player-configured toggles from another logic instance, leaving recipe progress untouched. Controllers
+     * that rebuild their logic list at runtime (see {@code refreshThread}) must call this, otherwise the rebuild
+     * silently resets batch mode, recipe lock and the other button states back to their defaults.
+     *
+     * @param other the logic whose configuration is kept
+     */
+    public void copyUserSettingsFrom(@NotNull AbstractRecipeLogic other) {
+        if (other == this) return;
+        this.workingEnabled = other.workingEnabled;
+        this.enableBatch = other.enableBatch;
+        this.lockRecipe = other.lockRecipe;
+        this.overflowMode = other.overflowMode;
+        this.lackEnergyWarning = other.lackEnergyWarning;
+        // Assigned directly rather than through setAllowOverclocking, which would also rewrite overclockVoltage.
+        this.allowOverclocking = other.allowOverclocking;
+        metaTileEntity.markDirty();
+    }
+
     @Override
     public boolean isActive() {
         return isActive;

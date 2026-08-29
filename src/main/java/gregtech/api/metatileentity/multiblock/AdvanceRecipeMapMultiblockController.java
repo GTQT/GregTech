@@ -104,6 +104,11 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
     public void refreshThread(int currentThread) {
         if (currentThread == 0) return;
         if (!isActive()) {
+            // Every logic registers under the same trait name, so the last one is the instance that NBT and initial
+            // sync data restore. Its configuration has to survive the rebuild below, otherwise batch mode and the
+            // other button states are silently reset each time the structure forms.
+            MultiblockRecipeLogic configured = recipeMapWorkable == null || recipeMapWorkable.isEmpty() ? null :
+                    recipeMapWorkable.get(recipeMapWorkable.size() - 1);
             recipeMapWorkable = new ArrayList<>();
             for (int i = 0; i < currentThread; i++) {
                 recipeMapWorkable.add(new MultiblockRecipeLogic(this) {
@@ -118,6 +123,11 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
                         return super.getMaximumOverclockVoltage() / currentThread;
                     }
                 });
+            }
+            if (configured != null) {
+                for (MultiblockRecipeLogic logic : recipeMapWorkable) {
+                    logic.copyUserSettingsFrom(configured);
+                }
             }
         }
     }
@@ -367,11 +377,11 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         super.writeToNBT(data);
         data.setBoolean("isDistinct", isDistinct);
         data.setInteger("thread", thread);
-        int i = 0;
-        for (MultiblockRecipeLogic recipeMapWorkable : recipeMapWorkable) {
-            if (recipeMapWorkable.progressTime == 0) continue;
-            data.setTag("rp" + i, recipeMapWorkable.serializeNBT());
-            i++;
+        // Indexed by list position so the tags line up with the logics they came from when they are read back.
+        for (int i = 0; i < recipeMapWorkable.size(); i++) {
+            MultiblockRecipeLogic logic = recipeMapWorkable.get(i);
+            if (logic.progressTime == 0) continue;
+            data.setTag("rp" + i, logic.serializeNBT());
         }
 
         return data;
@@ -383,10 +393,13 @@ public abstract class AdvanceRecipeMapMultiblockController extends RecipeMapMult
         isDistinct = data.getBoolean("isDistinct");
         thread = data.getInteger("thread");
         refreshThread(thread);
-        int i = 0;
-        for (MultiblockRecipeLogic multiblockRecipeLogic : recipeMapWorkable) {
-            multiblockRecipeLogic.deserializeNBT(data.getCompoundTag("rp" + i));
-            i++;
+        // Only logics with progress in flight are written out, so an absent tag must be skipped: deserializing an
+        // empty compound would reset the configuration that was just restored from the trait data.
+        for (int i = 0; i < recipeMapWorkable.size(); i++) {
+            String key = "rp" + i;
+            if (data.hasKey(key)) {
+                recipeMapWorkable.get(i).deserializeNBT(data.getCompoundTag(key));
+            }
         }
     }
 
