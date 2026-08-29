@@ -5,6 +5,7 @@ import gregtech.api.cover.CoverHolder;
 import gregtech.api.cover.CoverSaveHandler;
 import gregtech.api.pipenet.block.BlockPipe;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.TaskScheduler;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.item.ItemStack;
@@ -92,9 +93,17 @@ public class PipeCoverableImplementation implements CoverHolder {
     }
 
     public void onLoad() {
-        for (EnumFacing side : EnumFacing.VALUES) {
-            this.sidedRedstoneInput[side.getIndex()] = GTUtility.getRedstonePower(getWorld(), getPos(), side);
-        }
+        World world = getWorld();
+        if (world == null || world.isRemote) return;
+        // Reading redstone here would happen while the chunk is still being loaded, so defer the initial
+        // read to the next tick when all neighbours are safely available.
+        TaskScheduler.scheduleTask(world, () -> {
+            if (holder == null || !holder.isValidTile()) return false;
+            for (EnumFacing side : EnumFacing.VALUES) {
+                this.sidedRedstoneInput[side.getIndex()] = GTUtility.getRedstonePower(world, getPos(), side);
+            }
+            return false;
+        });
     }
 
     @Override

@@ -573,6 +573,12 @@ public class GTUtility {
 
     public static int getRedstonePower(World world, BlockPos blockPos, EnumFacing side) {
         BlockPos offsetPos = blockPos.offset(side);
+        // World#getStrongPower probes all six neighbours of offsetPos, so this reads up to two blocks away.
+        // Never force-load a chunk for that: doing it from TileEntity#onLoad re-enters chunk loading and
+        // throws ConcurrentModificationException in World#addTileEntities.
+        if (!world.isAreaLoaded(offsetPos, 1, true)) {
+            return 0;
+        }
         int worldPower = world.getRedstonePower(offsetPos, side);
         if (worldPower < 15) {
             IBlockState offsetState = world.getBlockState(offsetPos);
