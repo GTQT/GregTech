@@ -1,25 +1,21 @@
 package gregtech.common.items.behaviors;
 
-import com.cleanroommc.modularui.api.drawable.IDrawable;
-
+import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.items.metaitem.stats.IDataItem;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.machines.IResearchRecipeMap;
 import gregtech.api.util.AssemblyLineManager;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.ItemStackHashStrategy;
-
 import gregtech.api.util.KeyUtil;
-
 import gregtech.common.items.MetaItems;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
-
-import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet;
-
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
@@ -28,6 +24,8 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.world.World;
 
+import com.cleanroommc.modularui.api.drawable.IDrawable;
+import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
@@ -91,6 +89,12 @@ public class DataItemBehavior implements IItemBehaviour, IDataItem {
     @Override
     public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side, float hitX,
                                            float hitY, float hitZ, EnumHand hand) {
+        // 机器自己定义了数据棒语义时，不抢占这次右键：
+        // 不写入无线接入点坐标、不弹提示，交给机器的 onDataStickRightClick 处理
+        MetaTileEntity metaTileEntity = GTUtility.getMetaTileEntity(world, pos);
+        if (metaTileEntity instanceof IDataStickIntractable) {
+            return EnumActionResult.PASS;
+        }
         ItemStack dataStick = player.getHeldItemMainhand();
         if (MetaItems.TOOL_DATA_STICK.isItemEqual(dataStick)) {
             updateLocationData(dataStick, pos);
