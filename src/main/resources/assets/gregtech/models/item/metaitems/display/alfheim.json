@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/alfheim/front",
+    "back": "gregtech:items/metaitems/display/alfheim/back",
+    "left": "gregtech:items/metaitems/display/alfheim/left",
+    "right": "gregtech:items/metaitems/display/alfheim/right",
+    "top": "gregtech:items/metaitems/display/alfheim/top",
+    "bottom": "gregtech:items/metaitems/display/alfheim/bottom"
+  }
+}

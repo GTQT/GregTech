@@ -37,6 +37,7 @@ public class OrbItems extends StandardMetaItem {
     public static MetaItem<?>.MetaValueItem DISPLAY_NETHER;
     public static MetaItem<?>.MetaValueItem DISPLAY_TWILIGHT_FOREST;
     public static MetaItem<?>.MetaValueItem DISPLAY_UNDERGROUND;
+    public static MetaItem<?>.MetaValueItem DISPLAY_ALFHEIM;
     public static MetaItem<?>.MetaValueItem DISPLAY_END;
     public static MetaItem<?>.MetaValueItem DISPLAY_MOON;
     public static MetaItem<?>.MetaValueItem DISPLAY_DEIMOS;
@@ -148,6 +149,7 @@ public class OrbItems extends StandardMetaItem {
         DISPLAY_NETHER = addItem(id++, "display.nether");
         DISPLAY_TWILIGHT_FOREST = addItem(id++, "display.twilight_forest");
         DISPLAY_UNDERGROUND = addItem(id++, "display.underground");
+        DISPLAY_ALFHEIM = addItem(id++, "display.alfheim");
         DISPLAY_END = addItem(id++, "display.end");
 
         // T1-T2
