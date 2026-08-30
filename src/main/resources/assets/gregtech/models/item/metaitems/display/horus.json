@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/horus/front",
+    "back": "gregtech:items/metaitems/display/horus/back",
+    "left": "gregtech:items/metaitems/display/horus/left",
+    "right": "gregtech:items/metaitems/display/horus/right",
+    "top": "gregtech:items/metaitems/display/horus/top",
+    "bottom": "gregtech:items/metaitems/display/horus/bottom"
+  }
+}

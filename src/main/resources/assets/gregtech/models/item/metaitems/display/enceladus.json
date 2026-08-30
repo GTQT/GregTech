@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/enceladus/front",
+    "back": "gregtech:items/metaitems/display/enceladus/back",
+    "left": "gregtech:items/metaitems/display/enceladus/left",
+    "right": "gregtech:items/metaitems/display/enceladus/right",
+    "top": "gregtech:items/metaitems/display/enceladus/top",
+    "bottom": "gregtech:items/metaitems/display/enceladus/bottom"
+  }
+}

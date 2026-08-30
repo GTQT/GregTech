@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.GCYMValues;
 import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -23,6 +22,8 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.fml.common.Loader;
 
 import org.jetbrains.annotations.NotNull;
+
+import static gregtech.api.util.Mods.Names.GTFO;
 
 public class MetaTileEntityLargeCutter extends GCYMAdvanceRecipeMapMultiblockController {
 
@@ -67,7 +68,7 @@ public class MetaTileEntityLargeCutter extends GCYMAdvanceRecipeMapMultiblockCon
 
     private static @NotNull RecipeMap<?> @NotNull [] determineRecipeMaps() {
         RecipeMap<?> slicerMap = RecipeMap.getByName("slicer");
-        if (Loader.isModLoaded(GCYMValues.GTFO_MODID) && slicerMap != null) {
+        if (Loader.isModLoaded(GTFO) && slicerMap != null) {
             return new RecipeMap<?>[] { RecipeMaps.CUTTER_RECIPES, RecipeMaps.LATHE_RECIPES,
                     RecipeMaps.POLISHER_RECIPES, RecipeMaps.SAWMILL_RECIPES, slicerMap };
         }

@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/miranda/front",
+    "back": "gregtech:items/metaitems/display/miranda/back",
+    "left": "gregtech:items/metaitems/display/miranda/left",
+    "right": "gregtech:items/metaitems/display/miranda/right",
+    "top": "gregtech:items/metaitems/display/miranda/top",
+    "bottom": "gregtech:items/metaitems/display/miranda/bottom"
+  }
+}

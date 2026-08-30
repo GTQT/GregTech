@@ -80,7 +80,7 @@ public enum Mods {
     XaerosMinimap(Names.XAEROS_MINIMAP),
     Vintagium(Names.VINTAGIUM),
     GTQT_TEST(Names.GTQT_TEST),
-    GTQTCore(Names.GTQT_TEST),
+    GTQTCore(Names.GTQT_CORE),
     Alfheim(Names.ALFHEIM),
     Loliasm(Names.LOLIASM),
     ModNameTooltip(Names.MOD_NAME_TOOLTIP),

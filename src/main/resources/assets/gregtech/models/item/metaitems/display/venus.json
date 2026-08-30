@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/venus/front",
+    "back": "gregtech:items/metaitems/display/venus/back",
+    "left": "gregtech:items/metaitems/display/venus/left",
+    "right": "gregtech:items/metaitems/display/venus/right",
+    "top": "gregtech:items/metaitems/display/venus/top",
+    "bottom": "gregtech:items/metaitems/display/venus/bottom"
+  }
+}

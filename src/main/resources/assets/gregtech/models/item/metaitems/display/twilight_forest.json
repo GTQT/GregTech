@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/twilight_forest/front",
+    "back": "gregtech:items/metaitems/display/twilight_forest/back",
+    "left": "gregtech:items/metaitems/display/twilight_forest/left",
+    "right": "gregtech:items/metaitems/display/twilight_forest/right",
+    "top": "gregtech:items/metaitems/display/twilight_forest/top",
+    "bottom": "gregtech:items/metaitems/display/twilight_forest/bottom"
+  }
+}

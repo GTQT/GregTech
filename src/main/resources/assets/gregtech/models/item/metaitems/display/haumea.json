@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/haumea/front",
+    "back": "gregtech:items/metaitems/display/haumea/back",
+    "left": "gregtech:items/metaitems/display/haumea/left",
+    "right": "gregtech:items/metaitems/display/haumea/right",
+    "top": "gregtech:items/metaitems/display/haumea/top",
+    "bottom": "gregtech:items/metaitems/display/haumea/bottom"
+  }
+}

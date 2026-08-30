@@ -35,17 +35,45 @@ public class OrbItems extends StandardMetaItem {
 
     public static MetaItem<?>.MetaValueItem DISPLAY_OVERWORLD;
     public static MetaItem<?>.MetaValueItem DISPLAY_NETHER;
+    public static MetaItem<?>.MetaValueItem DISPLAY_TWILIGHT_FOREST;
+    public static MetaItem<?>.MetaValueItem DISPLAY_UNDERGROUND;
     public static MetaItem<?>.MetaValueItem DISPLAY_END;
-    public static MetaItem<?>.MetaValueItem DISPLAY_END_MAIN_ISLAND;
-    public static MetaItem<?>.MetaValueItem DISPLAY_END_OUTER_ISLANDS;
     public static MetaItem<?>.MetaValueItem DISPLAY_MOON;
-    public static MetaItem<?>.MetaValueItem DISPLAY_MERCURY;
-    public static MetaItem<?>.MetaValueItem DISPLAY_MARS;
     public static MetaItem<?>.MetaValueItem DISPLAY_DEIMOS;
+    public static MetaItem<?>.MetaValueItem DISPLAY_MARS;
     public static MetaItem<?>.MetaValueItem DISPLAY_PHOBOS;
-    public static MetaItem<?>.MetaValueItem DISPLAY_PLUTO;
+    public static MetaItem<?>.MetaValueItem DISPLAY_ASTEROIDS;
+    public static MetaItem<?>.MetaValueItem DISPLAY_CALLISTO;
+    public static MetaItem<?>.MetaValueItem DISPLAY_CERES;
+    public static MetaItem<?>.MetaValueItem DISPLAY_EUROPA;
+    public static MetaItem<?>.MetaValueItem DISPLAY_GANYMEDE;
+    public static MetaItem<?>.MetaValueItem DISPLAY_ROSS128B;
+    public static MetaItem<?>.MetaValueItem DISPLAY_IO;
+    public static MetaItem<?>.MetaValueItem DISPLAY_MERCURY;
+    public static MetaItem<?>.MetaValueItem DISPLAY_VENUS;
+    public static MetaItem<?>.MetaValueItem DISPLAY_ENCELADUS;
+    public static MetaItem<?>.MetaValueItem DISPLAY_MIRANDA;
+    public static MetaItem<?>.MetaValueItem DISPLAY_OBERON;
     public static MetaItem<?>.MetaValueItem DISPLAY_TITAN;
-    public static MetaItem<?>.MetaValueItem DISPLAY_DEEP_DARK;
+    public static MetaItem<?>.MetaValueItem DISPLAY_ROSS128BA;
+    public static MetaItem<?>.MetaValueItem DISPLAY_PROTEUS;
+    public static MetaItem<?>.MetaValueItem DISPLAY_TRITON;
+    public static MetaItem<?>.MetaValueItem DISPLAY_HAUMEA;
+    public static MetaItem<?>.MetaValueItem DISPLAY_KUIPER_BELT;
+    public static MetaItem<?>.MetaValueItem DISPLAY_MAKEMAKE;
+    public static MetaItem<?>.MetaValueItem DISPLAY_PLUTO;
+    public static MetaItem<?>.MetaValueItem DISPLAY_BARNARD_C;
+    public static MetaItem<?>.MetaValueItem DISPLAY_BARNARD_E;
+    public static MetaItem<?>.MetaValueItem DISPLAY_BARNARD_F;
+    public static MetaItem<?>.MetaValueItem DISPLAY_CENTAURI_A;
+    public static MetaItem<?>.MetaValueItem DISPLAY_TCETI_E;
+    public static MetaItem<?>.MetaValueItem DISPLAY_VEGA_B;
+    public static MetaItem<?>.MetaValueItem DISPLAY_ANUBIS;
+    public static MetaItem<?>.MetaValueItem DISPLAY_HORUS;
+    public static MetaItem<?>.MetaValueItem DISPLAY_MAAHES;
+    public static MetaItem<?>.MetaValueItem DISPLAY_MEHEN_BELT;
+    public static MetaItem<?>.MetaValueItem DISPLAY_NEPER;
+    public static MetaItem<?>.MetaValueItem DISPLAY_SETH;
 
     // ==================== Registry ====================
 
@@ -115,24 +143,64 @@ public class OrbItems extends StandardMetaItem {
     public void registerSubItems() {
         int id = 0;
 
-        // Vanilla dimensions
+        // T0: vanilla
         DISPLAY_OVERWORLD = addItem(id++, "display.overworld");
         DISPLAY_NETHER = addItem(id++, "display.nether");
+        DISPLAY_TWILIGHT_FOREST = addItem(id++, "display.twilight_forest");
+        DISPLAY_UNDERGROUND = addItem(id++, "display.underground");
         DISPLAY_END = addItem(id++, "display.end");
-        DISPLAY_END_MAIN_ISLAND = addItem(id++, "display.end_main_island");
-        DISPLAY_END_OUTER_ISLANDS = addItem(id++, "display.end_outer_islands");
 
-        // Solar system bodies
+        // T1-T2
         DISPLAY_MOON = addItem(id++, "display.moon");
-        DISPLAY_MERCURY = addItem(id++, "display.mercury");
-        DISPLAY_MARS = addItem(id++, "display.mars");
         DISPLAY_DEIMOS = addItem(id++, "display.deimos");
+        DISPLAY_MARS = addItem(id++, "display.mars");
         DISPLAY_PHOBOS = addItem(id++, "display.phobos");
-        DISPLAY_PLUTO = addItem(id++, "display.pluto");
-        DISPLAY_TITAN = addItem(id++, "display.titan");
 
-        // Modded dimensions
-        DISPLAY_DEEP_DARK = addItem(id++, "display.deep_dark");
+        // T3
+        DISPLAY_ASTEROIDS = addItem(id++, "display.asteroids");
+        DISPLAY_CALLISTO = addItem(id++, "display.callisto");
+        DISPLAY_CERES = addItem(id++, "display.ceres");
+        DISPLAY_EUROPA = addItem(id++, "display.europa");
+        DISPLAY_GANYMEDE = addItem(id++, "display.ganymede");
+        DISPLAY_ROSS128B = addItem(id++, "display.ross128b");
+
+        // T4
+        DISPLAY_IO = addItem(id++, "display.io");
+        DISPLAY_MERCURY = addItem(id++, "display.mercury");
+        DISPLAY_VENUS = addItem(id++, "display.venus");
+
+        // T5
+        DISPLAY_ENCELADUS = addItem(id++, "display.enceladus");
+        DISPLAY_MIRANDA = addItem(id++, "display.miranda");
+        DISPLAY_OBERON = addItem(id++, "display.oberon");
+        DISPLAY_TITAN = addItem(id++, "display.titan");
+        DISPLAY_ROSS128BA = addItem(id++, "display.ross128ba");
+
+        // T6
+        DISPLAY_PROTEUS = addItem(id++, "display.proteus");
+        DISPLAY_TRITON = addItem(id++, "display.triton");
+
+        // T7
+        DISPLAY_HAUMEA = addItem(id++, "display.haumea");
+        DISPLAY_KUIPER_BELT = addItem(id++, "display.kuiper_belt");
+        DISPLAY_MAKEMAKE = addItem(id++, "display.makemake");
+        DISPLAY_PLUTO = addItem(id++, "display.pluto");
+
+        // T8
+        DISPLAY_BARNARD_C = addItem(id++, "display.barnard_c");
+        DISPLAY_BARNARD_E = addItem(id++, "display.barnard_e");
+        DISPLAY_BARNARD_F = addItem(id++, "display.barnard_f");
+        DISPLAY_CENTAURI_A = addItem(id++, "display.centauri_a");
+        DISPLAY_TCETI_E = addItem(id++, "display.tceti_e");
+        DISPLAY_VEGA_B = addItem(id++, "display.vega_b");
+
+        // T9
+        DISPLAY_ANUBIS = addItem(id++, "display.anubis");
+        DISPLAY_HORUS = addItem(id++, "display.horus");
+        DISPLAY_MAAHES = addItem(id++, "display.maahes");
+        DISPLAY_MEHEN_BELT = addItem(id++, "display.mehen_belt");
+        DISPLAY_NEPER = addItem(id++, "display.neper");
+        DISPLAY_SETH = addItem(id, "display.seth");
 
         // ========== Default vanilla dimension mappings ==========
         // Other dimension IDs (Moon, Mars, etc.) depend on installed mods

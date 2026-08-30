@@ -1,6 +1,5 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.GCYMValues;
 import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -31,6 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
+import static gregtech.api.util.Mods.Names.GTFO;
 import static gregtech.api.util.RelativeDirection.*;
 
 public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblockController {
@@ -70,7 +70,7 @@ public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblock
 
     private static @NotNull RecipeMap<?> @NotNull [] determineRecipeMaps() {
         RecipeMap<?> cuisineAssemblerMap = RecipeMap.getByName("cuisine_assembler");
-        if (Loader.isModLoaded(GCYMValues.GTFO_MODID) && cuisineAssemblerMap != null) {
+        if (Loader.isModLoaded(GTFO) && cuisineAssemblerMap != null) {
             return new RecipeMap<?>[] { RecipeMaps.ASSEMBLER_RECIPES, cuisineAssemblerMap };
         }
         return new RecipeMap<?>[] { RecipeMaps.ASSEMBLER_RECIPES };

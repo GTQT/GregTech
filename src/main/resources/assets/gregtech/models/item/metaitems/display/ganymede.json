@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/ganymede/front",
+    "back": "gregtech:items/metaitems/display/ganymede/back",
+    "left": "gregtech:items/metaitems/display/ganymede/left",
+    "right": "gregtech:items/metaitems/display/ganymede/right",
+    "top": "gregtech:items/metaitems/display/ganymede/top",
+    "bottom": "gregtech:items/metaitems/display/ganymede/bottom"
+  }
+}

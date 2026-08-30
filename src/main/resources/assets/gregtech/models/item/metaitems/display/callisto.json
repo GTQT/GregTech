@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/callisto/front",
+    "back": "gregtech:items/metaitems/display/callisto/back",
+    "left": "gregtech:items/metaitems/display/callisto/left",
+    "right": "gregtech:items/metaitems/display/callisto/right",
+    "top": "gregtech:items/metaitems/display/callisto/top",
+    "bottom": "gregtech:items/metaitems/display/callisto/bottom"
+  }
+}

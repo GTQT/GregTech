@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/barnard_f/front",
+    "back": "gregtech:items/metaitems/display/barnard_f/back",
+    "left": "gregtech:items/metaitems/display/barnard_f/left",
+    "right": "gregtech:items/metaitems/display/barnard_f/right",
+    "top": "gregtech:items/metaitems/display/barnard_f/top",
+    "bottom": "gregtech:items/metaitems/display/barnard_f/bottom"
+  }
+}

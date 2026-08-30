@@ -1,0 +1,11 @@
+{
+  "parent": "gregtech:item/metaitems/display/dimension_display",
+  "textures": {
+    "front": "gregtech:items/metaitems/display/ross128ba/front",
+    "back": "gregtech:items/metaitems/display/ross128ba/back",
+    "left": "gregtech:items/metaitems/display/ross128ba/left",
+    "right": "gregtech:items/metaitems/display/ross128ba/right",
+    "top": "gregtech:items/metaitems/display/ross128ba/top",
+    "bottom": "gregtech:items/metaitems/display/ross128ba/bottom"
+  }
+}

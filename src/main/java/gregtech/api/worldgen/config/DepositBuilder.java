@@ -3,6 +3,9 @@ package gregtech.api.worldgen.config;
 import net.minecraft.world.WorldProvider;
 import net.minecraft.world.biome.Biome;
 
+import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import it.unimi.dsi.fastutil.ints.IntSet;
+
 import java.util.Map;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -101,6 +104,16 @@ public abstract class DepositBuilder<B extends DepositBuilder<B, D>, D extends I
     /** 按维度 ID 过滤（如 0 = 主世界, -1 = 下界, 1 = 末地） */
     public B dimensionId(int dimensionId) {
         this.dimensionFilter = WorldConfigUtils.predicateDimension(dimensionId);
+        return getThis();
+    }
+
+    /** 按多个维度 ID 过滤（命中任一即通过，如 dimension_id:0,41） */
+    public B dimensionId(int... dimensionIds) {
+        IntSet ids = new IntOpenHashSet();
+        for (int dimensionId : dimensionIds) {
+            ids.add(dimensionId);
+        }
+        this.dimensionFilter = provider -> ids.contains(provider.getDimension());
         return getThis();
     }
 
