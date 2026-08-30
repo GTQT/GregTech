@@ -39,6 +39,7 @@ public final class WorldgenDefinitions {
                 .density(density)
                 .minHeight(minHeight)
                 .maxHeight(maxHeight)
+                .dimensionId(0)
                 .surfaceRock(surfaceRock)
                 .layeredGeneration(radiusMin, radiusMax)
                 .layeredFill(primary, secondary, between, sporadic);
@@ -156,6 +157,7 @@ public final class WorldgenDefinitions {
                 .maxHeight(40)
                 .priority(-100)
                 .countAsVein(false)
+                .dimensionId(0)
                 .generationPredicateAny()
                 .biomeWeightModifierDictionary(ImmutableMap.of("sandy", 5))
                 .sphereGeneration(9, 13)
@@ -321,15 +323,6 @@ public final class WorldgenDefinitions {
                 .dimensionName("the_nether")
                 .fluid(Materials.Lava.getFluid())
                 .build());
-
-        registry.addVeinDefinitions(BedrockFluidDepositBuilder.definitionBuilder("nether/natural_gas_nether_deposit")
-                .translationKey("gregtech.veins.fluid.natural_gas_nether")
-                .weight(35)
-                .yields(150, 300)
-                .depletion(1, 100, 40)
-                .dimensionName("the_nether")
-                .fluid(Materials.NaturalGas.getFluid())
-                .build());
     }
 
     /** 石材 sphere：sphere generator + ignore_bedrock + weight_random(stone_smooth 变体)，不占用矿脉位 */
@@ -342,6 +335,7 @@ public final class WorldgenDefinitions {
                 .density(1.0f)
                 .minHeight(10)
                 .countAsVein(false)
+                .dimensionId(0)
                 .sphereGeneration(10, 20)
                 .stoneSmoothSphereFill(stoneType)
                 .build();
