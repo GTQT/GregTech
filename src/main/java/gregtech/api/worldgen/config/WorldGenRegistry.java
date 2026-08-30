@@ -99,6 +99,17 @@ public class WorldGenRegistry {
     }
 
     /**
+     * 注册维度的显示名（JEI 矿脉/流体页面用）。
+     * 附属模组在初始化阶段调用，为自定义维度提供名字。
+     *
+     * @param dimId 维度 ID
+     * @param name  显示名（本地化后的文本，或 lang 键）
+     */
+    public void addNamedDimension(int dimId, String name) {
+        namedDimensions.put(dimId, name);
+    }
+
+    /**
      * 代码注册普通矿脉定义（addon 直接传入已构建完成的定义）
      */
     public void addVeinDefinitions(OreDepositDefinition definition) {
