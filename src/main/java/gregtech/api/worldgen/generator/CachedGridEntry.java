@@ -23,6 +23,7 @@ import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockPos.MutableBlockPos;
+import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
@@ -338,15 +339,17 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
 
     // === Lean Ore Scattering ===
 
-    /** Probability at the inner edge of the hollow sphere (distance = veinRadius). */
-    private static final double LEAN_ORE_PROB_INNER = 1.0 / 4.0;
-    /** Probability at the outer edge of the hollow sphere (distance = 2 * veinRadius). */
-    private static final double LEAN_ORE_PROB_OUTER = 1.0 / 16.0;
+    /** Probability at the inner box surface (adjacent to the normal ore box). */
+    private static final double LEAN_ORE_PROB_NEAR = 1.0 / 16.0;
+    /** Probability at the outer box surface. */
+    private static final double LEAN_ORE_PROB_FAR = 1.0 / 25.0;
 
     /**
-     * Scatters lean ore blocks in a hollow sphere around each vein:
-     * from {@code veinRadius} to {@code 2 * veinRadius} in 3D distance from the vein center.
-     * Probability linearly decreases from 1/4 (inner) to 1/16 (outer).
+     * Scatters lean ore blocks in a hollow box around each vein.
+     *
+     * <p>Treating the normal ore area (the vein's max-size bounding box) as the inner box, the lean
+     * ore shell is the region between it and the outer box — the inner box scaled up by 2 around the
+     * same center. Probability linearly increases from 1/25 (outer surface) to 1/16 (inner surface).
      */
     private void scatterLeanOres(World world, int chunkX, int chunkZ) {
         if (veinGeneratedMap == null || veinGeneratedMap.isEmpty()) return;
@@ -359,22 +362,25 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
             OreDepositDefinition definition = entry.getKey();
             BlockPos veinCenter = entry.getValue();
 
-            int veinRadius = Math.max(
-                    definition.getShapeGenerator().getMaxSize().getX() / 2,
-                    definition.getShapeGenerator().getMaxSize().getZ() / 2);
-            int innerRadiusSq = veinRadius * veinRadius;
-            int outerRadiusSq = 4 * innerRadiusSq; // (2r)² = 4r²
+            // 小盒子（正常矿区域）半宽 = maxSize / 2，大盒子 = 小盒子以中心等比例放大 2 倍，半宽 = maxSize
+            Vec3i maxSize = definition.getShapeGenerator().getMaxSize();
+            int innerHalfX = maxSize.getX() / 2;
+            int innerHalfY = maxSize.getY() / 2;
+            int innerHalfZ = maxSize.getZ() / 2;
+            int outerHalfX = maxSize.getX();
+            int outerHalfY = maxSize.getY();
+            int outerHalfZ = maxSize.getZ();
 
             int dx = Math.abs(veinCenter.getX() - chunkBaseX);
             int dz = Math.abs(veinCenter.getZ() - chunkBaseZ);
-            if (dx > 2 * veinRadius + 16 || dz > 2 * veinRadius + 16) continue;
+            if (dx > outerHalfX + 16 || dz > outerHalfZ + 16) continue;
 
             Set<Material> materials = collectPrimaryMaterials(definition);
             if (materials.isEmpty()) continue;
 
-            // 球壳垂直范围：以矿脉中心为球心，上下各 2 倍半径
-            int yMin = veinCenter.getY() - 2 * veinRadius;
-            int yMax = veinCenter.getY() + 2 * veinRadius;
+            // 盒壳垂直范围：以矿脉中心为中心，上下各一个大盒半宽
+            int yMin = veinCenter.getY() - outerHalfY;
+            int yMax = veinCenter.getY() + outerHalfY;
             int yRange = yMax - yMin;
 
             long seed = worldSeed ^ ((long) chunkX << 32) ^ chunkZ ^
@@ -386,24 +392,23 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
                     int worldX = chunkBaseX + localX;
                     int worldZ = chunkBaseZ + localZ;
 
-                    int ddx = worldX - veinCenter.getX();
-                    int ddz = worldZ - veinCenter.getZ();
-                    int horizontalDistSq = ddx * ddx + ddz * ddz;
-                    // 水平距离已超出球壳外径时，任意高度都不可能落在球壳内，快速剪枝
-                    if (horizontalDistSq > outerRadiusSq) continue;
+                    int ddx = Math.abs(worldX - veinCenter.getX());
+                    int ddz = Math.abs(worldZ - veinCenter.getZ());
+                    // 水平方向已超出大盒子时，任意高度都不可能落在盒壳内，快速剪枝
+                    if (ddx > outerHalfX || ddz > outerHalfZ) continue;
 
                     for (int dy = 0; dy <= yRange; dy++) {
                         int y = yMin + dy;
                         if (y <= 0) continue;
 
-                        int ddy = y - veinCenter.getY();
-                        int distSq = horizontalDistSq + ddy * ddy;
-                        if (distSq < innerRadiusSq || distSq > outerRadiusSq) continue;
+                        int ddy = Math.abs(y - veinCenter.getY());
+                        // 小盒子内是正常矿区域，跳过
+                        if (ddx <= innerHalfX && ddy <= innerHalfY && ddz <= innerHalfZ) continue;
 
-                        double dist = Math.sqrt(distSq);
-                        double distRatio = (dist - veinRadius) / veinRadius;
-                        double prob = LEAN_ORE_PROB_INNER +
-                                (LEAN_ORE_PROB_OUTER - LEAN_ORE_PROB_INNER) * distRatio;
+                        // 按大盒子归一化"盒半径"：小盒表面 norm=0.5，大盒表面 norm=1，概率由 1/16 线性降到 1/25
+                        double norm = Math.max(Math.max(ddx / (double) outerHalfX, ddy / (double) outerHalfY),
+                                ddz / (double) outerHalfZ);
+                        double prob = LEAN_ORE_PROB_NEAR + (LEAN_ORE_PROB_FAR - LEAN_ORE_PROB_NEAR) * (2 * norm - 1);
 
                         if (rand.nextFloat() > prob) continue;
 
