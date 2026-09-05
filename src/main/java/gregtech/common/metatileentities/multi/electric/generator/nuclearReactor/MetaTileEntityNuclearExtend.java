@@ -11,7 +11,7 @@ import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
 import gregtech.api.mui.GTGuis;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
-import gregtech.common.item.behaviors.NuclearUpdateBehavior;
+import gregtech.common.items.behaviors.nuclear.NuclearUpdateBehavior;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiblockPart;
 
 import net.minecraft.client.resources.I18n;

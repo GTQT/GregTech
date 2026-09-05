@@ -1,14 +1,16 @@
 package gregtech.common.item.behaviors;
 
+import gregtech.common.items.behaviors.nuclear.CoolantCellBehavior;
+import gregtech.common.items.behaviors.nuclear.ReactorPlatingBehavior;
+
 import net.minecraft.init.Bootstrap;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class CoolantCellBehaviorTest {
 

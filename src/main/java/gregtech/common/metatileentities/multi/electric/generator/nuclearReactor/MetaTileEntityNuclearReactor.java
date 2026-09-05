@@ -24,8 +24,8 @@ import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockNuclearReactorCasing;
 import gregtech.common.blocks.MetaBlocks;
-import gregtech.common.item.behaviors.NuclearComponentBehavior;
 import gregtech.common.items.behaviors.AbstractMaterialPartBehavior;
+import gregtech.common.items.behaviors.nuclear.NuclearComponentBehavior;
 import gregtech.core.sound.GTSoundEvents;
 
 import net.minecraft.block.state.IBlockState;

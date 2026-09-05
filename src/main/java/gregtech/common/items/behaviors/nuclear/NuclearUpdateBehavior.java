@@ -1,4 +1,4 @@
-package gregtech.common.item.behaviors;
+package gregtech.common.items.behaviors.nuclear;
 
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;

@@ -57,22 +57,16 @@ public class ProspectorScannerBehavior implements IItemBehaviour, ItemUIFactory,
         if (!world.isRemote) {
             if (player.isSneaking()) {
                 ItemStack stack = player.getHeldItem(hand);
-                ProspectorMode mode = getMode(stack);
-                ProspectorMode nextMode = mode.next();
-                if (nextMode == ProspectorMode.BEDROCK_FLUID) {
-                    if (tier >= FLUID_PROSPECTION_THRESHOLD) {
-                        setMode(stack, nextMode);
-                        player.sendStatusMessage(new TextComponentTranslation("metaitem.prospector.mode.bedrock_fluid"), true);
+                ProspectorMode current = getMode(stack);
+                ProspectorMode next = current;
+                do {
+                    next = next.next();
+                    if (isModeAvailable(next, tier)) {
+                        setMode(stack, next);
+                        player.sendStatusMessage(new TextComponentTranslation(next.unlocalizedName), true);
+                        break;
                     }
-                } else if (nextMode == ProspectorMode.BEDROCK_ORE) {
-                    if (tier >= BEDROCK_ORE_PROSPECTION_THRESHOLD) {
-                        setMode(stack, nextMode);
-                        player.sendStatusMessage(new TextComponentTranslation("metaitem.prospector.mode.bedrock_ore"), true);
-                    }
-                } else {
-                    setMode(stack, nextMode);
-                    player.sendStatusMessage(new TextComponentTranslation("metaitem.prospector.mode.ores"), true);
-                }
+                } while (next != current);
             } else if (checkCanUseScanner(heldItem, player, true)) {
                 new PlayerInventoryHolder(player, hand).openUI();
             } else {
@@ -80,6 +74,16 @@ public class ProspectorScannerBehavior implements IItemBehaviour, ItemUIFactory,
             }
         }
         return ActionResult.newResult(EnumActionResult.SUCCESS, heldItem);
+    }
+
+    private static boolean isModeAvailable(ProspectorMode mode, int tier) {
+        if (mode == ProspectorMode.BEDROCK_FLUID) {
+            return tier >= FLUID_PROSPECTION_THRESHOLD;
+        } else if (mode == ProspectorMode.BEDROCK_ORE) {
+            return tier >= BEDROCK_ORE_PROSPECTION_THRESHOLD;
+        } else {
+            return true; // ORE 等普通模式始终可用
+        }
     }
 
     @NotNull

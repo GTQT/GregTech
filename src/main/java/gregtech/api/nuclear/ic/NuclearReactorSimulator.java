@@ -1,14 +1,23 @@
 package gregtech.api.nuclear.ic;
 
 import gregtech.api.util.GTLog;
-import lombok.Getter;
-import lombok.Setter;
+import gregtech.common.items.behaviors.nuclear.ComponentHeatVentBehavior;
+import gregtech.common.items.behaviors.nuclear.CoolantCellBehavior;
+import gregtech.common.items.behaviors.nuclear.FuelRodBehavior;
+import gregtech.common.items.behaviors.nuclear.HeatVentBehavior;
+import gregtech.common.items.behaviors.nuclear.IrradiationTargetBehavior;
+import gregtech.common.items.behaviors.nuclear.NeutronReflectorBehavior;
+import gregtech.common.items.behaviors.nuclear.NuclearComponentBehavior;
+import gregtech.common.items.behaviors.nuclear.ReactorPlatingBehavior;
+
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
-import gregtech.common.item.behaviors.*;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.jetbrains.annotations.NotNull;
+
 import java.util.ArrayList;
 import java.util.List;
 

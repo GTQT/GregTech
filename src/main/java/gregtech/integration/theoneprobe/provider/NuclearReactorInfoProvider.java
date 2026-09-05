@@ -4,7 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.common.item.behaviors.NuclearComponentBehavior;
+import gregtech.common.items.behaviors.nuclear.NuclearComponentBehavior;
 import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.MetaTileEntityNuclearReactor;
 
 import net.minecraft.block.state.IBlockState;

@@ -1,11 +1,13 @@
-package gregtech.common.item.behaviors;
+package gregtech.common.items.behaviors.nuclear;
 
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.stats.IItemDurabilityManager;
 import gregtech.api.unification.material.Material;
-import lombok.Getter;
+
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
+
+import lombok.Getter;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
