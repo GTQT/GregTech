@@ -21,12 +21,14 @@ import gregtech.common.blocks.MetaBlocks;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.init.Blocks;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.BlockPos.MutableBlockPos;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.World;
 import net.minecraft.world.biome.Biome;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.storage.ExtendedBlockStorage;
 
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
@@ -354,6 +356,11 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
     private void scatterLeanOres(World world, int chunkX, int chunkZ) {
         if (veinGeneratedMap == null || veinGeneratedMap.isEmpty()) return;
 
+        // 散落循环中的全部读写都发生在本区块内，可直接访问区块存储而无需走 World API
+        Chunk chunk = world.getChunk(chunkX, chunkZ);
+        ExtendedBlockStorage[] storage = chunk.getBlockStorageArray();
+        boolean wroteAnything = false;
+
         int chunkBaseX = chunkX * 16;
         int chunkBaseZ = chunkZ * 16;
         long worldSeed = world.getSeed();
@@ -378,6 +385,15 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
             Set<Material> materials = collectPrimaryMaterials(definition);
             if (materials.isEmpty()) continue;
 
+            // 贫瘠矿方块只与主材料相关、与候选位置无关，每条矿脉确定一次即可，
+            // 避免数千个候选位置各自重复扫描 MetaBlocks.LEAN_ORES
+            BlockLeanOre leanBlock = null;
+            for (Material material : materials) {
+                leanBlock = findLeanOreBlock(material);
+                if (leanBlock != null) break;
+            }
+            if (leanBlock == null) continue;
+
             // 盒壳垂直范围：以矿脉中心为中心，上下各一个大盒半宽
             int yMin = veinCenter.getY() - outerHalfY;
             int yMax = veinCenter.getY() + outerHalfY;
@@ -386,6 +402,7 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
             long seed = worldSeed ^ ((long) chunkX << 32) ^ chunkZ ^
                     ((long) veinCenter.getX() << 16) ^ veinCenter.getZ();
             Random rand = new Random(seed);
+            MutableBlockPos pos = new MutableBlockPos();
 
             for (int localX = 0; localX < 16; localX++) {
                 for (int localZ = 0; localZ < 16; localZ++) {
@@ -412,22 +429,24 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
 
                         if (rand.nextFloat() > prob) continue;
 
-                        for (Material material : materials) {
-                            BlockLeanOre leanBlock = findLeanOreBlock(material);
-                            if (leanBlock == null) continue;
+                        // 盒内读写全部直通区块存储，绕开 World#getBlockState/setBlockState 的完整路径
+                        pos.setPos(worldX, y, worldZ);
+                        IBlockState currentState = getBlockStateFast(storage, pos);
+                        StoneType stoneType = StoneType.computeStoneType(currentState, world, pos);
+                        if (stoneType == null) continue;
 
-                            BlockPos pos = new BlockPos(worldX, y, worldZ);
-                            IBlockState currentState = world.getBlockState(pos);
-                            StoneType stoneType = StoneType.computeStoneType(currentState, world, pos);
-                            if (stoneType == null) continue;
-
-                            IBlockState leanState = leanBlock.getOreBlock(stoneType);
-                            world.setBlockState(pos, leanState, 16);
-                            break;
-                        }
+                        IBlockState leanState = leanBlock.getOreBlock(stoneType);
+                        // 不满足快速写入条件（光照/方块实体）时内部自动回退 World API
+                        setBlockStateDirect(world, storage, pos, leanState);
+                        wroteAnything = true;
                     }
                 }
             }
+        }
+
+        // 直接写入存储不会自动标记区块脏，有实际写入时需手动补上，否则更改可能不会保存
+        if (wroteAnything) {
+            chunk.setModified(true);
         }
     }
 
@@ -463,6 +482,58 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
 
     // === End Lean Ore Scattering ===
 
+    // === Direct Chunk Storage Access ===
+
+    /**
+     * Reads a block state straight from the chunk's section storage, skipping
+     * {@link World#getBlockState}. Only valid while the chunk is resident in memory, which is
+     * always the case during chunk generation. Mirrors {@link World#getBlockState} semantics,
+     * including returning air for positions outside the build height.
+     */
+    private static IBlockState getBlockStateFast(ExtendedBlockStorage[] storage, BlockPos pos) {
+        int y = pos.getY();
+        if (y < 0 || y >= 256) {
+            return Blocks.AIR.getDefaultState();
+        }
+        ExtendedBlockStorage section = storage[y >> 4];
+        return section == Chunk.NULL_BLOCK_STORAGE
+                ? Blocks.AIR.getDefaultState()
+                : section.get(pos.getX() & 15, y & 15, pos.getZ() & 15);
+    }
+
+    /**
+     * Writes a block state, preferring the chunk's section storage and falling back to
+     * {@link World#setBlockState} when the direct write is not safe. The direct write bypasses
+     * the whole world API machinery (light checks, neighbor notifications, tile entity handling,
+     * chunk dirty marking) and is only sound when the replaced and the replacing state share the
+     * same light opacity and light value and neither block carries a tile entity; outside the
+     * build height it falls back as well ({@link World#setBlockState} would reject those).
+     * Callers are responsible for marking the chunk modified when they performed direct writes.
+     */
+    private static void setBlockStateDirect(World world, ExtendedBlockStorage[] storage, BlockPos pos,
+                                            IBlockState newState) {
+        int y = pos.getY();
+        if (y >= 0 && y < 256) {
+            ExtendedBlockStorage section = storage[y >> 4];
+            if (section != Chunk.NULL_BLOCK_STORAGE) {
+                int localX = pos.getX() & 15;
+                int localY = y & 15;
+                int localZ = pos.getZ() & 15;
+                IBlockState oldState = section.get(localX, localY, localZ);
+                if (oldState.getLightOpacity(world, pos) == newState.getLightOpacity(world, pos)
+                        && oldState.getLightValue(world, pos) == newState.getLightValue(world, pos)
+                        && !oldState.getBlock().hasTileEntity(oldState)
+                        && !newState.getBlock().hasTileEntity(newState)) {
+                    section.set(localX, localY, localZ, newState);
+                    return;
+                }
+            }
+        }
+        world.setBlockState(pos, newState, 16);
+    }
+
+    // === End Direct Chunk Storage Access ===
+
     public static class ChunkDataEntry {
 
         private final Map<OreDepositDefinition, MutablePair<LongList, Integer>> oreBlocks = new Object2ObjectOpenHashMap<>();
@@ -496,6 +567,9 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
         }
 
         public boolean populateChunk(World world) {
+            // 生成期本区块必然已加载，直接抓取存储数组供后续快速读写复用
+            Chunk chunk = world.getChunk(chunkX, chunkZ);
+            ExtendedBlockStorage[] storage = chunk.getBlockStorageArray();
             MutableBlockPos blockPos = new MutableBlockPos();
             boolean generatedAnything = false;
             for (Map.Entry<OreDepositDefinition, MutablePair<LongList, Integer>> entry : oreBlocks.entrySet()) {
@@ -514,7 +588,7 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
                     int blockY = (short) (xyzValue >> 16);
                     int index = (int) blockIndex;
                     blockPos.setPos(chunkX * 16 + blockX, blockY, chunkZ * 16 + blockZ);
-                    IBlockState currentState = world.getBlockState(blockPos);
+                    IBlockState currentState = getBlockStateFast(storage, blockPos);
                     IBlockState newState;
                     if (index == 0) {
                         // it's primary ore block
@@ -527,8 +601,9 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
                         VeinBufferPopulator populator = (VeinBufferPopulator) definition.getVeinPopulator();
                         newState = populator.getBlockByIndex(world, blockPos, index - 1);
                     }
-                    // set flags as 16 to avoid observer updates loading neighbour chunks
-                    world.setBlockState(blockPos, newState, 16);
+                    // set flags as 16 to avoid observer updates loading neighbour chunks;
+                    // direct write path skips the world API entirely and falls back to it when unsafe
+                    setBlockStateDirect(world, storage, blockPos, newState);
                     generatedBlocks.add(Block.getStateId(newState));
                     generatedOreVein = true;
                     generatedAnything = true;
@@ -537,6 +612,10 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
                     this.generatedBlocksSet.put(definition, generatedBlocks);
                     this.generatedOres.add(definition);
                 }
+            }
+            // 直接写入存储不会自动标记区块脏，有生成时需手动补上
+            if (generatedAnything) {
+                chunk.setModified(true);
             }
             return generatedAnything;
         }
