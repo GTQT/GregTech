@@ -182,6 +182,19 @@ public class MetaTileEntityRotorHolder extends MetaTileEntityMultiblockNotifiabl
         }
     }
 
+    /**
+     * 由多方块控制器调用：将一颗转子放入转子槽，并重发转子颜色以刷新客户端渲染
+     */
+    public void setRotor(@NotNull ItemStack itemStack) {
+        inventory.setStackInSlot(0, itemStack);
+        inventory.onContentsChanged(0);
+        if (!getWorld().isRemote) {
+            // 转子颜色不会随普通物品同步，重发一次以刷新客户端渲染
+            writeCustomData(GregtechDataCodes.UPDATE_ROTOR_COLOR, buf -> buf.writeInt(rotorColor));
+            markDirty();
+        }
+    }
+
     @Override
     public void registerAbilities(@NotNull AbilityInstances abilityInstances) {
         abilityInstances.add(this);
@@ -368,6 +381,9 @@ public class MetaTileEntityRotorHolder extends MetaTileEntityMultiblockNotifiabl
             scheduleRenderUpdate();
         } else if (dataId == GregtechDataCodes.FRONT_FACE_FREE) {
             this.frontFaceFree = buf.readBoolean();
+        } else if (dataId == GregtechDataCodes.UPDATE_ROTOR_COLOR) {
+            this.rotorColor = buf.readInt();
+            scheduleRenderUpdate();
         }
     }
 

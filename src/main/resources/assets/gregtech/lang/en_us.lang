@@ -3198,10 +3198,17 @@ metaitem.vajra_iv.name=Vajra (§1IV§r)
 behavior.vajra.mode.normal=Normal Mode
 behavior.vajra.mode.silk_touch=Silk Touch Mode
 behavior.vajra.mode_switched=Vajra mode switched to: %s
+behavior.vajra.speed.changed=Vajra mining speed set to: %s (%s s per block)
+behavior.vajra.speed.name.0=Instant
+behavior.vajra.speed.name.1=Fast
+behavior.vajra.speed.name.2=Medium
+behavior.vajra.speed.name.3=Slow
+behavior.vajra.speed.name.generic=Tier %s
 
 # Vajra Tooltips
 behavior.vajra.tooltip.current_mode=Current Mode: %s
-behavior.vajra.tooltip.mode_switch=Shift+Right-click to switch mode
+behavior.vajra.tooltip.mode_switch=Right-click to cycle Mining Speed, sneak+right-click to switch mode
+behavior.vajra.tooltip.speed=Mining Speed: %s (%s s per block)
 
 metaitem.item_magnet.lv.name=Low Voltage Item Magnet
 metaitem.item_magnet.hv.name=High Voltage Item Magnet
@@ -9029,6 +9036,7 @@ gregtech.multiblock.turbine.energy_per_tick=Output EU/t: %s (%s)
 gregtech.multiblock.turbine.obstructed=Turbine Face Obstructed!
 gregtech.multiblock.turbine.obstructed.desc=Turbine must have air space in the 3x3 in front of it.
 gregtech.multiblock.turbine.efficiency_tooltip=Each Rotor Holder above %s§7 adds §f10%% efficiency§7.
+gregtech.machine.large_turbine.autofill=Rotors inserted into an §fItem Input Bus§7 are automatically loaded into the §fRotor Holder§7 when it is empty.
 
 gregtech.multiblock.structure_tier=Structure Tier:
 

@@ -21,7 +21,9 @@ import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.util.KeyUtil;
 import gregtech.client.renderer.ICubeRenderer;
+import gregtech.common.items.behaviors.TurbineRotorBehavior;
 import gregtech.common.metatileentities.MetaTileEntities;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityRotorHolder;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
@@ -34,6 +36,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
+import net.minecraftforge.items.IItemHandlerModifiable;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
@@ -45,8 +48,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-public class MetaTileEntityLargeTurbine extends FuelMultiblockController
-        implements ITieredMetaTileEntity, ProgressBarMultiblock {
+public class MetaTileEntityLargeTurbine extends FuelMultiblockController implements ProgressBarMultiblock {
 
     private static final int MIN_DURABILITY_TO_WARN = 10;
     private static final String STRUCTURE_POOL_KEY = "gregtech:large_turbine";
@@ -88,6 +90,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
                 .maintenance()
                 .optionalHatch(MultiblockAbility.IMPORT_FLUIDS, 4)
                 .optionalHatch(MultiblockAbility.EXPORT_FLUIDS, 4)
+                .optionalHatch(MultiblockAbility.IMPORT_ITEMS,1)
                 .optionalHatch(MultiblockAbility.MUFFLER_HATCH, type.hasMufflerHatch() ? 1 : 0)
                 .globalAbilityLimit(MultiblockAbility.ROTOR_HOLDER, 1, 1)
                 .globalAbilityLimit(MultiblockAbility.OUTPUT_ENERGY, 1, 1)
@@ -128,6 +131,30 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
     public void invalidateStructure() {
         super.invalidateStructure();
         this.exportFluidHandler = null;
+    }
+
+    @Override
+    public void update() {
+        super.update();
+        if (getWorld().isRemote) return;
+        if (getOffsetTimer() % 20 != 0 || !isStructureFormed()) return;
+
+        // 转子自动填充：转子支架为空时，从输入总线中取一颗转子装入
+        IRotorHolder rotorHolder = getRotorHolder();
+        if (rotorHolder == null || rotorHolder.hasRotor()) return;
+
+        IItemHandlerModifiable inputInventory = getInputInventory();
+        for (int slot = 0; slot < inputInventory.getSlots(); slot++) {
+            ItemStack currentStack = inputInventory.getStackInSlot(slot);
+            if (TurbineRotorBehavior.getInstanceFor(currentStack) == null) continue;
+
+            ItemStack rotorStack = inputInventory.extractItem(slot, 1, false);
+            if (rotorStack.isEmpty()) return;
+            if (rotorHolder instanceof MetaTileEntityRotorHolder rotorHolderInstance) {
+                rotorHolderInstance.setRotor(rotorStack);
+            }
+            return;
+        }
     }
 
     /**
@@ -235,6 +262,7 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController
         super.addInformation(stack, player, tooltip, advanced);
         tooltip.add(I18n.format("gregtech.universal.tooltip.base_production_eut", GTValues.V[tier] * 2));
         tooltip.add(I18n.format("gregtech.multiblock.turbine.efficiency_tooltip", GTValues.VNF[tier]));
+        tooltip.add(I18n.format("gregtech.machine.large_turbine.autofill"));
     }
 
     @NotNull

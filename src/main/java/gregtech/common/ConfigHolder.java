@@ -1024,6 +1024,11 @@ public class ConfigHolder {
         @Config.Comment({ "The maximum amount of pipes a recursive spray can do at once", "Default: 128 blocks" })
         @Config.RangeInt(min = 1, max = 1024)
         public int maxRecursiveSprayLength = 128;
+
+        @Config.Comment({ "The mining time required for each Vajra mining speed tier in order.",
+                "0 means instant break. Default: 0t, 8t, 20t, 40t" })
+        @Config.Name("Vajra Mining Speeds")
+        public int[] vajraMiningTiers = new int[] { 0, 8, 20, 40 };
     }
 
     public static class ArmorHud {

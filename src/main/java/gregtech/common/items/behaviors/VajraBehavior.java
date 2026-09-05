@@ -5,6 +5,7 @@ import gregtech.api.capability.IElectricItem;
 import gregtech.api.items.metaitem.stats.IEnchantabilityHelper;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
@@ -38,7 +39,9 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.jetbrains.annotations.NotNull;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -51,6 +54,7 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
     private static final long NORMAL_ENERGY_COST = VA[ULV];
     private static final long SILKTOUCH_ENERGY_COST = VA[LV];
     private static final String MODE_TAG = "VajraMode"; // 0 = Normal, 1 = SilkTouch
+    private static final String MINING_TIER_TAG = "VajraMiningTier";
     private final double baseAttackDamage;
     private final double additionalAttackDamage;
 
@@ -69,6 +73,44 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
         if (electricItem == null) return false;
         // Vajra has a unique pattern: it has both electric capability and mode NBT
         return stack.hasTagCompound() && stack.getTagCompound().hasKey(MODE_TAG);
+    }
+
+    /**
+     * @return the selected mining speed tier index, saved on the item
+     */
+    public static int getMiningTier(@NotNull ItemStack stack) {
+        if (!stack.hasTagCompound()) return 0;
+        return stack.getTagCompound().getInteger(MINING_TIER_TAG);
+    }
+
+    private static void setMiningTier(@NotNull ItemStack stack, int index) {
+        if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
+        stack.getTagCompound().setInteger(MINING_TIER_TAG, index);
+    }
+
+    /**
+     * @return the mining time in ticks required by the selected tier, 0 for instant breaking
+     */
+    public static int getMiningTicks(@NotNull ItemStack stack) {
+        int[] tiers = ConfigHolder.tools.vajraMiningTiers;
+        if (tiers.length == 0) return 0;
+        return tiers[Math.max(0, Math.min(getMiningTier(stack), tiers.length - 1))];
+    }
+
+    private static int cycleMiningTier(@NotNull ItemStack stack) {
+        int[] tiers = ConfigHolder.tools.vajraMiningTiers;
+        if (tiers.length == 0) {
+            setMiningTier(stack, 0);
+            return 0;
+        }
+        int next = (getMiningTier(stack) + 1) % tiers.length;
+        setMiningTier(stack, next);
+        return next;
+    }
+
+    private static String speedTierNameKey(int index) {
+        return index >= 0 && index <= 3 ? "behavior.vajra.speed.name." + index
+                : "behavior.vajra.speed.name.generic";
     }
 
     /**
@@ -101,9 +143,9 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
             drops.add(mte.getStackForm());
             mte.onRemoval();
         } else if (silkTouch) {
-            drops.add(getSilkDrops(state));
+            drops.add(getSilkDrops(world, pos, state));
         } else {
-            drops = block.getDrops(world, pos, state, 0);
+            drops = getNormalDrops(world, pos, state);
         }
 
         // Play break sound
@@ -140,11 +182,36 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
         return true;
     }
 
-    private static ItemStack getSilkDrops(IBlockState state) {
+    @SuppressWarnings("deprecation")
+    private static List<ItemStack> getNormalDrops(World world, BlockPos pos, IBlockState state) {
+        // GT pipes / wires keep their contents in the pipe tile entity and drop nothing
+        // by default, so drop the pipe item itself instead.
+        if (world.getTileEntity(pos) instanceof IPipeTile<?, ?>) {
+            ItemStack item = state.getBlock().getItem(world, pos, state);
+            return item.isEmpty() ? Collections.emptyList() : Collections.singletonList(item);
+        }
+        return state.getBlock().getDrops(world, pos, state, 0);
+    }
+
+    @SuppressWarnings("deprecation")
+    private static ItemStack getSilkDrops(World world, BlockPos pos, IBlockState state) {
+        if (world.getTileEntity(pos) instanceof IPipeTile<?, ?>) {
+            ItemStack item = state.getBlock().getItem(world, pos, state);
+            if (!item.isEmpty()) return item;
+        }
+        // getSilkTouchDrop may be protected, so walk up the class hierarchy for declared methods
         try {
-            var method = state.getBlock().getClass().getMethod("getSilkTouchDrop", IBlockState.class);
-            method.setAccessible(true);
-            return (ItemStack) method.invoke(state.getBlock(), state);
+            Class<?> blockClass = state.getBlock().getClass();
+            while (blockClass != null) {
+                try {
+                    Method silkTouchDrop = blockClass.getDeclaredMethod("getSilkTouchDrop", IBlockState.class);
+                    silkTouchDrop.setAccessible(true);
+                    return (ItemStack) silkTouchDrop.invoke(state.getBlock(), state);
+                } catch (NoSuchMethodException ignored) {
+                    blockClass = blockClass.getSuperclass();
+                }
+            }
+            throw new NoSuchMethodException();
         } catch (Exception e) {
             return new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state));
         }
@@ -228,6 +295,12 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
         ItemStack heldItem = player.getHeldItem(hand);
         if (player.isSneaking()) {
             toggleMode(heldItem, player);
+        } else if (!world.isRemote) {
+            int tierIndex = cycleMiningTier(heldItem);
+            double seconds = getMiningTicks(heldItem) / 20.0;
+            player.sendMessage(new TextComponentTranslation("behavior.vajra.speed.changed",
+                    new TextComponentTranslation(speedTierNameKey(tierIndex), tierIndex + 1),
+                    String.format("%.2f", seconds)));
         }
         return pass(player.getHeldItem(hand));
     }
@@ -248,5 +321,11 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
         String modeName = getModeName(mode);
         lines.add(TextFormatting.GOLD + I18n.format("behavior.vajra.tooltip.current_mode", modeName));
         lines.add(TextFormatting.AQUA + I18n.format("behavior.vajra.tooltip.mode_switch"));
+
+        int tier = getMiningTier(itemStack);
+        int ticks = getMiningTicks(itemStack);
+        String seconds = ticks <= 0 ? "0.00" : String.format("%.2f", ticks / 20.0);
+        lines.add(TextFormatting.AQUA + I18n.format("behavior.vajra.tooltip.speed",
+                I18n.format(speedTierNameKey(tier), tier + 1), seconds));
     }
 }

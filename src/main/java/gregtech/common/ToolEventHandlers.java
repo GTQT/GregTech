@@ -41,6 +41,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.item.EntityItemFrame;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -62,6 +63,7 @@ import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
@@ -74,8 +76,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.BooleanSupplier;
 import java.util.function.Predicate;
 
@@ -145,23 +150,99 @@ public class ToolEventHandlers {
     }
 
     /**
-     * Handles Vajra instant block breaking on left-click.
+     * Handles Vajra block breaking on left-click.
      * Intercepts left-click events and delegates to VajraBehavior.breakBlock().
+     * Instant-breaking tiers break on the first click, other tiers accumulate clicks with a
+     * block-break progress indicator until the required mining time is reached.
      */
+    private static final Map<UUID, MiningSession> MINING_SESSIONS = new HashMap<>();
+    private static final long MINING_SESSION_TIMEOUT = 10 * 20; // ticks since last click before resetting
+
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onLeftClickBlock(@NotNull PlayerInteractEvent.LeftClickBlock event) {
         EntityPlayer player = event.getEntityPlayer();
         World world = event.getWorld();
+        if (world.isRemote) return;
+
         ItemStack heldItem = player.getHeldItem(event.getHand());
+        if (!VajraBehavior.isVajra(heldItem)) return;
 
-        if (!world.isRemote && VajraBehavior.isVajra(heldItem)) {
-            event.setCanceled(true);
+        event.setCanceled(true);
 
-            int mode = heldItem.getTagCompound().getInteger("VajraMode");
-            boolean silkTouch = mode == 1;
-            long energyCost = silkTouch ? 32L : 8L; // VA[LV]=32, VA[ULV]=8
+        BlockPos pos = event.getPos();
+        int mode = heldItem.getTagCompound().getInteger("VajraMode");
+        boolean silkTouch = mode == 1;
+        long energyCost = silkTouch ? 32L : 8L; // VA[LV]=32, VA[ULV]=8
 
-            VajraBehavior.breakBlock(heldItem, player, world, event.getPos(), silkTouch, energyCost);
+        int neededTicks = VajraBehavior.getMiningTicks(heldItem);
+        if (neededTicks <= 0) {
+            MiningSession old = MINING_SESSIONS.remove(player.getUniqueID());
+            if (old != null) world.sendBlockBreakProgress(player.getEntityId(), old.pos, -1);
+            world.sendBlockBreakProgress(player.getEntityId(), pos, -1);
+            VajraBehavior.breakBlock(heldItem, player, world, pos, silkTouch, energyCost);
+            return;
+        }
+
+        long now = world.getTotalWorldTime();
+        MiningSession session = MINING_SESSIONS.get(player.getUniqueID());
+        if (session == null || !session.pos.equals(pos) ||
+                session.dimension != world.provider.getDimension()) {
+            if (session != null) world.sendBlockBreakProgress(player.getEntityId(), session.pos, -1);
+            session = new MiningSession(pos, world.provider.getDimension());
+            session.neededTicks = neededTicks;
+            session.progress = 1;
+            session.lastEventTick = now;
+            MINING_SESSIONS.put(player.getUniqueID(), session);
+        } else {
+            session.progress++;
+            session.lastEventTick = now;
+        }
+
+        if (session.progress >= session.neededTicks) {
+            MINING_SESSIONS.remove(player.getUniqueID());
+            world.sendBlockBreakProgress(player.getEntityId(), pos, -1);
+            VajraBehavior.breakBlock(heldItem, player, world, pos, silkTouch, energyCost);
+        } else {
+            int stage = Math.max(1, Math.min(9, session.progress * 9 / session.neededTicks));
+            if (stage != session.lastStage) {
+                world.sendBlockBreakProgress(player.getEntityId(), pos, stage);
+                session.lastStage = stage;
+            }
+        }
+    }
+
+    /**
+     * Resets a Vajra mining session when the player releases the button, switches the held
+     * item, changes dimensions, or the target block is gone.
+     */
+    @SubscribeEvent
+    public static void onPlayerTick(@NotNull TickEvent.PlayerTickEvent event) {
+        if (event.phase != TickEvent.Phase.START || event.side.isClient()) return;
+        if (!(event.player instanceof EntityPlayerMP player)) return;
+
+        MiningSession session = MINING_SESSIONS.get(player.getUniqueID());
+        if (session == null) return;
+
+        if (player.world.provider.getDimension() != session.dimension ||
+                player.world.getBlockState(session.pos).getBlock() == Blocks.AIR ||
+                player.world.getTotalWorldTime() - session.lastEventTick > MINING_SESSION_TIMEOUT ||
+                !VajraBehavior.isVajra(player.getHeldItemMainhand())) {
+            MINING_SESSIONS.remove(player.getUniqueID());
+            player.world.sendBlockBreakProgress(player.getEntityId(), session.pos, -1);
+        }
+    }
+
+    private static class MiningSession {
+        final BlockPos pos;
+        final int dimension;
+        int progress;
+        int neededTicks;
+        int lastStage = -1;
+        long lastEventTick;
+
+        MiningSession(BlockPos pos, int dimension) {
+            this.pos = pos;
+            this.dimension = dimension;
         }
     }
 

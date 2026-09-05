@@ -3193,10 +3193,17 @@ metaitem.vajra_iv.name=金刚杵 (§1IV§r)
 behavior.vajra.mode.normal=普通模式
 behavior.vajra.mode.silk_touch=精准采集模式
 behavior.vajra.mode_switched=金刚杵模式已切换至: %s
+behavior.vajra.speed.changed=金刚杵挖掘档位已切换至: %s（%s 秒 / 方块）
+behavior.vajra.speed.name.0=极快
+behavior.vajra.speed.name.1=快速
+behavior.vajra.speed.name.2=中速
+behavior.vajra.speed.name.3=慢速
+behavior.vajra.speed.name.generic=档位 %s
 
 # Vajra Tooltips
 behavior.vajra.tooltip.current_mode=当前模式: %s
-behavior.vajra.tooltip.mode_switch=Shift+右键切换模式
+behavior.vajra.tooltip.mode_switch=右击切换挖掘档位，潜行右击切换精准模式
+behavior.vajra.tooltip.speed=挖掘速度：%s（%s 秒 / 方块）
 
 metaitem.item_magnet.lv.name=低压物品磁铁
 metaitem.item_magnet.hv.name=高压物品磁铁
@@ -9019,6 +9026,7 @@ gregtech.multiblock.turbine.energy_per_tick=产能功率：%s/%s EU/t
 gregtech.multiblock.turbine.obstructed=涡轮表面受阻！
 gregtech.multiblock.turbine.obstructed.desc=涡轮前方3x3必须是空气。
 gregtech.multiblock.turbine.efficiency_tooltip=转子支架等级超过%s§7时，每级增加§610%%§7的效率。
+gregtech.machine.large_turbine.autofill=使用§f输入总线§7可以自动将输入的§a涡轮转子§7填充进§f转子支架§7中
 
 gregtech.multiblock.structure_tier=结构等级:
 
