@@ -83,7 +83,7 @@ public class MetaTileEntityHugeBuffer extends MetaTileEntity implements ITieredM
         }
         fluidInventory = fluidTankList = new FluidTankList(false, fluidHandlers);
         itemInventory = itemStackHandler = new LargeSlotItemStackHandler(this, getItemSize(), null, false,
-                () -> Integer.MAX_VALUE);
+                this::getSlotCapacity);
     }
 
     protected int getTankSize() {
@@ -94,8 +94,12 @@ public class MetaTileEntityHugeBuffer extends MetaTileEntity implements ITieredM
         return getTankSize() * getTankSize();
     }
 
+    protected int getSlotCapacity() {
+        return 64 << (2 * getTier());
+    }
+
     protected int getTankCapacity() {
-        return Integer.MAX_VALUE;
+        return 8000 << getTier();
     }
 
     @Override
@@ -143,7 +147,7 @@ public class MetaTileEntityHugeBuffer extends MetaTileEntity implements ITieredM
 
                     @Override
                     public int getSlotStackLimit() {
-                        return Integer.MAX_VALUE;
+                        return getSlotCapacity();
                     }
                 }.ignoreMaxStackSize(true).slotGroup("item_inv")
                         .changeListener((newItem, onlyAmountChanged, client, init) -> {
@@ -345,16 +349,6 @@ public class MetaTileEntityHugeBuffer extends MetaTileEntity implements ITieredM
             this.autoOutputFluids = buf.readBoolean();
             scheduleRenderUpdate();
         }
-    }
-
-    @Override
-    protected boolean shouldSerializeInventories() {
-        return true;
-    }
-
-    @Override
-    public boolean hasFrontFacing() {
-        return true;
     }
 
     @Override

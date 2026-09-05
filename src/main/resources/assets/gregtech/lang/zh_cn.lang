@@ -5668,6 +5668,20 @@ gregtech.machine.quantum_tank.zpm.name=量子缸 III
 gregtech.machine.quantum_tank.uv.name=量子缸 IV
 gregtech.machine.quantum_tank.uhv.name=量子缸 V
 
+#Multi Quantum Tanks
+gregtech.machine.multi_super_tank.ulv.name=多重初级缸 I
+gregtech.machine.multi_super_tank.lv.name=多重超级缸 I
+gregtech.machine.multi_super_tank.mv.name=多重超级缸 II
+gregtech.machine.multi_super_tank.hv.name=多重超级缸 III
+gregtech.machine.multi_super_tank.ev.name=多重超级缸 IV
+gregtech.machine.multi_super_tank.iv.name=多重超级缸 V
+gregtech.machine.multi_quantum_tank.iv.name=多重量子缸 I
+gregtech.machine.multi_quantum_tank.luv.name=多重量子缸 II
+gregtech.machine.multi_quantum_tank.zpm.name=多重量子缸 III
+gregtech.machine.multi_quantum_tank.uv.name=多重量子缸 IV
+gregtech.machine.multi_quantum_tank.uhv.name=多重量子缸 V
+
+
 #Quantum Storage Controller
 gregtech.machine.quantum_storage_controller.name=量子存储控制器
 gregtech.machine.quantum_storage_controller.tooltip=量子存储网络的核心/n连接能源仓以为量子存储网络供电
@@ -7871,6 +7885,8 @@ gregtech.machine.gas_hatch.uiv.name=§2UIV§r尾气仓
 gregtech.machine.gas_hatch.uxv.name=§eUXV§r尾气仓
 gregtech.machine.gas_hatch.opv.name=§9OpV§r尾气仓
 gregtech.machine.gas_hatch.max.name=§c§lMAX§r尾气仓
+gregtech.gui.output_item.tooltip.enabled=排出灰烬（是）
+gregtech.gui.output_item.tooltip.disabled=排出灰烬（否）
 
 gregtech.gas.recovery_tooltip=§b收集概率：§f%d%%
 
@@ -8264,6 +8280,14 @@ gregtech.machine.huge_dual_hatch.export.1.iv.name=§1IV§r巨型输出总成(单
 gregtech.machine.huge_dual_hatch.export.4.iv.name=§1IV§r巨型输出总成(4槽)
 gregtech.machine.huge_dual_hatch.export.9.iv.name=§1IV§r巨型输出总成(9槽)
 gregtech.machine.huge_dual_hatch.export.16.iv.name=§1IV§r巨型输出总成(16槽)
+gregtech.machine.dual_hatch.import.tooltip=为多方块结构输入物品与流体
+gregtech.machine.dual_hatch.export.tooltip=为多方块结构输出物品与流体
+gregtech.gui.dual_auto_input.tooltip.enabled=物品/流体自动输入已启用
+gregtech.gui.dual_auto_input.tooltip.disabled=物品/流体自动输入已禁用
+gregtech.gui.dual_auto_output.tooltip.enabled=物品/流体自动输出已启用
+gregtech.gui.dual_auto_output.tooltip.disabled=物品/流体自动输出已禁用
+gregtech.gui.dual_auto_collapse.tooltip.enabled=物品/流体堆叠自动合并已启用
+gregtech.gui.dual_auto_collapse.tooltip.disabled=物品/流体堆叠自动合并已禁用
 
 gregtech.machine.complex_dual_hatch.ulv.name=§8ULV§r回环总成
 gregtech.machine.complex_dual_hatch.lv.name=§7LV§r回环总成
@@ -8280,6 +8304,10 @@ gregtech.machine.complex_dual_hatch.uiv.name=§2UIV§r回环总成
 gregtech.machine.complex_dual_hatch.uxv.name=§eUXV§r回环总成
 gregtech.machine.complex_dual_hatch.opv.name=§9OpV§r回环总成
 gregtech.machine.complex_dual_hatch.max.name=§c§lMAX§r回环总成
+gregtech.machine.complex_dual_hatch.tooltip.1=为多方块结构输入物品与流体的同时输出物品与流体
+gregtech.machine.complex_dual_hatch.tooltip.2=若开启IO功能，则会在奇数时刻执行总成拉，偶数时刻执行总成推操作
+gregtech.gui.complex_dual_auto_io.tooltip.enabled=物品/流体自动输入输出已启用
+gregtech.gui.complex_dual_auto_io.tooltip.disabled=物品/流体自动输入输出已禁用
 
 gregtech.machine.mold_bus.ulv.name=§8ULV§r模具仓
 gregtech.machine.mold_bus.lv.name=§7LV§r模具仓

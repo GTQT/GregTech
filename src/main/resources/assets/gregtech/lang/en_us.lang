@@ -5646,6 +5646,19 @@ gregtech.machine.quantum_tank.zpm.name=Quantum Tank III
 gregtech.machine.quantum_tank.uv.name=Quantum Tank IV
 gregtech.machine.quantum_tank.uhv.name=Quantum Tank V
 
+#Multi Quantum Tanks
+gregtech.machine.multi_super_tank.ulv.name=Multi Base Tank I
+gregtech.machine.multi_super_tank.lv.name=Multi Super Tank I
+gregtech.machine.multi_super_tank.mv.name=Multi Super Tank II
+gregtech.machine.multi_super_tank.hv.name=Multi Super Tank III
+gregtech.machine.multi_super_tank.ev.name=Multi Super Tank IV
+gregtech.machine.multi_super_tank.iv.name=Multi Super Tank V
+gregtech.machine.multi_quantum_tank.iv.name=Multi Quantum Tank I
+gregtech.machine.multi_quantum_tank.luv.name=Multi Quantum Tank II
+gregtech.machine.multi_quantum_tank.zpm.name=Multi Quantum Tank III
+gregtech.machine.multi_quantum_tank.uv.name=Multi Quantum Tank IV
+gregtech.machine.multi_quantum_tank.uhv.name=Multi Quantum Tank V
+
 #Quantum Storage Controller
 gregtech.machine.quantum_storage_controller.name=Quantum Storage Controller
 gregtech.machine.quantum_storage_controller.tooltip=Heart of the Quantum Storage Network/nConnect Energy Hatches to power the Quantum Storage Network
@@ -8272,6 +8285,14 @@ gregtech.machine.huge_dual_hatch.export.1.iv.name=IV Huge Dual Output Hatch (Sin
 gregtech.machine.huge_dual_hatch.export.4.iv.name=IV Huge Dual Output Hatch (4 Slot)
 gregtech.machine.huge_dual_hatch.export.9.iv.name=IV Huge Dual Output Hatch (9 Slot)
 gregtech.machine.huge_dual_hatch.export.16.iv.name=IV Huge Dual Output Hatch (16 Slot)
+gregtech.machine.dual_hatch.import.tooltip=Input items and fluids for a multiblock structure
+gregtech.machine.dual_hatch.export.tooltip=Output items and fluids for multiblock structures
+gregtech.gui.dual_auto_input.tooltip.enabled=Item/Fluid Auto-Input (Enabled)
+gregtech.gui.dual_auto_input.tooltip.disabled=Item/Fluid Auto-Input (Disabled)
+gregtech.gui.dual_auto_output.tooltip.enabled=Item/Fluid Auto-Output (Enabled)
+gregtech.gui.dual_auto_output.tooltip.disabled=Item/Fluid Auto-Output (Disabled)
+gregtech.gui.dual_auto_collapse.tooltip.enabled=Item/Fluid Stack Auto-Collapse (Enabled)
+gregtech.gui.dual_auto_collapse.tooltip.disabled=Item/Fluid Stack Auto-Collapse (Disabled)
 
 gregtech.machine.complex_dual_hatch.ulv.name=ULV Complex Dual Hatch
 gregtech.machine.complex_dual_hatch.lv.name=LV Complex Dual Hatch
@@ -8288,6 +8309,10 @@ gregtech.machine.complex_dual_hatch.uiv.name=UIV Complex Dual Hatch
 gregtech.machine.complex_dual_hatch.uxv.name=UXV Complex Dual Hatch
 gregtech.machine.complex_dual_hatch.opv.name=OpV Complex Dual Hatch
 gregtech.machine.complex_dual_hatch.max.name=MAX Complex Dual Hatch
+gregtech.machine.complex_dual_hatch.tooltip.1=Input items and fluids for multiblock structures and output items and fluids at the same time
+gregtech.machine.complex_dual_hatch.tooltip.2=If the IO function is enabled, the assembly pull will be performed at odd times, and the assembly push operation will be performed at even times
+gregtech.gui.complex_dual_auto_io.tooltip.enabled=Item/fluid Auto-Input/Output (Enabled)
+gregtech.gui.complex_dual_auto_io.tooltip.disabled=Item/fluid Auto-Input/Output (Disabled)
 
 gregtech.machine.mold_bus.ulv.name=ULV Mold Bus
 gregtech.machine.mold_bus.lv.name=LV Mold Bus
