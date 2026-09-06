@@ -130,6 +130,9 @@ public class MaterialFlags {
             .requireProps(PropertyKey.INGOT)
             .build();
 
+    public static final MaterialFlag DISABLE_REPLICATE = new MaterialFlag.Builder("disable_replicate")
+            .build();
+
     // 生成三重 四重 五重
     public static final MaterialFlag GENERATE_EXTRA = new MaterialFlag.Builder("generate_extra")
             .requireProps(PropertyKey.INGOT)

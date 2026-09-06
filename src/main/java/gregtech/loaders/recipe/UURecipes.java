@@ -11,21 +11,20 @@ import gregtech.common.items.MetaItems;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.registry.ForgeRegistries;
 
 import static gregtech.api.GTValues.*;
 import static gregtech.api.recipes.RecipeMaps.REPLICATOR_RECIPES;
 import static gregtech.api.recipes.RecipeMaps.SCANNER_RECIPES;
+import static gregtech.api.unification.material.info.MaterialFlags.DISABLE_REPLICATE;
 import static gregtech.api.unification.ore.OrePrefix.dust;
-import static gregtech.api.util.Mods.Names.GTQT_TEST;
 import static gregtech.common.items.MetaItems.*;
 
 public class UURecipes {
 
     public static void init() {
         initRecycleRecipe();
-        if (!Loader.isModLoaded(GTQT_TEST)) UUUtils();
+        UUUtils();
     }
 
     public static void initRecycleRecipe() {
@@ -38,39 +37,49 @@ public class UURecipes {
                     .buildAndRegister();
         }
 
+        // 回收肥料
         RecipeMaps.COMPRESSOR_RECIPES.recipeBuilder()
                 .input(SCRAP)
                 .output(SCRAP_BOX)
                 .EUt(VA[LV])
-                .duration(100)
+                .duration(5 * SECOND)
                 .buildAndRegister();
 
+        // UU 增幅液
+        RecipeMaps.MASS_FABRICATOR_RECIPES.recipeBuilder()
+                .input(SCRAP)
+                .fluidOutputs(Materials.UUAmplifier.getFluid(1))
+                .EUt(VA[MV])
+                .duration(10 * SECOND)
+                .buildAndRegister();
+
+        // UU 物质
         RecipeMaps.MASS_FABRICATOR_RECIPES.recipeBuilder()
                 .circuitMeta(1)
                 .fluidOutputs(Materials.UUMatter.getFluid(1))
                 .EUt(VA[MV])
-                .duration(3200)
+                .duration(160 * SECOND)
                 .buildAndRegister();
 
         RecipeMaps.MASS_FABRICATOR_RECIPES.recipeBuilder()
-                .input(SCRAP)
+                .fluidInputs(Materials.UUAmplifier.getFluid(1))
                 .fluidOutputs(Materials.UUMatter.getFluid(1))
                 .EUt(VA[MV])
-                .duration(1600)
+                .duration(40 * SECOND)
                 .buildAndRegister();
 
         RecipeMaps.FLUID_SOLIDFICATION_RECIPES.recipeBuilder()
                 .fluidInputs(Materials.UUMatter.getFluid(1000))
                 .output(UU_MATER)
                 .EUt(VA[LV])
-                .duration(200)
+                .duration(10 * SECOND)
                 .buildAndRegister();
 
         RecipeMaps.EXTRACTOR_RECIPES.recipeBuilder()
                 .input(UU_MATER)
                 .fluidOutputs(Materials.UUMatter.getFluid(1000))
                 .EUt(VA[LV])
-                .duration(200)
+                .duration(10 * SECOND)
                 .buildAndRegister();
     }
 
@@ -78,48 +87,51 @@ public class UURecipes {
 
         //扫描和复制配方
         for (Material material : GregTechAPI.materialManager.getRegisteredMaterials()) {
+
+            if (material.hasFlag(DISABLE_REPLICATE) || material.getMaterialComponents().isEmpty() ||
+                    material.getMaterialComponents().size() > 15)
+                continue;
+
             ItemStack itemStack = MetaItems.TOOL_DATA_STICK.getStackForm();
             NBTTagCompound compound = new NBTTagCompound();
             compound.setString("Name", material.getLocalizedName());
             itemStack.setTagCompound(compound);
             int mass = 0;
 
-            if (material.getMaterialComponents().isEmpty() || material.getMaterialComponents().size() > 15)
-                continue;
-
             // compute outputs
             for (MaterialStack component : material.getMaterialComponents()) {
                 mass += (int) (component.amount * component.material.getMass());
             }
 
-            var buid = SCANNER_RECIPES.recipeBuilder()
+            var build = SCANNER_RECIPES.recipeBuilder()
                     .input(MetaItems.TOOL_DATA_STICK)
                     .outputs(itemStack)
                     .duration(100 * mass)
                     .EUt(VA[LV]);
 
-            var copybuild = REPLICATOR_RECIPES.recipeBuilder()
+            var copyBuild = REPLICATOR_RECIPES.recipeBuilder()
                     .notConsumable(itemStack)
                     .fluidInputs(Materials.UUMatter.getFluid(mass))
                     .duration(100 * mass)
-                    .EUt(30);
+                    .EUt(VA[LV]);
 
             if (material.hasProperty(PropertyKey.DUST)) {
-                buid.input(dust, material, 1);
-                copybuild.output(dust, material, 1);
+                build.input(dust, material, 1);
+                copyBuild.output(dust, material, 1);
             } else if (material.hasFluid()) {
-                buid.fluidInputs(material.getFluid(144));
-                copybuild.fluidOutputs(material.getFluid(144));
+                build.fluidInputs(material.getFluid(144));
+                copyBuild.fluidOutputs(material.getFluid(144));
             } else
                 continue;
-            buid.buildAndRegister();
-            copybuild.buildAndRegister();
+            build.buildAndRegister();
+            copyBuild.buildAndRegister();
+
             SCANNER_RECIPES.recipeBuilder()
                     .input(MetaItems.TOOL_DATA_STICK)
                     .notConsumable(itemStack)
                     .outputs(itemStack)
-                    .duration(100)
-                    .EUt(30)
+                    .duration(5 * SECOND)
+                    .EUt(VA[LV])
                     .buildAndRegister();
         }
     }

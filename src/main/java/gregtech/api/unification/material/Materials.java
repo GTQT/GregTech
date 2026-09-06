@@ -737,6 +737,7 @@ public class Materials {
     public static Material NaquadriaWaste;
     public static Material Lapotron;
     public static Material UUMatter;
+    public static Material UUAmplifier;
     public static Material PCBCoolant;
     public static Material BauxiteSlurry;
     public static Material CrackedBauxiteSlurry;

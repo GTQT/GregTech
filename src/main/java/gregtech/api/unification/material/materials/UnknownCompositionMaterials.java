@@ -641,33 +641,36 @@ public class UnknownCompositionMaterials {
                 .color(0x36042C)
                 .build();
 
-        PCBCoolant = Material.builder(1650, gregtechId("pcb_coolant"))
+        UUAmplifier = Material.builder(1650, gregtechId("uu_amplifier"))
+                .fluid().color(0xCC33CC).build();
+
+        PCBCoolant = Material.builder(1651, gregtechId("pcb_coolant"))
                 .fluid().color(0xD5D69C).build();
 
-        BauxiteSlurry = Material.builder(1651, gregtechId("bauxite_slurry"))
+        BauxiteSlurry = Material.builder(1652, gregtechId("bauxite_slurry"))
                 .fluid().color(0x051650).build();
 
-        CrackedBauxiteSlurry = Material.builder(1652, gregtechId("cracked_bauxite_slurry"))
+        CrackedBauxiteSlurry = Material.builder(1653, gregtechId("cracked_bauxite_slurry"))
                 .liquid(new FluidBuilder().temperature(775)).color(0x052C50).build();
 
-        BauxiteSludge = Material.builder(1653, gregtechId("bauxite_sludge"))
+        BauxiteSludge = Material.builder(1654, gregtechId("bauxite_sludge"))
                 .fluid().color(0x563D2D).build();
 
-        DecalcifiedBauxiteSludge = Material.builder(1654, gregtechId("decalcified_bauxite_sludge"))
+        DecalcifiedBauxiteSludge = Material.builder(1655, gregtechId("decalcified_bauxite_sludge"))
                 .fluid().color(0x6F2DA8).build();
 
-        BauxiteSlag = Material.builder(1655, gregtechId("bauxite_slag"))
+        BauxiteSlag = Material.builder(1656, gregtechId("bauxite_slag"))
                 .dust(1)
                 .color(0x0C0550).iconSet(SAND)
                 .build();
 
         //污水
-        Sewage = Material.builder(1656, gregtechId("sewage"))
+        Sewage = Material.builder(1657, gregtechId("sewage"))
                 .fluid()
                 .color(0x7D7D7D)
                 .build();
 
-        MolybdeniteLubricant = Material.builder(1657, gregtechId("molybdenite_lubricant"))
+        MolybdeniteLubricant = Material.builder(1658, gregtechId("molybdenite_lubricant"))
                 .color(0xB7A5F9).liquid(new FluidBuilder().customStill())
                 .build();
 
