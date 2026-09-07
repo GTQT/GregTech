@@ -2,6 +2,7 @@ package gregtech.common.items.behaviors;
 
 import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IElectricItem;
+import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.stats.IEnchantabilityHelper;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -64,15 +65,29 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
     }
 
     /**
-     * Checks if the given item stack has Vajra behavior attached.
-     * Used by the left-click event handler to identify Vajra tools.
+     * Checks if the given item stack is one of the Vajra tools.
+     * Used by the left-click event handler and the client dig-interaction mixin to identify
+     * Vajra tools, whose blocks are broken through {@link #breakBlock} instead of vanilla digging.
      */
     public static boolean isVajra(@NotNull ItemStack stack) {
-        if (stack.isEmpty()) return false;
-        IElectricItem electricItem = stack.getCapability(GregtechCapabilities.CAPABILITY_ELECTRIC_ITEM, null);
-        if (electricItem == null) return false;
-        // Vajra has a unique pattern: it has both electric capability and mode NBT
-        return stack.hasTagCompound() && stack.getTagCompound().hasKey(MODE_TAG);
+        if (stack.isEmpty() || !(stack.getItem() instanceof MetaItem<?> metaItem)) return false;
+        MetaItem<?>.MetaValueItem valueItem = metaItem.getItem(stack);
+        return valueItem != null && valueItem.unlocalizedName.startsWith("vajra");
+    }
+
+    /**
+     * @return whether the stack's mode tag is set to silk touch mode; defaults to normal mode
+     *         when the tag is absent
+     */
+    public static boolean isSilkTouchMode(@NotNull ItemStack stack) {
+        return getMode(stack) == 1;
+    }
+
+    /**
+     * @return the energy cost of a single block break for the stack's current mode
+     */
+    public static long getEnergyCost(@NotNull ItemStack stack) {
+        return isSilkTouchMode(stack) ? SILKTOUCH_ENERGY_COST : NORMAL_ENERGY_COST;
     }
 
     /**
@@ -256,7 +271,7 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
                 enchantment.type.canEnchantItem(Items.IRON_SWORD);
     }
 
-    private int getMode(ItemStack stack) {
+    private static int getMode(ItemStack stack) {
         if (!stack.hasTagCompound()) return 0;
         return stack.getTagCompound().getInteger(MODE_TAG);
     }
@@ -266,10 +281,6 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
             stack.setTagCompound(new NBTTagCompound());
         }
         stack.getTagCompound().setInteger(MODE_TAG, mode);
-    }
-
-    private long getEnergyCostForMode(int mode) {
-        return mode == 0 ? NORMAL_ENERGY_COST : SILKTOUCH_ENERGY_COST;
     }
 
     private String getModeName(int mode) {

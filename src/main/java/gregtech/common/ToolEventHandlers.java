@@ -150,13 +150,14 @@ public class ToolEventHandlers {
     }
 
     /**
-     * Handles Vajra block breaking on left-click.
-     * Intercepts left-click events and delegates to VajraBehavior.breakBlock().
-     * Instant-breaking tiers break on the first click, other tiers accumulate clicks with a
-     * block-break progress indicator until the required mining time is reached.
+     * Handles Vajra block breaking on left-click. Instant-breaking tiers break the block on the
+     * first click; the other tiers start a mining session that is advanced once per server tick
+     * in {@link #onVajraMiningTick} until the required mining time is reached and the block is
+     * destroyed, showing a block-break progress indicator meanwhile. Mirrors the Laser Destroyer
+     * event flow in GregTech Lite Core, where progress is tick-based instead of click-based so
+     * repeated client clicks cannot double-advance or prematurely finish the mining.
      */
     private static final Map<UUID, MiningSession> MINING_SESSIONS = new HashMap<>();
-    private static final long MINING_SESSION_TIMEOUT = 10 * 20; // ticks since last click before resetting
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public static void onLeftClickBlock(@NotNull PlayerInteractEvent.LeftClickBlock event) {
@@ -164,15 +165,14 @@ public class ToolEventHandlers {
         World world = event.getWorld();
         if (world.isRemote) return;
 
-        ItemStack heldItem = player.getHeldItem(event.getHand());
+        ItemStack heldItem = player.getHeldItemMainhand();
         if (!VajraBehavior.isVajra(heldItem)) return;
 
         event.setCanceled(true);
 
         BlockPos pos = event.getPos();
-        int mode = heldItem.getTagCompound().getInteger("VajraMode");
-        boolean silkTouch = mode == 1;
-        long energyCost = silkTouch ? 32L : 8L; // VA[LV]=32, VA[ULV]=8
+        boolean silkTouch = VajraBehavior.isSilkTouchMode(heldItem);
+        long energyCost = VajraBehavior.getEnergyCost(heldItem);
 
         int neededTicks = VajraBehavior.getMiningTicks(heldItem);
         if (neededTicks <= 0) {
@@ -183,52 +183,54 @@ public class ToolEventHandlers {
             return;
         }
 
-        long now = world.getTotalWorldTime();
+        // Start (or keep) a mining session for the clicked block. Subsequent clicks on the same
+        // block leave the running session untouched, so only the tick handler advances progress.
         MiningSession session = MINING_SESSIONS.get(player.getUniqueID());
         if (session == null || !session.pos.equals(pos) ||
                 session.dimension != world.provider.getDimension()) {
             if (session != null) world.sendBlockBreakProgress(player.getEntityId(), session.pos, -1);
             session = new MiningSession(pos, world.provider.getDimension());
             session.neededTicks = neededTicks;
-            session.progress = 1;
-            session.lastEventTick = now;
             MINING_SESSIONS.put(player.getUniqueID(), session);
-        } else {
-            session.progress++;
-            session.lastEventTick = now;
-        }
-
-        if (session.progress >= session.neededTicks) {
-            MINING_SESSIONS.remove(player.getUniqueID());
-            world.sendBlockBreakProgress(player.getEntityId(), pos, -1);
-            VajraBehavior.breakBlock(heldItem, player, world, pos, silkTouch, energyCost);
-        } else {
-            int stage = Math.max(1, Math.min(9, session.progress * 9 / session.neededTicks));
-            if (stage != session.lastStage) {
-                world.sendBlockBreakProgress(player.getEntityId(), pos, stage);
-                session.lastStage = stage;
-            }
         }
     }
 
     /**
-     * Resets a Vajra mining session when the player releases the button, switches the held
-     * item, changes dimensions, or the target block is gone.
+     * Advances Vajra mining sessions once per server tick until the session's mining time elapses
+     * and the block is destroyed. A session is discarded when the player changes dimensions, the
+     * target block disappears, or the Vajra is no longer held in the main hand.
      */
     @SubscribeEvent
-    public static void onPlayerTick(@NotNull TickEvent.PlayerTickEvent event) {
+    public static void onVajraMiningTick(@NotNull TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.START || event.side.isClient()) return;
         if (!(event.player instanceof EntityPlayerMP player)) return;
 
         MiningSession session = MINING_SESSIONS.get(player.getUniqueID());
         if (session == null) return;
 
-        if (player.world.provider.getDimension() != session.dimension ||
-                player.world.getBlockState(session.pos).getBlock() == Blocks.AIR ||
-                player.world.getTotalWorldTime() - session.lastEventTick > MINING_SESSION_TIMEOUT ||
-                !VajraBehavior.isVajra(player.getHeldItemMainhand())) {
+        World world = player.world;
+        ItemStack heldItem = player.getHeldItemMainhand();
+        if (world.provider.getDimension() != session.dimension ||
+                world.getBlockState(session.pos).getBlock() == Blocks.AIR ||
+                !VajraBehavior.isVajra(heldItem)) {
             MINING_SESSIONS.remove(player.getUniqueID());
-            player.world.sendBlockBreakProgress(player.getEntityId(), session.pos, -1);
+            world.sendBlockBreakProgress(player.getEntityId(), session.pos, -1);
+            return;
+        }
+
+        session.progress++;
+        if (session.progress >= session.neededTicks) {
+            MINING_SESSIONS.remove(player.getUniqueID());
+            world.sendBlockBreakProgress(player.getEntityId(), session.pos, -1);
+            boolean silkTouch = VajraBehavior.isSilkTouchMode(heldItem);
+            VajraBehavior.breakBlock(heldItem, player, world, session.pos, silkTouch,
+                    VajraBehavior.getEnergyCost(heldItem));
+        } else {
+            int stage = Math.max(1, Math.min(9, session.progress * 9 / session.neededTicks));
+            if (stage != session.lastStage) {
+                world.sendBlockBreakProgress(player.getEntityId(), session.pos, stage);
+                session.lastStage = stage;
+            }
         }
     }
 
@@ -238,7 +240,6 @@ public class ToolEventHandlers {
         int progress;
         int neededTicks;
         int lastStage = -1;
-        long lastEventTick;
 
         MiningSession(BlockPos pos, int dimension) {
             this.pos = pos;

@@ -83,8 +83,10 @@ import gregtech.common.items.behaviors.spray.CreativeSprayBehavior;
 import gregtech.common.items.behaviors.spray.DurabilitySprayBehavior;
 import gregtech.core.sound.GTSoundEvents;
 
+import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.creativetab.CreativeTabs;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Items;
 import net.minecraft.init.MobEffects;
 import net.minecraft.item.EnumDyeColor;
@@ -94,6 +96,7 @@ import net.minecraft.util.NonNullList;
 import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import static gregtech.api.GTValues.M;
 import static gregtech.api.GTValues.MAX;
@@ -102,6 +105,24 @@ import static gregtech.api.util.DyeUtil.getOredictColorName;
 import static gregtech.common.items.MetaItems.*;
 
 public final class GregTechMetaItem extends StandardMetaItem {
+
+    /**
+     * The Vajra destroys blocks exclusively through {@link VajraBehavior#breakBlock}, never through
+     * vanilla digging. Following the Laser Destroyer fix in GregTech Lite Core, it therefore reports
+     * a full harvest level and a zero destroy speed: it can "harvest" every block, but vanilla dig
+     * progress never advances, preventing phantom block interactions from the client controller.
+     */
+    @Override
+    public int getHarvestLevel(@NotNull ItemStack stack, @NotNull String toolClass,
+                               @Nullable EntityPlayer player, @Nullable IBlockState blockState) {
+        return VajraBehavior.isVajra(stack) ? Integer.MAX_VALUE
+                : super.getHarvestLevel(stack, toolClass, player, blockState);
+    }
+
+    @Override
+    public float getDestroySpeed(@NotNull ItemStack stack, @NotNull IBlockState state) {
+        return VajraBehavior.isVajra(stack) ? 0.0F : super.getDestroySpeed(stack, state);
+    }
 
     @Override
     public void getSubItems(@NotNull CreativeTabs tab, @NotNull NonNullList<ItemStack> subItems) {

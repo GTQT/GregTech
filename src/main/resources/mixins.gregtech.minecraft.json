@@ -23,6 +23,7 @@
     "EntityRendererMixin",
     "LayerArmorBaseMixin",
     "LayerCustomHeadMixin",
+    "PlayerControllerMPMixin",
     "RegionRenderCacheBuilderMixin",
     "RenderChunkMixin",
     "RenderGlobalMixin",
