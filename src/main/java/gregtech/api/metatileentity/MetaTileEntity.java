@@ -124,6 +124,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
     public static final String TAG_KEY_PAINTING_COLOR = "PaintingColor";
     public static final String TAG_KEY_MUFFLED = "Muffled";
+    public static final String TAG_KEY_WATERPROOF = "Waterproof";
     public static final int TOOLTIP_DELAY = 0;
     public final ResourceLocation metaTileEntityId;
     private final MTERegistry registry;
@@ -154,6 +155,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     protected ItemStack renderContextStack;
     IGregTechTileEntity holder;
     private int paintingColor = -1;
+    private boolean waterproof = false;
     private int cachedLightValue;
     private boolean wasExploded = false;
     private int playSoundCooldown = 0;
@@ -599,51 +601,30 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         EnumFacing gridSideHit = CoverRayTracer.determineGridSideHit(hitResult);
         Cover cover = gridSideHit == null ? null : getCoverAtSide(gridSideHit);
 
-        boolean actionPerformed = false;
-
-        // 为每个工具类别都检查一遍，不再提前返回
-        // 这样可以确保一个工具包含的多个ToolClasses都能执行
+        // Prioritize covers where they apply (Screwdriver, Soft Mallet)
         if (toolClasses.contains(ToolClasses.SCREWDRIVER)) {
             if (cover != null && cover.onScrewdriverClick(playerIn, hand, hitResult) == EnumActionResult.SUCCESS) {
-                actionPerformed = true;
-            } else if (onScrewdriverClick(playerIn, hand, gridSideHit, hitResult)) {
-                actionPerformed = true;
-            }
+                return true;
+            } else return onScrewdriverClick(playerIn, hand, gridSideHit, hitResult);
         }
-
         if (toolClasses.contains(ToolClasses.SOFT_MALLET)) {
             if (cover != null && cover.onSoftMalletClick(playerIn, hand, hitResult) == EnumActionResult.SUCCESS) {
-                actionPerformed = true;
-            } else if (onSoftMalletClick(playerIn, hand, gridSideHit, hitResult)) {
-                actionPerformed = true;
-            }
+                return true;
+            } else return onSoftMalletClick(playerIn, hand, gridSideHit, hitResult);
         }
-
         if (toolClasses.contains(ToolClasses.WRENCH)) {
-            if (onWrenchClick(playerIn, hand, gridSideHit, hitResult)) {
-                actionPerformed = true;
-            }
+            return onWrenchClick(playerIn, hand, gridSideHit, hitResult);
         }
-
         if (toolClasses.contains(ToolClasses.CROWBAR)) {
-            if (onCrowbarClick(playerIn, hand, gridSideHit, hitResult)) {
-                actionPerformed = true;
-            }
+            return onCrowbarClick(playerIn, hand, gridSideHit, hitResult);
         }
-
         if (toolClasses.contains(ToolClasses.HARD_HAMMER)) {
-            if (onHardHammerClick(playerIn, hand, gridSideHit, hitResult)) {
-                actionPerformed = true;
-            }
+            return onHardHammerClick(playerIn, hand, gridSideHit, hitResult);
         }
-
         if (toolClasses.contains(ToolClasses.WIRE_CUTTER)) {
-            if (onWireCutterClick(playerIn, hand, gridSideHit, hitResult)) {
-                actionPerformed = true;
-            }
+            return onWireCutterClick(playerIn, hand, gridSideHit, hitResult);
         }
-
-        return actionPerformed;
+        return false;
     }
 
     /**
@@ -1509,6 +1490,9 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
             data.setInteger(TAG_KEY_PAINTING_COLOR, paintingColor);
         }
         data.setInteger("CachedLightValue", cachedLightValue);
+        if (waterproof) {
+            data.setBoolean(TAG_KEY_WATERPROOF, true);
+        }
 
         if (shouldSerializeInventories()) {
             GTUtility.writeItems(importItems, "ImportInventory", data);
@@ -1538,6 +1522,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
             this.paintingColor = data.getInteger(TAG_KEY_PAINTING_COLOR);
         }
         this.cachedLightValue = data.getInteger("CachedLightValue");
+        this.waterproof = data.getBoolean(TAG_KEY_WATERPROOF);
 
         if (shouldSerializeInventories()) {
             GTUtility.readItems(importItems, "ImportInventory", data);
@@ -1888,7 +1873,20 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
      * @return true if tile entity should not explode in these sources
      */
     public boolean getIsWeatherOrTerrainResistant() {
-        return false;
+        return waterproof;
+    }
+
+    /**
+     * @return whether this machine has been made waterproof with a waterproof spray can
+     * @see gregtech.common.items.behaviors.WaterproofSprayBehavior
+     */
+    public boolean isWaterproof() {
+        return waterproof;
+    }
+
+    /** Makes this machine immune to the weather and terrain explosions. The state is persisted with the machine. */
+    public void setWaterproof(boolean waterproof) {
+        this.waterproof = waterproof;
     }
 
     public boolean doTickProfileMessage() {

@@ -674,6 +674,12 @@ public class UnknownCompositionMaterials {
                 .color(0xB7A5F9).liquid(new FluidBuilder().customStill())
                 .build();
 
+        // 防水喷漆 1659
+        WaterproofPaint = Material.builder(1659, gregtechId("waterproof_paint"))
+                .fluid()
+                .color(0x2E6FA3)
+                .build();
+
         // --- Disposable Battery Block intermediates (A-series), IDs 1700+ ---
 
         // A0 electrode dry blend: Zinc powder + MnO₂ (Pyrolusite) powder, grey-black colour

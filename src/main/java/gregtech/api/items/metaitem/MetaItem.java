@@ -75,6 +75,10 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemHandlerHelper;
 import net.minecraftforge.oredict.OreDictionary;
 
+import com.cleanroommc.modularui.factory.HandGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.enderio.core.common.interfaces.IOverlayRenderAware;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.ImmutableList;
@@ -100,6 +104,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+
 /**
  * MetaItem is item that can have up to Short.MAX_VALUE items inside one id. These items even can be edible, have custom
  * behaviours, be electric or act like fluid containers! They can also have different burn time, plus be handheld,
@@ -770,6 +775,20 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
         T metaValueItem = getItem(itemStack);
         ItemUIFactory uiFactory = metaValueItem == null ? null : metaValueItem.getUIManager();
         return uiFactory == null ? null : uiFactory.createUI(holder, entityPlayer);
+    }
+
+    /**
+     * The ModularUI 2 counterpart of {@link #createUI(PlayerInventoryHolder, EntityPlayer)}, so that sub items can
+     * provide their UI with MUI2. Such an UI is opened with
+     * {@code ItemGuiFactory.INSTANCE.open(EntityPlayerMP, EnumHand)}.
+     */
+    @Nullable
+    @Override
+    public ModularPanel buildUI(@NotNull HandGuiData guiData, @NotNull PanelSyncManager guiSyncManager,
+                                @NotNull UISettings settings) {
+        T metaValueItem = getItem(guiData.getUsedItemStack());
+        ItemUIFactory uiFactory = metaValueItem == null ? null : metaValueItem.getUIManager();
+        return uiFactory == null ? null : uiFactory.buildUI(guiData, guiSyncManager, settings);
     }
 
     // IOverlayRenderAware

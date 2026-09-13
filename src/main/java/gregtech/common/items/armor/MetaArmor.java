@@ -1,5 +1,6 @@
 package gregtech.common.items.armor;
 
+import gregtech.api.GTValues;
 import gregtech.api.items.armor.ArmorMetaItem;
 import gregtech.common.ConfigHolder;
 import gregtech.common.items.MetaItems;
@@ -33,6 +34,11 @@ public class MetaArmor extends ArmorMetaItem<ArmorMetaItem<?>.ArmorMetaValueItem
                 .setArmorLogic(new HazmatSuit(EntityEquipmentSlot.LEGS, 225));
         MetaItems.HAZMAT_BOOTS = addItem(8, "hazmat.boots")
                 .setArmorLogic(new HazmatSuit(EntityEquipmentSlot.FEET, 195));
+
+        MetaItems.PISTON_BOOTS = addItem(9, "piston_boots")
+                .setArmorLogic(new PistonBoots(EntityEquipmentSlot.FEET, 100, 100_000L, GTValues.LV));
+
+        MetaItems.COAL_JETPACK = addItem(10, "coal_jetpack").setArmorLogic(new CoalJetpack());
 
         int energyPerUse = 512;
         int tier = ConfigHolder.tools.voltageTierNanoSuit;

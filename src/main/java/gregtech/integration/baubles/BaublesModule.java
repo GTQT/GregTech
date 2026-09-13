@@ -42,6 +42,7 @@ public class BaublesModule extends IntegrationSubmodule {
         MetaItems.ITEM_MAGNET_HV.addComponents(new BaubleBehavior(BaubleType.TRINKET));
 
         MetaItems.BATTERY_ULV_TANTALUM.addComponents(new BaubleBehavior(BaubleType.TRINKET));
+        MetaItems.BATTERY_CASE.addComponents(new BaubleBehavior(BaubleType.TRINKET));
         MetaItems.BATTERY_LV_CADMIUM.addComponents(new BaubleBehavior(BaubleType.TRINKET));
         MetaItems.BATTERY_LV_LITHIUM.addComponents(new BaubleBehavior(BaubleType.TRINKET));
         MetaItems.BATTERY_LV_SODIUM.addComponents(new BaubleBehavior(BaubleType.TRINKET));

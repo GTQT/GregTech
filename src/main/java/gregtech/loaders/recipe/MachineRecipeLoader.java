@@ -486,6 +486,32 @@ public class MachineRecipeLoader {
                 .EUt(VA[ULV]).duration(200)
                 .buildAndRegister();
 
+        CANNER_RECIPES.recipeBuilder()
+                .input(SPRAY_EMPTY)
+                .fluidInputs(WaterproofPaint.getFluid(L * 4))
+                .output(WATERPROOF_SPRAY_CAN)
+                .EUt(VA[ULV]).duration(32)
+                .buildAndRegister();
+
+        MIXER_RECIPES.recipeBuilder()
+                .fluidInputs(PolyvinylAcetate.getFluid(1000))
+                .fluidInputs(SiliconeRubber.getFluid(250))
+                .input(dust, Polydimethylsiloxane)
+                .fluidOutputs(WaterproofPaint.getFluid(1152))
+                .EUt(30).duration(160)
+                .buildAndRegister();
+
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .input(plate, Steel, 4)
+                .input(foil, Polyethylene, 4)
+                .input(wireGtSingle, Copper, 4)
+                .input(springSmall, Copper, 4)
+                .input(foil, Copper, 4)
+                .fluidInputs(SolderingAlloy.getFluid(L / 4))
+                .output(BATTERY_CASE)
+                .EUt(30).duration(200)
+                .buildAndRegister();
+
         Material material = Materials.Iron;
 
         RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder()

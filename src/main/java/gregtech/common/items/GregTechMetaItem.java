@@ -37,6 +37,7 @@ import gregtech.common.covers.filter.SimpleItemFilter;
 import gregtech.common.covers.filter.SmartItemFilter;
 import gregtech.common.creativetab.GTCreativeTabs;
 import gregtech.common.entities.GTBoatEntity.GTBoatType;
+import gregtech.common.items.battery.BatteryCaseBehavior;
 import gregtech.common.items.behaviors.ClipboardBehavior;
 import gregtech.common.items.behaviors.DataItemBehavior;
 import gregtech.common.items.behaviors.DoorBehavior;
@@ -62,6 +63,7 @@ import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
 import gregtech.common.items.behaviors.TurbineRotorBehavior;
 import gregtech.common.items.behaviors.VajraBehavior;
+import gregtech.common.items.behaviors.WaterproofSprayBehavior;
 import gregtech.common.items.behaviors.filter.OreDictFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFilterUIManager;
 import gregtech.common.items.behaviors.filter.SimpleFluidFilterUIManager;
@@ -1566,6 +1568,9 @@ public final class GregTechMetaItem extends StandardMetaItem {
         SCRAP_BOX = addItem(851, "scrap_box").addComponents(new ScrapBoxBehavior());
         UU_MATER = addItem(852, "uu_matter");
 
+        // Forge of the Gods - Stellar Fuel catalyst for battery startup
+        STELLAR_FUEL = addItem(999, "stellar_fuel").setRarity(EnumRarity.EPIC);
+
         // Misc 1000+
         NAN_CERTIFICATE = addItem(1000, "nan.certificate").setRarity(EnumRarity.EPIC);
         FERTILIZER = addItem(1001, "fertilizer").addComponents(new FertilizerBehavior());
@@ -1595,8 +1600,15 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        // Forge of the Gods - Stellar Fuel catalyst for battery startup
-        STELLAR_FUEL = addItem(1009, "stellar_fuel").setRarity(EnumRarity.EPIC);
+        BATTERY_CASE = addItem(1008, "tool.battery_case")
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
+                .addComponents(new BatteryCaseBehavior());
+
+        WATERPROOF_SPRAY_CAN = addItem(1009, "tool.waterproof_spray_can")
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
+                .addComponents(new WaterproofSprayBehavior());
 
         registerWirelessCoverInput(1100);
         registerWirelessCoverOutput(1115);

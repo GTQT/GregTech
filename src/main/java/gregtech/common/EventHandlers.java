@@ -11,15 +11,16 @@ import gregtech.api.unification.material.Materials;
 import gregtech.api.util.BlockUtility;
 import gregtech.api.util.CapesRegistry;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.Mods;
 import gregtech.api.util.virtualregistry.VirtualContainerRegistry;
 import gregtech.api.util.virtualregistry.VirtualEnderRegistry;
 import gregtech.api.worldgen.bedrockFluids.BedrockFluidVeinSaveData;
 import gregtech.common.entities.EntityGTExplosive;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.armor.IStepAssist;
+import gregtech.common.items.armor.PistonBoots;
 import gregtech.common.items.armor.PowerlessJetpack;
 import gregtech.common.items.behaviors.ToggleEnergyConsumerBehavior;
+import gregtech.common.items.behaviors.WaterproofSprayBehavior;
 import gregtech.common.metatileentities.multi.electric.centralmonitor.MetaTileEntityCentralMonitor;
 
 import net.minecraft.block.state.IBlockState;
@@ -41,6 +42,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.EnumDifficulty;
 import net.minecraftforge.client.event.FOVUpdateEvent;
@@ -52,6 +54,7 @@ import net.minecraftforge.event.entity.living.LivingSpawnEvent;
 import net.minecraftforge.event.entity.player.AdvancementEvent;
 import net.minecraftforge.event.entity.player.PlayerInteractEvent;
 import net.minecraftforge.event.furnace.FurnaceFuelBurnTimeEvent;
+import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.event.world.ExplosionEvent;
 import net.minecraftforge.event.world.WorldEvent;
 import net.minecraftforge.fluids.FluidUtil;
@@ -64,7 +67,6 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.ItemHandlerHelper;
-
 
 @Mod.EventBusSubscriber(modid = GTValues.MODID)
 public class EventHandlers {
@@ -115,6 +117,26 @@ public class EventHandlers {
                 event.setCanceled(true);
             }
         }
+    }
+
+    /** Holding a waterproof spray can in the offhand waterproofs the machine which is placed with the main hand. */
+    @SubscribeEvent
+    public static void onWaterproofSprayPlace(BlockEvent.EntityPlaceEvent event) {
+        if (event.getWorld().isRemote || !(event.getEntity() instanceof EntityPlayer player)) {
+            return;
+        }
+
+        ItemStack offhand = player.getHeldItemOffhand();
+        WaterproofSprayBehavior behavior = WaterproofSprayBehavior.getBehavior(offhand);
+        if (behavior == null) {
+            return;
+        }
+        if (!WaterproofSprayBehavior.applyWaterproofAt(event.getWorld(), event.getPos())) {
+            return;
+        }
+
+        behavior.consume(player, EnumHand.OFF_HAND, offhand);
+        WaterproofSprayBehavior.playSpraySound(player, event.getWorld());
     }
 
     @SubscribeEvent
@@ -172,6 +194,11 @@ public class EventHandlers {
             if (!armor.isEmpty() && armor.getItem() instanceof ArmorMetaItem<?>) {
                 ArmorMetaItem<?>.ArmorMetaValueItem valueItem = ((ArmorMetaItem<?>) armor.getItem()).getItem(armor);
                 if (valueItem != null) {
+                    // Piston Boots cushion the fall with their pistons instead of negating it entirely.
+                    if (valueItem.getArmorLogic() instanceof PistonBoots pistonBoots) {
+                        pistonBoots.onLivingFall(player, armor, event);
+                        return;
+                    }
                     valueItem.getArmorLogic().damageArmor(player, armor, DamageSource.FALL,
                             (int) (player.fallDistance - 1.2f), EntityEquipmentSlot.FEET);
                     player.fallDistance = 0;

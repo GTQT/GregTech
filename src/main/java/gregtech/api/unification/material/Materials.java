@@ -746,6 +746,7 @@ public class Materials {
     public static Material BauxiteSlag;
     public static Material Sewage;
     public static Material MolybdeniteLubricant;
+    public static Material WaterproofPaint;
 
     /**
      * Second Degree Compounds

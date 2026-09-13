@@ -24,6 +24,7 @@ import gregtech.common.items.tool.GrassPathBehavior;
 import gregtech.common.items.tool.HarvestCropsBehavior;
 import gregtech.common.items.tool.HarvestIceBehavior;
 import gregtech.common.items.tool.HoeGroundBehavior;
+import gregtech.common.items.tool.ItemMultiTool;
 import gregtech.common.items.tool.OpenGUIBehavior;
 import gregtech.common.items.tool.PlungerBehavior;
 import gregtech.common.items.tool.RotateRailBehavior;
@@ -53,6 +54,10 @@ import java.util.List;
 public final class ToolItems {
 
     private static final List<IGTTool> TOOLS = new ArrayList<>();
+
+    // All multitool modes share the same durability, so switching modes keeps the remaining durability meaningful.
+    private static final float MULTI_TOOL_DURABILITY = 16.0F;
+
     public static IGTTool SWORD;
     public static IGTTool PICKAXE;
     public static IGTTool SHOVEL;
@@ -131,8 +136,12 @@ public final class ToolItems {
     public static IGTTool BENDING_CYLINDER;
     public static IGTTool BENDING_CYLINDER_SMALL;
 
-    //万能工具
-    public static IGTTool UNIVERSAL_TOOL;
+    public static IGTTool MULTITOOL_CLOSED;
+    public static IGTTool MULTITOOL_CUTTER;
+    public static IGTTool MULTITOOL_FILE;
+    public static IGTTool MULTITOOL_KNIFE;
+    public static IGTTool MULTITOOL_SCREWDRIVER;
+    public static IGTTool MULTITOOL_SAW;
 
     public static ItemGTToolbelt TOOLBELT;
 
@@ -775,14 +784,57 @@ public final class ToolItems {
                 .symbol('e')
                 .toolClasses(ToolClasses.BENDING_CYLINDER));
 
-        UNIVERSAL_TOOL = register(ItemGTTool.Builder.of(GTValues.MODID, "universal_tool")
-                .toolStats(b -> b.blockBreaking().crafting().sneakBypassUse()
-                        .attackDamage(4.0F).attackSpeed(-2.0F)
-                )
-                .sound(GTSoundEvents.WRENCH_TOOL, true)
-                .oreDict(ToolOreDict.toolWrench)
-                .secondaryOreDicts("craftingToolWireCutter","craftingToolWrench","craftingToolSaw","craftingToolScrewdriver","craftingToolFile","craftingToolKnife")
-                .toolClasses(ToolClasses.WRENCH,ToolClasses.WIRE_CUTTER,ToolClasses.SAW,ToolClasses.SCREWDRIVER,ToolClasses.FILE,ToolClasses.KNIFE));
+        // Pocket Multitool, a folding tool which can be switched between the modes below by sneak-right-clicking.
+        MULTITOOL_CLOSED = ItemMultiTool.register(ItemMultiTool.Builder.of(GTValues.MODID, "multitool_closed")
+                .toolStats(b -> b.damagePerAction(0)
+                        .durabilityMultiplier(MULTI_TOOL_DURABILITY)));
+
+        MULTITOOL_CUTTER = ItemMultiTool.register(ItemMultiTool.Builder.of(GTValues.MODID, "multitool_cutter")
+                .toolStats(b -> b.crafting().sneakBypassUse()
+                        .attackDamage(-1.0F).attackSpeed(-2.4F)
+                        .durabilityMultiplier(MULTI_TOOL_DURABILITY))
+                .oreDict(ToolOreDict.toolWireCutter)
+                .secondaryOreDicts("craftingToolWireCutter")
+                .toolClasses(ToolClasses.WIRE_CUTTER)
+                .sound(GTSoundEvents.WIRECUTTER_TOOL, true));
+
+        MULTITOOL_FILE = ItemMultiTool.register(ItemMultiTool.Builder.of(GTValues.MODID, "multitool_file")
+                .toolStats(b -> b.crafting().cannotAttack()
+                        .attackSpeed(-2.4F)
+                        .durabilityMultiplier(MULTI_TOOL_DURABILITY))
+                .oreDict(ToolOreDict.toolFile)
+                .secondaryOreDicts("craftingToolFile")
+                .toolClasses(ToolClasses.FILE)
+                .sound(GTSoundEvents.FILE_TOOL));
+
+        MULTITOOL_KNIFE = ItemMultiTool.register(ItemMultiTool.Builder.of(GTValues.MODID, "multitool_knife")
+                .toolStats(b -> b.crafting().attacking()
+                        .attackSpeed(3.0F)
+                        .durabilityMultiplier(MULTI_TOOL_DURABILITY))
+                .oreDict(ToolOreDict.toolKnife)
+                .secondaryOreDicts("craftingToolKnife")
+                .toolClasses(ToolClasses.KNIFE, ToolClasses.SWORD));
+
+        MULTITOOL_SCREWDRIVER = ItemMultiTool.register(ItemMultiTool.Builder.of(GTValues.MODID, "multitool_screwdriver")
+                .toolStats(b -> b.crafting().sneakBypassUse()
+                        .damagePerCraftingAction(4)
+                        .attackDamage(-1.0F).attackSpeed(3.0F)
+                        .durabilityMultiplier(MULTI_TOOL_DURABILITY)
+                        .behaviors(new EntityDamageBehavior(3.0F, EntitySpider.class)))
+                .oreDict(ToolOreDict.toolScrewdriver)
+                .secondaryOreDicts("craftingToolScrewdriver")
+                .toolClasses(ToolClasses.SCREWDRIVER)
+                .sound(GTSoundEvents.SCREWDRIVER_TOOL));
+
+        MULTITOOL_SAW = ItemMultiTool.register(ItemMultiTool.Builder.of(GTValues.MODID, "multitool_saw")
+                .toolStats(b -> b.crafting().damagePerCraftingAction(2)
+                        .attackDamage(-1.0F).attackSpeed(-2.6F)
+                        .durabilityMultiplier(MULTI_TOOL_DURABILITY)
+                        .behaviors(HarvestIceBehavior.INSTANCE))
+                .oreDict(ToolOreDict.toolSaw)
+                .secondaryOreDicts("craftingToolSaw")
+                .toolClasses(ToolClasses.SAW)
+                .sound(GTSoundEvents.SAW_TOOL));
     }
 
     public static IGTTool register(@NotNull ToolBuilder<?> builder) {

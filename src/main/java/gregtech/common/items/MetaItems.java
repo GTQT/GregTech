@@ -631,6 +631,9 @@ public final class MetaItems {
     public static ArmorMetaItem<?>.ArmorMetaValueItem HAZMAT_BOOTS;
     public static ArmorMetaItem<?>.ArmorMetaValueItem HAZMAT_HELMET;
 
+    public static ArmorMetaItem<?>.ArmorMetaValueItem PISTON_BOOTS;
+    public static ArmorMetaItem<?>.ArmorMetaValueItem COAL_JETPACK;
+
     public static ArmorMetaItem<?>.ArmorMetaValueItem NANO_CHESTPLATE;
     public static ArmorMetaItem<?>.ArmorMetaValueItem NANO_LEGGINGS;
     public static ArmorMetaItem<?>.ArmorMetaValueItem NANO_BOOTS;
@@ -683,6 +686,9 @@ public final class MetaItems {
     /** Canonical unified preview/build, removal and movement tool (metadata 1006). */
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_TOOL;
     public static MetaItem<?>.MetaValueItem OFFHAND_PLACER;
+
+    public static MetaItem<?>.MetaValueItem BATTERY_CASE;
+    public static MetaItem<?>.MetaValueItem WATERPROOF_SPRAY_CAN;
 
     // Forge of the Gods
     public static MetaItem<?>.MetaValueItem STELLAR_FUEL;

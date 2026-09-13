@@ -47,6 +47,7 @@ import gregtech.integration.theoneprobe.provider.RecipeOutputInfoProvider;
 import gregtech.integration.theoneprobe.provider.RubberLogInfoProvider;
 import gregtech.integration.theoneprobe.provider.SteamBoilerInfoProvider;
 import gregtech.integration.theoneprobe.provider.TransformerInfoProvider;
+import gregtech.integration.theoneprobe.provider.WaterproofInfoProvider;
 import gregtech.integration.theoneprobe.provider.WorkableInfoProvider;
 import gregtech.integration.theoneprobe.provider.debug.DebugPipeNetInfoProvider;
 import gregtech.integration.theoneprobe.provider.debug.DebugTickTimeProvider;
@@ -89,6 +90,7 @@ public class TheOneProbeModule extends IntegrationSubmodule {
         oneProbe.registerProvider(new EnergyDistributorInfoProvider());
         oneProbe.registerProvider(new MultiblockInfoProvider());
         oneProbe.registerProvider(new MaintenanceInfoProvider());
+        oneProbe.registerProvider(new WaterproofInfoProvider());
         oneProbe.registerProvider(new MultiRecipeMapInfoProvider());
         oneProbe.registerProvider(new ConverterInfoProvider());
         oneProbe.registerProvider(new RecipeLogicInfoProvider());

@@ -241,6 +241,16 @@ public class ToolRecipeHandler {
             addToolRecipe(material, ToolItems.BENDING_CYLINDER_SMALL, false,
                     "sfh", "III",
                     'I', ingot);
+
+            // Pocket Multitool
+            if (material.hasFlags(GENERATE_LONG_ROD, GENERATE_RING, GENERATE_BOLT_SCREW)) {
+                addToolRecipe(material, ToolItems.MULTITOOL_CLOSED, true,
+                        "wPR", "PPS", "RSB",
+                        'B', new UnificationEntry(OrePrefix.screw, material),
+                        'S', new UnificationEntry(OrePrefix.stickLong, material),
+                        'P', plate,
+                        'R', new UnificationEntry(OrePrefix.ring, material));
+            }
         }
         if (material.hasFlag(GENERATE_ROD)) {
             UnificationEntry rod = new UnificationEntry(OrePrefix.stick, material);
@@ -249,14 +259,6 @@ public class ToolRecipeHandler {
                         "PPf", "PP ", "Sh ",
                         'P', plate,
                         'S', rod);
-
-                // Universal Tool
-                addToolRecipe(material, ToolItems.UNIVERSAL_TOOL, true,
-                        "hPI", "fPS", "IPS",
-                        'I', ingot,
-                        'P', plate,
-                        'S', rod
-                );
 
                 if (material.hasFlag(GENERATE_BOLT_SCREW)) {
                     addToolRecipe(material, ToolItems.WIRE_CUTTER, false,

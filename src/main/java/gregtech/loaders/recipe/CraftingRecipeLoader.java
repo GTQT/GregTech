@@ -15,6 +15,7 @@ import gregtech.common.blocks.BlockGlassCasing;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.crafting.FacadeRecipe;
 import gregtech.common.items.MetaItems;
+import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.loaders.recipe.handlers.ToolRecipeHandler;
 
 import net.minecraft.init.Blocks;
@@ -379,13 +380,18 @@ public class CraftingRecipeLoader {
                 CREDIT_NAQUADAH.getStackForm(), CREDIT_NAQUADAH.getStackForm(), CREDIT_NAQUADAH.getStackForm(),
                 CREDIT_NAQUADAH.getStackForm(), CREDIT_NAQUADAH.getStackForm(), CREDIT_NAQUADAH.getStackForm(),
                 CREDIT_NAQUADAH.getStackForm(), CREDIT_NAQUADAH.getStackForm());
+
         ///////////////////////////////////////////////////
         // Armors //
         ///////////////////////////////////////////////////
+
+        // Nightvision Goggles
         ModHandler.addShapedRecipe("nightvision_goggles", MetaItems.NIGHTVISION_GOGGLES.getStackForm(), "CSC", "RBR",
                 "LdL", 'C', new UnificationEntry(OrePrefix.circuit, Tier.ULV), 'S',
                 new UnificationEntry(OrePrefix.screw, Steel), 'R', new UnificationEntry(OrePrefix.ring, Rubber), 'B',
                 MetaItems.BATTERY_LV_SODIUM, 'L', new UnificationEntry(OrePrefix.lens, Glass));
+
+        // Jetpacks
         ModHandler.addShapedRecipe("fluid_jetpack", MetaItems.SEMIFLUID_JETPACK.getStackForm(), "xCw", "SUS", "RIR",
                 'C', new UnificationEntry(OrePrefix.circuit, Tier.LV), 'S',
                 MetaItems.FLUID_CELL_LARGE_STEEL.getStackForm(), 'U', MetaItems.ELECTRIC_PUMP_LV.getStackForm(), 'R',
@@ -400,6 +406,34 @@ public class CraftingRecipeLoader {
                 MetaItems.POWER_THRUSTER_ADVANCED.getStackForm(), 'B', ENERGIUM_CRYSTAL.getStackForm(), 'W',
                 new UnificationEntry(OrePrefix.wireGtQuadruple, Gold), 'C',
                 new UnificationEntry(OrePrefix.circuit, Tier.HV));
+
+        // Piston Boots
+        ModHandler.addShapedRecipe(true, "piston_boots",
+                MetaItems.PISTON_BOOTS.getStackForm(), "EhE", "RLR", "PBP",
+                'E', Items.LEATHER,
+                'R', new UnificationEntry(OrePrefix.plate, Materials.Rubber),
+                'L', Items.LEATHER_BOOTS,
+                'P', MetaItems.ELECTRIC_PISTON_LV,
+                'B', MetaItems.BATTERY_LV_SODIUM);
+
+        // Coal Jetpack
+        ModHandler.addShapedRecipe("coal_jetpack", MetaItems.COAL_JETPACK.getStackForm(), "xCw", "SUS", "RIR",
+                'C', new UnificationEntry(OrePrefix.circuit, Tier.ULV), 'S',
+                MetaTileEntities.BRONZE_DRUM.getStackForm(), 'U', Blocks.PISTON, 'R',
+                new UnificationEntry(OrePrefix.rotor, Tin), 'I',
+                new UnificationEntry(OrePrefix.pipeSmallFluid, Copper));
+
+        // Hazmat Suite
+        ModHandler.addShapedRecipe("hazmat_helmet", MetaItems.HAZMAT_HELMET.getStackForm(), "PPP", "P P", 'P',
+                new UnificationEntry(OrePrefix.plate, Materials.Rubber));
+        ModHandler.addShapedRecipe("hazmat_chestplate", MetaItems.HAZMAT_CHESTPLATE.getStackForm(), "P P", "PPP",
+                "PPP", 'P', new UnificationEntry(OrePrefix.plate, Materials.Rubber));
+        ModHandler.addShapedRecipe("hazmat_leggings", MetaItems.HAZMAT_LEGGINGS.getStackForm(), "PPP", "P P", "P P",
+                'P', new UnificationEntry(OrePrefix.plate, Materials.Rubber));
+        ModHandler.addShapedRecipe("hazmat_boots", MetaItems.HAZMAT_BOOTS.getStackForm(), "P P", "P P", 'P',
+                new UnificationEntry(OrePrefix.plate, Materials.Rubber));
+
+        // Nano Armor
         ModHandler.addShapedRecipe("nano_helmet", MetaItems.NANO_HELMET.getStackForm(), "PPP", "PNP", "xEd", 'P',
                 MetaItems.CARBON_FIBER_PLATE.getStackForm(), 'N', MetaItems.NIGHTVISION_GOGGLES.getStackForm(), 'E',
                 MetaItems.ENERGIUM_CRYSTAL.getStackForm());
