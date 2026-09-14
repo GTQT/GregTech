@@ -6980,6 +6980,7 @@ gregtech.machine.steam_engine.tooltip.1=Produces up to %s§7 power.
 gregtech.machine.large_circuit_assembler.name=Large Circuit Assembler
 gregtech.machine.large_chemical_complex.name=Large Chemical Complex
 gregtech.machine.large_pyrolyser.name=Large Pyrolyser
+gregtech.machine.large_pyrolyser.tooltip.1=Each structure extension reduces recipe energy consumption by 5%%.
 gregtech.machine.large_thermal_centrifuge.name=Large Thermal Centrifuge
 gregtech.machine.large_sonicator.name=Large Sonication Chamber
 gregtech.machine.large_desulfurizer.name=Large Desulfurization Reactor

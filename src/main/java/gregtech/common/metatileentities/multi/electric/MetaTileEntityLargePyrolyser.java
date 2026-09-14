@@ -9,14 +9,17 @@ import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.pattern.FormedStructureView;
+import gregtech.api.pattern.StructurePieceKey;
 import gregtech.api.pattern.casing.DeclarativePatternBuilder;
 import gregtech.api.pattern.casing.GTCasingGroups;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.HatchPresets;
 import gregtech.api.pattern.casing.ICasing;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
+import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.tooltips.TooltipBuilder;
@@ -25,6 +28,7 @@ import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.OrientedOverlayRenderer;
 import gregtech.common.blocks.BlockBoilerCasing;
 import gregtech.common.blocks.BlockLargeMultiblockCasing;
+import gregtech.common.blocks.BlockUniqueCasing;
 import gregtech.common.blocks.MetaBlocks;
 
 import net.minecraft.block.state.IBlockState;
@@ -43,15 +47,35 @@ import java.util.List;
 //此系列设备不给多线程
 public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockController {
 
+    /** 拓展片 piece 名：结构中部可伸缩的线圈段 */
+    private static final String PIECE_BODY = "body";
+    private static final StructurePieceKey BODY_PIECE = StructurePieceKey.of(PIECE_BODY);
+    /** 拓展片重复次数范围；实际次数即结构长度 */
+    private static final int MIN_LENGTH = 1;
+    private static final int MAX_LENGTH = 10;
+
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_pyrolyser", () ->
             DeclarativePatternBuilder.start()
-                    .aisle("XXXXX", "XXXXX", "XXMXX", "XXXXX", "XXXXX")
-                    .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
-                    .aisle("CCCCC", "CCCCC", "CCCCC", "CCCCC", "CCCCC")
-                    .aisle("CCCCC", "CPCPC", "CCCCC", "CPCPC", "CCCCC")
-                    .aisle("XXXXX", "XXXXX", "XXSXX", "XXXXX", "XXXXX")
+                    // 无 S 的 piece 必须显式指定局部中心，否则继承 end 的 (2,1,3)：
+                    // 列/行与 S 一致取 (2,1)；z 取本 piece 中与后一段相邻的那层 aisle
+                    .piece("start")
+                    .aisle("AAMAA", "     ", "     ", "     ", "     ", "     ", "     ")
+                    .aisle("AAAAA", " ADA ", " ADA ", " ADA ", " AAA ", "     ", "     ")
+                    .centerOffset(2, 1, 1)
+                    // 拓展片
+                    .repeatablePiece(PIECE_BODY, MIN_LENGTH, MAX_LENGTH)
+                    .aisle("AAAAA", "FC CF", "FC CF", "FC CF", "FC CF", "FDPDF", "  P  ")
+                    .aisle("AAAAA", " A A ", " A A ", " A A ", " AAA ", "     ", "  P  ")
+                    .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
+                    .centerOffset(2, 1, 1)
+                    // 拓展片结束
+                    .piece("end")
+                    .aisle("AAAAA", "FC CF", "FC CF", "FC CF", "FC CF", "FDPDF", "  P  ")
+                    .aisle(" AAA ", " AAA ", " AAA ", " AAA ", " AAA ", "     ", "  P  ")
+                    .aisle(" AAA ", " A A ", " AAA ", " APA ", "  P  ", "  P  ", "  P  ")
+                    .aisle(" AAA ", " ASA ", " AAA ", "     ", "     ", "     ", "     ")
                     .self('S', MetaTileEntityLargePyrolyser.class)
-                    .casing('X', getCasingState())
+                    .casing('A', getCasingState())
                     .energyInput(1, 2)
                     .tieredHatch()
                     .parallelHatch()
@@ -59,14 +83,18 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
                     .accelerationHatch()
                     .preset(HatchPresets.STANDARD_IO)
                     .maintenance()
+                    .block('D', getHeatVent())
                     .tieredCasing('C', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())
-                    .block('P', getCasingState3())
+                    .block('P', getPipeState())
+                    .frames('F', Materials.Steel)
                     .hatch('M', MultiblockAbility.MUFFLER_HATCH)
-                    .air('A')
+                    .any(' ')
                     .buildStructureDefinition()
     );
     private int coilTier;
+    /** 拓展片实际重复次数，即结构长度 */
+    private int length;
 
     public MetaTileEntityLargePyrolyser(ResourceLocation metaTileEntityId) {
         super(metaTileEntityId, RecipeMaps.PYROLYSE_RECIPES);
@@ -74,11 +102,14 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
     }
 
     public static IBlockState getCasingState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
-                BlockLargeMultiblockCasing.CasingType.CORROSION_PROOF_CASING);
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.HIGH_TEMPERATURE_CASING);
     }
 
-    public static IBlockState getCasingState3() {
+    private static IBlockState getHeatVent() {
+        return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.HEAT_VENT);
+    }
+
+    private static IBlockState getPipeState() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
     }
 
@@ -110,6 +141,8 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
         formRecipeMapStructure(formed);
+        // 读取拓展片实际重复次数
+        this.length = formed.getPieceRepeat(BODY_PIECE, 0);
         ICasing matchedCoil = GTCasingGroups.heatingCoils().channel().getMatchedCasing(formed);
         IHeatingCoilBlockStats stats = matchedCoil != null ?
                 matchedCoil.getPayloadAs(IHeatingCoilBlockStats.class) : null;
@@ -162,12 +195,14 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
         super.addInformation(stack, player, tooltip, advanced);
         TooltipBuilder.create().addCoilLogic().build(this, tooltip);
         tooltip.add(I18n.format("gregtech.machine.pyrolyse_oven.tooltip.1"));
+        tooltip.add(I18n.format("gregtech.machine.large_pyrolyser.tooltip.1"));
     }
 
     @Override
     public void invalidateStructure() {
         super.invalidateStructure();
         this.coilTier = -1;
+        this.length = 0;
     }
 
     protected int getCoilTier() {
@@ -201,6 +236,10 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
                 // each coil above kanthal (coilTier = 1) is 50% faster
                 ocResult.setDuration(Math.max(1, (int) (ocResult.duration() * 2.0 / (coilTier + 1))));
             }
+
+            int length = ((MetaTileEntityLargePyrolyser) metaTileEntity).length;
+            if(length > 1)
+                ocResult.setEut((long) (ocResult.eut() * (1.0 - (length - 1) * 0.05)));
         }
     }
 }

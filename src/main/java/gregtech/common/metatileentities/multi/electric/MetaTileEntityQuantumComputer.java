@@ -97,8 +97,6 @@ public class MetaTileEntityQuantumComputer extends MultiblockWithDisplayBase
                     .repeatablePiece("body", 3, 14)
                     .aisle("DB", "EB", "EB", "DB")
                     .withAisleChannel(GTStructureChannels.STRUCTURE_LENGTH.getName())
-                    // body 无 S 且 aisle 数(1)与含 S 的 bottom(2)不同，必须显式指定避免继承 reference 错位；
-                    // x/y 与 bottom 中 S 的坐标对齐，z = 本 piece 内中心 aisle 索引(单 aisle = 0)
                     .centerOffset(0, 1, 0)
                     .piece("bottom")
                     .aisle("BB", "CB", "CB", "BB")

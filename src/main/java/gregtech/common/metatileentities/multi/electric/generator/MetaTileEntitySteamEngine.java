@@ -39,10 +39,10 @@ public class MetaTileEntitySteamEngine extends FuelMultiblockController {
             "gcym:steam_engine", () ->
                     DeclarativePatternBuilder.start()
                             .piece("main")
-                            .aisle("#XX", "XEX", "#XX")
+                            .aisle("XXX", "XEX", "XXX")
                             .aisle("XXX", "XGX", "XMX")
-                            .aisle("#XX", "XGX", "#XX")
-                            .aisle("#XX", "#SX", "#XX")
+                            .aisle("XXX", "XGX", "XXX")
+                            .aisle("XXX", "XSX", "XXX")
                             .self('S', MetaTileEntitySteamEngine.class)
                             .block('G', getCasingState2())
                             .where('E', energyOutputElement())

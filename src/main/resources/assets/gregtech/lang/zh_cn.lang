@@ -6977,6 +6977,7 @@ gregtech.machine.steam_engine.tooltip.1=最高产生%s§7级的能量。
 gregtech.machine.large_circuit_assembler.name=大型电路组装机
 gregtech.machine.large_chemical_complex.name=大型化工复合体
 gregtech.machine.large_pyrolyser.name=大型热解炉
+gregtech.machine.large_pyrolyser.tooltip.1=结构每拓展一次，使配方耗能减少5%%
 gregtech.machine.large_thermal_centrifuge.name=工业热力精炼厂
 gregtech.machine.large_sonicator.name=大型超声震荡器
 gregtech.machine.large_desulfurizer.name=大型脱硫反应釜
