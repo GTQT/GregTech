@@ -9267,6 +9267,41 @@ gregtech.creative.activity.off=Not active
 terminal.app.gregtech.home.name=Home
 terminal.app.gregtech.settings.name=Theme Settings
 terminal.app.gregtech.capes.name=Cape Selector
+terminal.app.gregtech.store.name=App Store
+terminal.app.gregtech.storage.name=Portable Storage
+terminal.app.gregtech.minesweeper.name=Minesweeper
+terminal.app.gregtech.maze.name=Theseus' Escape
+terminal.app.gregtech.pong.name=Pong
+terminal.app.gregtech.teleporter.name=Teleporter
+
+terminal.store.installed=Installed
+terminal.store.open=Open
+terminal.store.description=App store, check out what you got? Install and upgrade the app.
+
+terminal.storage.unavailable=This terminal has no storage attached.
+
+terminal.minesweeper.time=%s seconds elapsed
+terminal.minesweeper.lose=You lost. Game will restart in %s seconds.
+terminal.minesweeper.win.1=You won in %s seconds!
+terminal.minesweeper.win.2=Game will restart in %s
+terminal.minesweeper.flags=Mines flagged: %s
+
+terminal.maze.title=Theseus's Escape
+terminal.maze.play=Play
+terminal.maze.continue=Continue
+terminal.maze.pause=Game Paused
+terminal.maze.death.1=Oh no! You were eaten by the Minotaur!
+terminal.maze.death.2=You got through %s mazes before losing.
+terminal.maze.death.3=Try again?
+terminal.maze.retry=Retry
+terminal.maze.score=Mazes solved: %s
+
+terminal.pong.description=A classic pong game, if you're really that bored of waiting for that tungstensteel.
+
+terminal.teleporter.title=Teleporter
+terminal.teleporter.dimension=Dimension:
+terminal.teleporter.spawn_portal=Engage
+terminal.teleporter.disabled=The teleporter is disabled on this server.
 
 terminal.settings.background=Background
 terminal.settings.background_select=Select Background

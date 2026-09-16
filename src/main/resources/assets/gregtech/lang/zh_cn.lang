@@ -9258,6 +9258,41 @@ gregtech.creative.activity.off=未激活
 terminal.app.gregtech.home.name=主页
 terminal.app.gregtech.settings.name=主题设置
 terminal.app.gregtech.capes.name=披风选择器
+terminal.app.gregtech.store.name=应用商店
+terminal.app.gregtech.storage.name=随身仓库
+terminal.app.gregtech.minesweeper.name=扫雷
+terminal.app.gregtech.maze.name=忒修斯的逃亡
+terminal.app.gregtech.pong.name=乒乓
+terminal.app.gregtech.teleporter.name=传送器
+
+terminal.store.installed=已安装
+terminal.store.open=打开
+terminal.store.description=应用商店，来看看你都有些什么？安装并升级应用。
+
+terminal.storage.unavailable=此终端未挂载仓库。
+
+terminal.minesweeper.time=已用时 %s 秒
+terminal.minesweeper.lose=你输了。游戏将在 %s 秒后重新开始。
+terminal.minesweeper.win.1=你在 %s 秒内获胜！
+terminal.minesweeper.win.2=游戏将在 %s 秒后重新开始
+terminal.minesweeper.flags=已标记地雷：%s
+
+terminal.maze.title=忒修斯的逃亡
+terminal.maze.play=开始
+terminal.maze.continue=继续
+terminal.maze.pause=游戏已暂停
+terminal.maze.death.1=糟糕！你被弥诺陶洛斯吃掉了！
+terminal.maze.death.2=你在失败前通过了 %s 个迷宫。
+terminal.maze.death.3=再试一次？
+terminal.maze.retry=重试
+terminal.maze.score=已通过迷宫：%s
+
+terminal.pong.description=经典乒乓游戏，如果你实在等钨钢等得太无聊了。
+
+terminal.teleporter.title=传送器
+terminal.teleporter.dimension=维度：
+terminal.teleporter.spawn_portal=启动
+terminal.teleporter.disabled=本服务器已禁用传送器。
 
 terminal.settings.background=背景
 terminal.settings.background_select=选择背景

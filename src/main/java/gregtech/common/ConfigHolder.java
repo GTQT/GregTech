@@ -593,6 +593,13 @@ public class ConfigHolder {
         public String terminalRootPath = "gregtech/terminal";
 
         @Config.Comment({
+                "Whether the terminal's teleporter app is enabled.",
+                "It can send a player to any coordinate in any dimension, so it is off by default.",
+                "Default: false" })
+        @Config.RequiresMcRestart
+        public boolean enableTeleporter = false;
+
+        @Config.Comment({
                 "Whether to hook depth texture. Has no effect on performance, but if there is a problem with rendering, try disabling it.",
                 "Default: true" })
         public boolean hookDepthTexture = true;

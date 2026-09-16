@@ -2,6 +2,7 @@ package gregtech.common.items.behaviors;
 
 import gregtech.api.items.gui.ItemUIFactory;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
+import gregtech.api.items.metaitem.stats.IItemCapabilityProvider;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GTGuis;
@@ -18,6 +19,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.ICapabilityProvider;
 
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
@@ -29,7 +31,15 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 
-public class Terminal2Behavior implements IItemBehaviour, ItemUIFactory {
+import java.util.function.Consumer;
+
+public class Terminal2Behavior implements IItemBehaviour, ItemUIFactory, IItemCapabilityProvider {
+
+    /** Hands the terminal item the inventory that backs its storage app. */
+    @Override
+    public ICapabilityProvider createProvider(ItemStack itemStack) {
+        return new TerminalStorageProvider(itemStack);
+    }
 
     @Override
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, EnumHand hand) {
@@ -56,6 +66,7 @@ public class Terminal2Behavior implements IItemBehaviour, ItemUIFactory {
             @Override
             public void dispose() {
                 super.dispose();
+                Terminal2.setPageSwitcher(null);
                 Terminal2Theme.gcBoundRects();
                 for (var app : Terminal2.appMap.values()) {
                     app.dispose();
@@ -67,6 +78,16 @@ public class Terminal2Behavior implements IItemBehaviour, ItemUIFactory {
         }
         appPages.size(Terminal2.SCREEN_WIDTH, Terminal2.SCREEN_HEIGHT).pos(4, 4);
 
+        // Opening an app is the same two steps wherever it is triggered from: switch the page, then tell the app.
+        Consumer<ResourceLocation> openApp = appID -> {
+            if (appPages.getCurrentPageID() == appID) return;
+            appPages.setPage(appID);
+            Terminal2.appMap.get(appID).onOpen();
+        };
+        Terminal2.setPageSwitcher(openApp);
+        guiSyncManager.onCommonTick(Terminal2::tickPageSwitch);
+        guiSyncManager.addCloseListener(player -> Terminal2.setPageSwitcher(null));
+
         Grid appGrid = new Grid()
                 .pos(44, 22)
                 .size(Terminal2.SCREEN_WIDTH - 44 * 2, Terminal2.SCREEN_HEIGHT - 22 * 2)
@@ -76,7 +97,7 @@ public class Terminal2Behavior implements IItemBehaviour, ItemUIFactory {
         for (var appEntry : Terminal2.appMap.entrySet()) {
             ResourceLocation appID = appEntry.getKey();
             ITerminalApp app = appEntry.getValue();
-            if (appID == Terminal2.HOME_ID) continue;
+            if (Terminal2.HOME_ID.equals(appID)) continue;
 
             appGrid.child(new ButtonWidget<>()
                     .overlay(app.getIcon())
@@ -86,8 +107,7 @@ public class Terminal2Behavior implements IItemBehaviour, ItemUIFactory {
                     .size(24, 24)
                     .addTooltipLine(IKey.lang("terminal.app." + appID.getNamespace() + "." + appID.getPath() + ".name"))
                     .onMousePressed(i -> {
-                        appPages.setPage(appID);
-                        app.onOpen();
+                        openApp.accept(appID);
                         return true;
                     }));
 
