@@ -52,6 +52,7 @@ import gregtech.common.command.CommandRecipeCheck;
 import gregtech.common.command.CommandShaders;
 import gregtech.common.command.CommandStructureTrace;
 import gregtech.common.command.MultiblockMoverRecoveryCommand;
+import gregtech.common.command.material.CommandMaterial;
 import gregtech.common.command.wireless.CommandWireless;
 import gregtech.common.covers.CoverBehaviors;
 import gregtech.common.covers.filter.oreglob.impl.OreGlobParser;
@@ -365,6 +366,7 @@ public class CoreModule implements IGregTechModule {
         commandManager.registerServerCommand(event);
 
         GregTechAPI.commandManager.addCommand(new CommandHand());
+        GregTechAPI.commandManager.addCommand(new CommandMaterial());
         GregTechAPI.commandManager.addCommand(new CommandRecipeCheck());
         GregTechAPI.commandManager.addCommand(new CommandShaders());
         GregTechAPI.commandManager.addCommand(new CommandStructureTrace());

@@ -17,6 +17,7 @@ import gregtech.common.creativetab.GTCreativeTabs;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
@@ -172,6 +173,27 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
             if (controller instanceof RecipeMapMultiblockController recipeMapController) {
                 recipeMapController.getRecipeMapWorkable().forceRecipeRecheck();
             }
+        }
+    }
+
+    /**
+     * 染色随物品保留。物品栏渲染走 {@link MetaTileEntity#getPaintingColorForRendering()},
+     * 其在 world 为 null 时改读渲染上下文栈上的 {@code PaintingColor},故颜色也能正确显示。
+     */
+    @Override
+    public void writeItemStackData(NBTTagCompound itemStack) {
+        super.writeItemStackData(itemStack);
+        if (isPainted()) {
+            itemStack.setInteger(TAG_KEY_PAINTING_COLOR, getPaintingColor());
+        }
+    }
+
+    @Override
+    public void initFromItemStackData(NBTTagCompound itemStack) {
+        super.initFromItemStackData(itemStack);
+        if (itemStack.hasKey(TAG_KEY_PAINTING_COLOR)) {
+            // 走 setPaintingColor 以同步客户端,否则颜色通道指示器要等下一次区块同步才显示
+            setPaintingColor(itemStack.getInteger(TAG_KEY_PAINTING_COLOR));
         }
     }
 

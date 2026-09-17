@@ -49,6 +49,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static gregtech.api.recipes.logic.OverclockingLogic.subTickParallelOC;
@@ -65,6 +66,13 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected int lastRecipeIndex = 0;
     protected IItemHandlerModifiable currentDistinctInputBus;
     protected List<IItemHandlerModifiable> invalidatedInputList = new ArrayList<>();
+
+    /**
+     * 最近一次成功启动配方的颜色通道,用于跨通道轮转。{@link #NO_CHANNEL} 表示还没成功过。
+     * 通道集合每次重查时从控制器现状重算,染色变化无需额外失效处理。
+     */
+    protected static final int NO_CHANNEL = -1;
+    protected int lastColorChannel = NO_CHANNEL;
 
     @Nullable
     private RecipeMap<?> routedRecipeMap;
@@ -1132,6 +1140,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (shouldUseDistinctInputBuses()) {
             short mask = getHatchColorsMask();
             if (mask != 0) {
+                // 通道轮转状态由方法内部在启动成功时记录
                 trySearchNewRecipeDistinctByColorChannels(mask);
                 return;
             }
@@ -1146,6 +1155,35 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         trySearchNewRecipeCombined();
+    }
+
+    /**
+     * 本次通道遍历顺序:从上次成功通道的下一个开始循环,避免低编号通道持续有料时饿死高编号通道。
+     * 通道集合每次重算(至多 16 项),因此染色变化无需额外的缓存失效处理。
+     *
+     * @return 长度至多 17 的通道顺位;{@code order[order.length - 1]} 恒为未染色通道
+     *         ({@link #NO_CHANNEL}),因为未染色仓是公共输入,排在末位兜底
+     */
+    private int[] getChannelOrder(short mask) {
+        TreeSet<Integer> channels = new TreeSet<>();
+        for (int color = 0; color < 16; color++) {
+            if ((mask & (1 << color)) != 0) channels.add(color);
+        }
+        if (channels.isEmpty()) return new int[] { NO_CHANNEL };
+
+        int[] order = new int[channels.size() + 1];
+        // 上次成功通道的下一个为起点;higher() 为空说明上次已是最大号,则从头开始。
+        // NO_CHANNEL 是最小值,未成功过时 higher() 直接给出最小号通道。
+        // 中间失败过的通道不影响起点——取的是 lastColorChannel,不是"上次尝试过的通道"。
+        Integer pivot = channels.higher(lastColorChannel);
+        int index = 0;
+        if (pivot != null) {
+            for (int color : channels.tailSet(pivot, true)) order[index++] = color;
+        }
+        for (int color : channels.headSet(pivot == null ? channels.first() : pivot, false)) order[index++] = color;
+
+        order[index] = NO_CHANNEL;
+        return order;
     }
 
     /**
@@ -1222,12 +1260,13 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      */
     protected void trySearchNewRecipeByColorChannels(short mask) {
         long maxVoltage = getMaxVoltage();
-        for (int color = 0; color < 16; color++) {
-            if ((mask & (1 << color)) == 0) continue;
+        int[] channelOrder = getChannelOrder(mask);
+        for (int i = 1; i < channelOrder.length; i++) {
+            int color = channelOrder[i];
             List<IItemHandlerModifiable> channelBuses = getInputBusesForColor(color);
             IItemHandlerModifiable channelInventory = new ItemHandlerList(channelBuses);
             IMultipleTankHandler channelFluids = getInputTankForColor(color);
-            if (tryFindRecipeForChannel(maxVoltage, channelInventory, channelFluids)) return;
+            if (tryFindRecipeForChannel(maxVoltage, channelInventory, channelFluids, color)) return;
         }
         this.invalidInputsForRecipes = true;
         whyFailed = "NoneRecipes";
@@ -1236,12 +1275,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     /**
      * 单个颜色通道内查找并准备配方(仿 {@link AbstractRecipeLogic#trySearchNewRecipe()} 的非并行部分)。
      *
+     * @param color 该通道的颜色索引,启动成功时记入 {@link #lastColorChannel} 供轮转使用
      * @return 配方成功启动返回 true
      */
     protected boolean tryFindRecipeForChannel(long maxVoltage, IItemHandlerModifiable channelInventory,
-                                              IMultipleTankHandler channelFluids) {
+                                              IMultipleTankHandler channelFluids, int color) {
         Recipe currentRecipe = null;
-        if (isRecipeLockEnable() && previousRecipe != null) {
+        boolean locked = isRecipeLockEnable() && previousRecipe != null;
+        if (locked) {
             if (previousRecipe.getEUt() <= maxVoltage &&
                     previousRecipe.matches(false, channelInventory, channelFluids)) {
                 currentRecipe = previousRecipe;
@@ -1261,8 +1302,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         if (currentRecipe != null) {
             this.previousRecipe = currentRecipe;
-            if (checkRecipe(currentRecipe)) {
-                return prepareRecipe(currentRecipe, channelInventory, channelFluids);
+            if (checkRecipe(currentRecipe) && prepareRecipe(currentRecipe, channelInventory, channelFluids)) {
+                lastColorChannel = color;
+                return true;
             }
         }
         return false;
@@ -1281,8 +1323,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      */
     protected void trySearchNewRecipeDistinctByColorChannels(short mask) {
         long maxVoltage = getMaxVoltage();
-        for (int color = 0; color < 16; color++) {
-            if ((mask & (1 << color)) == 0) continue;
+        int[] channelOrder = getChannelOrder(mask);
+        for (int i = 1; i < channelOrder.length; i++) {
+            int color = channelOrder[i];
             List<IItemHandlerModifiable> channelBuses = getInputBusesForColor(color);
             if (channelBuses.isEmpty()) continue;
             IMultipleTankHandler channelFluids = getInputTankForColor(color);
@@ -1302,6 +1345,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     this.previousRecipe = currentRecipe;
                     this.previousDistinctRecipeMap = recipeMap;
                     if (checkRecipe(currentRecipe) && prepareRecipeDistinct(currentRecipe, bus, busFluids)) {
+                        lastColorChannel = color;
                         return;
                     }
                     routedRecipeMap = null;
