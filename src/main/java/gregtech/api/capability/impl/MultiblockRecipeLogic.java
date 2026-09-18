@@ -46,9 +46,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -183,7 +185,20 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         crossRecipeScheduler.setMaxVoltage(getMaximumOverclockVoltage());
         crossRecipeScheduler.setTotalPowerBudget(getTotalPowerBudget());
-        crossRecipeScheduler.setParallelLimit(getParallelLimit());
+
+        // The thread limit caps how many slots may run at once, and the parallel limit caps each slot.
+        // Cross-recipe parallel drops both caps and lets the slots share one elastic budget instead.
+        int threads = Math.max(1, getThreadLimit());
+        int parallel = Math.max(1, getParallelLimit());
+        boolean crossRecipe = isCrossRecipeParallelEnabled();
+        boolean threaded = !crossRecipe && threads > 1;
+
+        // Widening to long first: MultiblockFuelRecipeLogic reports Integer.MAX_VALUE as its parallel limit.
+        long totalParallel = (long) parallel * threads;
+        crossRecipeScheduler.setParallelLimit(threaded ?
+                (int) Math.min(Integer.MAX_VALUE, totalParallel) : parallel);
+        crossRecipeScheduler.setMaxSlots(crossRecipe ? 0 : threads);
+        crossRecipeScheduler.setPerSlotParallelCap(threaded ? parallel : 0);
         return crossRecipeScheduler;
     }
 
@@ -216,10 +231,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     /**
-     * @return true if the cross-recipe parallel mode is active and being used
+     * Whether the parallel scheduler drives this machine's progress instead of the plain single-recipe path.
+     * True whenever there is more than one operation in flight: several parallel copies (parallel limit > 1),
+     * several recipes at once (thread limit > 1), or an unbounded mix of recipes (cross-recipe parallel).
+     *
+     * @return true if progress and energy are managed by the scheduler
      */
-    public boolean isCrossRecipeMode() {
-        return getParallelLogicType() == ParallelLogicType.CROSS_RECIPE && getParallelLimit() > 1;
+    public boolean usesParallelScheduler() {
+        return getParallelLimit() > 1 || getThreadLimit() > 1 || isCrossRecipeParallelEnabled();
     }
 
     @Nullable
@@ -229,7 +248,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected void updateRecipeProgress() {
-        if (!isCrossRecipeMode()) {
+        if (!usesParallelScheduler()) {
             super.updateRecipeProgress();
             return;
         }
@@ -311,6 +330,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         List<SlotAllocation> allocations = new ArrayList<>();
 
         // Phase 1: Allocate parallel for all matching recipes (no overclock, no input consumption)
+        // One slot per recipe: without this the bus order alone decides which slots are opened, and two
+        // buses holding the same recipe would each claim a slot.
+        Set<Recipe> usedRecipes = new HashSet<>();
         for (int i = 0; i < importInventory.size(); i++) {
             if (remainingParallel <= 0 || remainingBasePower <= 0) break;
 
@@ -320,14 +342,18 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             RecipeMap<?> recipeMap = getRecipeMapForInput(bus);
             routedRecipeMap = recipeMap;
             Recipe recipe = findRecipe(recipeMap, remainingBasePower, bus, busFluidTank);
-            if (recipe == null || !checkRecipe(recipe)) {
+            if (recipe == null || !checkRecipe(recipe) || !usedRecipes.add(recipe)) {
                 routedRecipeMap = null;
                 continue;
             }
 
             RecipeSlot slot = scheduler.acquireSlot();
+            if (slot == null) {
+                routedRecipeMap = null;
+                break;
+            }
             SlotAllocation alloc = allocateSlotParallel(slot, recipe, recipeMap, bus, busFluidTank,
-                    remainingBasePower, remainingParallel);
+                    remainingBasePower, remainingParallel, scheduler.getPerSlotParallelCap());
             if (alloc != null) {
                 allocations.add(alloc);
                 remainingBasePower -= alloc.basePowerDemand;
@@ -375,14 +401,17 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (lastCrossRecipe != null && remainingParallel > 0 && remainingBasePower > 0) {
             if (lastCrossRecipe.matches(false, importInventory, importFluids)) {
                 RecipeSlot slot = scheduler.acquireSlot();
-                SlotAllocation alloc = allocateSlotParallel(slot, lastCrossRecipe, recipeMap,
-                        importInventory, importFluids, remainingBasePower, remainingParallel);
-                if (alloc != null) {
-                    allocations.add(alloc);
-                    remainingBasePower -= alloc.basePowerDemand;
-                    remainingParallel -= alloc.inputParallel;
-                } else {
-                    scheduler.releaseSlot(slot);
+                if (slot != null) {
+                    SlotAllocation alloc = allocateSlotParallel(slot, lastCrossRecipe, recipeMap,
+                            importInventory, importFluids, remainingBasePower, remainingParallel,
+                            scheduler.getPerSlotParallelCap());
+                    if (alloc != null) {
+                        allocations.add(alloc);
+                        remainingBasePower -= alloc.basePowerDemand;
+                        remainingParallel -= alloc.inputParallel;
+                    } else {
+                        scheduler.releaseSlot(slot);
+                    }
                 }
             }
         }
@@ -412,8 +441,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     if (recipe == null || !checkRecipe(recipe)) continue;
 
                     RecipeSlot slot = scheduler.acquireSlot();
+                    if (slot == null) break;
+
                     SlotAllocation alloc = allocateSlotParallel(slot, recipe, recipeMap,
-                            importInventory, importFluids, remainingBasePower, remainingParallel);
+                            importInventory, importFluids, remainingBasePower, remainingParallel,
+                            scheduler.getPerSlotParallelCap());
                     if (alloc != null) {
                         allocations.add(alloc);
                         remainingBasePower -= alloc.basePowerDemand;
@@ -492,7 +524,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                                                   @NotNull IItemHandlerModifiable importInventory,
                                                   @NotNull IMultipleTankHandler importFluids,
                                                   long remainingBasePower,
-                                                  int maxParallelBudget) {
+                                                  int maxParallelBudget,
+                                                  int perSlotParallelCap) {
         // Trim recipe outputs
         Recipe trimmed = Recipe.trimRecipeOutputs(recipe, recipeMap, metaTileEntity.getItemOutputLimit(),
                 metaTileEntity.getFluidOutputLimit());
@@ -510,6 +543,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             maxInputParallel = (int) Math.min(maxParallelBudget, remainingBasePower / Math.max(1, baseEUt));
         } else {
             maxInputParallel = maxParallelBudget;
+        }
+        // Applied after the branch above, because that branch hands back maxParallelBudget untouched and
+        // would otherwise let one recipe claim the whole parallel budget for its slot.
+        if (perSlotParallelCap > 0) {
+            maxInputParallel = Math.min(maxInputParallel, perSlotParallelCap);
         }
         maxInputParallel = Math.max(1, maxInputParallel);
 
@@ -1373,7 +1411,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      * deal with the maintenance and distinct logic in {@link MultiblockRecipeLogic#trySearchNewRecipe()}
      */
     protected void trySearchNewRecipeCombined() {
-        if (isCrossRecipeMode()) {
+        if (usesParallelScheduler()) {
             CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
             int filled = fillSchedulerSlots(scheduler);
 
@@ -1396,7 +1434,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     protected void trySearchNewRecipeDistinct() {
-        if (isCrossRecipeMode()) {
+        if (usesParallelScheduler()) {
             trySearchNewRecipeDistinctCrossRecipe();
             return;
         }
@@ -1499,8 +1537,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             Recipe recipe = findRecipe(recipeMap, remainingBasePower, bus, busFluidTank);
             if (recipe != null && checkRecipe(recipe)) {
                 RecipeSlot slot = scheduler.acquireSlot();
+                if (slot == null) {
+                    routedRecipeMap = null;
+                    break;
+                }
                 SlotAllocation alloc = allocateSlotParallel(slot, recipe, recipeMap, bus, busFluidTank,
-                        remainingBasePower, remainingParallel);
+                        remainingBasePower, remainingParallel, scheduler.getPerSlotParallelCap());
                 if (alloc != null) {
                     allocations.add(alloc);
                     remainingBasePower -= alloc.basePowerDemand;
@@ -1761,6 +1803,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         parallelRecipesPerformed = previousParallel;
     }
 
+    /**
+     * Only routes {@code IParallelableRecipeLogic#findParallelRecipe} between the legacy builder strategies, which
+     * all resolve to the same branch here. Whether the parallel scheduler runs at all is decided by
+     * {@link #usesParallelScheduler()} and {@link AbstractRecipeLogic#isCrossRecipeParallelEnabled()}.
+     */
     @Override
     @NotNull
     public ParallelLogicType getParallelLogicType() {
@@ -1775,7 +1822,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      */
     @Override
     public int getProgress() {
-        if (isCrossRecipeMode() && crossRecipeScheduler != null && crossRecipeScheduler.hasActiveSlots()) {
+        if (usesParallelScheduler() && crossRecipeScheduler != null && crossRecipeScheduler.hasActiveSlots()) {
             return crossRecipeScheduler.getDisplayProgressTime();
         }
         return super.getProgress();
@@ -1787,7 +1834,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      */
     @Override
     public int getMaxProgress() {
-        if (isCrossRecipeMode() && crossRecipeScheduler != null && crossRecipeScheduler.hasActiveSlots()) {
+        if (usesParallelScheduler() && crossRecipeScheduler != null && crossRecipeScheduler.hasActiveSlots()) {
             return crossRecipeScheduler.getDisplayMaxProgressTime();
         }
         return super.getMaxProgress();

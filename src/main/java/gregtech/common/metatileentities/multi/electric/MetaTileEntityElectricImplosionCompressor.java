@@ -44,10 +44,7 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
                     .energyInput(1,4)
                     .maintenance()
                     .preset(HatchPresets.STANDARD_IO)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .any(' ')
                     .buildStructureDefinition()
     );
@@ -79,6 +76,11 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
     }
 
     @Override
+    public boolean isThread() {
+        return false;
+    }
+
+    @Override
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity metaTileEntityHolder) {
         return new MetaTileEntityElectricImplosionCompressor(this.metaTileEntityId);
     }
@@ -91,10 +93,5 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
     @Override
     protected @NotNull OrientedOverlayRenderer getFrontOverlay() {
         return Textures.ELECTRIC_IMPLOSION_OVERLAY;
-    }
-
-    @Override
-    public boolean hasMufflerMechanics() {
-        return false;
     }
 }

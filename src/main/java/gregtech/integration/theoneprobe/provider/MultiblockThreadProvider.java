@@ -1,10 +1,11 @@
 package gregtech.integration.theoneprobe.provider;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.IThreadMultiblock;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.metatileentity.multiblock.AdvanceRecipeMapMultiblockController;
+import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
 import gregtech.api.util.TextFormattingUtil;
 
@@ -51,54 +52,51 @@ public class MultiblockThreadProvider implements IProbeInfoProvider {
             if (te instanceof IGregTechTileEntity igtte) {
                 MetaTileEntity mte = igtte.getMetaTileEntity();
 
-                if (mte instanceof AdvanceRecipeMapMultiblockController controller) {
+                if (mte instanceof RecipeMapMultiblockController controller &&
+                        mte instanceof IThreadMultiblock threadController) {
 
-                    if (controller.getThread() == 1) return;
+                    if (threadController.getThread() <= 1) return;
 
                     horizontalPane.text(TextStyleClass.INFO + "{*gregtech.top.thread*}");
                     horizontalPane.text(
-                            TextStyleClass.INFO + " " + TextFormatting.RED + controller.getThread() + " ");
+                            TextStyleClass.INFO + " " + TextFormatting.RED + threadController.getThread() + " ");
 
-                    IProbeInfo box;
-                    IProbeInfo leftInfo;
+                    MultiblockRecipeLogic logic = controller.getRecipeMapWorkable();
+                    if (!logic.isActive()) return;
 
-                    for (MultiblockRecipeLogic multiblockRecipeLogic : controller.getRecipeMapWorkableList()) {
+                    IProbeInfo box = newBox(iProbeInfo);
+                    IProbeInfo leftInfo = newVertical(box);
 
-                        if (!multiblockRecipeLogic.isActive()) continue;
+                    int currentProgress = logic.getProgress();
+                    int maxProgress = logic.getMaxProgress();
 
-                        box = newBox(iProbeInfo);
-                        leftInfo = newVertical(box);
+                    String text;
+                    if (maxProgress < 20) {
+                        text = " / " + maxProgress + " t";
+                    } else {
+                        currentProgress = Math.round(currentProgress / 20.0F);
+                        maxProgress = Math.round(maxProgress / 20.0F);
+                        text = " / " + TextFormattingUtil.formatNumbers(maxProgress) + " s";
+                    }
 
-                        int currentProgress = multiblockRecipeLogic.getProgress();
-                        int maxProgress = multiblockRecipeLogic.getMaxProgress();
+                    if (maxProgress > 0) {
+                        int color = logic.isWorkingEnabled() ? 0xFF4CBB17 : 0xFFBB1C28;
+                        leftInfo.progress(currentProgress, maxProgress, leftInfo.defaultProgressStyle()
+                                .suffix(text)
+                                .filledColor(color)
+                                .alternateFilledColor(color)
+                                .borderColor(0xFF555555).numberFormat(NumberFormat.COMMAS));
+                    }
 
-                        String text;
-                        if (maxProgress < 20) {
-                            text = " / " + maxProgress + " t";
-                        } else {
-                            currentProgress = Math.round(currentProgress / 20.0F);
-                            maxProgress = Math.round(maxProgress / 20.0F);
-                            text = " / " + TextFormattingUtil.formatNumbers(maxProgress) + " s";
-                        }
-
-                        if (maxProgress > 0) {
-                            int color = multiblockRecipeLogic.isWorkingEnabled() ? 0xFF4CBB17 : 0xFFBB1C28;
-                            leftInfo.progress(currentProgress, maxProgress, leftInfo.defaultProgressStyle()
-                                    .suffix(text)
-                                    .filledColor(color)
-                                    .alternateFilledColor(color)
-                                    .borderColor(0xFF555555).numberFormat(NumberFormat.COMMAS));
-                        }
-
+                    CrossRecipeParallelScheduler scheduler = logic.getCrossRecipeScheduler();
+                    if (logic.usesParallelScheduler() && scheduler != null) {
+                        // The scheduler's limit is the whole budget the slots are drawing from, not one slot's share
                         leftInfo.text("{*gregtech.top.parallel*}" + TextFormatting.DARK_PURPLE +
-                                multiblockRecipeLogic.getParallelLimit());
-
-                        // Cross-recipe parallel: show active slot details
-                        if (multiblockRecipeLogic.isCrossRecipeMode() &&
-                                multiblockRecipeLogic.getCrossRecipeScheduler() != null) {
-                            addCrossRecipeSlotInfo(leftInfo,
-                                    multiblockRecipeLogic.getCrossRecipeScheduler());
-                        }
+                                scheduler.getParallelLimit());
+                        addCrossRecipeSlotInfo(leftInfo, scheduler);
+                    } else {
+                        leftInfo.text("{*gregtech.top.parallel*}" + TextFormatting.DARK_PURPLE +
+                                logic.getParallelLimit());
                     }
                 }
             }

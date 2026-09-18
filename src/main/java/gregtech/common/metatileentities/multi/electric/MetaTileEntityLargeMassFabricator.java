@@ -34,10 +34,7 @@ public class MetaTileEntityLargeMassFabricator extends GCYMRecipeMapMultiblockCo
                     .self('S', MetaTileEntityLargeMassFabricator.class)
                     .casing('X', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('G', getCasingState2())
@@ -66,6 +63,11 @@ public class MetaTileEntityLargeMassFabricator extends GCYMRecipeMapMultiblockCo
 
     public static IBlockState getCasingState4() {
         return MetaBlocks.FUSION_CASING.getState(BlockFusionCasing.CasingType.FUSION_COIL);
+    }
+
+    @Override
+    public boolean isThread() {
+        return false;
     }
 
     @Override

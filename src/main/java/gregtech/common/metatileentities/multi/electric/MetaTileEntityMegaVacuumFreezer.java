@@ -46,10 +46,7 @@ public class MetaTileEntityMegaVacuumFreezer extends GCYMRecipeMapMultiblockCont
                     .casing('X', getCasingState())
                     .optionalEnergyInput(8)
                     .optionalLaserInput(1)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .preset(HatchPresets.MUFFLER_IO)
                     .preset(HatchPresets.STANDARD_IO)
                     .block('G', getCasingState2())
@@ -87,6 +84,11 @@ public class MetaTileEntityMegaVacuumFreezer extends GCYMRecipeMapMultiblockCont
 
     public static IBlockState getCasingState5() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.TUNGSTENSTEEL_PIPE);
+    }
+
+    @Override
+    public boolean isThread() {
+        return false;
     }
 
     @Override

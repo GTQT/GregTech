@@ -77,10 +77,7 @@ public class MetaTileEntityMegaAlloyBlastSmelter extends GCYMRecipeMapMultiblock
                     .optionalEnergyInput(8)
                     .optionalLaserInput(1)
                     .maintenance()
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .hatch('M', MultiblockAbility.MUFFLER_HATCH)
                     .any(' ')
@@ -112,6 +109,11 @@ public class MetaTileEntityMegaAlloyBlastSmelter extends GCYMRecipeMapMultiblock
 
     private static IBlockState getGlassState() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.FUSION_GLASS);
+    }
+
+    @Override
+    public boolean isThread() {
+        return false;
     }
 
     public MetaTileEntity createMetaTileEntity(IGregTechTileEntity metaTileEntityHolder) {
@@ -195,11 +197,6 @@ public class MetaTileEntityMegaAlloyBlastSmelter extends GCYMRecipeMapMultiblock
 
     @Override
     public boolean hasMufflerMechanics() {
-        return true;
-    }
-
-    @Override
-    public boolean canBeDistinct() {
         return true;
     }
 }

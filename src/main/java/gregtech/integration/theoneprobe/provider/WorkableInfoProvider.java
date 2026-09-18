@@ -77,7 +77,7 @@ public class WorkableInfoProvider extends CapabilityInfoProvider<IWorkable> {
 
         // Cross-recipe parallel: show active slot details (up to 3 lines + ellipsis)
         if (capability instanceof MultiblockRecipeLogic logic &&
-                logic.isCrossRecipeMode() && logic.getCrossRecipeScheduler() != null) {
+                logic.usesParallelScheduler() && logic.getCrossRecipeScheduler() != null) {
             addCrossRecipeSlotInfo(probeInfo, logic.getCrossRecipeScheduler());
         }
     }

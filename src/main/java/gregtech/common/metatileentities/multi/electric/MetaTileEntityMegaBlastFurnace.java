@@ -76,10 +76,7 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
                     .casing('X', getCasingState())
                     .optionalEnergyInput(8)
                     .optionalLaserInput(1)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .maintenance()
                     .preset(HatchPresets.STANDARD_IO)
                     .frames('F', Materials.NaquadahAlloy)
@@ -128,6 +125,11 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
 
     private static IBlockState getVentState() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.HEAT_VENT);
+    }
+
+    @Override
+    public boolean isThread() {
+        return false;
     }
 
     @Override
@@ -203,11 +205,6 @@ public class MetaTileEntityMegaBlastFurnace extends GCYMRecipeMapMultiblockContr
 
     @Override
     public boolean hasMufflerMechanics() {
-        return true;
-    }
-
-    @Override
-    public boolean canBeDistinct() {
         return true;
     }
 

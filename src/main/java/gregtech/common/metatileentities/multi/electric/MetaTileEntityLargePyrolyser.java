@@ -77,10 +77,7 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
                     .self('S', MetaTileEntityLargePyrolyser.class)
                     .casing('A', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .maintenance()
                     .block('D', getHeatVent())
@@ -111,6 +108,11 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
 
     private static IBlockState getPipeState() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
+    }
+
+    @Override
+    public boolean isThread() {
+        return false;
     }
 
     @Override
@@ -207,11 +209,6 @@ public class MetaTileEntityLargePyrolyser extends GCYMRecipeMapMultiblockControl
 
     protected int getCoilTier() {
         return this.coilTier;
-    }
-
-    @Override
-    public boolean canBeDistinct() {
-        return true;
     }
 
     @SuppressWarnings("InnerClassMayBeStatic")

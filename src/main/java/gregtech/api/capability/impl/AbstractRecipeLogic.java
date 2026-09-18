@@ -109,6 +109,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     private int parallelLimit = 1;
     /**
+     * DO NOT use the threadLimit field directly, EVER use {@link AbstractRecipeLogic#setThreadLimit(int)} instead
+     */
+    private int threadLimit = 1;
+    /**
      * List of non-chanced item outputs.The actual non-chanced item outputs are taken from the item outputs saved list,
      * taking the first n elements.
      */
@@ -803,6 +807,37 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
+     * DO NOT use the threadLimit field directly, EVER
+     *
+     * @return the current thread limit of the logic
+     */
+    public int getThreadLimit() {
+        return threadLimit;
+    }
+
+    /**
+     * Set the thread limit
+     *
+     * @param amount the amount to set
+     */
+    public void setThreadLimit(int amount) {
+        threadLimit = Math.max(1, amount);
+    }
+
+    /**
+     * Whether cross-recipe parallel is enabled: the slot count is unbounded and the parallel budget is
+     * distributed elastically between the different recipes according to the available inputs.
+     * <p>
+     * Disabled by default, which caps the machine at a single recipe per thread. Override this in the
+     * machine's own recipe logic to opt in.
+     *
+     * @return true if recipes may share the parallel budget across more slots than the thread limit
+     */
+    public boolean isCrossRecipeParallelEnabled() {
+        return false;
+    }
+
+    /**
      * Sets an EU/t discount to apply to a machine when running recipes.<br> This does NOT affect recipe lookup voltage,
      * even if the discount drops it to a lower voltage tier.<br> This discount is applied pre-parallel/pre-overclock.
      *
@@ -1476,9 +1511,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
-     * Copies the player-configured toggles from another logic instance, leaving recipe progress untouched. Controllers
-     * that rebuild their logic list at runtime (see {@code refreshThread}) must call this, otherwise the rebuild
-     * silently resets batch mode, recipe lock and the other button states back to their defaults.
+     * Copies the player-configured toggles from another logic instance, leaving recipe progress untouched. Any code
+     * that hands this logic's role to a freshly created instance must call this, otherwise the swap silently resets
+     * batch mode, recipe lock and the other button states back to their defaults.
      *
      * @param other the logic whose configuration is kept
      */

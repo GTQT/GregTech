@@ -33,10 +33,7 @@ public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockCont
                     .self('S', MetaTileEntityLargeGasCollector.class)
                     .casing('C', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('A', getBoilerCasingState())
@@ -64,6 +61,11 @@ public class MetaTileEntityLargeGasCollector extends GCYMRecipeMapMultiblockCont
 
     private static IBlockState getGlassState() {
         return MetaBlocks.TRANSPARENT_CASING.getState(BlockGlassCasing.CasingType.LAMINATED_GLASS);
+    }
+
+    @Override
+    public boolean isThread() {
+        return false;
     }
 
     @Override

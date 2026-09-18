@@ -46,10 +46,7 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
                     .self('S', MetaTileEntityLargeChemicalComplex.class)
                     .casing('X', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('P', getCasingState2())
@@ -74,6 +71,11 @@ public class MetaTileEntityLargeChemicalComplex extends GCYMRecipeMapMultiblockC
 
     public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.POLYTETRAFLUOROETHYLENE_PIPE);
+    }
+
+    @Override
+    public boolean isThread() {
+        return false;
     }
 
     @Override

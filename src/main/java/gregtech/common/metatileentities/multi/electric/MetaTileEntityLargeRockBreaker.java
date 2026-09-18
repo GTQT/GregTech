@@ -1,6 +1,6 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
+import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
@@ -22,7 +22,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.jetbrains.annotations.NotNull;
 
-public class MetaTileEntityLargeRockBreaker extends GCYMAdvanceRecipeMapMultiblockController {
+public class MetaTileEntityLargeRockBreaker extends GCYMRecipeMapMultiblockController {
 
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_rock_breaker", () ->
             DeclarativePatternBuilder.start()
@@ -32,11 +32,7 @@ public class MetaTileEntityLargeRockBreaker extends GCYMAdvanceRecipeMapMultiblo
                     .self('S', MetaTileEntityLargeRockBreaker.class)
                     .casing('C', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
-                    .threadHatch()
+                    .autoGCYM(true, true, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .maintenance()
                     .hatch('M', MultiblockAbility.MUFFLER_HATCH)
@@ -73,10 +69,5 @@ public class MetaTileEntityLargeRockBreaker extends GCYMAdvanceRecipeMapMultiblo
     @Override
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
-    }
-
-    @Override
-    public boolean canBeDistinct() {
-        return true;
     }
 }

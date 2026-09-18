@@ -99,11 +99,6 @@ public class MetaTileEntityLargeChemicalReactor extends RecipeMapMultiblockContr
         TooltipBuilder.create().addPerfectOC().build(this, tooltip);
     }
 
-    @Override
-    public boolean canBeDistinct() {
-        return true;
-    }
-
     @SideOnly(Side.CLIENT)
     @NotNull
     @Override

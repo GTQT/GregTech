@@ -4,7 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.capability.IAccelerateMultiblock;
 import gregtech.api.capability.IOverclockMultiblock;
 import gregtech.api.capability.IParallelMultiblock;
-import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
+import gregtech.api.capability.IThreadMultiblock;
 import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
@@ -32,6 +32,18 @@ public class GCYMMultiblockRecipeLogic extends MultiblockRecipeLogic {
     public int getParallelLimit() {
         if (metaTileEntity instanceof IParallelMultiblock parallel && parallel.isParallel()) {
             return parallel.getParallel();
+        }
+        return 1;
+    }
+
+    /**
+     * Pulled from the controller on every read, exactly like {@link #getParallelLimit()} — the thread hatch, not
+     * the inherited field, is what decides how many recipes run at once.
+     */
+    @Override
+    public int getThreadLimit() {
+        if (metaTileEntity instanceof IThreadMultiblock thread && thread.isThread()) {
+            return thread.getThread();
         }
         return 1;
     }
@@ -73,9 +85,6 @@ public class GCYMMultiblockRecipeLogic extends MultiblockRecipeLogic {
     @Override
     public long getMaxVoltage() {
         if (!ConfigHolder.globalMultiblocks.enableTieredCasings)
-            return super.getMaxVoltage();
-
-        if (getMetaTileEntity() instanceof GCYMAdvanceRecipeMapMultiblockController controller && !controller.isTiered())
             return super.getMaxVoltage();
 
         if (getMetaTileEntity() instanceof GCYMRecipeMapMultiblockController controller && !controller.isTiered())

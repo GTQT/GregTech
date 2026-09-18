@@ -1,6 +1,6 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
+import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
@@ -33,7 +33,7 @@ import java.util.List;
 import static gregtech.api.util.Mods.Names.GTFO;
 import static gregtech.api.util.RelativeDirection.*;
 
-public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblockController {
+public class MetaTileEntityLargeAssembler extends GCYMRecipeMapMultiblockController {
 
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_assembler", () ->
             DeclarativePatternBuilder.start(FRONT, UP, RIGHT)
@@ -43,11 +43,7 @@ public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblock
                     .self('S',MetaTileEntityLargeAssembler.class)
                     .casing('X', getCasingState())
                     .energyInput(1)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
-                    .threadHatch()
+                    .autoGCYM(true, true, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('C', getCasingState2())
@@ -107,11 +103,6 @@ public class MetaTileEntityLargeAssembler extends GCYMAdvanceRecipeMapMultiblock
     @Override
     protected @NotNull OrientedOverlayRenderer getFrontOverlay() {
         return Textures.LARGE_ASSEMBLER_OVERLAY;
-    }
-
-    @Override
-    public boolean canBeDistinct() {
-        return true;
     }
 
     @Override

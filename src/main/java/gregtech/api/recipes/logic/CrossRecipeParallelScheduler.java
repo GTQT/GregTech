@@ -33,6 +33,15 @@ import java.util.concurrent.ConcurrentHashMap;
  *   <li>Slot count = number of distinct recipes currently running (dynamic).</li>
  * </ul>
  *
+ * <p>The two configuration knobs {@link #setMaxSlots(int)} and {@link #setPerSlotParallelCap(int)}
+ * turn this into both of the machine's parallel modes:
+ * <ul>
+ *   <li><b>Threaded</b> ({@code maxSlots = thread count}, {@code perSlotParallelCap = parallel hatch}):
+ *       at most one recipe per thread, each free to use its own parallel budget.</li>
+ *   <li><b>Cross-recipe</b> ({@code maxSlots = 0}, {@code perSlotParallelCap = 0}): unbounded slots
+ *       sharing a single parallel budget, split elastically by what the inputs allow.</li>
+ * </ul>
+ *
  * <p>Design principles:
  * <ul>
  *   <li><b>Shared Power Pool</b>: All active slots share the machine's total power budget.
@@ -80,6 +89,10 @@ public class CrossRecipeParallelScheduler {
 
     // --- Configuration ---
     private int parallelLimit;
+    // Cap on the number of concurrently active slots; 0 means unlimited
+    private int maxSlots = 0;
+    // Cap on a single slot's parallel count; 0 means unlimited
+    private int perSlotParallelCap = 0;
     // Overclock reference voltage (used for OC tier calculation, from getMaximumOverclockVoltage())
     private long maxVoltage;
     // Total power budget = sum of each energy hatch's (voltage × amperage), used for parallel/power limiting
@@ -113,6 +126,37 @@ public class CrossRecipeParallelScheduler {
     }
 
     /**
+     * Sets the cap on the number of concurrently active slots.
+     * A value of 0 (the default) means no cap, which is the cross-recipe behaviour: as many
+     * distinct recipes may run at once as the parallel and power budgets allow.
+     * A value of {@code n >= 1} is the threaded behaviour: at most {@code n} recipes run at once.
+     *
+     * @param maxSlots the slot cap, or 0 for unlimited
+     */
+    public void setMaxSlots(int maxSlots) {
+        this.maxSlots = Math.max(0, maxSlots);
+    }
+
+    public int getMaxSlots() {
+        return maxSlots;
+    }
+
+    /**
+     * Sets the cap on a single slot's parallel count, so that one recipe cannot consume the whole
+     * parallel budget when several slots are expected to run side by side.
+     * A value of 0 (the default) means no cap.
+     *
+     * @param perSlotParallelCap the per-slot parallel cap, or 0 for unlimited
+     */
+    public void setPerSlotParallelCap(int perSlotParallelCap) {
+        this.perSlotParallelCap = Math.max(0, perSlotParallelCap);
+    }
+
+    public int getPerSlotParallelCap() {
+        return perSlotParallelCap;
+    }
+
+    /**
      * Sets the overclock reference voltage for this scheduler.
      * This is used as the ceiling for OC tier calculation (from getMaximumOverclockVoltage()),
      * NOT for power budget limiting.
@@ -140,10 +184,14 @@ public class CrossRecipeParallelScheduler {
      * Acquires an execution slot (from the pool or newly created) and adds it to the active list.
      * Called by the owning RecipeLogic when a recipe has been found and configured.
      *
-     * @return the slot ready to be configured with a recipe
+     * @return the slot ready to be configured with a recipe, or null if the slot cap is already reached
      */
-    @NotNull
+    @Nullable
     public RecipeSlot acquireSlot() {
+        if (maxSlots > 0 && activeSlots.size() >= maxSlots) {
+            return null;
+        }
+
         RecipeSlot slot;
         if (!slotPool.isEmpty()) {
             slot = slotPool.remove(slotPool.size() - 1);
@@ -284,9 +332,12 @@ public class CrossRecipeParallelScheduler {
     }
 
     /**
-     * @return true if there is remaining parallel budget for new recipes
+     * @return true if there is remaining parallel budget and a free slot for new recipes
      */
     public boolean canAcceptMoreRecipes() {
+        if (maxSlots > 0 && activeSlots.size() >= maxSlots) {
+            return false;
+        }
         return getRemainingParallelBudget() > 0 && getRemainingPowerBudget() > 0;
     }
 
@@ -304,6 +355,22 @@ public class CrossRecipeParallelScheduler {
         int total = 0;
         for (RecipeSlot slot : activeSlots) {
             total += slot.getParallelCount();
+        }
+        return total;
+    }
+
+    /**
+     * Parallel count of the slots that are still progressing. Unlike {@link #getTotalParallelCount()},
+     * this excludes slots whose outputs are blocked, so it is the value to show to players.
+     *
+     * @return the total parallel count of the running slots
+     */
+    public int getRunningParallelCount() {
+        int total = 0;
+        for (RecipeSlot slot : activeSlots) {
+            if (slot.isRunning()) {
+                total += slot.getParallelCount();
+            }
         }
         return total;
     }

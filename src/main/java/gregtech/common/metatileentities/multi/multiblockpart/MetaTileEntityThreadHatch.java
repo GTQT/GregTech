@@ -3,7 +3,6 @@ package gregtech.common.metatileentities.multi.multiblockpart;
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IRecipeMapHolder;
-import gregtech.api.capability.IThreadController;
 import gregtech.api.capability.IThreadHatch;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
@@ -76,10 +75,9 @@ public class MetaTileEntityThreadHatch extends MetaTileEntityMultiblockPart
 
     @Override
     public void setCurrentThread(int ThreadAmount) {
+        // No callback into the controller: the recipe logic pulls the thread count every tick, exactly like it
+        // pulls the parallel count from the parallel hatch.
         this.currentThread = MathHelper.clamp(ThreadAmount, 1, this.maxThread);
-        if (this.getController() instanceof IThreadController iThreadController) {
-            iThreadController.refreshThread(currentThread);
-        }
     }
 
     @Override
@@ -239,6 +237,7 @@ public class MetaTileEntityThreadHatch extends MetaTileEntityMultiblockPart
     @Override
     public void receiveInitialSyncData(PacketBuffer buf) {
         super.receiveInitialSyncData(buf);
-        this.currentThread = buf.readInt();
+        // Clamped like readFromNBT: an out-of-range value would otherwise reach the controller unchecked
+        this.currentThread = MathHelper.clamp(buf.readInt(), 1, this.maxThread);
     }
 }

@@ -6378,6 +6378,17 @@ tile.gregtech.thread.tooltip.1=本设备基于线程仓内线程数量分化出�
 tile.gregtech.thread.tooltip.2=每个线程仓拥有独立的工作逻辑，配方检索，配方内容，耗时，耗电均相互独立
 tile.gregtech.thread.tooltip.3=在拥有并行仓的情况下，每个线程仓都拥有同等数量的并行，且享受耗时减免
 
+gregtech.tooltip.overclock_avaliable=-超频控制：
+gregtech.tooltip.overclock_enabled=可以通过§b超频控制仓§7调整每次超频的耗时缩减倍率。
+tile.gregtech.overclock.tooltip.1=每次超频时，耗时乘以 1/除数，乘算叠加。
+tile.gregtech.overclock.tooltip.2=除数可在 2 ~ (仓等级-6) 之间调整，仓等级越高除数上限越大。
+tile.gregtech.overclock.tooltip.3=除数越大，每次超频缩减的耗时越多。
+
+gregtech.tooltip.accelerate_avaliable=-加速控制：
+gregtech.tooltip.accelerate_enabled=可以通过§b加速控制仓§7直接缩放本机器的耗时。
+tile.gregtech.accelerate.tooltip.1=按百分比缩放配方耗时，在原计算结果之上乘算。
+tile.gregtech.accelerate.tooltip.2=配方电压等级高于仓等级时，每高一级倍率增加 0.2，最高 1.0（即无加速效果）。
+
 gregtech.tooltip.tiered_avaliable=-控制单元系统：
 gregtech.tooltip.tiered_hatch_enabled=需要§b控制单元§7以运行。
 tile.gregtech.tiered.tooltip.1=机器只能运行不超过控制单元等级电压的配方

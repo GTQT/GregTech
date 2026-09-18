@@ -1,6 +1,6 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
+import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
@@ -21,7 +21,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
 
-public class MetaTileEntityLargeMacerator extends GCYMAdvanceRecipeMapMultiblockController {
+public class MetaTileEntityLargeMacerator extends GCYMRecipeMapMultiblockController {
 
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_macerator", () ->
             DeclarativePatternBuilder.start()
@@ -33,11 +33,7 @@ public class MetaTileEntityLargeMacerator extends GCYMAdvanceRecipeMapMultiblock
                     .self('S', MetaTileEntityLargeMacerator.class)
                     .casing('X', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
-                    .threadHatch()
+                    .autoGCYM(true, true, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('C', getCasingState2())

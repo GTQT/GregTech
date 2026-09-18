@@ -8,6 +8,13 @@ package gregtech.api.capability;
 public interface IAccelerateMultiblock {
 
     /**
+     * Whether this multiblock takes its duration scaling from an {@link IAccelerateHatch}, mirroring
+     * {@link IParallelMultiblock#isParallel()}: it states that the machine is accelerate-hatch-capable, while the
+     * hatch supplies the multiplier.
+     */
+    boolean isAccelerate();
+
+    /**
      * Get the effective speed multiplier from the AccelerateHatch,
      * considering voltage penalty (recipe tier vs hatch tier).
      *

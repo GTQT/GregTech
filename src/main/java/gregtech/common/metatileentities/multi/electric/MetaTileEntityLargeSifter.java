@@ -1,6 +1,6 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
+import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
@@ -24,7 +24,7 @@ import org.jetbrains.annotations.NotNull;
 
 import static gregtech.api.util.RelativeDirection.*;
 
-public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockController {
+public class MetaTileEntityLargeSifter extends GCYMRecipeMapMultiblockController {
 
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_sifter", () ->
             DeclarativePatternBuilder.start(RIGHT, BACK, UP)
@@ -36,11 +36,7 @@ public class MetaTileEntityLargeSifter extends GCYMAdvanceRecipeMapMultiblockCon
                     .self('S', MetaTileEntityLargeSifter.class)
                     .casing('X', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
-                    .threadHatch()
+                    .autoGCYM(true, true, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('C', getCasingState2())

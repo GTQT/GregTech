@@ -1402,6 +1402,15 @@ public class DeclarativePatternBuilder {
             return hatch(MultiblockAbility.THREAD_HATCH, 0,1);
         }
 
+        public CasingSlot autoGCYM(boolean isParallel, boolean isThread, boolean isOverclock, boolean isAccelerate) {
+            return hatch(MultiblockAbility.PARALLEL_HATCH, 0, isParallel ? 1 : 0)
+                    .hatch(MultiblockAbility.OVERCLOCK_HATCH, 0, isOverclock ? 1 : 0)
+                    .hatch(MultiblockAbility.ACCELERATE_HATCH, 0, isAccelerate ? 1 : 0)
+                    .hatch(MultiblockAbility.THREAD_HATCH, 0, isThread ? 1 : 0)
+                    .hatch(MultiblockAbility.TIERED_HATCH, 0,
+                            ConfigHolder.globalMultiblocks.enableTieredCasings ? 1 : 0);
+        }
+
         public CasingSlot auto() {
             return muffler()
                     .maintenance()

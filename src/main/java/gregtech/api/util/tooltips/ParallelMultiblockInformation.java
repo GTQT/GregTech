@@ -7,7 +7,7 @@ import net.minecraft.util.text.TextFormatting;
 
 import java.util.List;
 
-public class GGCYMMMultiblockInformation extends AbstractTooltipComponent {
+public class ParallelMultiblockInformation extends AbstractTooltipComponent {
 
     @Override
     public void addInformation(MetaTileEntity metaTileEntity, List<String> tooltip) {

@@ -34,10 +34,7 @@ public class MetaTileEntityLargeReplicator extends GCYMRecipeMapMultiblockContro
                     .self('S', MetaTileEntityLargeReplicator.class)
                     .casing('X', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('C', getCasingState2())
@@ -65,6 +62,11 @@ public class MetaTileEntityLargeReplicator extends GCYMRecipeMapMultiblockContro
 
     public static IBlockState getCasingState4() {
         return MetaBlocks.UNIQUE_CASING.getState(BlockUniqueCasing.UniqueCasingType.HEAT_VENT);
+    }
+
+    @Override
+    public boolean isThread() {
+        return false;
     }
 
     @Override

@@ -59,10 +59,7 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
                     .casing('X', getCasingState())
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .block('H', getCasingState())
                     .buildStructureDefinition()
     );
@@ -113,8 +110,8 @@ public class MetaTileEntityMegaChemicalReactor extends GCYMRecipeMapMultiblockCo
     }
 
     @Override
-    public boolean canBeDistinct() {
-        return true;
+    public boolean isThread() {
+        return false;
     }
 
     @Override

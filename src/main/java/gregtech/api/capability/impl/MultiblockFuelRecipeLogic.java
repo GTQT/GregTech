@@ -81,7 +81,7 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     public void update() {
-        if (!isCrossRecipeMode() && maxProgressTime == CROSS_RECIPE_PROGRESS_SENTINEL) {
+        if (!usesParallelScheduler() && maxProgressTime == CROSS_RECIPE_PROGRESS_SENTINEL) {
             invalidate();
         }
 
@@ -91,6 +91,16 @@ public class MultiblockFuelRecipeLogic extends MultiblockRecipeLogic {
         } else {
             totalContinuousRunningTime = 0;
         }
+    }
+
+    /**
+     * Generators never parallelize through the scheduler. Their parallel limit reports
+     * {@link Integer#MAX_VALUE} to mean "only limited by voltage", which the scheduler would otherwise read
+     * as an unbounded parallel budget.
+     */
+    @Override
+    public boolean usesParallelScheduler() {
+        return false;
     }
 
     @Override

@@ -72,10 +72,7 @@ public class MetaTileEntityLargeDistillery extends GCYMRecipeMapMultiblockContro
                             .energyInput(1, 2)
                             .fluidInput(1, 2)
                             .itemInput(1, 2)
-                            .tieredHatch()
-                            .parallelHatch()
-                            .overclockHatch()
-                            .accelerationHatch()
+                            .autoGCYM(true, false, true, true)
                             .maintenance()
                             .casing('X', getCasingState())
                             .custom(Elements.abilitiesPerLayer(0, 1, 1, MultiblockAbility.EXPORT_FLUIDS), 12)
@@ -100,6 +97,11 @@ public class MetaTileEntityLargeDistillery extends GCYMRecipeMapMultiblockContro
 
     public static IBlockState getCasingState2() {
         return MetaBlocks.BOILER_CASING.getState(BlockBoilerCasing.BoilerCasingType.STEEL_PIPE);
+    }
+
+    @Override
+    public boolean isThread() {
+        return false;
     }
 
     @Override

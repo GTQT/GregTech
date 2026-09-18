@@ -1,6 +1,6 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
+import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
@@ -31,7 +31,7 @@ import java.util.List;
 import static gregtech.api.pattern.FluidStructureElements.*;
 import static gregtech.api.util.RelativeDirection.*;
 
-public class MetaTileEntityLargeChemicalBath extends GCYMAdvanceRecipeMapMultiblockController {
+public class MetaTileEntityLargeChemicalBath extends GCYMRecipeMapMultiblockController {
 
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_chemical_bath", () ->
             DeclarativePatternBuilder.start(RIGHT, BACK, UP)
@@ -41,11 +41,7 @@ public class MetaTileEntityLargeChemicalBath extends GCYMAdvanceRecipeMapMultibl
                     .self('S', MetaTileEntityLargeChemicalBath.class)
                     .casing('X', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
-                    .threadHatch()
+                    .autoGCYM(true, true, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('C', getCasingState2())
@@ -70,7 +66,7 @@ public class MetaTileEntityLargeChemicalBath extends GCYMAdvanceRecipeMapMultibl
 
     @Override
     protected void formStructure(@NotNull FormedStructureView formed) {
-        formAdvancedRecipeMapStructure(formed);
+        formRecipeMapStructure(formed);
         List<BlockPos> pendingPositions = formed.getAggregate(FLUID_BLOCK_POSITIONS);
         this.waterPositions = pendingPositions == null ? new ArrayList<>() : new ArrayList<>(pendingPositions);
         this.waterFilled = waterPositions.isEmpty();
@@ -123,10 +119,5 @@ public class MetaTileEntityLargeChemicalBath extends GCYMAdvanceRecipeMapMultibl
     @Override
     protected @NotNull OrientedOverlayRenderer getFrontOverlay() {
         return Textures.LARGE_CHEMICAL_BATH_OVERLAY;
-    }
-
-    @Override
-    public boolean canBeDistinct() {
-        return true;
     }
 }

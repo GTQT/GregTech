@@ -1,6 +1,6 @@
 package gregtech.common.metatileentities.multi.electric;
 
-import gregtech.api.metatileentity.GCYMAdvanceRecipeMapMultiblockController;
+import gregtech.api.metatileentity.GCYMRecipeMapMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
@@ -21,7 +21,7 @@ import net.minecraft.util.ResourceLocation;
 
 import org.jetbrains.annotations.NotNull;
 
-public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultiblockController {
+public class MetaTileEntityLargeArcFurnace extends GCYMRecipeMapMultiblockController {
 
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild("gcym:large_arc_furnace", () ->
             DeclarativePatternBuilder.start()
@@ -35,11 +35,7 @@ public class MetaTileEntityLargeArcFurnace extends GCYMAdvanceRecipeMapMultibloc
                     .energyInput(1,4)
                     .maintenance()
                     .preset(HatchPresets.STANDARD_IO)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
-                    .threadHatch()
+                    .autoGCYM(true, true, true, true)
                     .block('C', getCasingState2())
                     .hatch('M', MultiblockAbility.MUFFLER_HATCH)
                     .air('A')

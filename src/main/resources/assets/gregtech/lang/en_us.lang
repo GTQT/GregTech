@@ -6354,6 +6354,17 @@ tile.gregtech.thread.tooltip.1=This device creates a number of cores based on th
 tile.gregtech.thread.tooltip.2=Each thread hatch has independent working logic, recipe lookup, recipe contents, time, and energy consumption.
 tile.gregtech.thread.tooltip.3=With a parallel hatch, each thread hatch has the same number of parallels and benefits from time reduction.
 
+gregtech.tooltip.overclock_avaliable=-Overclock Control:
+gregtech.tooltip.overclock_enabled=Can change how much time an overclock shaves off via the §bOverclock Control Hatch§7.
+tile.gregtech.overclock.tooltip.1=Each overclock multiplies duration by 1/divisor, applied multiplicatively.
+tile.gregtech.overclock.tooltip.2=The divisor can be set from 2 up to (hatch tier - 6); a higher tier hatch raises that ceiling.
+tile.gregtech.overclock.tooltip.3=A larger divisor means more time is shaved off per overclock.
+
+gregtech.tooltip.accelerate_avaliable=-Acceleration Control:
+gregtech.tooltip.accelerate_enabled=Can scale this machine's duration directly via the §bAcceleration Control Hatch§7.
+tile.gregtech.accelerate.tooltip.1=Scales recipe duration by a percentage, multiplied on top of the computed result.
+tile.gregtech.accelerate.tooltip.2=When the recipe tier is above the hatch tier, each extra tier adds 0.2 to the multiplier, capped at 1.0 (no acceleration).
+
 gregtech.tooltip.tiered_avaliable=-Control Unit System:
 gregtech.tooltip.tiered_hatch_enabled=Requires §bControl Unit§7 to operate.
 tile.gregtech.tiered.tooltip.1=The machine can only run recipes with a voltage tier no higher than that of the Control Unit.

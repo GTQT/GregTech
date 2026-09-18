@@ -352,7 +352,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
         List<ITextComponent> list = new ArrayList<>();
 
         // Cross-recipe parallel: show slot details instead of single progress
-        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+        if (recipeMapWorkable.usesParallelScheduler() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
             addCrossRecipeTricorderInfo(list, recipeMapWorkable.getCrossRecipeScheduler());
         } else if (recipeMapWorkable.getMaxProgress() > 0) {
             list.add(new TextComponentTranslation("behavior.tricorder.workable_progress",

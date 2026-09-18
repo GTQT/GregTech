@@ -5,18 +5,17 @@ import gregtech.api.capability.IEnergyContainer;
 import gregtech.api.capability.impl.AbstractRecipeLogic;
 import gregtech.api.capability.impl.ComputationRecipeLogic;
 import gregtech.api.capability.impl.MultiblockRecipeLogic;
-import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
-import gregtech.api.recipes.logic.RecipeSlot;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.mui.GTByteBufAdapters;
+import gregtech.api.mui.drawable.GTObjectDrawable;
 import gregtech.api.pattern.CountLimitError;
 import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PatternStringError;
-import gregtech.api.mui.drawable.GTObjectDrawable;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.chance.output.impl.ChancedFluidOutput;
 import gregtech.api.recipes.chance.output.impl.ChancedItemOutput;
+import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.GTHashMaps;
 import gregtech.api.util.GTUtility;
@@ -625,7 +624,7 @@ public class MultiblockUIBuilder {
 
         // Sync the branch condition so both sides take the same path
         boolean isCrossRecipe = getSyncer().syncBoolean(
-                logic.isCrossRecipeMode() && logic.getCrossRecipeScheduler() != null);
+                logic.usesParallelScheduler() && logic.getCrossRecipeScheduler() != null);
 
         if (isCrossRecipe) {
             addSyncedCrossRecipeDisplay(logic);

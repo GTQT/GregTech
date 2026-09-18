@@ -61,7 +61,7 @@ public abstract class NoEnergyMultiblockController extends RecipeMapMultiblockCo
         List<ITextComponent> list = new ArrayList<>();
 
         // Cross-recipe parallel: show slot details instead of single progress
-        if (recipeMapWorkable.isCrossRecipeMode() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
+        if (recipeMapWorkable.usesParallelScheduler() && recipeMapWorkable.getCrossRecipeScheduler() != null) {
             RecipeMapMultiblockController.addCrossRecipeTricorderInfo(list,
                     recipeMapWorkable.getCrossRecipeScheduler());
         } else if (recipeMapWorkable.getMaxProgress() > 0) {

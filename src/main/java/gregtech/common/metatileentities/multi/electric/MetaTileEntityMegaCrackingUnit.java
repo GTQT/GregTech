@@ -64,10 +64,7 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
                     .optionalEnergyInput(8)
                     .optionalLaserInput(1)
                     .preset(HatchPresets.MUFFLER_IO)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .block('G', getGlassState())
                     .tieredCasing('L', GTCasingGroups.heatingCoils().group())
                     .withChannel(GTCasingGroups.heatingCoils().channel())
@@ -139,8 +136,8 @@ public class MetaTileEntityMegaCrackingUnit extends GCYMRecipeMapMultiblockContr
     }
 
     @Override
-    public boolean canBeDistinct() {
-        return true;
+    public boolean isThread() {
+        return false;
     }
 
     @Override

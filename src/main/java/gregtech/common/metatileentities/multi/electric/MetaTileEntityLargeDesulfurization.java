@@ -55,10 +55,7 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
                     .self('S', MetaTileEntityLargeDesulfurization.class)
                     .casing('C', getCasingState())
                     .energyInput(1, 2)
-                    .tieredHatch()
-                    .parallelHatch()
-                    .overclockHatch()
-                    .accelerationHatch()
+                    .autoGCYM(true, false, true, true)
                     .preset(HatchPresets.STANDARD_IO)
                     .preset(HatchPresets.MUFFLER_IO)
                     .block('P', getCasingState2())
@@ -156,8 +153,8 @@ public class MetaTileEntityLargeDesulfurization extends GCYMRecipeMapMultiblockC
     }
 
     @Override
-    public boolean canBeDistinct() {
-        return true;
+    public boolean isThread() {
+        return false;
     }
 
     @Override
