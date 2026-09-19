@@ -5311,6 +5311,7 @@ gregtech.machine.creative_input_bus.tooltip=Supplies configured template items i
 gregtech.machine.creative_input_hatch.name=Creative Input Hatch
 gregtech.machine.creative_input_hatch.tooltip=Supplies the configured template fluid infinitely to multiblock recipes.
 gregtech.machine.creative_parallel_hatch.name=Creative Parallel Hatch
+gregtech.machine.creative_cross_parallel_hatch.name=Creative Cross Parallel Hatch
 gregtech.machine.creative_overclock_hatch.name=Creative Overclock Hatch
 gregtech.machine.creative_accelerate_hatch.name=Creative Accelerate Hatch
 gregtech.machine.creative_thread_hatch.name=Creative Thread Hatch
@@ -8402,6 +8403,26 @@ gregtech.machine.parallel_hatch.max.name=Parallel Hatch(MAX)
 
 gregtech.machine.parallel_hatch.tooltip=Allows up to §b%s§7 parallel recipes.
 gregtech.machine.parallel_hatch.display=Adjust the maximum parallel of the multiblock
+
+gregtech.machine.cross_parallel_hatch.ulv.name=Cross Parallel Hatch(ULV)
+gregtech.machine.cross_parallel_hatch.lv.name=Cross Parallel Hatch(LV)
+gregtech.machine.cross_parallel_hatch.mv.name=Cross Parallel Hatch(MV)
+gregtech.machine.cross_parallel_hatch.hv.name=Cross Parallel Hatch(HV)
+gregtech.machine.cross_parallel_hatch.ev.name=Cross Parallel Hatch(EV)
+gregtech.machine.cross_parallel_hatch.iv.name=Cross Parallel Hatch(IV)
+gregtech.machine.cross_parallel_hatch.luv.name=Cross Parallel Hatch(LuV)
+gregtech.machine.cross_parallel_hatch.zpm.name=Cross Parallel Hatch(ZPM)
+gregtech.machine.cross_parallel_hatch.uv.name=Cross Parallel Hatch(UV)
+gregtech.machine.cross_parallel_hatch.uhv.name=Cross Parallel Hatch(UHV)
+gregtech.machine.cross_parallel_hatch.uev.name=Cross Parallel Hatch(UEV)
+gregtech.machine.cross_parallel_hatch.uiv.name=Cross Parallel Hatch(UIV)
+gregtech.machine.cross_parallel_hatch.uxv.name=Cross Parallel Hatch(UXV)
+gregtech.machine.cross_parallel_hatch.opv.name=Cross Parallel Hatch(OPV)
+gregtech.machine.cross_parallel_hatch.max.name=Cross Parallel Hatch(MAX)
+
+gregtech.machine.cross_parallel_hatch.tooltip=Cross-recipe parallel: the budget is split elastically between recipes, with no cap on the slot count.
+gregtech.machine.cross_parallel_hatch.incompatible=§cIncompatible with the Thread Hatch§7 — the thread count is ignored when both are fitted.
+gregtech.machine.cross_parallel_hatch.display=Adjust the parallel budget of the multiblock
 
 gregtech.machine.tiered_hatch.ulv.name=Primitive Voltage Control Unit
 gregtech.machine.tiered_hatch.lv.name=Basic Voltage Control Unit

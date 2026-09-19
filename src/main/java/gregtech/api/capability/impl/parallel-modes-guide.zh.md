@@ -9,7 +9,7 @@
 | --- | --- | --- | --- |
 | **并行** | 一个槽位内同时做几份**同一个**配方 | `getParallelLimit()` | 1 |
 | **多线程** | 同时允许几个**不同**配方在跑 | `getThreadLimit()` | 1 |
-| **跨并** | 槽位数不封顶，并行预算按进料弹性分配 | `isCrossRecipeParallelEnabled()` | false |
+| **跨并** | 槽位数不封顶，并行预算按进料弹性分配 | 跨并控制仓 → `isCrossRecipeParallelEnabled()` | false |
 
 三者都定义在 `AbstractRecipeLogic`，是**拉取式**的：调度器每个 tick 重新读一次，
 只有它们全为假时机器才回落到 `AbstractRecipeLogic` 的经典单配方路径
@@ -37,13 +37,37 @@ scheduler.setPerSlotParallelCap(threaded ? parallel : 0);  // 0 = 不限
 | --- | --- | --- | --- | --- |
 | 单配方 | 默认 | 1 | 不限 | `parallelLimit` |
 | 多线程 | `threadLimit > 1` | 线程数 T | `parallelLimit` P | `T × P` |
-| 跨并 | 覆写返回 true | 不限 | 不限 | `parallelLimit` |
+| 跨并 | 装跨并控制仓（或覆写返回 true） | 不限 | 不限 | `parallelLimit` |
 
 槽位是这样被填的（`fillSchedulerSlots`）：先用缓存的上次配方占一个槽，再用 `RecipeIterator`
 遍历所有**不同**配方，每认领一个就 `exclude` 掉——所以多个槽天然跑不同的配方。
 第一阶段只算并行不扣料，第二阶段才按基础功率比例分配超频预算并真正消耗输入。
 
-## 3. 招式一：只要跨配方并行（最简，一个覆写）
+## 3. 招式一：跨配方并行
+
+### 3.1 装跨并控制仓（推荐）
+
+`MetaTileEntityCrossParallelHatch` 和普通并行仓**共用同一个 ability**
+（`MultiblockAbility.PARALLEL_HATCH`），只是多了一个"我要跨并"的标记。
+所以结构上不需要任何额外声明：**凡是能装并行仓的机器，直接装跨并控制仓就是跨并模式**。
+
+机器侧要做的只有一件事——把标记接到逻辑上。继承 `GCYMMultiblockRecipeLogic` 的话这一步已经做好了：
+
+```java
+    @Override
+    public boolean isCrossRecipeParallelEnabled() {
+        return metaTileEntity instanceof IParallelMultiblock parallel && parallel.isParallel() &&
+                parallel.isCrossParallel();
+    }
+```
+
+自己写的逻辑类照抄这个即可，控制器侧需要实现 `IParallelMultiblock#isCrossParallel()`——
+读装上的那个仓的 `IParallelHatch#isCrossParallel()`。
+
+> 跨并控制仓的 tooltip 已标注**与线程控制仓不兼容**：开跨并后
+> `threaded = !crossRecipe && threads > 1` 为假，线程倍率不再生效。
+
+### 3.2 覆写方法（非 GCYM 机器，或想写死行为）
 
 跨并对控制器没有任何要求，任意 `MultiblockRecipeLogic` 子类都行。
 在自己的机器类里放一个内部逻辑类，覆写两个方法：
@@ -202,4 +226,5 @@ public class MyWorkable extends MultiblockRecipeLogic {
 | `CrossRecipeParallelScheduler` | 槽位容器，`setMaxSlots` / `setPerSlotParallelCap` / `setParallelLimit` |
 | `MultiblockAbility.THREAD_HATCH` / `IThreadHatch` / `IThreadMultiblock` | 线程仓能力与控制器接口 |
 | `MultiblockAbility.PARALLEL_HATCH` / `IParallelMultiblock` | 并行仓能力与控制器接口 |
+| `MetaTileEntityCrossParallelHatch` / `IParallelHatch#isCrossParallel` | 跨并仓：与并行仓共用 ability，只多一个标记 |
 | `DeclarativePatternBuilder.CasingSlot#threadHatch` / `#autoGCYM` | 结构声明 |

@@ -7,8 +7,8 @@
       "translate": "gregtech.advancement.root_mv.name"
     },
     "icon": {
-      "item": "gregtech:mte",
-      "data": 1001
+      "item": "gregtech:meta_ingot",
+      "data": 2
     },
     "frame": "goal",
     "background": "gregtech:textures/blocks/casings/solid/machine_casing_frost_proof.png"

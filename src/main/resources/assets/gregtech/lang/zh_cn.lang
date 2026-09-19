@@ -5332,6 +5332,7 @@ gregtech.machine.creative_input_bus.tooltip=无限向多方块配方提供已配
 gregtech.machine.creative_input_hatch.name=创造输入仓
 gregtech.machine.creative_input_hatch.tooltip=无限向多方块配方提供已配置的模板流体。
 gregtech.machine.creative_parallel_hatch.name=创造模式并行控制仓
+gregtech.machine.creative_cross_parallel_hatch.name=创造模式跨并控制仓
 gregtech.machine.creative_overclock_hatch.name=创造模式超频仓
 gregtech.machine.creative_accelerate_hatch.name=创造模式加速仓
 gregtech.machine.creative_thread_hatch.name=创造模式线程控制仓
@@ -8396,6 +8397,26 @@ gregtech.machine.parallel_hatch.max.name=并行控制仓(Max)
 
 gregtech.machine.parallel_hatch.tooltip=最多可同时处理§b%s§7个配方。
 gregtech.machine.parallel_hatch.display=调整多方块的最多可同时处理数。
+
+gregtech.machine.cross_parallel_hatch.ulv.name=跨并控制仓(ULV)
+gregtech.machine.cross_parallel_hatch.lv.name=跨并控制仓(LV)
+gregtech.machine.cross_parallel_hatch.mv.name=跨并控制仓(MV)
+gregtech.machine.cross_parallel_hatch.hv.name=跨并控制仓(HV)
+gregtech.machine.cross_parallel_hatch.ev.name=跨并控制仓(EV)
+gregtech.machine.cross_parallel_hatch.iv.name=跨并控制仓(IV)
+gregtech.machine.cross_parallel_hatch.luv.name=跨并控制仓(LuV)
+gregtech.machine.cross_parallel_hatch.zpm.name=跨并控制仓(ZPM)
+gregtech.machine.cross_parallel_hatch.uv.name=跨并控制仓(UV)
+gregtech.machine.cross_parallel_hatch.uhv.name=跨并控制仓(UHV)
+gregtech.machine.cross_parallel_hatch.uev.name=跨并控制仓(UEV)
+gregtech.machine.cross_parallel_hatch.uiv.name=跨并控制仓(UIV)
+gregtech.machine.cross_parallel_hatch.uxv.name=跨并控制仓(UXV)
+gregtech.machine.cross_parallel_hatch.opv.name=跨并控制仓(OPV)
+gregtech.machine.cross_parallel_hatch.max.name=跨并控制仓(Max)
+
+gregtech.machine.cross_parallel_hatch.tooltip=跨配方并行：并行预算在多个配方之间弹性分配，槽位不封顶。
+gregtech.machine.cross_parallel_hatch.incompatible=§c与线程控制仓不兼容§7，同时安装时线程数不生效。
+gregtech.machine.cross_parallel_hatch.display=调整多方块的并行预算。
 
 gregtech.machine.tiered_hatch.ulv.name=控制单元(ULV)
 gregtech.machine.tiered_hatch.lv.name=控制单元(IV)

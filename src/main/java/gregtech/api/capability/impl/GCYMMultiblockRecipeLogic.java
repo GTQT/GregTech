@@ -49,6 +49,17 @@ public class GCYMMultiblockRecipeLogic extends MultiblockRecipeLogic {
     }
 
     /**
+     * Cross-recipe parallel is chosen by the hatch rather than by the machine: fitting the cross-parallel hatch
+     * turns it on, fitting the ordinary parallel hatch leaves it off. Both share one ability, so this is the only
+     * thing that tells them apart.
+     */
+    @Override
+    public boolean isCrossRecipeParallelEnabled() {
+        return metaTileEntity instanceof IParallelMultiblock parallel && parallel.isParallel() &&
+                parallel.isCrossParallel();
+    }
+
+    /**
      * 并行：不增加耗电。
      */
     @Override

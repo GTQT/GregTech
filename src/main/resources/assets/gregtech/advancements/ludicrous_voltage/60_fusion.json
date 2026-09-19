@@ -8,7 +8,7 @@
     },
     "icon": {
       "item": "gregtech:mte",
-      "data": 1020
+      "data": 1160
     },
     "frame": "challenge"
   },
@@ -19,7 +19,7 @@
         "items": [
           {
             "item": "gregtech:mte",
-            "data": 1020
+            "data": 1160
           }
         ]
       }

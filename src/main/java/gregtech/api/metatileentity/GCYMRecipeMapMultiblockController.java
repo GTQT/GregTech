@@ -410,6 +410,16 @@ public abstract class GCYMRecipeMapMultiblockController extends MultiMapMultiblo
                 this.getAbilities(MultiblockAbility.PARALLEL_HATCH).get(0).getCurrentParallel();
     }
 
+    /**
+     * The cross-parallel hatch shares {@link MultiblockAbility#PARALLEL_HATCH} with the ordinary one, so the mode
+     * comes from whichever of the two is fitted rather than from the machine.
+     */
+    @Override
+    public boolean isCrossParallel() {
+        return !this.getAbilities(MultiblockAbility.PARALLEL_HATCH).isEmpty() &&
+                this.getAbilities(MultiblockAbility.PARALLEL_HATCH).get(0).isCrossParallel();
+    }
+
     @Override
     public void setParallel(int thread) {
         if (!this.getAbilities(MultiblockAbility.PARALLEL_HATCH).isEmpty()) {

@@ -8,7 +8,7 @@
     },
     "icon": {
       "item": "gregtech:mte",
-      "data": 940
+      "data": 955
     },
     "frame": "challenge",
     "background": "gregtech:textures/blocks/casings/solid/machine_casing_solid_steel.png"
@@ -20,7 +20,7 @@
         "items": [
           {
             "item": "gregtech:mte",
-            "data": 940
+            "data": 955
           }
         ]
       }

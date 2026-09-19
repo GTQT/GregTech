@@ -140,6 +140,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCoola
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCoolantImportHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCreativeInputBus;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCreativeInputHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityCrossParallelHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityDataAccessHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityDualHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityEnergyHatch;
@@ -522,6 +523,7 @@ public class MetaTileEntities {
     public static MetaTileEntityThreadHatch[] THREAD_HATCH = new MetaTileEntityThreadHatch[GTValues.V.length - 1];
     public static MetaTileEntityOverclockHatch[] OVERCLOCK_HATCH = new MetaTileEntityOverclockHatch[GTValues.V.length - 1];
     public static MetaTileEntityAccelerateHatch[] ACCELERATE_HATCH = new MetaTileEntityAccelerateHatch[GTValues.V.length - 1];
+    public static MetaTileEntityCrossParallelHatch[] CROSS_PARALLEL_HATCH = new MetaTileEntityCrossParallelHatch[GTValues.V.length];
     public static MetaTileEntityHeatSensor HEAT_SENSOR;
     public static MetaTileEntityCreativeInputBus CREATIVE_INPUT_BUS;
     public static MetaTileEntityCreativeInputHatch CREATIVE_INPUT_HATCH;
@@ -529,6 +531,7 @@ public class MetaTileEntities {
     public static MetaTileEntityOverclockHatch CREATIVE_OVERCLOCK_HATCH;
     public static MetaTileEntityAccelerateHatch CREATIVE_ACCELERATE_HATCH;
     public static MetaTileEntityThreadHatch CREATIVE_THREAD_HATCH;
+    public static MetaTileEntityCrossParallelHatch CREATIVE_CROSS_PARALLEL_HATCH;
     public static MetaTileEntityQCCreativeUncertaintyHatch QC_CREATIVE_UNCERTAINTY_HATCH;
     // STEAM AGE SECTION
     public static SteamCoalBoiler STEAM_BOILER_COAL_BRONZE;
