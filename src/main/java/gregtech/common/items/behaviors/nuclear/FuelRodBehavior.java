@@ -18,7 +18,7 @@ public class FuelRodBehavior extends NuclearComponentBehavior {
     @Getter
     private final Material material;               // 燃料材料
     @Getter
-    private final int heatOutput;                 // 热量产出（HU/t）
+    private final int heatOutput;                 // 热量产出（HU/s，按每个模拟步=1秒结算）
     @Getter
     private final int energyOutput;               // 能量产出（EU/t）
     @Getter
@@ -74,8 +74,8 @@ public class FuelRodBehavior extends NuclearComponentBehavior {
         // 基础信息
         lines.add(I18n.format("燃料材料: " + material.getLocalizedName()));
 
-        // 性能参数
-        lines.add(I18n.format("热量产出: " + heatOutput + " HU/t"));
+        // 性能参数（能量按每 tick 结算，热量按每个模拟步=1秒结算）
+        lines.add(I18n.format("热量产出: " + heatOutput + " HU/s"));
         lines.add(I18n.format("能量产出: " + energyOutput + " EU/t"));
         lines.add(I18n.format("中子发射率: " + String.format("%.2f", neutronEmission)));
 

@@ -17,7 +17,7 @@ public class ComponentHeatExchangerBehavior extends NuclearComponentBehavior {
     @Getter
     private final Material material;       // 材料
     @Getter
-    private final int heatTransferRate;    // 热传递速率（HU/t）
+    private final int heatTransferRate;    // 热传递速率（HU/s，按每个模拟步=1秒结算）
 
     public ComponentHeatExchangerBehavior(int maxDurability,
                                           Material material,
@@ -45,13 +45,19 @@ public class ComponentHeatExchangerBehavior extends NuclearComponentBehavior {
         return 1;
     }
 
+    /** An exchanger is only consumed while it actually moves heat into an adjacent sink. */
+    @Override
+    public boolean wearsOnlyWhileWorking() {
+        return true;
+    }
+
     @Override
     public void addInformation(ItemStack stack, List<String> lines) {
         super.addInformation(stack, lines);
 
         lines.add(I18n.format("材料: " + material.getLocalizedName()));
-        lines.add(I18n.format("热传递速率: " + heatTransferRate + " HU/t"));
-        lines.add(I18n.format("耐久消耗: " + getDurabilityCost() + "/tick"));
-        lines.add(I18n.format("元件热交换器: 在组件间传递热量"));
+        lines.add(I18n.format("热传递速率: " + heatTransferRate + " HU/s"));
+        lines.add(I18n.format("耐久消耗: " + getDurabilityCost() + "/s"));
+        lines.add(I18n.format("元件热交换器: 把相邻燃料棒的热量转移给相邻的散热片/冷却单元（需紧邻热沉）"));
     }
 }

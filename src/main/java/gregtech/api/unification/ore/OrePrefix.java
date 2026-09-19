@@ -5,7 +5,6 @@ import gregtech.api.unification.material.MarkerMaterials;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.info.MaterialIconType;
-import gregtech.api.unification.material.info.SCMaterialIconType;
 import gregtech.api.unification.material.properties.IMaterialProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.stack.MaterialStack;
@@ -461,45 +460,45 @@ public class OrePrefix {
     public static final OrePrefix component = new OrePrefix("component", -1, null, null, ENABLE_UNIFICATION, null);
 
     // Nuclear stuff, introduced by Zalgo and Bruberu
-    public static final OrePrefix fuelRod = new OrePrefix("fuelRod", -1, null, SCMaterialIconType.fuelRod, 0,
+    public static final OrePrefix fuelRod = new OrePrefix("fuelRod", -1, null, MaterialIconType.fuelRod, 0,
             material -> material.hasProperty(FISSION_FUEL),
             mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
 
     public static final OrePrefix fuelRodDepleted = new OrePrefix("fuelRodDepleted", -1, null,
-            SCMaterialIconType.fuelRodDepleted, 0, material -> material.hasProperty(FISSION_FUEL),
+            MaterialIconType.fuelRodDepleted, 0, material -> material.hasProperty(FISSION_FUEL),
             mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
 
     public static final OrePrefix fuelRodHotDepleted = new OrePrefix("fuelRodHotDepleted", -1, null,
-            SCMaterialIconType.fuelRodHotDepleted, 0, material -> material.hasProperty(FISSION_FUEL),
+            MaterialIconType.fuelRodHotDepleted, 0, material -> material.hasProperty(FISSION_FUEL),
             mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
 
     public static final OrePrefix fuelPelletRaw = new OrePrefix("fuelPelletRaw", -1, null,
-            SCMaterialIconType.fuelPelletRaw, 0, material -> material.hasProperty(FISSION_FUEL),
+            MaterialIconType.fuelPelletRaw, 0, material -> material.hasProperty(FISSION_FUEL),
             mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
 
     public static final OrePrefix fuelPellet = new OrePrefix("fuelPellet", -1, null,
-            SCMaterialIconType.fuelPellet, 0, material -> material.hasProperty(FISSION_FUEL),
+            MaterialIconType.fuelPellet, 0, material -> material.hasProperty(FISSION_FUEL),
             mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
 
     public static final OrePrefix fuelPelletDepleted = new OrePrefix("fuelPelletDepleted", -1, null,
-            SCMaterialIconType.fuelPelletDepleted, 0, material -> material.hasProperty(FISSION_FUEL),
+            MaterialIconType.fuelPelletDepleted, 0, material -> material.hasProperty(FISSION_FUEL),
             mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
 
     public static final OrePrefix dustSpentFuel = new OrePrefix("dustSpentFuel", -1, null,
-            SCMaterialIconType.dustSpentFuel, 0, material -> material.hasProperty(FISSION_FUEL));
+            MaterialIconType.dustSpentFuel, 0, material -> material.hasProperty(FISSION_FUEL));
 
     public static final OrePrefix dustBredFuel = new OrePrefix("dustBredFuel", -1, null,
-            SCMaterialIconType.dustBredFuel, 0, material -> material.hasProperty(FISSION_FUEL));
+            MaterialIconType.dustBredFuel, 0, material -> material.hasProperty(FISSION_FUEL));
 
     public static final OrePrefix dustFissionByproduct = new OrePrefix("dustFissionByproduct", -1, null,
-            SCMaterialIconType.dustFissionByproduct, 0,
+            MaterialIconType.dustFissionByproduct, 0,
             material -> material.hasProperty(FISSION_FUEL));
 
     //Additions Nuclear stuff, introduced by MeowmelMuku
-    public static final OrePrefix fuelPebble = new OrePrefix("fuelPebble", -1, null, SCMaterialIconType.fuelPebble, ENABLE_UNIFICATION,
+    public static final OrePrefix fuelPebble = new OrePrefix("fuelPebble", -1, null, MaterialIconType.fuelPebble, ENABLE_UNIFICATION,
             mat -> mat.hasFlag(GENERATE_PELLETS));
 
-    public static final OrePrefix fuelPebbleDepleted = new OrePrefix("fuelPebbleDepleted", -1, null, SCMaterialIconType.fuelPebbleDepleted, ENABLE_UNIFICATION,
+    public static final OrePrefix fuelPebbleDepleted = new OrePrefix("fuelPebbleDepleted", -1, null, MaterialIconType.fuelPebbleDepleted, ENABLE_UNIFICATION,
             mat -> mat.hasFlag(GENERATE_PELLETS));
 
     public static class Flags {

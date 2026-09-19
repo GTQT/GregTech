@@ -67,13 +67,20 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 import static gregtech.api.capability.GregtechDataCodes.SYNC_REACTOR_STATE;
-import static gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.NuclearAbility.STOP_WORK;
 import static net.minecraftforge.common.util.Constants.NBT.TAG_COMPOUND;
 
 public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl implements ProgressBarMultiblock {
 
-    private static final int UPDATE_TICK_RATE = 20;
-    private static final int BASE_HEAT_CAPACITY = 10000;
+    private static final int UPDATE_TICK_RATE = NuclearReactorSimulator.TICKS_PER_STEP;
+    private static final int BASE_HEAT_CAPACITY = NuclearReactorSimulator.BASE_HEAT_CAPACITY;
+    /** Width of the internal component grid without any extension hatch installed. */
+    private static final int BASE_REACTOR_WIDTH = 3;
+    /** Width of the internal component grid with every extension hatch installed (9x6 = 54 slots). */
+    private static final int MAX_REACTOR_WIDTH = 9;
+    /** Height of the internal component grid. Fixed; only the width is expanded. */
+    private static final int REACTOR_HEIGHT = 6;
+    /** Every extension hatch widens the internal grid by one column, so this is also the hatch limit. */
+    public static final int MAX_EXTEND_HATCHES = MAX_REACTOR_WIDTH - BASE_REACTOR_WIDTH;
     @NotNull
     private static final StructureDefinition<?> STRUCTURE_DEFINITION = StructureDefinition.getOrBuild(
             "gregtech:nuclear_reactor", () -> DeclarativePatternBuilder.start()
@@ -85,15 +92,19 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
                     .energyOutput(1, 3)
                     .optionalItemOutput(2)
                     .optionalFluidOutput(2)
-                    .hatch(SCMultiblockAbility.REACTOR_EXTEND_HATCH, 0, 1)
+                    .hatch(SCMultiblockAbility.REACTOR_EXTEND_HATCH, 0, MAX_EXTEND_HATCHES)
                     .done()
                     .any(' ')
                     .buildStructureDefinition()
     );
+    /**
+     * Width of the internal component grid, in cells. Installed {@link MetaTileEntityNuclearExtend} hatches expand
+     * it from {@value #BASE_REACTOR_WIDTH} up to {@value #MAX_REACTOR_WIDTH} columns.
+     */
     @Getter
-    private final int reactorWidth = 9;
+    private int reactorWidth = BASE_REACTOR_WIDTH;
     @Getter
-    private final int reactorHeight = 6;
+    private int reactorHeight = REACTOR_HEIGHT;
     @Getter
     private int extendCount = 0;
     @Getter
@@ -123,11 +134,11 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
 
     private void initializeReactor(int width, int height) {
         this.reactorSimulator = new NuclearReactorSimulator(width, height);
-        this.componentHandler = createComponentHandler(width, height);
+        this.componentHandler = createComponentHandler(width * height);
     }
 
-    private GTItemStackHandler createComponentHandler(int width, int height) {
-        return new GTItemStackHandler(this, width * height) {
+    private GTItemStackHandler createComponentHandler(int slotCount) {
+        return new GTItemStackHandler(this, slotCount) {
             @Override
             public int getSlotLimit(int slot) {
                 return 1;
@@ -141,7 +152,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
             @Override
             public void onContentsChanged(int slot) {
                 super.onContentsChanged(slot);
-                if (!getWorld().isRemote && isStructureFormed()) {
+                if (getWorld() != null && !getWorld().isRemote && isStructureFormed()) {
                     markDirty();
                 }
             }
@@ -153,6 +164,9 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         return new MetaTileEntityNuclearReactor(metaTileEntityId);
     }
 
+    /**
+     * @return the installed extension hatches, or {@code null} when there is none.
+     */
     public List<INuclearExtend> getExtendHatch() {
         List<INuclearExtend> abilities = getAbilities(SCMultiblockAbility.REACTOR_EXTEND_HATCH);
         return abilities.isEmpty() ? null : abilities;
@@ -161,17 +175,107 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
     @Override
     protected void formStructure(FormedStructureView formed) {
         super.formStructure(formed);
-        List<INuclearExtend> extendHatches = getExtendHatch();
-        if (getExtendHatch() != null) extendCount = extendHatches.size();
+        refreshReactorSize();
     }
 
-    public boolean haveAbilities(NuclearAbility ability) {
-        if (extendCount > 0) {
-            for (INuclearExtend extend : getExtendHatch()) {
-                if (extend.getUpdateAbilities().contains(ability)) return true;
+    /**
+     * Derives the size of the internal component grid from the installed extension hatches. Every hatch adds one
+     * column to the reactor interior: the grid starts at {@value #BASE_REACTOR_WIDTH}x{@value #REACTOR_HEIGHT}
+     * (18 slots) and tops out at {@value #MAX_REACTOR_WIDTH}x{@value #REACTOR_HEIGHT} (54 slots).
+     */
+    private void refreshReactorSize() {
+        List<INuclearExtend> extendHatches = getExtendHatch();
+        int hatchCount = extendHatches == null ? 0 : Math.min(extendHatches.size(), MAX_EXTEND_HATCHES);
+        this.extendCount = hatchCount;
+        applyReactorSize(BASE_REACTOR_WIDTH + hatchCount);
+    }
+
+    private void applyReactorSize(int width) {
+        int clampedWidth = clampWidth(width);
+        if (clampedWidth == reactorWidth && componentHandler.getSlots() == clampedWidth * reactorHeight) {
+            return;
+        }
+
+        reactorWidth = clampedWidth;
+        reactorHeight = REACTOR_HEIGHT;
+
+        if (getWorld() != null && !getWorld().isRemote) {
+            rebuildGrid();
+            // The slot layout changed, so push the new grid (and its contents) to the clients right away.
+            syncReactorState(true);
+        } else {
+            ensureGridCapacity();
+        }
+    }
+
+    /**
+     * Server side resize. The simulator keeps its state and every component that still fits the new grid; components
+     * that fall outside of it are queued for the output bus instead of being voided.
+     */
+    private void rebuildGrid() {
+        int previousSlots = componentHandler.getSlots();
+        int previousWidth = Math.max(1, previousSlots / reactorHeight);
+
+        ItemStack[][] previous = new ItemStack[previousWidth][reactorHeight];
+        for (int y = 0; y < reactorHeight; y++) {
+            for (int x = 0; x < previousWidth; x++) {
+                previous[x][y] = componentHandler.getStackInSlot(y * previousWidth + x);
             }
         }
-        return false;
+
+        reactorSimulator.resize(reactorWidth, reactorHeight);
+        componentHandler = createComponentHandler(reactorWidth * reactorHeight);
+
+        for (int y = 0; y < reactorHeight; y++) {
+            for (int x = 0; x < previousWidth; x++) {
+                ItemStack stack = previous[x][y];
+                if (stack.isEmpty()) continue;
+
+                if (x < reactorWidth) {
+                    componentHandler.setStackInSlot(y * reactorWidth + x, stack);
+                } else {
+                    queueForOutput(stack);
+                }
+            }
+        }
+
+        syncInventoryToSimulator();
+    }
+
+    /**
+     * Client side counterpart of {@link #rebuildGrid}. The client only renders the grid, so its handler is grown when
+     * needed and never shrunk - an already open component panel may still reference the larger layout.
+     */
+    private void ensureGridCapacity() {
+        reactorSimulator.resize(reactorWidth, reactorHeight);
+
+        int required = reactorWidth * reactorHeight;
+        if (componentHandler.getSlots() >= required) {
+            return;
+        }
+
+        GTItemStackHandler previous = componentHandler;
+        componentHandler = createComponentHandler(required);
+        for (int slot = 0; slot < previous.getSlots(); slot++) {
+            componentHandler.setStackInSlot(slot, previous.getStackInSlot(slot));
+        }
+    }
+
+    /** Queues a component for the output bus, keeping it until an output hatch has room for it. */
+    private void queueForOutput(@NotNull ItemStack stack) {
+        if (stack.isEmpty()) return;
+
+        reactorSimulator.getListToTransfer().add(stack);
+        reactorSimulator.setTransOut(true);
+    }
+
+    private static int clampWidth(int width) {
+        return Math.max(BASE_REACTOR_WIDTH, Math.min(width, MAX_REACTOR_WIDTH));
+    }
+
+    /** @return the grid width implied by a component slot count, used to migrate saves from the fixed 9x6 grid. */
+    private static int widthFromSlotCount(int slotCount) {
+        return clampWidth(slotCount <= 0 ? BASE_REACTOR_WIDTH : slotCount / REACTOR_HEIGHT);
     }
 
     @Override
@@ -192,7 +296,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
                 reactorSimulator.setTransOut(false);
             }
         }
-        if (getInputInventory().getSlots() > 0) {
+        if (!hasMeltdown && getInputInventory().getSlots() > 0) {
             for (int i = 0; i < getInputInventory().getSlots(); i++) {
                 ItemStack stack = getInputInventory().getStackInSlot(i);
                 if (!stack.isEmpty() && NuclearComponentBehavior.getInstanceFor(stack) != null) {
@@ -211,13 +315,13 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         if (updateTimer >= UPDATE_TICK_RATE) {
             updateTimer = 0;
 
+            // Follow the installed extension hatches even when the structure payload itself is not re-evaluated.
+            refreshReactorSize();
+
             syncInventoryToSimulator();
 
-            boolean success = reactorSimulator.simulateTick();
-
-            if (!success) {
-                hasMeltdown = true;
-                handleMeltdown();
+            if (!reactorSimulator.simulateTick()) {
+                performMeltdown();
                 return;
             }
 
@@ -226,20 +330,30 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
             syncSimulatorToInventory();
 
             markDirty();
-            writeCustomData(SYNC_REACTOR_STATE, buf -> {
-                buf.writeInt(currentHeat);
-                buf.writeInt(maxHeatCapacity);
-                buf.writeLong(currentOutput);
-                buf.writeBoolean(isReactorActive);
-                buf.writeBoolean(hasMeltdown);
-            });
+            syncReactorState(false);
         }
         outputEnergy();
+    }
 
-        if (haveAbilities(STOP_WORK) && reactorSimulator.isOverHeat()) {
-            setWorkingEnabled(false);
+    private void syncReactorState(boolean includeComponentGrid) {
+        writeCustomData(SYNC_REACTOR_STATE, buf -> writeReactorState(buf, includeComponentGrid));
+    }
+
+    private void writeReactorState(@NotNull PacketBuffer buf, boolean includeComponentGrid) {
+        buf.writeInt(currentHeat);
+        buf.writeInt(maxHeatCapacity);
+        buf.writeLong(currentOutput);
+        buf.writeBoolean(isReactorActive);
+        buf.writeBoolean(hasMeltdown);
+        buf.writeInt(reactorWidth);
+        buf.writeBoolean(includeComponentGrid);
+
+        if (includeComponentGrid) {
+            buf.writeVarInt(componentHandler.getSlots());
+            for (int slot = 0; slot < componentHandler.getSlots(); slot++) {
+                buf.writeItemStack(componentHandler.getStackInSlot(slot));
+            }
         }
-
     }
 
     private void syncInventoryToSimulator() {
@@ -279,17 +393,34 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         efficiency = reactorSimulator.getEfficiency();
     }
 
+    /**
+     * Credits the power of the last simulation step to the output hatches, once per tick.
+     *
+     * <p>Fuel rods are defined in EU/t, so {@code currentOutput} is credited every tick as is. A simulation step
+     * covers {@link #UPDATE_TICK_RATE} ticks, which means one step credits {@code currentOutput * UPDATE_TICK_RATE}
+     * EU in total (see {@link NuclearReactorSimulator#getEnergyPerStep()}); handing it over tick by tick also keeps a
+     * small output hatch buffer from voiding part of the production.</p>
+     */
     private void outputEnergy() {
-        if (currentOutput > 0 && !hasMeltdown) {
-            long energyPerTick = currentOutput;
+        if (hasMeltdown || outEnergyContainer == null) return;
+        if (currentOutput <= 0) return;
 
-            if (outEnergyContainer != null) {
-                outEnergyContainer.addEnergy(energyPerTick);
-            }
-        }
+        outEnergyContainer.addEnergy(currentOutput);
     }
 
-    private void handleMeltdown() {
+    /** @return the energy one full simulation step (one second) produces, in EU. */
+    private long getOutputPerSecond() {
+        return currentOutput * UPDATE_TICK_RATE;
+    }
+
+    /**
+     * Handles the (irreversible) meltdown exactly once: the simulator keeps returning a failed tick afterwards, so
+     * this must not restart the countdown or re-destroy the component grid on every following simulation tick.
+     */
+    private void performMeltdown() {
+        if (hasMeltdown) return;
+        hasMeltdown = true;
+
         isReactorActive = false;
         currentOutput = 0;
 
@@ -297,10 +428,10 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
             componentHandler.setStackInSlot(slot, ItemStack.EMPTY);
         }
 
-        float explosionPower = calculateExplosionPower();
-        doExplosion(explosionPower);
+        doExplosion(calculateExplosionPower());
 
         syncInventoryToSimulator();
+        syncReactorState(true);
     }
 
     private float calculateExplosionPower() {
@@ -311,13 +442,18 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
 
         float heatFactor = Math.min(heat / 10000.0f, 2.0f);
         float fuelFactor = Math.min(fuelRods / 5.0f, 2.0f);
+        // Reactor plating absorbs part of the blast.
+        float containment = 1.0f - reactorSimulator.getExplosionResistance();
 
-        return basePower * (1.0f + heatFactor + fuelFactor);
+        return basePower * (1.0f + heatFactor + fuelFactor) * containment;
     }
 
     @Override
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
+        data.setInteger("ReactorWidth", reactorWidth);
+        data.setInteger("ReactorHeight", reactorHeight);
+        data.setInteger("ExtendCount", extendCount);
         data.setTag("ComponentInventory", componentHandler.serializeNBT());
 
         NBTTagCompound simulatorNBT = new NBTTagCompound();
@@ -342,11 +478,22 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
 
+        // The grid size has to be known before the handler and the simulator are created, since both are sized
+        // from it and the stored component grid is laid out for it.
+        NBTTagCompound componentData = data.getCompoundTag("ComponentInventory");
+        if (data.hasKey("ReactorWidth")) {
+            reactorWidth = clampWidth(data.getInteger("ReactorWidth"));
+        } else {
+            // Saves from the era of the fixed 9x6 grid only carry the slot count.
+            reactorWidth = widthFromSlotCount(componentData.getInteger("Size"));
+        }
+        reactorHeight = REACTOR_HEIGHT;
+        extendCount = Math.max(0, Math.min(data.getInteger("ExtendCount"), MAX_EXTEND_HATCHES));
         initializeReactor(reactorWidth, reactorHeight);
 
         if (data.hasKey("ComponentInventory")) {
             try {
-                componentHandler.deserializeNBT(data.getCompoundTag("ComponentInventory"));
+                componentHandler.deserializeNBT(componentData);
             } catch (Exception e) {
                 GTLog.logger.error("Error loading component inventory", e);
             }
@@ -388,6 +535,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         buf.writeLong(currentOutput);
         buf.writeBoolean(isReactorActive);
         buf.writeBoolean(hasMeltdown);
+        buf.writeInt(reactorWidth);
 
         buf.writeVarInt(componentHandler.getSlots());
         for (int slot = 0; slot < componentHandler.getSlots(); slot++) {
@@ -404,15 +552,31 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         currentOutput = buf.readLong();
         isReactorActive = buf.readBoolean();
         hasMeltdown = buf.readBoolean();
+        reactorWidth = clampWidth(buf.readInt());
+        reactorHeight = REACTOR_HEIGHT;
+        ensureGridCapacity();
 
+        readComponentGrid(buf);
+    }
+
+    /**
+     * Reads a component grid payload: the slot count followed by that many item stacks. Slots beyond the payload are
+     * cleared, so a grid that shrank does not keep rendering stale components on the client.
+     */
+    private void readComponentGrid(@NotNull PacketBuffer buf) {
         int slotCount = buf.readVarInt();
-        for (int slot = 0; slot < Math.min(slotCount, componentHandler.getSlots()); slot++) {
+        int capacity = componentHandler.getSlots();
+
+        for (int slot = 0; slot < slotCount && slot < capacity; slot++) {
             try {
-                ItemStack stack = buf.readItemStack();
-                componentHandler.setStackInSlot(slot, stack);
+                componentHandler.setStackInSlot(slot, buf.readItemStack());
             } catch (IOException e) {
-                GTLog.logger.error("Error reading inventory from network", e);
+                GTLog.logger.error("Error reading nuclear reactor components from network", e);
+                return;
             }
+        }
+        for (int slot = slotCount; slot < capacity; slot++) {
+            componentHandler.setStackInSlot(slot, ItemStack.EMPTY);
         }
     }
 
@@ -426,6 +590,13 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
             currentOutput = buf.readLong();
             isReactorActive = buf.readBoolean();
             hasMeltdown = buf.readBoolean();
+            reactorWidth = clampWidth(buf.readInt());
+            reactorHeight = REACTOR_HEIGHT;
+            ensureGridCapacity();
+
+            if (buf.readBoolean()) {
+                readComponentGrid(buf);
+            }
         }
     }
 
@@ -512,6 +683,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         IntSyncValue fuelRodsValue = new IntSyncValue(() -> reactorSimulator.getTotalFuelRods());
         IntSyncValue heatVentsValue = new IntSyncValue(() -> reactorSimulator.getTotalHeatVents());
         IntSyncValue coolantCellsValue = new IntSyncValue(() -> reactorSimulator.getTotalCoolantCells());
+        IntSyncValue heatExchangersValue = new IntSyncValue(() -> reactorSimulator.getTotalHeatExchangers());
         IntSyncValue reflectorsValue = new IntSyncValue(() -> reactorSimulator.getTotalReflectors());
 
         syncManager.syncValue("heat", heatValue);
@@ -520,6 +692,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         syncManager.syncValue("fuel_rods", fuelRodsValue);
         syncManager.syncValue("heat_vents", heatVentsValue);
         syncManager.syncValue("coolant_cells", coolantCellsValue);
+        syncManager.syncValue("heat_exchangers", heatExchangersValue);
         syncManager.syncValue("reflectors", reflectorsValue);
 
         bars.add(barBuilder -> barBuilder
@@ -568,13 +741,22 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
                         int effPercent = (int) (eff * 100);
 
                         tooltip.addLine(IKey.str("效率: " + effPercent + "%"));
-                        tooltip.addLine(IKey.str("基础输出: " + currentOutput + " EU/t"));
+                        tooltip.addLine(IKey.str("输出: " + currentOutput + " EU/t (" +
+                                getOutputPerSecond() + " EU/s)"));
 
                         if (reflectorsValue.getIntValue() > 0) {
-                            tooltip.addLine(IKey.str("反射板加成: +" + (reflectorsValue.getIntValue() * 20) + "%"));
+                            int reflectorBonus = Math.round((eff - 1.0f) * 100.0f);
+                            tooltip.addLine(IKey.str("反射板: " + reflectorsValue.getIntValue() +
+                                    " (+" + reflectorBonus + "%)"));
                         }
-                        if (fuelRodsValue.getIntValue() > 1) {
-                            tooltip.addLine(IKey.str("燃料棒邻接加成"));
+                        if (fuelRodsValue.getIntValue() > 0) {
+                            tooltip.addLine(IKey.str("燃料棒: " + fuelRodsValue.getIntValue()));
+                        }
+                        if (heatVentsValue.getIntValue() > 0 || coolantCellsValue.getIntValue() > 0 ||
+                                heatExchangersValue.getIntValue() > 0) {
+                            tooltip.addLine(IKey.str("散热片: " + heatVentsValue.getIntValue() +
+                                    "  冷却单元: " + coolantCellsValue.getIntValue() +
+                                    "  热交换器: " + heatExchangersValue.getIntValue()));
                         }
                     } else {
                         tooltip.addLine(IKey.str(TextFormatting.RED + "结构不完整"));
@@ -596,6 +778,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
                     int fuelRods = syncer.syncInt(reactorSimulator.getTotalFuelRods());
                     int heatVents = syncer.syncInt(reactorSimulator.getTotalHeatVents());
                     int coolantCells = syncer.syncInt(reactorSimulator.getTotalCoolantCells());
+                    int heatExchangers = syncer.syncInt(reactorSimulator.getTotalHeatExchangers());
                     int reflectors = syncer.syncInt(reactorSimulator.getTotalReflectors());
                     int plating = syncer.syncInt(reactorSimulator.getTotalPlating());
                     boolean meltdown = syncer.syncBoolean(hasMeltdown);
@@ -630,6 +813,12 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
                                 TextFormatting.GRAY + " (+" + heatBoost + " HU)"));
                     }
 
+                    if (heatExchangers > 0) {
+                        richText.add(IKey.str(TextFormatting.GRAY + "热交换器: " +
+                                TextFormatting.WHITE + heatExchangers +
+                                TextFormatting.GRAY + " (需紧邻散热片/冷却单元)"));
+                    }
+
                     // 添加热量信息
                     int heatPercent = maxHeat > 0 ? (heat * 100) / maxHeat : 0;
                     richText.add(IKey.str(TextFormatting.GRAY + "热量: " +
@@ -637,7 +826,15 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
                             TextFormatting.GRAY + " (" + heatPercent + "%)"));
 
                     richText.add(IKey.str(TextFormatting.GRAY + "输出: " +
-                            TextFormatting.WHITE + output + " EU/t"));
+                            TextFormatting.WHITE + output + " EU/t" +
+                            TextFormatting.GRAY + " (" + TextFormatting.WHITE + output * UPDATE_TICK_RATE +
+                            " EU/s" + TextFormatting.GRAY + ")"));
+
+                    richText.add(IKey.str(TextFormatting.GRAY + "运行: " +
+                            TextFormatting.WHITE + syncer.syncInt(reactorSimulator.getTickCount()) + " s" +
+                            TextFormatting.GRAY + "  累计发电: " +
+                            TextFormatting.WHITE + syncer.syncLong(reactorSimulator.getTotalEnergyProduced()) +
+                            " EU"));
                 })
                 .addWorkingStatusLine();
     }
@@ -766,7 +963,8 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         if (isStructureFormed()) {
             list.add(new TextComponentString("大小: " + reactorWidth + "×" + reactorHeight));
             list.add(new TextComponentString("热量: " + currentHeat + " / " + maxHeatCapacity + " HU"));
-            list.add(new TextComponentString("能量输出: " + currentOutput + " EU/t"));
+            list.add(new TextComponentString("能量输出: " + currentOutput + " EU/t (" +
+                    getOutputPerSecond() + " EU/s)"));
             list.add(new TextComponentString("效率: " + String.format("%.1f", efficiency * 100) + "%"));
 
             if (hasMeltdown) {
@@ -780,6 +978,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
             list.add(new TextComponentString("燃料棒: " + reactorSimulator.getTotalFuelRods()));
             list.add(new TextComponentString("散热片: " + reactorSimulator.getTotalHeatVents()));
             list.add(new TextComponentString("冷却单元: " + reactorSimulator.getTotalCoolantCells()));
+            list.add(new TextComponentString("热交换器: " + reactorSimulator.getTotalHeatExchangers()));
             list.add(new TextComponentString("反射板: " + reactorSimulator.getTotalReflectors()));
         }
 
@@ -825,13 +1024,19 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
         tooltip.add("中子反射板将逃逸的中子反射回燃料棒，提高裂变效率但同时增加热量产生，需要精密的热平衡设计");
         tooltip.add("当热量超过9500HU阈值时，反应堆将发生不可逆的熔毁，摧毁所有内部组件并对周围环境造成严重破坏");
         tooltip.add(TextFormatting.GREEN + I18n.format("-拓展升级："));
-        tooltip.add("通过安装燃料拓展仓来扩展核反应堆的功能属性。");
+        tooltip.add("通过安装燃料拓展仓来扩展核反应堆的内部空间。");
+        tooltip.add("每安装一个燃料拓展仓，内部组件空间在X方向增加1格：初始" +
+                BASE_REACTOR_WIDTH + "×" + REACTOR_HEIGHT + "，最多" +
+                MAX_REACTOR_WIDTH + "×" + REACTOR_HEIGHT + "（" + MAX_REACTOR_WIDTH * REACTOR_HEIGHT +
+                "个槽位，需" + MAX_EXTEND_HATCHES + "个拓展仓）。");
         tooltip.add(TextFormatting.GREEN + I18n.format("-组件功能："));
         tooltip.add("燃料棒-反应堆的核心能源来源，基础输出功率取决于燃料类型，相邻燃料棒会产生额外的链式反应加成");
-        tooltip.add("散热片-被动散热组件，每tick移除固定量热量，分为普通散热片(冷却自身)和元件散热片(冷却相邻燃料棒)");
+        tooltip.add("散热片-被动散热组件，每秒移除固定量热量，分为普通散热片(冷却自身)和元件散热片(冷却相邻燃料棒)");
         tooltip.add("冷却单元-高效主动冷却组件，能大量吸收热量但会随使用逐渐消耗，需要定期更换以维持反应堆安全");
-        tooltip.add("中子反射板-每个相邻反射板为燃料棒提供20%效率加成，但同样增加20%热量产生，是效率与风险的平衡选择");
+        tooltip.add("热交换器-自身不排热，必须紧邻散热片或冷却单元才能工作，可把堆芯热量(或元件热交换器把相邻燃料棒热量)搬运给热沉");
+        tooltip.add("中子反射板-每个相邻反射板按其反射效率提供最多20%效率加成，同样增加热量产生，是效率与风险的平衡选择");
         tooltip.add("反应堆隔板-强化反应堆结构，每块隔板增加热容量和爆炸抗性，是防止熔毁的关键安全组件");
+        tooltip.add("耐久说明-所有组件仅在真正工作时消耗耐久（燃料棒持续燃烧、散热片/冷却单元在排热、反射板在反射中子），闲置时不损耗");
         tooltip.add(TextFormatting.GREEN + I18n.format("-IO功能："));
         tooltip.add("为核反应堆安装输入/输出总线后");
         tooltip.add("可自动将输入总线内的部件填充至反应堆空缺处");

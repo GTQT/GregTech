@@ -44,6 +44,15 @@ public class ReactorPlatingBehavior extends NuclearComponentBehavior {
         return (ReactorPlatingBehavior) durabilityManager;
     }
 
+    /**
+     * Plating is a permanent structural component: the reactor never damages it. Without this the registered plating
+     * items (durability 1) would be destroyed on the very first simulated reactor tick.
+     */
+    @Override
+    public boolean consumesDurability() {
+        return false;
+    }
+
     @Override
     public void addInformation(ItemStack stack, List<String> lines) {
         super.addInformation(stack, lines);

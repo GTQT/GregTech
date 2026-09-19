@@ -40,9 +40,15 @@ public class NeutronReflectorBehavior extends NuclearComponentBehavior {
         return (NeutronReflectorBehavior) durabilityManager;
     }
 
-    // 获取耐久消耗（每tick固定消耗1耐久）
+    // 获取耐久消耗（每个模拟步=1秒固定消耗1耐久）
     public int getDurabilityCost() {
         return 1;
+    }
+
+    /** A reflector is only consumed while it is actually bouncing neutrons back into a fuel rod. */
+    @Override
+    public boolean wearsOnlyWhileWorking() {
+        return true;
     }
 
     @Override
@@ -55,8 +61,8 @@ public class NeutronReflectorBehavior extends NuclearComponentBehavior {
         // 性能参数
         lines.add(I18n.format("中子反射效率: " + String.format("%.1f", reflectionEfficiency * 100) + "%%"));
 
-        // 每tick耐久消耗
-        lines.add(I18n.format("耐久消耗: " + getDurabilityCost() + "/tick"));
+        // 每秒耐久消耗
+        lines.add(I18n.format("耐久消耗: " + getDurabilityCost() + "/s"));
 
         // 功能说明
         lines.add(I18n.format("中子反射: 提高相邻燃料棒效率"));

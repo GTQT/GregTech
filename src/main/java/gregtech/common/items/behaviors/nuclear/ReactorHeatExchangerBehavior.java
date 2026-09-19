@@ -17,9 +17,9 @@ public class ReactorHeatExchangerBehavior extends NuclearComponentBehavior {
     @Getter
     private final Material material;       // 材料
     @Getter
-    private final int heatStorage;         // 热存储容量（HU）
+    private final int heatStorage;         // 热存储容量（HU），限制单个模拟步能搬运的热量
     @Getter
-    private final int transferRate;        // 热传递速率（HU/t）
+    private final int transferRate;        // 热传递速率（HU/s，按每个模拟步=1秒结算）
 
     public ReactorHeatExchangerBehavior(int maxDurability,
                                         Material material,
@@ -49,14 +49,20 @@ public class ReactorHeatExchangerBehavior extends NuclearComponentBehavior {
         return 1;
     }
 
+    /** An exchanger is only consumed while it actually moves heat into an adjacent sink. */
+    @Override
+    public boolean wearsOnlyWhileWorking() {
+        return true;
+    }
+
     @Override
     public void addInformation(ItemStack stack, List<String> lines) {
         super.addInformation(stack, lines);
 
         lines.add(I18n.format("材料: " + material.getLocalizedName()));
-        lines.add(I18n.format("热存储容量: " + heatStorage + " HU"));
-        lines.add(I18n.format("热传递速率: " + transferRate + " HU/t"));
-        lines.add(I18n.format("耐久消耗: " + getDurabilityCost() + "/tick"));
-        lines.add(I18n.format("反应堆热交换器: 存储和传递热量"));
+        lines.add(I18n.format("热存储容量: " + heatStorage + " HU（限制单个模拟步可搬运的热量）"));
+        lines.add(I18n.format("热传递速率: " + transferRate + " HU/s"));
+        lines.add(I18n.format("耐久消耗: " + getDurabilityCost() + "/s"));
+        lines.add(I18n.format("反应堆热交换器: 把堆芯热量转移给相邻的散热片/冷却单元（需紧邻热沉）"));
     }
 }

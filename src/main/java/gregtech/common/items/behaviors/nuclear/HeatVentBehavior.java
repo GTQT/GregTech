@@ -17,7 +17,7 @@ public class HeatVentBehavior extends NuclearComponentBehavior {
     @Getter
     private final Material material;               // 材料
     @Getter
-    private final int heatDissipation;            // 散热能力（HU/t）
+    private final int heatDissipation;            // 散热能力（HU/s，按每个模拟步=1秒结算）
 
     public HeatVentBehavior(int maxDurability,
                             Material material,
@@ -40,9 +40,15 @@ public class HeatVentBehavior extends NuclearComponentBehavior {
         return (HeatVentBehavior) durabilityManager;
     }
 
-    // 获取耐久消耗（每tick固定消耗1耐久）
+    // 获取耐久消耗（每个模拟步=1秒固定消耗1耐久）
     public int getDurabilityCost() {
         return 1;
+    }
+
+    /** A vent is only consumed while it is actually removing heat. */
+    @Override
+    public boolean wearsOnlyWhileWorking() {
+        return true;
     }
 
     @Override
@@ -52,10 +58,10 @@ public class HeatVentBehavior extends NuclearComponentBehavior {
         // 基础信息
         lines.add(I18n.format("材料: " + material.getLocalizedName()));
 
-        // 性能参数
-        lines.add(I18n.format("散热能力: " + heatDissipation + " HU/t"));
+        // 性能参数（热量按每个模拟步=1秒结算）
+        lines.add(I18n.format("散热能力: " + heatDissipation + " HU/s"));
 
-        // 每tick耐久消耗
-        lines.add(I18n.format("耐久消耗: " + getDurabilityCost() + "/tick"));
+        // 每秒耐久消耗
+        lines.add(I18n.format("耐久消耗: " + getDurabilityCost() + "/s"));
     }
 }

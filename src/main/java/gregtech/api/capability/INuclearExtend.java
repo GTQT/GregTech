@@ -1,9 +1,7 @@
 package gregtech.api.capability;
 
-import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.NuclearAbility;
-
-import java.util.List;
-
-public interface INuclearExtend {
-    List<NuclearAbility> getUpdateAbilities();
-}
+/**
+ * Marker capability of the nuclear reactor's extension hatches. Every installed hatch widens the internal component
+ * grid of the reactor it belongs to by one column.
+ */
+public interface INuclearExtend {}

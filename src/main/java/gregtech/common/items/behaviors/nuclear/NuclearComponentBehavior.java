@@ -36,6 +36,33 @@ public class NuclearComponentBehavior extends AbstractMaterialPartBehavior
         return 1 - (double) getPartDamage(itemStack) / getPartMaxDurability(itemStack);
     }
 
+    /**
+     * Whether reactor operation wears this component out. Purely structural components (reactor plating) return
+     * {@code false} and are skipped by the durability pass of the reactor simulator.
+     */
+    public boolean consumesDurability() {
+        return true;
+    }
+
+    /**
+     * Whether this component only wears in simulation steps where it actually did something. Cooling components and
+     * reflectors opt in, so an idle reactor does not slowly destroy the components installed in it; components that
+     * keep the default are worn while the reactor runs.
+     */
+    public boolean wearsOnlyWhileWorking() {
+        return false;
+    }
+
+    /**
+     * Durability this component loses in a simulation step.
+     *
+     * @param heatMoved heat the component actually moved this step, in HU (0 when it was idle)
+     * @return the durability damage to apply; 0 leaves the component untouched
+     */
+    public int getDurabilityCostForStep(int heatMoved) {
+        return 1;
+    }
+
     public boolean applyDamage(ItemStack itemStack, int damageApplied) {
         int Durability = getPartMaxDurability(itemStack);
         int resultDamage = getPartDamage(itemStack) + damageApplied;

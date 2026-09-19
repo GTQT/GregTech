@@ -1799,31 +1799,31 @@ public final class GregTechMetaItem extends StandardMetaItem {
 
         COOLANT_CELL_COOLANT_10K = addItem(3113, "coolant_cell.coolant.10k")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new CoolantCellBehavior(10000, Materials.WaterCoolant, 10000, 10));
+                .addComponents(new CoolantCellBehavior(Materials.WaterCoolant, 10000, 10));
         COOLANT_CELL_COOLANT_30K = addItem(3114, "coolant_cell.coolant.30k")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new CoolantCellBehavior(10000, Materials.WaterCoolant, 30000, 30));
+                .addComponents(new CoolantCellBehavior(Materials.WaterCoolant, 30000, 30));
         COOLANT_CELL_COOLANT_60K = addItem(3115, "coolant_cell.coolant.60k")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new CoolantCellBehavior(10000, Materials.WaterCoolant, 60000, 60));
+                .addComponents(new CoolantCellBehavior(Materials.WaterCoolant, 60000, 60));
         COOLANT_CELL_SODIUM_POTASSIUM_10K = addItem(3116, "coolant_cell.sodium_potassium.10k")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new CoolantCellBehavior(10000, Materials.SodiumPotassium, 10000, 30));
+                .addComponents(new CoolantCellBehavior(Materials.SodiumPotassium, 10000, 30));
         COOLANT_CELL_SODIUM_POTASSIUM_30K = addItem(3117, "coolant_cell.sodium_potassium.30k")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new CoolantCellBehavior(10000, Materials.SodiumPotassium, 30000, 90));
+                .addComponents(new CoolantCellBehavior(Materials.SodiumPotassium, 30000, 90));
         COOLANT_CELL_SODIUM_POTASSIUM_60K = addItem(3118, "coolant_cell.sodium_potassium.60k")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new CoolantCellBehavior(10000, Materials.SodiumPotassium, 60000, 180));
+                .addComponents(new CoolantCellBehavior(Materials.SodiumPotassium, 60000, 180));
         COOLANT_CELL_HELIUM_10K = addItem(3119, "coolant_cell.helium.10k")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new CoolantCellBehavior(10000, Materials.Helium, 10000, 60));
+                .addComponents(new CoolantCellBehavior(Materials.Helium, 10000, 60));
         COOLANT_CELL_HELIUM_30K = addItem(3120, "coolant_cell.helium.30k")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new CoolantCellBehavior(10000, Materials.Helium, 30000, 180));
+                .addComponents(new CoolantCellBehavior(Materials.Helium, 30000, 180));
         COOLANT_CELL_HELIUM_60K = addItem(3121, "coolant_cell.helium.60k")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)
-                .addComponents(new CoolantCellBehavior(10000, Materials.Helium, 60000, 540));
+                .addComponents(new CoolantCellBehavior(Materials.Helium, 60000, 540));
 
         NEUTRON_REFLECTOR_BASIC = addItem(3130, "neutron_reflector.basic")
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_NUCLEAR)

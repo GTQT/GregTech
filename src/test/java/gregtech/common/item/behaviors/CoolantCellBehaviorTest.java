@@ -21,7 +21,7 @@ class CoolantCellBehaviorTest {
 
     @Test
     void coolantCellUsesItsExistingOutputtableDurabilityLifecycle() {
-        CoolantCellBehavior behavior = new CoolantCellBehavior(3, null, 1000, 300);
+        CoolantCellBehavior behavior = new CoolantCellBehavior(null, 3, 300);
         ItemStack cell = new ItemStack(new Item());
 
         assertTrue(behavior.applyDamage(cell, 1));
@@ -31,6 +31,17 @@ class CoolantCellBehaviorTest {
         assertFalse(behavior.applyDamage(cell, 1));
         assertFalse(cell.isEmpty());
         assertEquals(2, behavior.getPartDamage(cell));
+    }
+
+    @Test
+    void coolantCellIsConsumedByTheHeatItAbsorbs() {
+        CoolantCellBehavior behavior = new CoolantCellBehavior(null, 1000, 300);
+        ItemStack cell = new ItemStack(new Item());
+
+        assertEquals(1000, behavior.getHeatCapacity(cell), "the authored heat capacity is the cell's lifetime budget");
+        assertTrue(behavior.wearsOnlyWhileWorking(), "an idle cell must not be consumed");
+        assertEquals(0, behavior.getDurabilityCostForStep(0), "no absorbed heat means no wear");
+        assertEquals(300, behavior.getDurabilityCostForStep(300), "one durability point per absorbed HU");
     }
 
     @Test
