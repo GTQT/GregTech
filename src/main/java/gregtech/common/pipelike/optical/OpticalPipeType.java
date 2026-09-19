@@ -1,31 +1,51 @@
 package gregtech.common.pipelike.optical;
 
-import gregtech.api.pipenet.block.IPipeType;
+import gregtech.api.pipenet.block.material.IMaterialPipeType;
+import gregtech.api.unification.material.properties.OpticalCableProperties;
+import gregtech.api.unification.ore.OrePrefix;
 
 import org.jetbrains.annotations.NotNull;
 
-public enum OpticalPipeType implements IPipeType<OpticalPipeProperties> {
+public enum OpticalPipeType implements IMaterialPipeType<OpticalCableProperties> {
 
-    NORMAL;
+    NORMAL("normal", 0.375f, OrePrefix.pipeOptical);
 
+    public static final OpticalPipeType[] VALUES = values();
+
+    private final String name;
+    private final float thickness;
+    private final OrePrefix orePrefix;
+
+    OpticalPipeType(String name, float thickness, OrePrefix orePrefix) {
+        this.name = name;
+        this.thickness = thickness;
+        this.orePrefix = orePrefix;
+    }
+
+    @NotNull
     @Override
-    public float getThickness() {
-        return 0.375F;
+    public String getName() {
+        return name;
     }
 
     @Override
-    public OpticalPipeProperties modifyProperties(OpticalPipeProperties baseProperties) {
+    public float getThickness() {
+        return thickness;
+    }
+
+    @Override
+    public OrePrefix getOrePrefix() {
+        return orePrefix;
+    }
+
+    @Override
+    public OpticalCableProperties modifyProperties(OpticalCableProperties baseProperties) {
+        // The material alone decides the cable's capabilities; there is only one optical pipe type.
         return baseProperties;
     }
 
     @Override
     public boolean isPaintable() {
         return true;
-    }
-
-    @NotNull
-    @Override
-    public String getName() {
-        return "normal";
     }
 }

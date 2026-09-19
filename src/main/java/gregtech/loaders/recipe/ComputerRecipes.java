@@ -3,12 +3,13 @@ package gregtech.loaders.recipe;
 import gregtech.api.metatileentity.multiblock.CleanroomType;
 import gregtech.api.recipes.ingredients.nbtmatch.NBTCondition;
 import gregtech.api.recipes.ingredients.nbtmatch.NBTMatcher;
+import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.MarkerMaterials.Tier;
+import gregtech.api.unification.ore.OrePrefix;
 import gregtech.common.ConfigHolder;
 import gregtech.common.blocks.BlockComputerCasing;
 import gregtech.common.blocks.BlockGlassCasing;
 
-import net.minecraft.item.ItemStack;
 import net.minecraftforge.fml.common.Loader;
 
 import static gregtech.api.GTValues.*;
@@ -98,35 +99,10 @@ public class ComputerRecipes {
                 .input(rotor, StainlessSteel, 2)
                 .input(pipeTinyFluid, StainlessSteel, 16)
                 .input(plate, Copper, 16)
-                .input(wireGtSingle, SamariumIronArsenicOxide,4)
+                .input(wireGtSingle, SamariumIronArsenicOxide, 4)
                 .outputs(COMPUTER_CASING.getItemVariant(BlockComputerCasing.CasingType.COMPUTER_HEAT_VENT,
                         ConfigHolder.recipes.casingsPerCraft))
                 .duration(100).EUt(VA[EV]).buildAndRegister();
-
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .input(wireFine, BorosilicateGlass, 8)
-                .input(foil, Silver, 8)
-                .input(plate, Aluminium, 1)
-                .fluidInputs(Polyethylene.getFluid(L))
-                .output(OPTICAL_PIPES[0],2)
-                .duration(100).EUt(VA[MV]).buildAndRegister();
-
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .input(wireFine, BorosilicateGlass, 8)
-                .input(foil, Silver, 8)
-                .input(plate, Aluminium, 1)
-                .fluidInputs(Epoxy.getFluid(L))
-                .output(OPTICAL_PIPES[0], 8)
-                .duration(100).EUt(VA[MV]).buildAndRegister();
-
-        ASSEMBLER_RECIPES.recipeBuilder()
-                .input(wireFine, BorosilicateGlass, 8)
-                .input(foil, Silver, 8)
-                .input(plate, Aluminium, 1)
-                .fluidInputs(Polybenzimidazole.getFluid(L))
-                .output(OPTICAL_PIPES[0], 32)
-                .duration(100).EUt(VA[MV]).buildAndRegister();
-
 
         if (!Loader.isModLoaded(GTQT_TEST)) {
             ASSEMBLY_LINE_RECIPES.recipeBuilder()
@@ -135,7 +111,7 @@ public class ComputerRecipes {
                     .inputNBT(TOOL_DATA_ORB, NBTMatcher.ANY, NBTCondition.ANY)
                     .input(wireFine, Cobalt, 64)
                     .input(wireFine, Copper, 64)
-                    .input(OPTICAL_PIPES[0], 4)
+                    .input(OrePrefix.pipeOptical, BorosilicateGlass, 4)
                     .input(wireGtDouble, IndiumTinBariumTitaniumCuprate, 16)
                     .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 2))
                     .fluidInputs(MolybdeniteLubricant.getFluid(500))
@@ -154,7 +130,7 @@ public class ComputerRecipes {
                     .input(ELECTRIC_MOTOR_ZPM, 2)
                     .input(wireGtDouble, UraniumRhodiumDinaquadide, 32)
                     .input(foil, Trinium, 32)
-                    .input(OPTICAL_PIPES[0], 16)
+                    .input(OrePrefix.pipeOptical, BorosilicateGlass, 16)
                     .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 8))
                     .fluidInputs(VanadiumGallium.getFluid(L * 8))
                     .output(RESEARCH_STATION)
@@ -172,7 +148,7 @@ public class ComputerRecipes {
                 .input(ROBOT_ARM_ZPM, 2)
                 .input(ELECTRIC_MOTOR_ZPM, 2)
                 .input(wireGtDouble, UraniumRhodiumDinaquadide, 16)
-                .input(OPTICAL_PIPES[0], 2)
+                .input(OrePrefix.pipeOptical, BorosilicateGlass, 2)
                 .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 4))
                 .fluidInputs(Polybenzimidazole.getFluid(L * 2))
                 .output(OBJECT_HOLDER)
@@ -191,12 +167,12 @@ public class ComputerRecipes {
                 .input(wireGtDouble, EnrichedNaquadahTriniumEuropiumDuranide, 32)
                 .input(foil, Tritanium, 64)
                 .input(foil, Tritanium, 64)
-                .input(OPTICAL_PIPES[0], 8)
+                .input(OrePrefix.pipeOptical, BorosilicateGlass, 8)
                 .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 4))
                 .fluidInputs(Polybenzimidazole.getFluid(L * 4))
                 .output(NETWORK_SWITCH)
                 .stationResearch(b -> b
-                        .researchStack(new ItemStack(OPTICAL_PIPES[0]))
+                        .researchStack(OreDictUnifier.get(pipeOptical, BorosilicateGlass))
                         .CWUt(CWT[LuV])
                         .EUt(VA[ZPM]))
                 .duration(1200).EUt(100000).buildAndRegister();
@@ -210,7 +186,7 @@ public class ComputerRecipes {
                 .inputNBT(TOOL_DATA_ORB, NBTMatcher.ANY, NBTCondition.ANY)
                 .input(COVER_SCREEN)
                 .input(wireGtDouble, UraniumRhodiumDinaquadide, 64)
-                .input(OPTICAL_PIPES[0], 16)
+                .input(OrePrefix.pipeOptical, BorosilicateGlass, 16)
                 .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 8))
                 .fluidInputs(VanadiumGallium.getFluid(L * 8))
                 .fluidInputs(PCBCoolant.getFluid(4000))
@@ -253,7 +229,7 @@ public class ComputerRecipes {
                 .inputs(COMPUTER_CASING.getItemVariant(BlockComputerCasing.CasingType.ADVANCED_COMPUTER_CASING))
                 .input(circuit, Tier.UV)
                 .input(EMITTER_ZPM)
-                .input(OPTICAL_PIPES[0], 2)
+                .input(OrePrefix.pipeOptical, BorosilicateGlass, 2)
                 .output(HPCA_BRIDGE_COMPONENT)
                 .fluidInputs(PCBCoolant.getFluid(1000))
                 .cleanroom(CleanroomType.CLEANROOM)
@@ -282,7 +258,7 @@ public class ComputerRecipes {
                 .input(ITEM_IMPORT_BUS[LuV])
                 .input(circuit, Tier.LuV)
                 .input(SENSOR_IV)
-                .input(OPTICAL_PIPES[0], 2)
+                .input(OrePrefix.pipeOptical, BorosilicateGlass, 2)
                 .fluidInputs(Polybenzimidazole.getFluid(L * 2))
                 .output(OPTICAL_DATA_HATCH_RECEIVER)
                 .cleanroom(CleanroomType.CLEANROOM)
@@ -293,7 +269,7 @@ public class ComputerRecipes {
                 .input(ITEM_EXPORT_BUS[LuV])
                 .input(circuit, Tier.LuV)
                 .input(EMITTER_IV)
-                .input(OPTICAL_PIPES[0], 2)
+                .input(OrePrefix.pipeOptical, BorosilicateGlass, 2)
                 .fluidInputs(Polybenzimidazole.getFluid(L * 2))
                 .output(OPTICAL_DATA_HATCH_TRANSMITTER)
                 .cleanroom(CleanroomType.CLEANROOM)
@@ -326,6 +302,16 @@ public class ComputerRecipes {
                     .fluidInputs(PCBCoolant.getFluid(1000))
                     .output(ACTIVE_TRANSFORMER)
                     .duration(300).EUt(VA[LuV]).buildAndRegister();
+
+            ASSEMBLER_RECIPES.recipeBuilder()
+                    .inputs(COMPUTER_CASING.getItemVariant(BlockComputerCasing.CasingType.COMPUTER_CASING))
+                    .input(FIELD_GENERATOR_LuV, 2)
+                    .input(SENSOR_LuV)
+                    .input(circuit, Tier.LuV, 4)
+                    .input(OrePrefix.pipeOptical, BorosilicateGlass, 8)
+                    .fluidInputs(HighGradeSolderingAlloy.getFluid(L * 2))
+                    .output(OPTICAL_REPEATER)
+                    .duration(600).EUt(VA[LuV]).buildAndRegister();
         }
 
         /*

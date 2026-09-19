@@ -443,6 +443,10 @@ public class OrePrefix {
     public static final OrePrefix insulatedHeatConductorHex = new OrePrefix("insulatedHeatConductorHex", M*16, null, null, ENABLE_UNIFICATION,
             null);
 
+    public static final OrePrefix pipeOptical = new OrePrefix("pipeOptical", M, null, null, ENABLE_UNIFICATION,
+            null);
+
+
     // Special Prefix used mainly for the Crafting Handler.
     public static final OrePrefix craftingLens = new OrePrefix("craftingLens", -1, null, null, 0, null);
     // Used for the 16 dyes. Introduced by Eloraam

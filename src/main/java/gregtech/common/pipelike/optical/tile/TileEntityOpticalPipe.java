@@ -4,11 +4,11 @@ import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IDataAccessHatch;
 import gregtech.api.capability.IOpticalComputationProvider;
+import gregtech.api.pipenet.block.material.TileEntityMaterialPipeBase;
 import gregtech.api.pipenet.tile.IPipeTile;
-import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.recipes.Recipe;
+import gregtech.api.unification.material.properties.OpticalCableProperties;
 import gregtech.api.util.TaskScheduler;
-import gregtech.common.pipelike.optical.OpticalPipeProperties;
 import gregtech.common.pipelike.optical.OpticalPipeType;
 import gregtech.common.pipelike.optical.net.OpticalNetHandler;
 import gregtech.common.pipelike.optical.net.OpticalPipeNet;
@@ -17,6 +17,7 @@ import gregtech.common.pipelike.optical.net.WorldOpticalPipeNet;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.capabilities.Capability;
 
 import org.jetbrains.annotations.NotNull;
@@ -26,7 +27,7 @@ import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.EnumMap;
 
-public class TileEntityOpticalPipe extends TileEntityPipeBase<OpticalPipeType, OpticalPipeProperties> {
+public class TileEntityOpticalPipe extends TileEntityMaterialPipeBase<OpticalPipeType, OpticalCableProperties> {
 
     private final EnumMap<EnumFacing, OpticalNetHandler> handlers = new EnumMap<>(EnumFacing.class);
     // the OpticalNetHandler can only be created on the server, so we have an empty placeholder for the client
@@ -51,6 +52,76 @@ public class TileEntityOpticalPipe extends TileEntityPipeBase<OpticalPipeType, O
     @Override
     public boolean canHaveBlockedFaces() {
         return false;
+    }
+
+    /** The properties of this cable, as decided by its material. */
+    public OpticalCableProperties getOpticalProperties() {
+        return getNodeData();
+    }
+
+    /**
+     * How much of the optical signal is left at this exact cable, as a fraction in {@code (0, 1]},
+     * decaying linearly from the end the signal is injected at.
+     *
+     * @return {@code 0} when nothing is attached or the whole span is longer than the material's
+     *         decay distance, i.e. no signal reaches this cable at all
+     */
+    public double getSignalStrength() {
+        if (world == null || world.isRemote) return 0.0d;
+
+        int decayDistance = getOpticalProperties().getDecayDistance();
+        int toA = walkToEndpoint(EnumFacing.DOWN, decayDistance);
+        int toB = walkToEndpoint(EnumFacing.UP, decayDistance);
+        if (toA < 0 || toB < 0) return 0.0d;
+
+        // the whole span has to fit inside the material's reach
+        if (toA > decayDistance || toB > decayDistance) return 0.0d;
+
+        // distance from whichever end the signal entered at; both ends count block for block
+        int distanceFromSource = Math.max(1, Math.min(toA, toB));
+        return getOpticalProperties().getSignalStrength(distanceFromSource);
+    }
+
+    /**
+     * Walks the cable away from this pipe, starting towards {@code startFacing}, until it reaches a
+     * machine carrying an optical capability.
+     *
+     * @return the distance to that machine in blocks, or {@code -1} when the line ends without one
+     *         or runs past {@code limit}
+     */
+    private int walkToEndpoint(EnumFacing startFacing, int limit) {
+        BlockPos.MutableBlockPos cursor = new BlockPos.MutableBlockPos(getPos());
+        for (int distance = 1; distance <= limit + 1; distance++) {
+            cursor.move(startFacing);
+            TileEntity tile = world.getTileEntity(cursor);
+            if (tile instanceof TileEntityOpticalPipe) {
+                EnumFacing next = nextCableFacing((TileEntityOpticalPipe) tile, startFacing.getOpposite());
+                if (next == null) return -1; // dead end
+                startFacing = next;
+                continue;
+            }
+            if (tile == null) return -1;
+            EnumFacing capSide = startFacing.getOpposite();
+            if (tile.hasCapability(GregtechTileCapabilities.CABABILITY_COMPUTATION_PROVIDER, capSide) ||
+                    tile.hasCapability(GregtechTileCapabilities.CAPABILITY_DATA_ACCESS, capSide)) {
+                return distance;
+            }
+            return -1;
+        }
+        return -1;
+    }
+
+    /**
+     * @return the facing that continues the cable out of {@code pipe}, skipping the side we came
+     *         from, or {@code null} when this pipe is the end of the line.
+     */
+    @Nullable
+    private static EnumFacing nextCableFacing(@NotNull TileEntityOpticalPipe pipe, @NotNull EnumFacing cameFrom) {
+        for (EnumFacing facing : EnumFacing.VALUES) {
+            if (facing == cameFrom || !pipe.isConnected(facing)) continue;
+            if (pipe.getNeighbor(facing) instanceof TileEntityOpticalPipe) return facing;
+        }
+        return null;
     }
 
     private void initHandlers() {
@@ -117,7 +188,7 @@ public class TileEntityOpticalPipe extends TileEntityPipeBase<OpticalPipeType, O
     }
 
     @Override
-    public void transferDataFrom(IPipeTile<OpticalPipeType, OpticalPipeProperties> tileEntity) {
+    public void transferDataFrom(IPipeTile<OpticalPipeType, OpticalCableProperties> tileEntity) {
         super.transferDataFrom(tileEntity);
         if (getOpticalPipeNet() == null)
             return;
@@ -141,8 +212,8 @@ public class TileEntityOpticalPipe extends TileEntityPipeBase<OpticalPipeType, O
             if (getNumConnections() >= 2) return;
 
             // also check the other pipe
-            TileEntity tile = getWorld().getTileEntity(getPos().offset(side));
-            if (tile instanceof IPipeTile<?, ?>pipeTile &&
+            var tile = getWorld().getTileEntity(getPos().offset(side));
+            if (tile instanceof IPipeTile<?, ?> pipeTile &&
                     pipeTile.getPipeType().getClass() == this.getPipeType().getClass()) {
                 if (pipeTile.getNumConnections() >= 2) return;
             }
@@ -227,7 +298,8 @@ public class TileEntityOpticalPipe extends TileEntityPipeBase<OpticalPipeType, O
 
         @Override
         public boolean canBridge(@NotNull Collection<IOpticalComputationProvider> seen) {
-            return false;
+            // nothing found, so don't report a problem, just pass quietly
+            return true;
         }
     }
 }

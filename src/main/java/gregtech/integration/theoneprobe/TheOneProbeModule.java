@@ -39,6 +39,7 @@ import gregtech.integration.theoneprobe.provider.MultiblockInfoProvider;
 import gregtech.integration.theoneprobe.provider.MultiblockPSSProvider;
 import gregtech.integration.theoneprobe.provider.MultiblockThreadProvider;
 import gregtech.integration.theoneprobe.provider.NuclearReactorInfoProvider;
+import gregtech.integration.theoneprobe.provider.OpticalPipeInfoProvider;
 import gregtech.integration.theoneprobe.provider.PollutionInfoProvider;
 import gregtech.integration.theoneprobe.provider.PrimitivePumpInfoProvider;
 import gregtech.integration.theoneprobe.provider.QuantumStorageProvider;
@@ -81,6 +82,7 @@ public class TheOneProbeModule extends IntegrationSubmodule {
         oneProbe.registerProvider(new ColorChannelInfoProvider());
         oneProbe.registerProvider(new FluidPipeInfoProvider());
         oneProbe.registerProvider(new HeatPipeInfoProvider());
+        oneProbe.registerProvider(new OpticalPipeInfoProvider());
         oneProbe.registerProvider(new HeatContainerInfoProvider());
         oneProbe.registerProvider(new MultiblockThreadProvider());
         oneProbe.registerProvider(new WorkableInfoProvider());

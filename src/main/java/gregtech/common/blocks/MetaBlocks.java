@@ -132,7 +132,7 @@ public class MetaBlocks {
     public static final Map<String, BlockHeatConductor[]> HEAT_CONDUCTOR = new Object2ObjectOpenHashMap<>();
     public static final Map<String, BlockFluidPipe[]> FLUID_PIPES = new Object2ObjectOpenHashMap<>();
     public static final Map<String, BlockItemPipe[]> ITEM_PIPES = new Object2ObjectOpenHashMap<>();
-    public static final BlockOpticalPipe[] OPTICAL_PIPES = new BlockOpticalPipe[OpticalPipeType.values().length];
+    public static final Map<String, BlockOpticalPipe[]> OPTICAL_PIPES = new Object2ObjectOpenHashMap<>();
     public static final BlockLaserPipe[] LASER_PIPES = new BlockLaserPipe[OpticalPipeType.values().length];
     public static BlockLongDistancePipe LD_ITEM_PIPE;
     public static BlockLongDistancePipe LD_FLUID_PIPE;
@@ -259,11 +259,14 @@ public class MetaBlocks {
                 itemPipes[type.ordinal()].setRegistryName(modid, String.format("item_pipe_%s", type.name));
             }
             ITEM_PIPES.put(modid, itemPipes);
-        }
-        for (OpticalPipeType type : OpticalPipeType.values()) {
-            OPTICAL_PIPES[type.ordinal()] = new BlockOpticalPipe(type);
-            OPTICAL_PIPES[type.ordinal()].setRegistryName(String.format("optical_pipe_%s", type.getName()));
-            OPTICAL_PIPES[type.ordinal()].setTranslationKey(String.format("optical_pipe_%s", type.getName()));
+
+            BlockOpticalPipe[] opticalPipes = new BlockOpticalPipe[OpticalPipeType.VALUES.length];
+            for (OpticalPipeType type : OpticalPipeType.VALUES) {
+                opticalPipes[type.ordinal()] = new BlockOpticalPipe(type, registry);
+                opticalPipes[type.ordinal()].setRegistryName(modid,
+                        String.format("optical_pipe_%s", type.getName()));
+            }
+            OPTICAL_PIPES.put(modid, opticalPipes);
         }
         for (LaserPipeType type : LaserPipeType.values()) {
             LASER_PIPES[type.ordinal()] = new BlockLaserPipe(type);
@@ -583,10 +586,8 @@ public class MetaBlocks {
             for (BlockHeatConductor pipe : HEAT_CONDUCTOR.get(registry.getModid())) pipe.onModelRegister();
             for (BlockFluidPipe pipe : FLUID_PIPES.get(registry.getModid())) pipe.onModelRegister();
             for (BlockItemPipe pipe : ITEM_PIPES.get(registry.getModid())) pipe.onModelRegister();
+            for (BlockOpticalPipe pipe : OPTICAL_PIPES.get(registry.getModid())) pipe.onModelRegister();
         }
-        for (BlockOpticalPipe pipe : OPTICAL_PIPES)
-            ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(pipe),
-                    stack -> OpticalPipeRenderer.INSTANCE.getModelLocation());
         for (BlockLaserPipe pipe : LASER_PIPES)
             ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(pipe),
                     stack -> LaserPipeRenderer.INSTANCE.getModelLocation());
@@ -677,10 +678,10 @@ public class MetaBlocks {
             for (BlockItemPipe pipe : ITEM_PIPES.get(registry.getModid())) {
                 ModelLoader.setCustomStateMapper(pipe, normalStateMapper);
             }
-        }
-        normalStateMapper = new SimpleStateMapper(OpticalPipeRenderer.INSTANCE.getModelLocation());
-        for (BlockOpticalPipe pipe : OPTICAL_PIPES) {
-            ModelLoader.setCustomStateMapper(pipe, normalStateMapper);
+            normalStateMapper = new SimpleStateMapper(OpticalPipeRenderer.INSTANCE.getModelLocation());
+            for (BlockOpticalPipe pipe : OPTICAL_PIPES.get(registry.getModid())) {
+                ModelLoader.setCustomStateMapper(pipe, normalStateMapper);
+            }
         }
         normalStateMapper = new SimpleStateMapper(LaserPipeRenderer.INSTANCE.getModelLocation());
         for (BlockLaserPipe pipe : LASER_PIPES) {
@@ -868,6 +869,12 @@ public class MetaBlocks {
                 }
             }
             for (BlockItemPipe pipe : ITEM_PIPES.get(registry.getModid())) {
+                for (Material pipeMaterial : pipe.getEnabledMaterials()) {
+                    ItemStack itemStack = pipe.getItem(pipeMaterial);
+                    OreDictUnifier.registerOre(itemStack, pipe.getPrefix(), pipeMaterial);
+                }
+            }
+            for (BlockOpticalPipe pipe : OPTICAL_PIPES.get(registry.getModid())) {
                 for (Material pipeMaterial : pipe.getEnabledMaterials()) {
                     ItemStack itemStack = pipe.getItem(pipeMaterial);
                     OreDictUnifier.registerOre(itemStack, pipe.getPrefix(), pipeMaterial);

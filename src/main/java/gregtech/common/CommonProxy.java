@@ -156,6 +156,13 @@ public class CommonProxy {
                         }
                     }
                 }
+                if (material.hasProperty(PropertyKey.OPTICAL_CABLE)) {
+                    for (BlockOpticalPipe pipe : OPTICAL_PIPES.get(materialRegistry.getModid())) {
+                        if (pipe.isValidPipeMaterial(material)) {
+                            pipe.addPipeMaterial(material, material.getProperty(PropertyKey.OPTICAL_CABLE));
+                        }
+                    }
+                }
             }
 
             for (BlockCable cable : CABLES.get(materialRegistry.getModid())) {
@@ -178,8 +185,12 @@ public class CommonProxy {
                     registry.register(pipe);
                 }
             }
+            for (BlockOpticalPipe pipe : OPTICAL_PIPES.get(materialRegistry.getModid())) {
+                if (!pipe.getEnabledMaterials().isEmpty()) {
+                    registry.register(pipe);
+                }
+            }
         }
-        for (BlockOpticalPipe pipe : OPTICAL_PIPES) registry.register(pipe);
         for (BlockLaserPipe pipe : LASER_PIPES) registry.register(pipe);
 
         registry.register(LD_ITEM_PIPE);
@@ -355,8 +366,12 @@ public class CommonProxy {
                     registry.register(createItemBlock(pipe, ItemBlockItemPipe::new));
                 }
             }
+            for (BlockOpticalPipe pipe : OPTICAL_PIPES.get(materialRegistry.getModid())) {
+                if (!pipe.getEnabledMaterials().isEmpty()) {
+                    registry.register(createItemBlock(pipe, ItemBlockOpticalPipe::new));
+                }
+            }
         }
-        for (BlockOpticalPipe pipe : OPTICAL_PIPES) registry.register(createItemBlock(pipe, ItemBlockOpticalPipe::new));
         for (BlockLaserPipe pipe : LASER_PIPES) registry.register(createItemBlock(pipe, ItemBlockLaserPipe::new));
 
         registry.register(createItemBlock(LD_ITEM_PIPE, ItemBlock::new));

@@ -180,6 +180,7 @@ gregtech.top.ld_pipe_output_endpoint=Output Endpoint:
 gregtech.top.heat_pipe.temperature=Temperature:
 gregtech.top.heat_pipe.heat_transfer=Heat Transfer:
 gregtech.top.heat_pipe.heat_loss=Heat Loss per Block:
+gregtech.top.optical_pipe.strength=Signal Strength:
 gregtech.top.heat.input=Heat Input:
 gregtech.top.heat.output=Heat Output:
 gregtech.top.heat.accept=Can accept heat
@@ -1989,6 +1990,8 @@ item.material.oreprefix.cableGtQuadruple=4x %s Cable
 item.material.oreprefix.cableGtDouble=2x %s Cable
 item.material.oreprefix.cableGtSingle=1x %s Cable
 
+item.material.oreprefix.pipeOptical=%s Optical Fiber Cable
+
 item.material.oreprefix.pipeHeatConductorSingle=1x %s Heat Conductor
 item.material.oreprefix.pipeHeatConductorDouble=2x %s Heat Conductor
 item.material.oreprefix.pipeHeatConductorQuadruple=4x %s Heat Conductor
@@ -2719,6 +2722,8 @@ gregtech.material.steel_magnetic=Magnetic Steel
 gregtech.material.vanadium_steel=Vanadiumsteel
 gregtech.material.potin=Potin
 gregtech.material.borosilicate_glass=Borosilicate Glass
+gregtech.material.gst_glass=GST Glass
+gregtech.material.zblan_glass=ZBLAN Glass
 gregtech.material.naquadah_alloy=Naquadah Alloy
 gregtech.material.sulfuric_nickel_solution=Sulfuric Nickel Solution
 gregtech.material.sulfuric_copper_solution=Sulfuric Copper Solution
@@ -3135,8 +3140,8 @@ tile.brittle_charcoal.name=Brittle Charcoal
 tile.brittle_charcoal.tooltip.1=Produced by the Charcoal Pile Igniter.
 tile.brittle_charcoal.tooltip.2=Mine this to get Charcoal.
 
-tile.optical_pipe_normal.name=Optical Fiber Cable
-tile.optical_pipe_normal.tooltip1=Transmitting §fComputation§7 or §fResearch Data§7
+gregtech.optical_pipe.max_computation=§bMax Computation: §f%,d CWU/t
+gregtech.optical_pipe.decay_distance=§eSignal Decay Distance: §f%,d blocks
 
 tile.laser_pipe_normal.name=Laser Transmitting Cable
 tile.laser_pipe_normal.tooltip1=Transmitting power with §fno loss§7 in straight lines
@@ -6761,6 +6766,15 @@ gregtech.multiblock.cleanroom.warning_contaminated=Contaminated!
 gregtech.multiblock.cleanroom.low_tier=Energy tier too low, minimum of %s!
 
 gregtech.machine.logistics_material_distributor.name=Logistics Material Distributor
+
+# Optical Repeater
+gregtech.machine.optical_repeater.name=Optical Repeater
+gregtech.machine.optical_repeater.tooltip.1=Regenerates a §fdecayed optical signal§7 at full strength.
+gregtech.machine.optical_repeater.tooltip.2=Any face facing an optical cable §freceives§7, every other face §ftransmits§7.
+gregtech.machine.optical_repeater.tooltip.3=Does §cnot§7 increase the computation a cable can carry.
+gregtech.machine.optical_repeater.forwarding=Repeating.
+gregtech.machine.optical_repeater.channels=Optical Channels: §f%d input / %d output
+gregtech.multiblock.optical_repeater.description=The Optical Repeater restores an optical signal that has been spent by cable decay. Cables attached to any face feed signal in; all other faces broadcast it again at full strength, starting a fresh decay budget.
 
 gregtech.machine.huge_transformer.name=Huge Transformer
 gregtech.machine.huge_transformer.tooltip1=A Transformer Near My home

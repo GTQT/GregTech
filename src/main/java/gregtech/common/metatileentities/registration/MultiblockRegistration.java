@@ -78,6 +78,7 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiAlloyF
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiSmelter;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNaturalDraftCoolingTower;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwitch;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityOpticalRepeater;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityProcessingArray;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPyrolyseOven;
@@ -319,6 +320,9 @@ public final class MultiblockRegistration {
         LOGISTICS_MATERIAL_DISTRIBUTOR = registerMetaTileEntity(1263,
                 new MetaTileEntityLogisticsMaterialDistributor(gregtechId("logistics_material_distributor")));
 
+        OPTICAL_REPEATER = registerMetaTileEntity(1264,
+                new MetaTileEntityOpticalRepeater(gregtechId("optical_repeater")));
+
         // 算力
         DATA_BANK = registerMetaTileEntity(1265, new MetaTileEntityDataBank(gregtechId("data_bank")));
 
@@ -355,6 +359,8 @@ public final class MultiblockRegistration {
                 new MetaTileEntityGasCentrifuge(gregtechId("gas_centrifuge")));
         NATURAL_DRAFT_COOLING_TOWER = registerMetaTileEntity(1277,
                 new MetaTileEntityNaturalDraftCoolingTower(gregtechId("natural_draft_cooling_tower")));
+
+
 
     }
 

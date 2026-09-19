@@ -22,6 +22,8 @@ public class PropertyKey<T extends IMaterialProperty> {
     public static final PropertyKey<RotorProperty> ROTOR = new PropertyKey<>("rotor", RotorProperty.class);
     public static final PropertyKey<WireProperties> WIRE = new PropertyKey<>("wire", WireProperties.class);
     public static final PropertyKey<HeatConductorProperties> HEAT_CONDUCTOR = new PropertyKey<>("heat", HeatConductorProperties.class);
+    public static final PropertyKey<OpticalCableProperties> OPTICAL_CABLE = new PropertyKey<>("optical_cable",
+            OpticalCableProperties.class);
     public static final PropertyKey<WoodProperty> WOOD = new PropertyKey<>("wood", WoodProperty.class);
     public static final PropertyKey<AlloyBlastProperty> ALLOY_BLAST = new PropertyKey<>("blast_alloy",
             AlloyBlastProperty.class);

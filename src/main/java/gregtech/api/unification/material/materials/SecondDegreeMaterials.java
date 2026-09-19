@@ -29,6 +29,7 @@ public class SecondDegreeMaterials {
                 .color(0xFAFAFA).iconSet(GLASS)
                 .flags(GENERATE_LENS, NO_SMASHING, EXCLUDE_BLOCK_CRAFTING_RECIPES, DECOMPOSITION_BY_CENTRIFUGING)
                 .components(SiliconDioxide, 1)
+                .opticalCableProperties(32, 16)
                 .build();
 
         Perlite = Material.builder(2001, gregtechId("perlite"))
@@ -309,6 +310,7 @@ public class SecondDegreeMaterials {
                 .liquid(new FluidBuilder().temperature(1921))
                 .color(0xE6F3E6).iconSet(SHINY)
                 .components(Boron, 1, SiliconDioxide, 7)
+                .opticalCableProperties(64, 32)
                 .build();
 
         Andesite = Material.builder(2039, gregtechId("andesite"))
@@ -318,9 +320,25 @@ public class SecondDegreeMaterials {
                 .components(Asbestos, 4, Saltpeter, 1)
                 .build();
 
-        // FREE ID 2040
+        GSTGlass = new Material.Builder(2040, gregtechId("gst_glass"))
+                .ingot().fluid()
+                .color(0xCFFFFF)
+                .iconSet(MaterialIconSet.SHINY)
+                .flags(NO_SMASHING, NO_WORKING, DECOMPOSITION_BY_CENTRIFUGING)
+                .components(Germanium, 2, Antimony, 2, Tellurium, 5)
+                .blast(873, GasTier.MID)
+                .opticalCableProperties(128, 64)
+                .build();
 
-        // FREE ID 2041
+        ZBLANGlass = new Material.Builder(2041, gregtechId("zblan_glass"))
+                .ingot().fluid()
+                .color(0xACB4BC)
+                .iconSet(MaterialIconSet.SHINY)
+                .flags(NO_SMASHING, NO_WORKING, DISABLE_DECOMPOSITION)
+                .components(Zirconium, 5, Barium, 2, Lanthanum, 1, Aluminium, 1, Sodium, 2, Fluorine, 6)
+                .opticalCableProperties(256, 128)
+                .build()
+                .setFormula("(ZrF4)5(BaF2)2(LaF3)(AlF3)(NaF)2", true);
 
         NaquadahAlloy = Material.builder(2042, gregtechId("naquadah_alloy"))
                 .ingot(5).fluid()

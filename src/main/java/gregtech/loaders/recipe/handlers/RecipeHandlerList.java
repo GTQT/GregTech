@@ -8,6 +8,7 @@ public class RecipeHandlerList {
         PartsRecipeHandler.register();
         PartRecipeHandler1.register();
         WireRecipeHandler.register();
+        PipeOpticalRecipeHandler.register();
         WireCombiningHandler.register();
         PipeRecipeHandler.register();
         ToolRecipeHandler.register();

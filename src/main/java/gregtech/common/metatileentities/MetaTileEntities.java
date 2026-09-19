@@ -109,6 +109,7 @@ import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiAlloyF
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityMultiSmelter;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNaturalDraftCoolingTower;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityNetworkSwitch;
+import gregtech.common.metatileentities.multi.electric.MetaTileEntityOpticalRepeater;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPowerSubstation;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityProcessingArray;
 import gregtech.common.metatileentities.multi.electric.MetaTileEntityPyrolyseOven;
@@ -673,6 +674,7 @@ public class MetaTileEntities {
     public static MetaTileEntityMegaCrackingUnit MEGA_CRACKING_UNIT;
     public static MetaTileEntitySteamEngine STEAM_ENGINE;
     public static MetaTileEntityLogisticsMaterialDistributor LOGISTICS_MATERIAL_DISTRIBUTOR;
+    public static MetaTileEntityOpticalRepeater OPTICAL_REPEATER;
     public static MetaTileEntityHugeTransformer HUGE_TRANSFORMER;
     // FORGE OF THE GODS
     public static MetaTileEntityForgeOfGods FORGE_OF_GODS;

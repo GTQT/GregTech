@@ -180,6 +180,7 @@ gregtech.top.ld_pipe_output_endpoint=输出接口：
 gregtech.top.heat_pipe.temperature=温度：
 gregtech.top.heat_pipe.heat_transfer=热传导率：
 gregtech.top.heat_pipe.heat_loss=热损失/米：
+gregtech.top.optical_pipe.strength=信号强度：
 gregtech.top.heat.input=热能输入：
 gregtech.top.heat.output=热能输出：
 gregtech.top.heat.accept=可接受热能
@@ -1982,6 +1983,8 @@ item.material.oreprefix.cableGtQuadruple=4x%s线缆
 item.material.oreprefix.cableGtDouble=2x%s线缆
 item.material.oreprefix.cableGtSingle=1x%s线缆
 
+item.material.oreprefix.pipeOptical=%s光缆
+
 item.material.oreprefix.pipeHeatConductorSingle=1x%s热导管道
 item.material.oreprefix.pipeHeatConductorDouble=2x%s热导管道
 item.material.oreprefix.pipeHeatConductorQuadruple=4x%s热导管道
@@ -2712,6 +2715,8 @@ gregtech.material.steel_magnetic=磁化钢
 gregtech.material.vanadium_steel=钒钢
 gregtech.material.potin=粗青铜合金
 gregtech.material.borosilicate_glass=硼硅玻璃
+gregtech.material.gst_glass=GST玻璃
+gregtech.material.zblan_glass=ZBLAN玻璃
 gregtech.material.naquadah_alloy=硅岩合金
 gregtech.material.sulfuric_nickel_solution=硫酸镍溶液
 gregtech.material.sulfuric_copper_solution=硫酸铜溶液
@@ -3129,8 +3134,8 @@ tile.brittle_charcoal.name=脆木炭块
 tile.brittle_charcoal.tooltip.1=产自木炭堆点火器。
 tile.brittle_charcoal.tooltip.2=挖掘可掉落木炭。
 
-tile.optical_pipe_normal.name=光缆
-tile.optical_pipe_normal.tooltip1=传递§f算力§7或§f研究数据§7
+gregtech.optical_pipe.max_computation=§b算力上限：§f%,d CWU/t
+gregtech.optical_pipe.decay_distance=§e信号衰减距离：§f%,d 格
 
 tile.laser_pipe_normal.name=激光传导线缆
 tile.laser_pipe_normal.tooltip1=§f无损§7传递能量，仅限直线摆放
@@ -6760,6 +6765,15 @@ gregtech.multiblock.cleanroom.warning_contaminated=被污染！
 gregtech.multiblock.cleanroom.low_tier=能源仓等级过低，最低等级为%s！
 
 gregtech.machine.logistics_material_distributor.name=物料分配器
+
+# Optical Repeater
+gregtech.machine.optical_repeater.name=光学中继器
+gregtech.machine.optical_repeater.tooltip.1=以§f满强度§7再生已衰减的光学信号。
+gregtech.machine.optical_repeater.tooltip.2=朝向光缆的面§f接收§7，其余面§f发送§7。
+gregtech.machine.optical_repeater.tooltip.3=§c不会§7提升线缆可运载的算力上限。
+gregtech.machine.optical_repeater.forwarding=中继中
+gregtech.machine.optical_repeater.channels=光学通道：§f%d 输入 / %d 输出
+gregtech.multiblock.optical_repeater.description=光学中继器用于恢复被线缆衰减耗尽的光学信号。任意一面接入光缆即可接收，其余各面以满强度重新广播，并从该处开始计算新的衰减距离。
 
 gregtech.machine.huge_transformer.name=大型变压器
 gregtech.machine.huge_transformer.tooltip1=家门口的变电站

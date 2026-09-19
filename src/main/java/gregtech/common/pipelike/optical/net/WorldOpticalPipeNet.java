@@ -1,15 +1,15 @@
 package gregtech.common.pipelike.optical.net;
 
 import gregtech.api.pipenet.WorldPipeNet;
-import gregtech.common.pipelike.optical.OpticalPipeProperties;
+import gregtech.api.unification.material.properties.OpticalCableProperties;
 
 import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
 
-public class WorldOpticalPipeNet extends WorldPipeNet<OpticalPipeProperties, OpticalPipeNet> {
+public class WorldOpticalPipeNet extends WorldPipeNet<OpticalCableProperties, OpticalPipeNet> {
 
-    private static final String DATA_ID = "gregtech.optical_pipe_net";
+    private static final String DATA_ID_BASE = "gregtech.optical_pipe_net";
 
     public WorldOpticalPipeNet(String name) {
         super(name);
@@ -17,6 +17,7 @@ public class WorldOpticalPipeNet extends WorldPipeNet<OpticalPipeProperties, Opt
 
     @NotNull
     public static WorldOpticalPipeNet getWorldPipeNet(@NotNull World world) {
+        final String DATA_ID = getDataID(DATA_ID_BASE, world);
         WorldOpticalPipeNet netWorldData = (WorldOpticalPipeNet) world.loadData(WorldOpticalPipeNet.class, DATA_ID);
         if (netWorldData == null) {
             netWorldData = new WorldOpticalPipeNet(DATA_ID);

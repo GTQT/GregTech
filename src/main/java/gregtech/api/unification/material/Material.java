@@ -25,6 +25,7 @@ import gregtech.api.unification.material.properties.ItemPipeProperties;
 import gregtech.api.unification.material.properties.MaterialProperties;
 import gregtech.api.unification.material.properties.MaterialToolProperty;
 import gregtech.api.unification.material.properties.MixProperty;
+import gregtech.api.unification.material.properties.OpticalCableProperties;
 import gregtech.api.unification.material.properties.OreProperty;
 import gregtech.api.unification.material.properties.PolymerProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
@@ -1183,6 +1184,17 @@ public class Material implements Comparable<Material> {
         public Builder heatConductorProperties(int maxTemperature, int heatTransferRate, float heatLossPerBlock) {
             properties.setProperty(PropertyKey.HEAT_CONDUCTOR,
                     new HeatConductorProperties(maxTemperature, heatTransferRate, heatLossPerBlock));
+            return this;
+        }
+
+        /**
+         * Marks this material as usable for optical cables.
+         *
+         * @param maxCWUt       how much CWU/t a single cable of this material can forward
+         * @param decayDistance how many blocks a signal travels before it loses all carried information
+         */
+        public Builder opticalCableProperties(int maxCWUt, int decayDistance) {
+            properties.setProperty(PropertyKey.OPTICAL_CABLE, new OpticalCableProperties(maxCWUt, decayDistance));
             return this;
         }
 
