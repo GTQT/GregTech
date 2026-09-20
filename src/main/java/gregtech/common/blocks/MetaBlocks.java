@@ -28,6 +28,7 @@ import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityTESR;
 import gregtech.client.renderer.handler.TileEntityTreeTapRenderer;
 import gregtech.client.renderer.pipe.CableRenderer;
+import gregtech.client.renderer.pipe.FiberPipeRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
 import gregtech.client.renderer.pipe.HeatConductorRenderer;
 import gregtech.client.renderer.pipe.ItemPipeRenderer;
@@ -56,6 +57,9 @@ import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.cable.Insulation;
 import gregtech.common.pipelike.cable.tile.TileEntityCable;
 import gregtech.common.pipelike.cable.tile.TileEntityCableTickable;
+import gregtech.common.pipelike.fiber.BlockFiberPipe;
+import gregtech.common.pipelike.fiber.FiberPipeType;
+import gregtech.common.pipelike.fiber.tile.TileEntityFiberPipe;
 import gregtech.common.pipelike.fluidpipe.BlockFluidPipe;
 import gregtech.common.pipelike.fluidpipe.FluidPipeType;
 import gregtech.common.pipelike.fluidpipe.longdistance.LDFluidPipeType;
@@ -134,6 +138,7 @@ public class MetaBlocks {
     public static final Map<String, BlockItemPipe[]> ITEM_PIPES = new Object2ObjectOpenHashMap<>();
     public static final Map<String, BlockOpticalPipe[]> OPTICAL_PIPES = new Object2ObjectOpenHashMap<>();
     public static final BlockLaserPipe[] LASER_PIPES = new BlockLaserPipe[OpticalPipeType.values().length];
+    public static final BlockFiberPipe[] FIBER_PIPES = new BlockFiberPipe[FiberPipeType.VALUES.length];
     public static BlockLongDistancePipe LD_ITEM_PIPE;
     public static BlockLongDistancePipe LD_FLUID_PIPE;
 
@@ -272,6 +277,11 @@ public class MetaBlocks {
             LASER_PIPES[type.ordinal()] = new BlockLaserPipe(type);
             LASER_PIPES[type.ordinal()].setRegistryName(String.format("laser_pipe_%s", type.getName()));
             LASER_PIPES[type.ordinal()].setTranslationKey(String.format("laser_pipe_%s", type.getName()));
+        }
+        for (FiberPipeType type : FiberPipeType.VALUES) {
+            FIBER_PIPES[type.ordinal()] = new BlockFiberPipe(type);
+            FIBER_PIPES[type.ordinal()].setRegistryName(String.format("fiber_pipe_%s", type.getName()));
+            FIBER_PIPES[type.ordinal()].setTranslationKey(String.format("fiber_pipe_%s", type.getName()));
         }
 
         LD_ITEM_PIPE = new BlockLongDistancePipe(LDItemPipeType.INSTANCE);
@@ -525,6 +535,7 @@ public class MetaBlocks {
         GameRegistry.registerTileEntity(TileEntityItemPipe.class, gregtechId("item_pipe"));
         GameRegistry.registerTileEntity(TileEntityOpticalPipe.class, gregtechId("optical_pipe"));
         GameRegistry.registerTileEntity(TileEntityLaserPipe.class, gregtechId("laser_pipe"));
+        GameRegistry.registerTileEntity(TileEntityFiberPipe.class, gregtechId("fiber_pipe"));
         GameRegistry.registerTileEntity(TileEntityFluidPipeTickable.class, gregtechId("fluid_pipe_active"));
         GameRegistry.registerTileEntity(TileEntityItemPipeTickable.class, gregtechId("item_pipe_active"));
         GameRegistry.registerTileEntity(GodforgeRenderTileEntity.class, gregtechId("godforge_render"));
@@ -591,6 +602,9 @@ public class MetaBlocks {
         for (BlockLaserPipe pipe : LASER_PIPES)
             ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(pipe),
                     stack -> LaserPipeRenderer.INSTANCE.getModelLocation());
+        for (BlockFiberPipe pipe : FIBER_PIPES)
+            ModelLoader.setCustomMeshDefinition(Item.getItemFromBlock(pipe),
+                    stack -> FiberPipeRenderer.INSTANCE.getModelLocation());
 
         for (CoilRegistry r : GregTechAPI.coilManager.getRegistries()) {
             for (CustomCoilBlock block : r) {
@@ -685,6 +699,10 @@ public class MetaBlocks {
         }
         normalStateMapper = new SimpleStateMapper(LaserPipeRenderer.INSTANCE.getModelLocation());
         for (BlockLaserPipe pipe : LASER_PIPES) {
+            ModelLoader.setCustomStateMapper(pipe, normalStateMapper);
+        }
+        normalStateMapper = new SimpleStateMapper(FiberPipeRenderer.INSTANCE.getModelLocation());
+        for (BlockFiberPipe pipe : FIBER_PIPES) {
             ModelLoader.setCustomStateMapper(pipe, normalStateMapper);
         }
 

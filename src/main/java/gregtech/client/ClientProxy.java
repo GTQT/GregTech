@@ -14,15 +14,17 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.IBlockOre;
 import gregtech.api.util.Mods;
 import gregtech.api.util.input.KeyBind;
+import gregtech.api.wireless.ClientWirelessHUD;
+import gregtech.client.event.CreativeSprayClientHandler;
 import gregtech.client.model.customtexture.CustomTextureModelHandler;
 import gregtech.client.model.customtexture.MetadataSectionCTM;
-import gregtech.client.event.CreativeSprayClientHandler;
 import gregtech.client.renderer.handler.FacadeRenderer;
 import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.handler.multiblock.MoverRotationKeyHandler;
 import gregtech.client.renderer.handler.multiblock.MultiblockMoverPreviewRenderer;
 import gregtech.client.renderer.handler.multiblock.MultiblockToolModeKeyHandler;
 import gregtech.client.renderer.pipe.CableRenderer;
+import gregtech.client.renderer.pipe.FiberPipeRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
 import gregtech.client.renderer.pipe.HeatConductorRenderer;
 import gregtech.client.renderer.pipe.ItemPipeRenderer;
@@ -87,7 +89,6 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.oredict.OreDictionary;
 
-import gregtech.api.wireless.ClientWirelessHUD;
 import org.jetbrains.annotations.NotNull;
 import paulscode.sound.SoundSystemConfig;
 
@@ -128,6 +129,7 @@ public class ClientProxy extends CommonProxy {
         ItemPipeRenderer.INSTANCE.registerIcons(map);
         OpticalPipeRenderer.INSTANCE.registerIcons(map);
         LaserPipeRenderer.INSTANCE.registerIcons(map);
+        FiberPipeRenderer.INSTANCE.registerIcons(map);
         RenderUtil.clearTextureCache();
     }
 
@@ -449,6 +451,7 @@ public class ClientProxy extends CommonProxy {
         ItemPipeRenderer.INSTANCE.preInit();
         OpticalPipeRenderer.INSTANCE.preInit();
         LaserPipeRenderer.INSTANCE.preInit();
+        FiberPipeRenderer.INSTANCE.preInit();
         MetaEntities.initRenderers();
 
         MinecraftForge.EVENT_BUS.register(KeyBind.class);

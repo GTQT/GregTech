@@ -3140,6 +3140,10 @@ gregtech.optical_pipe.decay_distance=§e信号衰减距离：§f%,d 格
 tile.laser_pipe_normal.name=激光传导线缆
 tile.laser_pipe_normal.tooltip1=§f无损§7传递能量，仅限直线摆放
 
+tile.fiber_pipe_normal.name=光纤
+tile.fiber_pipe_normal.tooltip.1=传递§f颜色§7与§f光强§7，§a无衰减§7、§c不可分叉
+tile.fiber_pipe_normal.tooltip.2=需要光学源仓与光学靶仓配对使用
+
 metaitem.prospector.lv.name=电动勘探扫描仪（LV）
 metaitem.prospector.mv.name=电动勘探扫描仪（MV）
 metaitem.prospector.hv.name=电动勘探扫描仪（HV）
@@ -7861,6 +7865,10 @@ gregtech.machine.batch_process.tooltips.3=有关修改耗时的特殊配方逻�
 gregtech.tooltip.laser_available=-激光仓支持:
 gregtech.tooltip.laser_hatch.tooltips=本设备支持使用激光仓代替能源仓/动力仓
 
+gregtech.tooltip.optical_available=-光学仓支持:
+gregtech.tooltip.optical_hatch.tooltips.1=控制器能够通过光学仓发射或者接收特定颜色的光
+gregtech.tooltip.optical_hatch.tooltips.2=部分配方需求特定颜色与特定通量的光，不在范围内的光无效
+
 gregtech.tooltip.heat_available=-温度增幅效果:
 gregtech.tooltip.coil_available=-线圈增幅效果:
 gregtech.tooltip.special_available=-特殊配方逻辑:
@@ -8432,6 +8440,45 @@ gregtech.machine.cross_parallel_hatch.tooltip=跨配方并行：并行预算在�
 gregtech.machine.cross_parallel_hatch.incompatible=§c与线程控制仓不兼容§7，同时安装时线程数不生效。
 gregtech.machine.cross_parallel_hatch.display=调整多方块的并行预算。
 
+gregtech.machine.optical_source_hatch.lv.name=光学源仓(LV)
+gregtech.machine.optical_source_hatch.mv.name=光学源仓(MV)
+gregtech.machine.optical_source_hatch.hv.name=光学源仓(HV)
+gregtech.machine.optical_source_hatch.ev.name=光学源仓(EV)
+gregtech.machine.optical_source_hatch.iv.name=光学源仓(IV)
+gregtech.machine.optical_source_hatch.luv.name=光学源仓(LuV)
+gregtech.machine.optical_source_hatch.zpm.name=光学源仓(ZPM)
+gregtech.machine.optical_source_hatch.uv.name=光学源仓(UV)
+gregtech.machine.optical_source_hatch.uhv.name=光学源仓(UHV)
+gregtech.machine.optical_source_hatch.uev.name=光学源仓(UEV)
+gregtech.machine.optical_source_hatch.uiv.name=光学源仓(UIV)
+gregtech.machine.optical_source_hatch.uxv.name=光学源仓(UXV)
+gregtech.machine.optical_source_hatch.opv.name=光学源仓(OPV)
+gregtech.machine.optical_source_hatch.max.name=光学源仓(Max)
+
+gregtech.machine.optical_source_hatch.tooltip.1=按多方块控制器下发的颜色与光通量发光，超出本仓等级上限的通量会被削到上限
+gregtech.machine.optical_source_hatch.tooltip.2=§c超出本仓等级上限的光通量会被削到上限§7
+gregtech.machine.optical_source_hatch.tooltip.3=§c仅当对端靶仓接受时才会真正发光§7
+
+gregtech.machine.optical_target_hatch.lv.name=光学靶仓(LV)
+gregtech.machine.optical_target_hatch.mv.name=光学靶仓(MV)
+gregtech.machine.optical_target_hatch.hv.name=光学靶仓(HV)
+gregtech.machine.optical_target_hatch.ev.name=光学靶仓(EV)
+gregtech.machine.optical_target_hatch.iv.name=光学靶仓(IV)
+gregtech.machine.optical_target_hatch.luv.name=光学靶仓(LuV)
+gregtech.machine.optical_target_hatch.zpm.name=光学靶仓(ZPM)
+gregtech.machine.optical_target_hatch.uv.name=光学靶仓(UV)
+gregtech.machine.optical_target_hatch.uhv.name=光学靶仓(UHV)
+gregtech.machine.optical_target_hatch.uev.name=光学靶仓(UEV)
+gregtech.machine.optical_target_hatch.uiv.name=光学靶仓(UIV)
+gregtech.machine.optical_target_hatch.uxv.name=光学靶仓(UXV)
+gregtech.machine.optical_target_hatch.opv.name=光学靶仓(OPV)
+gregtech.machine.optical_target_hatch.max.name=光学靶仓(Max)
+
+gregtech.machine.optical_target_hatch.tooltip.1=接收光纤传来的光信号，可接受上限由本仓等级决定
+gregtech.machine.optical_target_hatch.tooltip.2=§7可锁定单一颜色，不匹配的光会被拒绝§7
+gregtech.machine.optical_target_hatch.filter=颜色过滤：%s
+gregtech.machine.optical_hatch.max_intensity=光通量上限：%,d
+
 gregtech.machine.tiered_hatch.ulv.name=控制单元(ULV)
 gregtech.machine.tiered_hatch.lv.name=控制单元(IV)
 gregtech.machine.tiered_hatch.mv.name=控制单元(MV)
@@ -8712,6 +8759,9 @@ gregtech.recipe.scan_for_research=装配线配方扫描
 gregtech.recipe.computation_per_tick=最小算力：%,d CWU/t
 gregtech.recipe.total_computation=算力总计：%,d CWU
 gregtech.recipe.research_result=研究结果，物品不是由这个配方直接制造。
+gregtech.recipe.fiber_light=光照：%s，光强 %s
+gregtech.recipe.fiber_light.any_color=任意颜色
+gregtech.recipe.fiber_light.any_intensity=任意
 gregtech.coolant.general=§9可被用作冷却剂§7
 gregtech.coolant.exit_temp=热冷却液温度：%d K
 gregtech.coolant.heat_capacity=热容：%d J/kgK

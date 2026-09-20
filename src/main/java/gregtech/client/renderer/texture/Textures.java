@@ -898,6 +898,15 @@ public class Textures {
     public static TextureAtlasSprite LASER_PIPE_OVERLAY_EMISSIVE;
 
     @SideOnly(Side.CLIENT)
+    public static TextureAtlasSprite FIBER_PIPE_IN;
+    @SideOnly(Side.CLIENT)
+    public static TextureAtlasSprite FIBER_PIPE_SIDE;
+    @SideOnly(Side.CLIENT)
+    public static TextureAtlasSprite FIBER_PIPE_OVERLAY;
+    @SideOnly(Side.CLIENT)
+    public static TextureAtlasSprite FIBER_PIPE_OVERLAY_EMISSIVE;
+
+    @SideOnly(Side.CLIENT)
     public static TextureAtlasSprite PIPE_BLOCKED_OVERLAY;
     @SideOnly(Side.CLIENT)
     public static TextureAtlasSprite PIPE_BLOCKED_OVERLAY_UP;
@@ -1002,6 +1011,15 @@ public class Textures {
                 .registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_side_overlay"));
         LASER_PIPE_OVERLAY_EMISSIVE = textureMap
                 .registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_laser_side_overlay_emissive"));
+
+        FIBER_PIPE_IN = textureMap
+                .registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_fiber_in"));
+        FIBER_PIPE_SIDE = textureMap
+                .registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_fiber_side"));
+        FIBER_PIPE_OVERLAY = textureMap
+                .registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_fiber_side_overlay"));
+        FIBER_PIPE_OVERLAY_EMISSIVE = textureMap
+                .registerSprite(new ResourceLocation(GTValues.MODID, "blocks/pipe/pipe_fiber_side_overlay_emissive"));
 
         for (MaterialIconSet iconSet : MaterialIconSet.ICON_SETS.values()) {
             textureMap.registerSprite(MaterialIconType.frameGt.getBlockTexturePath(iconSet));

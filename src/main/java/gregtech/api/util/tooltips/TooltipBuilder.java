@@ -74,6 +74,11 @@ public class TooltipBuilder {
         return this;
     }
 
+    public TooltipBuilder addOptical() {
+        components.add(new OpticalComponent());
+        return this;
+    }
+
     public TooltipBuilder addBlast() {
         components.add(new BlastComponent());
         return this;

@@ -52,6 +52,9 @@ public class SimpleCapabilityManager {
         registerCapabilityWithNoDefault(ConverterTrait.class);
         registerCapabilityWithNoDefault(ILaserContainer.class);
         registerCapabilityWithNoDefault(IHeatable.class);
+        registerCapabilityWithNoDefault(IFiberLightSource.class);
+        registerCapabilityWithNoDefault(IFiberLightReceiver.class);
+        registerCapabilityWithNoDefault(IFiberColorController.class);
 
         // internal capabilities
         CapabilityManager.INSTANCE.register(GTWorldGenCapability.class, GTWorldGenCapability.STORAGE,

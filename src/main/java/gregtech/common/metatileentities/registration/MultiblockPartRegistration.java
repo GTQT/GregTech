@@ -41,6 +41,8 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMuffl
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiFluidHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityObjectHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalDataHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalSourceHatch;
+import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalTargetHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOverclockHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityParallelHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityPassthroughHatchComputation;
@@ -57,8 +59,7 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityWirel
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityWirelessEnergyHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAAdvancedComputation;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAAdvancedCooler;
-import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCABridge;
-import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAComputation;
+import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCABridge;import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAComputation;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCACooler;
 import gregtech.common.metatileentities.multi.multiblockpart.hpca.MetaTileEntityHPCAEmpty;
 import gregtech.common.metatileentities.multi.multiblockpart.qc.MetaTileEntityQCComponentRack;
@@ -476,12 +477,6 @@ public final class MultiblockPartRegistration {
             PARALLEL_HATCH[i] = registerMetaTileEntity(3330 + i,
                     new MetaTileEntityParallelHatch(gregtechId(String.format("parallel_hatch.%s", voltageName)), tier));
         }
-        for (int i = 0; i < CROSS_PARALLEL_HATCH.length; i++) {
-            String voltageName = GTValues.VN[i].toLowerCase();
-            CROSS_PARALLEL_HATCH[i] = registerMetaTileEntity(3430 + i,
-                    new MetaTileEntityCrossParallelHatch(
-                            gregtechId(String.format("cross_parallel_hatch.%s", voltageName)), i));
-        }
         for (int i = 0; i < TIERED_HATCH.length - 1; i++) {
             int tier = i + 1;
             String voltageName = GTValues.VN[tier].toLowerCase();
@@ -510,16 +505,31 @@ public final class MultiblockPartRegistration {
             int tier = i + 1;
             if (tier < GTValues.UV) continue;
             String voltageName = GTValues.VN[tier].toLowerCase();
-            OVERCLOCK_HATCH[i] = registerMetaTileEntity(3405 + tier - 8,
+            OVERCLOCK_HATCH[i] = registerMetaTileEntity(3405 + i,
                     new MetaTileEntityOverclockHatch(gregtechId(String.format("overclock_hatch.%s", voltageName)), tier));
         }
         for (int i = 0; i < ACCELERATE_HATCH.length - 1; i++) {
             int tier = i + 1;
             String voltageName = GTValues.VN[tier].toLowerCase();
-            ACCELERATE_HATCH[i] = registerMetaTileEntity(3415 + tier - 1,
+            ACCELERATE_HATCH[i] = registerMetaTileEntity(3420 + i,
                     new MetaTileEntityAccelerateHatch(gregtechId(String.format("accelerate_hatch.%s", voltageName)), tier));
         }
-        //跨并仓 15个 3430-3445
+        for (int i = 0; i < CROSS_PARALLEL_HATCH.length; i++) {
+            String voltageName = GTValues.VN[i].toLowerCase();
+            CROSS_PARALLEL_HATCH[i] = registerMetaTileEntity(3435 + i,
+                    new MetaTileEntityCrossParallelHatch(
+                            gregtechId(String.format("cross_parallel_hatch.%s", voltageName)), i));
+        }
+        for (int i = 0; i < OPTICAL_SOURCE_HATCH.length; i++) {
+            int tier = i + 1;
+            String voltageName = GTValues.VN[tier].toLowerCase();
+            OPTICAL_SOURCE_HATCH[i] = registerMetaTileEntity(3450 + i,
+                    new MetaTileEntityOpticalSourceHatch(
+                            gregtechId("optical_source_hatch." + voltageName), tier));
+            OPTICAL_TARGET_HATCH[i] = registerMetaTileEntity(3465 + i,
+                    new MetaTileEntityOpticalTargetHatch(
+                            gregtechId("optical_target_hatch." + voltageName), tier));
+        }
 
         for (int i = 0; i < HEAT_INPUT_HATCH.length - 1; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
