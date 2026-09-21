@@ -327,6 +327,7 @@ public class Textures {
             "machines/laser_engraver");
     public static final OrientedOverlayRenderer ROCK_BREAKER_OVERLAY = new OrientedOverlayRenderer(
             "machines/rock_crusher");
+    public static final OrientedOverlayRenderer MINER_OVERLAY = new OrientedOverlayRenderer("machines/miner");
     public static final OrientedOverlayRenderer SIFTER_OVERLAY = new OrientedOverlayRenderer("machines/sifter");
     public static final OrientedOverlayRenderer THERMAL_CENTRIFUGE_OVERLAY = new OrientedOverlayRenderer(
             "machines/thermal_centrifuge");

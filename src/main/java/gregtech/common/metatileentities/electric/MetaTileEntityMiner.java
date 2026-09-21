@@ -98,13 +98,7 @@ public class MetaTileEntityMiner extends TieredMetaTileEntity implements IMiner,
     @SideOnly(Side.CLIENT)
     public void renderMetaTileEntity(CCRenderState renderState, Matrix4 translation, IVertexOperation[] pipeline) {
         super.renderMetaTileEntity(renderState, translation, pipeline);
-        Textures.SCREEN.renderSided(EnumFacing.UP, renderState, translation, pipeline);
-        for (EnumFacing renderSide : EnumFacing.HORIZONTALS) {
-            if (renderSide == getFrontFacing()) {
-                Textures.PIPE_OUT_OVERLAY.renderSided(renderSide, renderState, translation, pipeline);
-            } else
-                Textures.CHUNK_MINER_OVERLAY.renderSided(renderSide, renderState, translation, pipeline);
-        }
+        Textures.MINER_OVERLAY.renderOrientedState(renderState, translation, pipeline, getFrontFacing(), minerLogic.isActive(), minerLogic.isWorkingEnabled());
         minerLogic.renderPipe(renderState, translation, pipeline);
     }
 
