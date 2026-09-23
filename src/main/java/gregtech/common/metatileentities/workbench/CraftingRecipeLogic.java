@@ -637,7 +637,10 @@ public class CraftingRecipeLogic extends RecipeSyncHandler {
 
         var matrix = extractMatrix(recipeLayout.getItemStacks());
         fillCraftingGrid(matrix);
-        ((PagedWidgetSyncHandler) getSyncManager().getSyncHandler("page_controller:0")).setPage(0);
+        // 内嵌子面板（覆盖板）没有页签控制器，这里不能强转
+        if (getSyncManager().getSyncHandler("page_controller:0") instanceof PagedWidgetSyncHandler pageController) {
+            pageController.setPage(0);
+        }
         return null;
     }
 

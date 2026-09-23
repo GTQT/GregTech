@@ -11,6 +11,7 @@ import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.ItemHandlerProxy;
 import gregtech.api.cover.Cover;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.resources.TextureArea;
 import gregtech.api.gui.widgets.SlotWidget;
@@ -33,7 +34,6 @@ import gregtech.common.covers.CoverConveyor;
 import gregtech.common.covers.CoverFluidFilter;
 import gregtech.common.covers.CoverItemFilter;
 import gregtech.common.covers.CoverPump;
-import gregtech.common.covers.CoverStorage;
 import gregtech.common.covers.ender.CoverEnderFluidLink;
 import gregtech.common.covers.ender.CoverEnderItemLink;
 import gregtech.common.covers.filter.BaseFilterContainer;
@@ -604,8 +604,8 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
             if (filter != null && filter.hasFilter()) {
                 flowRow.child(filter.initUILeisure(guiData, panelSyncManager, data.getIndex()));
                 s++;
-            } else if (cover instanceof CoverStorage coverStorage) {
-                flowRow.child(coverStorage.initUILeisure(guiData, panelSyncManager, data.getIndex()));
+            } else if (cover instanceof CoverWithLeisureUI leisureCover) {
+                flowRow.child(leisureCover.initUILeisure(guiData, panelSyncManager, data.getIndex()));
                 s++;
             }
         }

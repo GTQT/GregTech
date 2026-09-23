@@ -434,6 +434,7 @@ public class JustEnoughItemsModule extends IntegrationSubmodule implements IModP
         }
 
         registry.addRecipeCatalyst(MetaTileEntities.WORKBENCH.getStackForm(), VanillaRecipeCategoryUid.CRAFTING);
+        registry.addRecipeCatalyst(MetaItems.COVER_CRAFTING.getStackForm(), VanillaRecipeCategoryUid.CRAFTING);
 
         for (MetaTileEntity machine : MetaTileEntities.CANNER) {
             if (machine == null) continue;

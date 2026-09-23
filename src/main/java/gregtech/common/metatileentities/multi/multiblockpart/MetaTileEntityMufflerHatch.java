@@ -84,6 +84,10 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         return sizeRoot * sizeRoot;
     }
 
+    public int getRecoveryChance() {
+        return recoveryChance;
+    }
+
     @Override
     public void update() {
         super.update();
@@ -170,7 +174,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
         return mufflerDust;
     }
 
-    private boolean checkFrontFaceFree() {
+    public boolean checkFrontFaceFree() {
         BlockPos frontPos = getPos().offset(getFrontFacing());
         IBlockState blockState = getWorld().getBlockState(frontPos);
 
@@ -198,7 +202,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
     }
 
     @Override
-    public void addInformation(ItemStack stack, @Nullable World player, List<String> tooltip, boolean advanced) {
+    public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip, boolean advanced) {
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.1"));
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.3"));
         tooltip.add(I18n.format("gregtech.machine.muffler_hatch.tooltip.4"));

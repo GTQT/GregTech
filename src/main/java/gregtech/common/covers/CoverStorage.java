@@ -2,6 +2,7 @@ package gregtech.common.covers;
 
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.mui.GTGuis;
@@ -38,7 +39,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CoverStorage extends CoverBase implements CoverWithUI {
+public class CoverStorage extends CoverBase implements CoverWithUI, CoverWithLeisureUI {
 
     private final ItemStackHandler storageHandler;
     int inventorySize;
@@ -108,6 +109,7 @@ public class CoverStorage extends CoverBase implements CoverWithUI {
                         .matrix(widgets));
     }
 
+    @Override
     public IWidget initUILeisure(GuiData guiData, PanelSyncManager guiSyncManager, int index) {
         var componentPanel = guiSyncManager.syncedPanel("component_panel" + index, true,
                 (syncManager, syncHandler) -> makeComponentPanel(syncManager, syncHandler, index));

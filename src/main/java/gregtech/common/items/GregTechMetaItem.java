@@ -781,6 +781,7 @@ public final class GregTechMetaItem extends StandardMetaItem {
         COVER_ENDER_ITEM_LINK = addItem(308, "cover.ender_item_link");
         COVER_ENDER_FLUID_LINK = addItem(309, "cover.ender_fluid_link");
         COVER_SHUTTER = addItem(310, "cover.shutter");
+        COVER_CRAFTING = addItem(311, "cover.crafting");
         COVER_DIGITAL_INTERFACE = addItem(312, "cover.digital");
         COVER_DIGITAL_INTERFACE_WIRELESS = addItem(313, "cover.digital.wireless");
         COVER_FLUID_VOIDING = addItem(314, "cover.fluid.voiding");

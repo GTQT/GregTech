@@ -80,6 +80,7 @@ public final class CoverBehaviors {
                 (def, tile, side) -> new CoverFluidFilter(def, tile, side, "cover.fluid_filter.title",
                         Textures.FLUID_FILTER_OVERLAY));
         registerBehavior(gregtechId("shutter"), MetaItems.COVER_SHUTTER, CoverShutter::new);
+        registerBehavior(gregtechId("crafting_table"), MetaItems.COVER_CRAFTING, CoverCraftingTable::new);
 
         registerBehavior(gregtechId("solar_panel.basic"), MetaItems.COVER_SOLAR_PANEL,
                 (def, tile, side) -> new CoverSolarPanel(def, tile, side, 1));

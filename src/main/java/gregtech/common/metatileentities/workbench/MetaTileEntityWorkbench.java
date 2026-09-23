@@ -5,27 +5,15 @@ import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.mui.GTGuiTextures;
-import gregtech.api.mui.GTGuis;
-import gregtech.api.mui.sync.PagedWidgetSyncHandler;
 import gregtech.api.util.GTUtility;
-import gregtech.api.util.TextFormattingUtil;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.inventory.handlers.SingleItemStackHandler;
 import gregtech.common.inventory.handlers.ToolItemStackHandler;
-import gregtech.common.mui.widget.GTTextFieldWidget;
-import gregtech.common.mui.widget.workbench.CraftingInputSlot;
-import gregtech.common.mui.widget.workbench.CraftingOutputSlot;
-import gregtech.common.mui.widget.workbench.InventoryViewHandler;
-import gregtech.common.mui.widget.workbench.InventoryViewSyncHandler;
-import gregtech.common.mui.widget.workbench.InventoryViewWidget;
-import gregtech.common.mui.widget.workbench.RecipeMemoryGridWidget;
-import gregtech.common.mui.widget.workbench.RecipeMemorySlot;
+import gregtech.common.mui.widget.workbench.WorkbenchUI;
 
 import net.minecraft.block.SoundType;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.I18n;
-import net.minecraft.init.Blocks;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
@@ -33,7 +21,6 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -46,28 +33,11 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
-import com.cleanroommc.modularui.api.drawable.IDrawable;
-import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.api.widget.IWidget;
-import com.cleanroommc.modularui.drawable.GuiTextures;
-import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.utils.Alignment;
-import com.cleanroommc.modularui.value.StringValue;
-import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.StringSyncValue;
-import com.cleanroommc.modularui.widgets.ButtonWidget;
-import com.cleanroommc.modularui.widgets.PageButton;
-import com.cleanroommc.modularui.widgets.PagedWidget;
-import com.cleanroommc.modularui.widgets.SlotGroupWidget;
-import com.cleanroommc.modularui.widgets.layout.Flow;
-import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-import com.cleanroommc.modularui.widgets.slot.ModularSlot;
-import com.cleanroommc.modularui.widgets.slot.SlotGroup;
 import com.google.common.base.Preconditions;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
@@ -83,17 +53,12 @@ import java.util.List;
 import java.util.Queue;
 import java.util.Set;
 
-public class MetaTileEntityWorkbench extends MetaTileEntity {
-
-    private static final IDrawable CHEST = new ItemDrawable(new ItemStack(Blocks.CHEST))
-            .asIcon().size(16);
+public class MetaTileEntityWorkbench extends MetaTileEntity implements IWorkbenchHolder {
 
     /** BFS 库存扫描的最大搜索方块数量，可配置 */
     private static final int MAX_SCAN_RANGE = 24;
     /** BFS 库存扫描定期执行间隔（tick），用于检测远处库存变化 */
     private static final int SCAN_INTERVAL = 20;
-    private final IDrawable WORKSTATION = new ItemDrawable(getStackForm())
-            .asIcon().size(16);
     private final ItemStackHandler craftingGrid = new SingleItemStackHandler(9);
     private final ItemStackHandler internalInventory = new GTItemStackHandler(this, 18);
     private final ItemStackHandler toolInventory = new ToolItemStackHandler(9);
@@ -185,7 +150,8 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
         this.inventoryCacheDirty = true;
     }
 
-    public IItemHandlerModifiable getAvailableHandlers() {
+    @Override
+    public ItemHandlerList getAvailableHandlers() {
         if (!getWorld().isRemote && inventoryCacheDirty) {
             rebuildInventoryCache();
         }
@@ -194,6 +160,12 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
         }
         // 首次调用或缓存尚未建立时，构建并缓存
         return rebuildInventoryCache();
+    }
+
+    @Override
+    public void refreshInventoryCache() {
+        this.inventoryCacheDirty = true;
+        getAvailableHandlers();
     }
 
     /**
@@ -294,6 +266,7 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
     }
 
     // this is called on client and server
+    @Override
     public @NotNull CraftingRecipeLogic getCraftingRecipeLogic() {
         initializeRecipeLogic(true);
         return this.recipeLogic;
@@ -324,250 +297,22 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager syncManager, UISettings settings) {
-        // 强制刷新库存缓存，确保 connectedInventory 是最新的
-        // （GUI 关闭期间远处箱子内容可能已变化）
-        inventoryCacheDirty = true;
-        getAvailableHandlers();
-
-        getCraftingRecipeLogic().updateCurrentRecipe();
-        this.recipeLogic.clearSlotMap();
-
-        syncManager.syncValue("recipe_logic", this.recipeLogic);
-        syncManager.syncValue("recipe_memory", this.recipeMemory);
-
-        var controller = new PagedWidget.Controller();
-        syncManager.syncValue("page_controller", 0, new PagedWidgetSyncHandler(controller));
-
-        return GTGuis.createPanel(this, 176, 224)
-                .child(Flow.row()
-                        .name("tab row")
-                        .widthRel(1f)
-                        .leftRel(0.5f)
-                        .margin(3, 0)
-                        .coverChildrenHeight()
-                        .topRel(0f, 3, 1f)
-                        .child(new PageButton(0, controller)
-                                .tab(GuiTextures.TAB_TOP, 0)
-                                .addTooltipLine(IKey.lang("gregtech.machine.workbench.tab.workbench"))
-                                .overlay(WORKSTATION))
-                        .child(new PageButton(1, controller)
-                                .tab(GuiTextures.TAB_TOP, 0)
-                                .addTooltipLine(IKey.lang("gregtech.machine.workbench.tab.item_list"))
-                                .addTooltipLine(IKey.lang("gregtech.machine.workbench.storage_note")
-                                        .style(TextFormatting.DARK_GRAY))
-                                .overlay(CHEST)))
-                .child(IKey.lang(getMetaFullName())
-                        .asWidget()
-                        .top(7).left(7))
-                .child(new PagedWidget<>()
-                        .top(22)
-                        .margin(7)
-                        .widthRel(0.9f)
-                        .controller(controller)
-                        .coverChildrenHeight()
-                        // workstation page
-                        .addPage(Flow.column()
-                                .name("crafting page")
-                                .coverChildrenWidth()
-                                .child(Flow.row()
-                                        .name("crafting row")
-                                        .coverChildrenHeight()
-                                        .widthRel(1f)
-                                        // crafting grid
-                                        .child(createCraftingGrid())
-                                        // crafting output slot
-                                        .child(createCraftingOutput(guiData, syncManager))
-                                        // recipe memory
-                                        .child(createRecipeMemoryPanel(syncManager)))
-                                // tool inventory
-                                .child(createToolInventory(syncManager))
-                                // internal inventory
-                                .child(createInternalInventory(syncManager)))
-                        // storage page
-                        .addPage(createInventoryPage(syncManager)))
-                .bindPlayerInventory();
+        return WorkbenchUI.build(this, syncManager);
     }
 
-    private ModularSlot trackSlot(IItemHandler handler, int slot) {
-        int offset = combinedInventory.getIndexOffset(handler);
-        if (offset == -1) throw new NullPointerException("handler cannot be found");
-        this.recipeLogic.updateSlotMap(offset, slot);
-        return new ModularSlot(handler, slot);
+    @Override
+    public String getWorkbenchPanelName() {
+        return metaTileEntityId.getPath();
     }
 
-    public IWidget createToolInventory(PanelSyncManager syncManager) {
-        var toolSlots = new SlotGroup("tool_slots", 9, -120, true);
-        syncManager.registerSlotGroup(toolSlots);
-
-        return SlotGroupWidget.builder()
-                .row("XXXXXXXXX")
-                .key('X', i -> new ItemSlot()
-                        .background(GTGuiTextures.SLOT, GTGuiTextures.TOOL_SLOT_OVERLAY)
-                        .slot(trackSlot(this.toolInventory, i)
-                                .slotGroup(toolSlots)))
-                .build().marginTop(2);
+    @Override
+    public String getWorkbenchTitleKey() {
+        return getMetaFullName();
     }
 
-    public IWidget createInternalInventory(PanelSyncManager syncManager) {
-        var inventory = new SlotGroup("internal_slots", 9, -100, true);
-        syncManager.registerSlotGroup(inventory);
-
-        return SlotGroupWidget.builder()
-                .row("XXXXXXXXX")
-                .row("XXXXXXXXX")
-                .key('X', i -> new ItemSlot()
-                        .slot(trackSlot(this.internalInventory, i)
-                                .slotGroup(inventory)))
-                .build().marginTop(2);
-    }
-
-    public IWidget createCraftingGrid() {
-        return SlotGroupWidget.builder()
-                .matrix("XXX",
-                        "XXX",
-                        "XXX")
-                .key('X', i -> CraftingInputSlot.create(this.recipeLogic, this.craftingGrid, i)
-                        .changeListener((newItem, onlyAmountChanged, client, init) -> {
-                            if (!init) {
-                                this.recipeLogic.updateCurrentRecipe();
-                            }
-                        })
-                        .background(GTGuiTextures.SLOT))
-                .build();
-    }
-
-    public IWidget createCraftingOutput(PosGuiData guiData, PanelSyncManager syncManager) {
-        var amountCrafted = new IntSyncValue(this::getItemsCrafted, this::setItemsCrafted);
-        syncManager.syncValue("amount_crafted", amountCrafted);
-
-        return Flow.column()
-                .size(54)
-                .child(new CraftingOutputSlot(amountCrafted, this)
-                        .marginTop(18)
-                        .background(GTGuiTextures.SLOT.asIcon().size(22))
-                        .marginBottom(4))
-                .child(IKey.dynamic(() -> TextFormattingUtil.formatLongToCompactString(amountCrafted.getIntValue(), 5))
-                        .alignment(Alignment.Center)
-                        .asWidget().widthRel(1f))
-                .child(new ButtonWidget<>()
-                        .margin(2)
-                        .size(8)
-                        .posRel(Alignment.TopLeft)
-                        .background(GTGuiTextures.BUTTON_CLEAR_GRID)
-                        .addTooltipLine(IKey.lang("gregtech.machine.workbench.clear_grid"))
-                        .disableHoverBackground()
-                        .onMousePressed(mouseButton -> {
-                            this.recipeLogic.clearCraftingGrid();
-                            return true;
-                        }));
-    }
-
-    public IWidget createRecipeMemoryPanel(PanelSyncManager syncManager) {
-        var memoryController = new PagedWidget.Controller();
-        var memorySyncHandler = new PagedWidgetSyncHandler(memoryController);
-        syncManager.syncValue("recipe_memory_page_controller", 0, memorySyncHandler);
-
-        // 锁定配方搜索框（纯客户端过滤，不需要服务端同步）
-        var searchField = new GTTextFieldWidget()
-                .setMaxLength(64)
-                .value(new StringValue(""));
-        searchField.size(18 * 3 - 24 - 2, 12);
-
-        // 配方记忆切换按钮（临时/锁定）+ 搜索框
-        return Flow.column()
-                .right(0)
-                .top(-15)
-                .coverChildrenWidth()
-                .child(Flow.row()
-                        .name("recipe memory tabs")
-                        .width(18 * 3)
-                        .coverChildrenHeight()
-                        .marginBottom(1)
-                        .child(new ButtonWidget<>()
-                                .size(12)
-                                .overlay(IKey.str("T").asIcon().size(10))
-                                .addTooltipLine(IKey.str("Temporary Recipes"))
-                                .onMousePressed(mouseButton -> {
-                                    memorySyncHandler.setPage(0);
-                                    return true;
-                                }))
-                        .child(new ButtonWidget<>()
-                                .size(12)
-                                .overlay(GTGuiTextures.RECIPE_LOCK_WHITE.asIcon().size(10))
-                                .addTooltipLine(IKey.str("Locked Recipes"))
-                                .onMousePressed(mouseButton -> {
-                                    memorySyncHandler.setPage(1);
-                                    return true;
-                                }))
-                        .child(searchField))
-                .child(new PagedWidget<>()
-                        .controller(memoryController)
-                        .coverChildrenWidth()
-                        .coverChildrenHeight()
-                        .addPage(createTemporaryRecipeMemoryGrid())
-                        .addPage(createLockedRecipeMemoryGrid(searchField)));
-    }
-
-    private IWidget createTemporaryRecipeMemoryGrid() {
-        return SlotGroupWidget.builder()
-                .matrix("XXX",
-                        "XXX",
-                        "XXX")
-                .key('X', i -> new RecipeMemorySlot(this.recipeMemory, this.recipeMemory.getTemporaryRecipeIndex(i))
-                        .background(GTGuiTextures.SLOT))
-                .build().right(0);
-    }
-
-    private IWidget createLockedRecipeMemoryGrid(GTTextFieldWidget searchField) {
-        return new RecipeMemoryGridWidget(this.recipeMemory)
-                .setSearchField(searchField);
-    }
-
-    public IWidget createInventoryPage(PanelSyncManager syncManager) {
-        if (this.connectedInventory.getSlots() == 0) {
-            return Flow.column()
-                    .name("inventory page - empty")
-                    .leftRel(0.5f)
-                    .padding(2)
-                    .height(18 * InventoryViewWidget.ROWS)
-                    .width(18 * InventoryViewWidget.COLS + 4)
-                    .background(GTGuiTextures.DISPLAY);
-        }
-
-        // 虚拟滚动视图：固定 48 个 widget（8×6），通过 InventoryViewHandler 动态映射到实际 slot
-        // 使用 Supplier 确保库存结构变化时（箱子放置/移除）viewHandler 始终引用最新的 connectedInventory
-        var viewHandler = new InventoryViewHandler(
-                () -> this.connectedInventory,
-                InventoryViewWidget.VIEWPORT_SIZE,
-                InventoryViewWidget.COLS);
-
-        // 搜索文本同步：客户端输入 → 服务端过滤 → slot 映射更新 → Container 自动同步 slot 内容
-        var searchSyncValue = new StringSyncValue(
-                viewHandler::getSearchText,
-                viewHandler::setSearchText);
-        syncManager.syncValue("inventory_search", searchSyncValue);
-
-        var viewSyncHandler = new InventoryViewSyncHandler(
-                viewHandler,
-                InventoryViewWidget.VIEWPORT_SIZE,
-                InventoryViewWidget.COLS);
-        syncManager.syncValue("inventory_view", viewSyncHandler);
-
-        var connected = new SlotGroup("connected_inventory", InventoryViewWidget.COLS, true)
-                .setAllowSorting(false);
-        syncManager.registerSlotGroup(connected);
-
-        var viewWidget = new InventoryViewWidget()
-                .syncHandler(viewSyncHandler)
-                .buildContent(viewHandler, connected, searchSyncValue);
-
-        return Flow.column()
-                .name("inventory page")
-                .padding(2)
-                .leftRel(0.5f)
-                .coverChildren()
-                .background(GTGuiTextures.DISPLAY)
-                .child(viewWidget);
+    @Override
+    public ItemStack getWorkbenchIcon() {
+        return getStackForm();
     }
 
     public void sendHandlerToClient(PacketBuffer buffer) {
@@ -597,10 +342,12 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
         }
     }
 
+    @Override
     public int getItemsCrafted() {
         return this.itemsCrafted;
     }
 
+    @Override
     public void setItemsCrafted(int itemsCrafted) {
         this.itemsCrafted = itemsCrafted;
     }
@@ -611,14 +358,27 @@ public class MetaTileEntityWorkbench extends MetaTileEntity {
         tooltip.add(I18n.format("gregtech.machine.workbench.tooltip2"));
     }
 
+    @Override
     public ItemStackHandler getCraftingGrid() {
         return craftingGrid;
     }
 
+    @Override
     public ItemStackHandler getToolInventory() {
         return toolInventory;
     }
 
+    @Override
+    public ItemStackHandler getInternalInventory() {
+        return internalInventory;
+    }
+
+    @Override
+    public ItemHandlerList getConnectedInventory() {
+        return connectedInventory;
+    }
+
+    @Override
     public CraftingRecipeMemory getRecipeMemory() {
         return recipeMemory;
     }

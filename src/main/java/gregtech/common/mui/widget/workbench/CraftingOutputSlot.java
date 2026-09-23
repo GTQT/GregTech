@@ -5,7 +5,7 @@ import gregtech.client.utils.RenderUtil;
 import gregtech.common.metatileentities.workbench.CraftingChainSolver;
 import gregtech.common.metatileentities.workbench.CraftingRecipeLogic;
 import gregtech.common.metatileentities.workbench.CraftingRecipeMemory;
-import gregtech.common.metatileentities.workbench.MetaTileEntityWorkbench;
+import gregtech.common.metatileentities.workbench.IWorkbenchHolder;
 
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.inventory.IInventory;
@@ -21,8 +21,8 @@ import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
 import net.minecraftforge.items.ItemHandlerHelper;
 
-import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.integration.recipeviewer.RecipeViewerIngredientProvider;
 import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.RichTooltip;
@@ -55,7 +55,7 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
     private static final int SYNC_CHAIN_MISSING = 6;
     private final CraftingSlotSH syncHandler;
 
-    public CraftingOutputSlot(IntSyncValue amountCrafted, MetaTileEntityWorkbench workbench) {
+    public CraftingOutputSlot(IntSyncValue amountCrafted, IWorkbenchHolder workbench) {
         this.syncHandler = new CraftingSlotSH(amountCrafted, workbench);
         setSyncHandler(this.syncHandler);
         tooltipAutoUpdate(true);
@@ -137,7 +137,7 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
         /** 上次求解时的配方版本号 */
         private int lastRecipeVersion = -1;
 
-        public CraftingSlotSH(IntSyncValue amountCrafted, MetaTileEntityWorkbench workbench) {
+        public CraftingSlotSH(IntSyncValue amountCrafted, IWorkbenchHolder workbench) {
             this.slot = new CraftingOutputMS(amountCrafted, workbench);
             this.recipeLogic = slot.recipeLogic;
         }
@@ -460,7 +460,7 @@ public class CraftingOutputSlot extends Widget<CraftingOutputSlot> implements In
         private final CraftingRecipeMemory recipeMemory;
         private final IItemHandler craftingGrid;
 
-        public CraftingOutputMS(IntSyncValue amountCrafted, MetaTileEntityWorkbench workbench) {
+        public CraftingOutputMS(IntSyncValue amountCrafted, IWorkbenchHolder workbench) {
             super(new InventoryWrapper(
                     workbench.getCraftingRecipeLogic().getCraftingResultInventory(),
                     workbench.getCraftingRecipeLogic()), 0);

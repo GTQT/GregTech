@@ -515,6 +515,7 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem COVER_FLUID_VOIDING_ADVANCED;
     public static MetaItem<?>.MetaValueItem COVER_ITEM_VOIDING;
     public static MetaItem<?>.MetaValueItem COVER_ITEM_VOIDING_ADVANCED;
+    public static MetaItem<?>.MetaValueItem COVER_CRAFTING;
     public static MetaItem<?>.MetaValueItem COVER_STORAGE;
     public static MetaItem<?>.MetaValueItem COVER_STORAGE_MEDIUM;
     public static MetaItem<?>.MetaValueItem COVER_STORAGE_LARGE;

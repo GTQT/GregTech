@@ -760,6 +760,15 @@ public class MachineRecipeLoader {
                 .duration(100)
                 .buildAndRegister();
 
+        ASSEMBLER_RECIPES.recipeBuilder()
+                .inputs(WORKBENCH.getStackForm())
+                .input(plate, material)
+                .fluidInputs(SolderingAlloy.getFluid(72))
+                .output(COVER_CRAFTING)
+                .EUt(16)
+                .duration(100)
+                .buildAndRegister();
+
         if (!Loader.isModLoaded(GTQT_TEST)) {
             RecipeMaps.ASSEMBLER_RECIPES.recipeBuilder().EUt(VA[LV])
                     .input(OrePrefix.wireGtDouble, Materials.Cupronickel, 8)

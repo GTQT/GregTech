@@ -483,6 +483,7 @@ public class Textures {
     public static final SimpleOverlayRenderer ENDER_ITEM_LINK = new SimpleOverlayRenderer(
             "cover/overlay_ender_item_link");
     public static final SimpleOverlayRenderer STORAGE = new SimpleOverlayRenderer("cover/overlay_storage");
+    public static final SimpleOverlayRenderer CRAFTING = new SimpleOverlayRenderer("cover/overlay_crafting");
     public static final SimpleOverlayRenderer PIPE_ITEM_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_pipe_item");
     public static final SimpleOverlayRenderer PIPE_FLUID_OVERLAY = new SimpleOverlayRenderer(
