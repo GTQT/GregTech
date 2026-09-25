@@ -24,7 +24,6 @@ import gregtech.client.renderer.handler.multiblock.MoverRotationKeyHandler;
 import gregtech.client.renderer.handler.multiblock.MultiblockMoverPreviewRenderer;
 import gregtech.client.renderer.handler.multiblock.MultiblockToolModeKeyHandler;
 import gregtech.client.renderer.pipe.CableRenderer;
-import gregtech.client.renderer.pipe.FiberPipeRenderer;
 import gregtech.client.renderer.pipe.FluidPipeRenderer;
 import gregtech.client.renderer.pipe.HeatConductorRenderer;
 import gregtech.client.renderer.pipe.ItemPipeRenderer;
@@ -129,7 +128,6 @@ public class ClientProxy extends CommonProxy {
         ItemPipeRenderer.INSTANCE.registerIcons(map);
         OpticalPipeRenderer.INSTANCE.registerIcons(map);
         LaserPipeRenderer.INSTANCE.registerIcons(map);
-        FiberPipeRenderer.INSTANCE.registerIcons(map);
         RenderUtil.clearTextureCache();
     }
 
@@ -451,7 +449,6 @@ public class ClientProxy extends CommonProxy {
         ItemPipeRenderer.INSTANCE.preInit();
         OpticalPipeRenderer.INSTANCE.preInit();
         LaserPipeRenderer.INSTANCE.preInit();
-        FiberPipeRenderer.INSTANCE.preInit();
         MetaEntities.initRenderers();
 
         MinecraftForge.EVENT_BUS.register(KeyBind.class);

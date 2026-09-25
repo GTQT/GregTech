@@ -3146,9 +3146,6 @@ gregtech.optical_pipe.decay_distance=§eSignal Decay Distance: §f%,d blocks
 tile.laser_pipe_normal.name=Laser Transmitting Cable
 tile.laser_pipe_normal.tooltip1=Transmitting power with §fno loss§7 in straight lines
 
-tile.fiber_pipe_normal.name=Optical Fiber
-tile.fiber_pipe_normal.tooltip.1=Carries §fcolor§7 and §fintensity§7 with §ano attenuation§7, and §cnever branches
-tile.fiber_pipe_normal.tooltip.2=Needs a matching optical source and target hatch
 
 metaitem.prospector.lv.name=Electric Prospector's Scanner (LV)
 metaitem.prospector.mv.name=Electric Prospector's Scanner (MV)
@@ -7895,10 +7892,6 @@ gregtech.machine.batch_process.tooltips.3=The special recipe logic that takes ti
 gregtech.tooltip.laser_available=-Laser Support:
 gregtech.tooltip.laser_hatch.tooltips=This equipment supports the use of laser hatch instead of energy input/output hatch
 
-gregtech.tooltip.optical_available=-光学仓支持:
-gregtech.tooltip.optical_hatch.tooltips.1=控制器能够通过光学仓发射或者接收特定颜色的光
-gregtech.tooltip.optical_hatch.tooltips.2=部分配方需求特定颜色与特定通量的光，不在范围内的光无效
-
 gregtech.tooltip.heat_available=-Temperature Amplification Effect:
 gregtech.tooltip.coil_available=-Coil amplification effect:
 gregtech.tooltip.special_available=-Special formulation logic:
@@ -8468,44 +8461,9 @@ gregtech.machine.cross_parallel_hatch.tooltip=Cross-recipe parallel: the budget 
 gregtech.machine.cross_parallel_hatch.incompatible=§cIncompatible with the Thread Hatch§7 — the thread count is ignored when both are fitted.
 gregtech.machine.cross_parallel_hatch.display=Adjust the parallel budget of the multiblock
 
-gregtech.machine.optical_source_hatch.lv.name=Optical Source Hatch (LV)
-gregtech.machine.optical_source_hatch.mv.name=Optical Source Hatch (MV)
-gregtech.machine.optical_source_hatch.hv.name=Optical Source Hatch (HV)
-gregtech.machine.optical_source_hatch.ev.name=Optical Source Hatch (EV)
-gregtech.machine.optical_source_hatch.iv.name=Optical Source Hatch (IV)
-gregtech.machine.optical_source_hatch.luv.name=Optical Source Hatch (LuV)
-gregtech.machine.optical_source_hatch.zpm.name=Optical Source Hatch (ZPM)
-gregtech.machine.optical_source_hatch.uv.name=Optical Source Hatch (UV)
-gregtech.machine.optical_source_hatch.uhv.name=Optical Source Hatch (UHV)
-gregtech.machine.optical_source_hatch.uev.name=Optical Source Hatch (UEV)
-gregtech.machine.optical_source_hatch.uiv.name=Optical Source Hatch (UIV)
-gregtech.machine.optical_source_hatch.uxv.name=Optical Source Hatch (UXV)
-gregtech.machine.optical_source_hatch.opv.name=Optical Source Hatch (OPV)
-gregtech.machine.optical_source_hatch.max.name=Optical Source Hatch (Max)
 
-gregtech.machine.optical_source_hatch.tooltip.1=Emits the colour and flux pushed by the multiblock controller, flux above this hatch's tier rating is clamped down to it
-gregtech.machine.optical_source_hatch.tooltip.2=§cFlux above this hatch's tier rating is clamped down to it§7
-gregtech.machine.optical_source_hatch.tooltip.3=§cOnly emits while the far target hatch accepts it§7
 
-gregtech.machine.optical_target_hatch.lv.name=Optical Target Hatch (LV)
-gregtech.machine.optical_target_hatch.mv.name=Optical Target Hatch (MV)
-gregtech.machine.optical_target_hatch.hv.name=Optical Target Hatch (HV)
-gregtech.machine.optical_target_hatch.ev.name=Optical Target Hatch (EV)
-gregtech.machine.optical_target_hatch.iv.name=Optical Target Hatch (IV)
-gregtech.machine.optical_target_hatch.luv.name=Optical Target Hatch (LuV)
-gregtech.machine.optical_target_hatch.zpm.name=Optical Target Hatch (ZPM)
-gregtech.machine.optical_target_hatch.uv.name=Optical Target Hatch (UV)
-gregtech.machine.optical_target_hatch.uhv.name=Optical Target Hatch (UHV)
-gregtech.machine.optical_target_hatch.uev.name=Optical Target Hatch (UEV)
-gregtech.machine.optical_target_hatch.uiv.name=Optical Target Hatch (UIV)
-gregtech.machine.optical_target_hatch.uxv.name=Optical Target Hatch (UXV)
-gregtech.machine.optical_target_hatch.opv.name=Optical Target Hatch (OPV)
-gregtech.machine.optical_target_hatch.max.name=Optical Target Hatch (Max)
 
-gregtech.machine.optical_target_hatch.tooltip.1=Receives colour and flux from the fiber, the ceiling is this hatch's tier
-gregtech.machine.optical_target_hatch.tooltip.2=§7Can be locked to a single colour, anything else is rejected§7
-gregtech.machine.optical_target_hatch.filter=Colour filter: %s
-gregtech.machine.optical_hatch.max_intensity=Max Flux: %,d
 
 gregtech.machine.tiered_hatch.ulv.name=Primitive Voltage Control Unit
 gregtech.machine.tiered_hatch.lv.name=Basic Voltage Control Unit
@@ -8788,9 +8746,6 @@ gregtech.recipe.scan_for_research=Scan for Assembly Line
 gregtech.recipe.computation_per_tick=Min. Computation: %,d CWU/t
 gregtech.recipe.total_computation=Computation: %,d CWU
 gregtech.recipe.research_result=Research result item, not produced by this recipe directly
-gregtech.recipe.fiber_light=Light: %s, Flux %s
-gregtech.recipe.fiber_light.any_color=Any colour
-gregtech.recipe.fiber_light.any_intensity=Any
 gregtech.coolant.general=§9可被用作冷却剂§7
 gregtech.coolant.exit_temp=热冷却液温度：%d K
 gregtech.coolant.heat_capacity=热容：%d J/kgK

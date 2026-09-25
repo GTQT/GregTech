@@ -38,13 +38,4 @@ public class GregtechTileCapabilities {
 
     @CapabilityInject(IOpticalComputationProvider.class)
     public static Capability<IOpticalComputationProvider> CABABILITY_COMPUTATION_PROVIDER = null;
-
-    @CapabilityInject(IFiberLightSource.class)
-    public static Capability<IFiberLightSource> CAPABILITY_FIBER_LIGHT_SOURCE = null;
-
-    @CapabilityInject(IFiberLightReceiver.class)
-    public static Capability<IFiberLightReceiver> CAPABILITY_FIBER_LIGHT_RECEIVER = null;
-
-    @CapabilityInject(IFiberColorController.class)
-    public static Capability<IFiberColorController> CAPABILITY_FIBER_COLOR_CONTROLLER = null;
 }

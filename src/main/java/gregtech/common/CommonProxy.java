@@ -45,8 +45,6 @@ import gregtech.common.network.multiblock.ClearMoverPreviewPacket;
 import gregtech.common.network.multiblock.StartMoverPreviewPacket;
 import gregtech.common.pipelike.cable.BlockCable;
 import gregtech.common.pipelike.cable.ItemBlockCable;
-import gregtech.common.pipelike.fiber.BlockFiberPipe;
-import gregtech.common.pipelike.fiber.ItemBlockFiberPipe;
 import gregtech.common.pipelike.fluidpipe.BlockFluidPipe;
 import gregtech.common.pipelike.fluidpipe.ItemBlockFluidPipe;
 import gregtech.common.pipelike.heat.BlockHeatConductor;
@@ -194,7 +192,6 @@ public class CommonProxy {
             }
         }
         for (BlockLaserPipe pipe : LASER_PIPES) registry.register(pipe);
-        for (BlockFiberPipe pipe : FIBER_PIPES) registry.register(pipe);
 
         registry.register(LD_ITEM_PIPE);
         registry.register(LD_FLUID_PIPE);
@@ -376,7 +373,6 @@ public class CommonProxy {
             }
         }
         for (BlockLaserPipe pipe : LASER_PIPES) registry.register(createItemBlock(pipe, ItemBlockLaserPipe::new));
-        for (BlockFiberPipe pipe : FIBER_PIPES) registry.register(createItemBlock(pipe, ItemBlockFiberPipe::new));
 
         registry.register(createItemBlock(LD_ITEM_PIPE, ItemBlock::new));
         registry.register(createItemBlock(LD_FLUID_PIPE, ItemBlock::new));

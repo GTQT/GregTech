@@ -166,8 +166,6 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMuffl
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiFluidHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityObjectHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalDataHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalSourceHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalTargetHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOverclockHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityParallelHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityPassthroughHatchComputation;
@@ -529,8 +527,6 @@ public class MetaTileEntities {
     public static MetaTileEntityOverclockHatch[] OVERCLOCK_HATCH = new MetaTileEntityOverclockHatch[GTValues.V.length - 1];
     public static MetaTileEntityAccelerateHatch[] ACCELERATE_HATCH = new MetaTileEntityAccelerateHatch[GTValues.V.length - 1];
     public static MetaTileEntityCrossParallelHatch[] CROSS_PARALLEL_HATCH = new MetaTileEntityCrossParallelHatch[GTValues.V.length - 1];
-    public static MetaTileEntityOpticalSourceHatch[] OPTICAL_SOURCE_HATCH = new MetaTileEntityOpticalSourceHatch[GTValues.V.length - 1];
-    public static MetaTileEntityOpticalTargetHatch[] OPTICAL_TARGET_HATCH = new MetaTileEntityOpticalTargetHatch[GTValues.V.length - 1];
 
     public static MetaTileEntityHeatSensor HEAT_SENSOR;
     public static MetaTileEntityCreativeInputBus CREATIVE_INPUT_BUS;

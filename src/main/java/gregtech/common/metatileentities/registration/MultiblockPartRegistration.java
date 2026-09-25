@@ -41,8 +41,6 @@ import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMuffl
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityMultiFluidHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityObjectHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalDataHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalSourceHatch;
-import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOpticalTargetHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityOverclockHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityParallelHatch;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityPassthroughHatchComputation;
@@ -520,24 +518,14 @@ public final class MultiblockPartRegistration {
                     new MetaTileEntityCrossParallelHatch(
                             gregtechId(String.format("cross_parallel_hatch.%s", voltageName)), i));
         }
-        for (int i = 0; i < OPTICAL_SOURCE_HATCH.length; i++) {
-            int tier = i + 1;
-            String voltageName = GTValues.VN[tier].toLowerCase();
-            OPTICAL_SOURCE_HATCH[i] = registerMetaTileEntity(3450 + i,
-                    new MetaTileEntityOpticalSourceHatch(
-                            gregtechId("optical_source_hatch." + voltageName), tier));
-            OPTICAL_TARGET_HATCH[i] = registerMetaTileEntity(3465 + i,
-                    new MetaTileEntityOpticalTargetHatch(
-                            gregtechId("optical_target_hatch." + voltageName), tier));
-        }
 
         for (int i = 0; i < HEAT_INPUT_HATCH.length - 1; i++) {
             String voltageName = GTValues.VN[i].toLowerCase();
-            HEAT_INPUT_HATCH[i] = registerMetaTileEntity(3500 + i,
+            HEAT_INPUT_HATCH[i] = registerMetaTileEntity(3450 + i,
                     new MetaTileEntityHeatHatch(gregtechId("heat_input_hatch." + voltageName), i, false));
-            HEAT_OUTPUT_HATCH[i] = registerMetaTileEntity(3510 + i,
+            HEAT_OUTPUT_HATCH[i] = registerMetaTileEntity(3465 + i,
                     new MetaTileEntityHeatHatch(gregtechId("heat_output_hatch." + voltageName), i, true));
-            ELECTRIC_HEATER[i] = registerMetaTileEntity(3520 + i,
+            ELECTRIC_HEATER[i] = registerMetaTileEntity(3480 + i,
                     new MetaTileEntityElectricHeater(gregtechId("electric_heater." + voltageName), i));
         }
 

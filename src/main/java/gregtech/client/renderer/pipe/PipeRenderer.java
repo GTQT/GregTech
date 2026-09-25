@@ -439,8 +439,8 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer {
 
     public static class PipeRenderContext {
 
-        private final BlockPos pos;
-        private final LightMatrix lightMatrix;
+        public final BlockPos pos;
+        public final LightMatrix lightMatrix;
         protected final List<IVertexOperation[]> openFaceRenderer = new ArrayList<>();
         protected final List<IVertexOperation[]> pipeSideRenderer = new ArrayList<>();
         // Blocked overlay is used for the pipe connector cube, not the main cube
@@ -501,7 +501,7 @@ public abstract class PipeRenderer implements ICCBlockRenderer, IItemRenderer {
             return new ColourMultiplier(color);
         }
 
-        protected IVertexOperation[] getBaseVertexOperation() {
+        public IVertexOperation[] getBaseVertexOperation() {
             if (pos == null) {
                 return lightMatrix == null ? new IVertexOperation[0] : new IVertexOperation[] { lightMatrix };
             }

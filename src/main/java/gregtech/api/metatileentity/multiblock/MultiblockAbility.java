@@ -3,8 +3,6 @@ package gregtech.api.metatileentity.multiblock;
 import gregtech.api.capability.IAccelerateHatch;
 import gregtech.api.capability.IDataAccessHatch;
 import gregtech.api.capability.IEnergyContainer;
-import gregtech.api.capability.IFiberLightReceiver;
-import gregtech.api.capability.IFiberLightSource;
 import gregtech.api.capability.IHPCAComponentHatch;
 import gregtech.api.capability.IHeat;
 import gregtech.api.capability.IHeatable;
@@ -146,11 +144,6 @@ public class MultiblockAbility<T> {
 
     public static final MultiblockAbility<IGodforgeModule> GODFORGE_MODULE = ability(
             "godforge_module", IGodforgeModule.class);
-
-    public static final MultiblockAbility<IFiberLightSource> FIBER_LIGHT_SOURCE = ability(
-            "fiber_light_source", IFiberLightSource.class);
-    public static final MultiblockAbility<IFiberLightReceiver> FIBER_LIGHT_RECEIVER = ability(
-            "fiber_light_receiver", IFiberLightReceiver.class);
 
     public static void registerMultiblockAbility(MultiblockAbility<?> ability, MetaTileEntity part) {
         if (!REGISTRY.containsKey(ability)) {
