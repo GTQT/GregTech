@@ -2,13 +2,11 @@
  * Inspired by Susy-Core DimensionBreathabilityHandler
  * (https://github.com/SymmetricDevs/Susy-Core, LGPLv3)
  */
-package gregtech.common;
+package gregtech.api.util;
 
-import gregtech.api.util.Hazard;
-
+import gregtech.common.EventHandlers;
 import net.minecraft.entity.player.EntityPlayer;
 
-import com.github.bsideup.jabel.Desugar;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -24,15 +22,6 @@ import java.util.Map;
  * Addons can register hazards via {@link #registerHazard(int, Hazard, float)}.
  */
 public class DimensionHazardHandler {
-
-    /**
-     * A hazard a dimension inflicts on the players inside it.
-     *
-     * @param hazard     which hazard — also supplies its damage source and armor resistance
-     * @param baseDamage damage per second
-     */
-    @Desugar
-    public record DimensionHazard(@NotNull Hazard hazard, float baseDamage) {}
 
     private static final Map<Integer, DimensionHazard> DIMENSION_HAZARDS = new HashMap<>();
 

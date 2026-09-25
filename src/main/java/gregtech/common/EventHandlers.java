@@ -10,6 +10,7 @@ import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.util.BlockUtility;
 import gregtech.api.util.CapesRegistry;
+import gregtech.api.util.DimensionHazardHandler;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.virtualregistry.VirtualContainerRegistry;
 import gregtech.api.util.virtualregistry.VirtualEnderRegistry;
