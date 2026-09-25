@@ -1,7 +1,6 @@
 package gregtech.common.pipelike.cable;
 
 import gregtech.api.capability.GregtechCapabilities;
-import gregtech.api.damagesources.DamageSources;
 import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.items.toolitem.ToolHelper;
 import gregtech.api.pipenet.block.material.BlockMaterialPipe;
@@ -11,8 +10,8 @@ import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.material.properties.WireProperties;
 import gregtech.api.unification.material.registry.MaterialRegistry;
-import gregtech.api.util.EntityDamageUtil;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.Hazard;
 import gregtech.client.renderer.pipe.CableRenderer;
 import gregtech.client.renderer.pipe.PipeRenderer;
 import gregtech.common.creativetab.GTCreativeTabs;
@@ -143,8 +142,7 @@ public class BlockCable extends BlockMaterialPipe<Insulation, WireProperties, Wo
                 double amperage = cable.getAverageAmperage();
                 if (voltage > 0L && amperage > 0L) {
                     float damageAmount = (float) ((GTUtility.getTierByVoltage(voltage) + 1) * amperage * 4);
-                    EntityDamageUtil.applyHazardDamage(entityLiving, DamageSources.getElectricDamage(),
-                            damageAmount, EntityDamageUtil.ResistanceType.ELECTRIC);
+                    Hazard.ELECTRIC.applyTo(entityLiving, damageAmount);
                     if (entityLiving instanceof EntityPlayerMP) {
                         AdvancementTriggers.ELECTROCUTION_DEATH.trigger((EntityPlayerMP) entityLiving);
                     }

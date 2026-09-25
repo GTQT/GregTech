@@ -1,6 +1,5 @@
 package gregtech.api.util;
 
-import gregtech.api.damagesources.DamageSources;
 import gregtech.api.items.armor.ArmorMetaItem;
 import gregtech.core.advancement.AdvancementTriggers;
 
@@ -19,48 +18,20 @@ import net.minecraft.inventory.EntityEquipmentSlot;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.DamageSource;
 
 import org.jetbrains.annotations.NotNull;
 
+/**
+ * Convenience wrappers around {@link Hazard} for callers that need the entity-type
+ * filters, enchantment checks and advancements that come with a specific hazard.
+ * <p>
+ * Anything that just wants to hurt an entity should call {@link Hazard#applyTo}
+ * directly — these wrappers exist for the sources that have extra conditions.
+ */
 public class EntityDamageUtil {
 
     private static final int FROST_WALKER_ID = 9;
-
-    /**
-     * Get the resistance multiplier from the player's chest armor for a given hazard type.
-     * Returns 1.0f (no reduction) if no valid armor is worn.
-     */
-    public static float getArmorResistance(@NotNull EntityLivingBase entity, ResistanceType type) {
-        ItemStack chest = entity.getItemStackFromSlot(EntityEquipmentSlot.CHEST);
-        if (!chest.isEmpty() && chest.getItem() instanceof ArmorMetaItem) {
-            ArmorMetaItem<?>.ArmorMetaValueItem meta = ((ArmorMetaItem<?>) chest.getItem()).getItem(chest);
-            if (meta != null) {
-                return switch (type) {
-                    case HEAT -> meta.getArmorLogic().getHeatResistance();
-                    case FROST -> meta.getArmorLogic().getHeatResistance();
-                    case RADIATION -> meta.getArmorLogic().getRadiationResistance();
-                    case POISON -> meta.getArmorLogic().getPoisonResistance();
-                    case ELECTRIC -> meta.getArmorLogic().getElectricResistance();
-                };
-            }
-        }
-        return 1.0f;
-    }
-
-    /** Apply environmental damage with armor resistance and durability wear. */
-    public static void applyHazardDamage(@NotNull EntityLivingBase entity, DamageSource source,
-                                         float damage, ResistanceType type) {
-        if (damage <= 0) return;
-        if (!entity.isEntityAlive()) return;
-        damage *= getArmorResistance(entity, type);
-        if (damage <= 0) return;
-        entity.attackEntityFrom(source.setDamageBypassesArmor(), damage);
-        damageArmorForHazard(entity, source, damage);
-    }
-
-    public enum ResistanceType { HEAT, FROST, RADIATION, POISON, ELECTRIC }
 
     // ---- Temperature pipe damage ----
 
@@ -69,11 +40,11 @@ public class EntityDamageUtil {
         if (temperature > 320) {
             int damage = (int) ((multiplier * (temperature - 300)) / 50.0F);
             if (maximum > 0) damage = Math.min(maximum, damage);
-            applyHazardDamage(entity, DamageSources.getHeatDamage(), damage, ResistanceType.HEAT);
+            Hazard.HEAT.applyTo(entity, damage);
         } else if (temperature < 260) {
             int damage = (int) ((multiplier * (273 - temperature)) / 25.0F);
             if (maximum > 0) damage = Math.min(maximum, damage);
-            applyHazardDamage(entity, DamageSources.getFrostDamage(), damage, ResistanceType.FROST);
+            Hazard.FROST.applyTo(entity, damage);
         }
     }
 
@@ -81,7 +52,7 @@ public class EntityDamageUtil {
         if (entity instanceof EntityBlaze || entity instanceof EntityMagmaCube ||
                 entity instanceof EntityWitherSkeleton || entity instanceof EntityWither) return;
         if (entity.getActivePotionEffect(MobEffects.FIRE_RESISTANCE) != null) return;
-        applyHazardDamage(entity, DamageSources.getHeatDamage(), damage, ResistanceType.HEAT);
+        Hazard.HEAT.applyTo(entity, damage);
         if (entity instanceof EntityPlayerMP) AdvancementTriggers.HEAT_DEATH.trigger((EntityPlayerMP) entity);
     }
 
@@ -96,14 +67,13 @@ public class EntityDamageUtil {
                 }
             }
         }
-        applyHazardDamage(entity, DamageSources.getFrostDamage(), damage, ResistanceType.FROST);
+        Hazard.FROST.applyTo(entity, damage);
         if (entity instanceof EntityPlayerMP) AdvancementTriggers.COLD_DEATH.trigger((EntityPlayerMP) entity);
     }
 
     public static void applyChemicalDamage(@NotNull EntityLivingBase entity, int damage) {
         if (entity instanceof AbstractSkeleton) return;
-        applyHazardDamage(entity, DamageSources.getChemicalDamage(), damage, ResistanceType.POISON);
-        if (damage > 0) entity.addPotionEffect(new PotionEffect(MobEffects.POISON, damage * 100, 1));
+        Hazard.POISON.applyTo(entity, damage);
         if (entity instanceof EntityPlayerMP) AdvancementTriggers.CHEMICAL_DEATH.trigger((EntityPlayerMP) entity);
     }
 

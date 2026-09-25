@@ -1,7 +1,6 @@
 package gregtech.api.items.materialitem;
 
 import gregtech.api.GTValues;
-import gregtech.api.damagesources.DamageSources;
 import gregtech.api.items.metaitem.StandardMetaItem;
 import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.unification.OreDictUnifier;
@@ -14,8 +13,7 @@ import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.api.unification.ore.OrePrefix;
 import gregtech.api.unification.stack.UnificationEntry;
-import gregtech.api.util.EntityDamageUtil;
-import gregtech.api.util.RadiationEffectUtil;
+import gregtech.api.util.Hazard;
 import gregtech.common.ConfigHolder;
 import gregtech.common.creativetab.GTCreativeTabs;
 
@@ -30,11 +28,9 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
-import net.minecraft.init.MobEffects;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
-import net.minecraft.potion.PotionEffect;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.AxisAlignedBB;
 import net.minecraft.util.math.BlockPos;
@@ -70,6 +66,15 @@ public class MetaPrefixItem extends StandardMetaItem {
     // Configuration flags - these should be set from your config system
     private static final boolean EASY_COOLING = ConfigHolder.recipes.easyCooling;
     private static final boolean EASY_CLEANING = ConfigHolder.recipes.easyCleaning;
+
+    /** Ticks between hazard applications while the stack is carried. */
+    private static final int CARRIED_HAZARD_INTERVAL = 20;
+    /** Ticks between hazard applications while the stack lies on the ground. */
+    private static final int DROPPED_HAZARD_INTERVAL = 40;
+    /** Ticks between durability hits on a pair of pincers doing the shielding. */
+    private static final int PINCER_WEAR_INTERVAL = 80;
+    /** Half-extent of the volume a dropped hazardous stack reaches. */
+    private static final double DROPPED_HAZARD_REACH = 2.0;
 
     public MetaPrefixItem(@NotNull MaterialRegistry registry, @NotNull OrePrefix orePrefix) {
         super();
@@ -168,79 +173,33 @@ public class MetaPrefixItem extends StandardMetaItem {
     public void onUpdate(@NotNull ItemStack itemStack, @NotNull World worldIn, @NotNull Entity entityIn, int itemSlot,
                          boolean isSelected) {
         super.onUpdate(itemStack, worldIn, entityIn, itemSlot, isSelected);
-        if (metaItems.containsKey((short) itemStack.getItemDamage()) && entityIn instanceof EntityLivingBase entity) {
-            if (entityIn.ticksExisted % 20 == 0) {
-                if (prefix.heatDamageFunction != null) {
+        if (worldIn.isRemote) return;
+        if (!metaItems.containsKey((short) itemStack.getItemDamage())) return;
+        if (!(entityIn instanceof EntityLivingBase entity)) return;
+        if (entityIn.ticksExisted % CARRIED_HAZARD_INTERVAL != 0) return;
 
-                    Material material = getMaterial(itemStack);
-                    if (material == null || !material.hasProperty(PropertyKey.BLAST)) return;
+        Material material = getMaterial(itemStack);
+        if (material == null) return;
 
-                    if(entity instanceof EntityPlayer entityPlayer){
-                        ItemStack heldItem = entityPlayer.getHeldItemMainhand();
-                        if(heldItem.getItem().getToolClasses(itemStack).contains(ToolClasses.PINCERS)){
-                            if (entityIn.ticksExisted % 80 == 0)heldItem.damageItem(1, entityPlayer);
-                            return;
-                        }
-                    }
-
-                    float heatDamage = prefix.heatDamageFunction.apply(material.getBlastTemperature());
-                    if (heatDamage > 0.0) {
-                        EntityDamageUtil.applyHazardDamage(entity, DamageSources.getHeatDamage(),
-                                heatDamage, EntityDamageUtil.ResistanceType.HEAT);
-                    } else if (heatDamage < 0.0) {
-                        EntityDamageUtil.applyHazardDamage(entity, DamageSources.getFrostDamage(),
-                                -heatDamage, EntityDamageUtil.ResistanceType.FROST);
-                    }
-                }
-
-                if (prefix.radiationDamageFunction != null) {
-                    Material material = getMaterial(itemStack);
-                    if (material == null || !material.hasProperty(PropertyKey.FISSION_FUEL)) return;
-                    double radiationDamage = prefix.radiationDamageFunction.apply(material.getDecaysPerSecond());
-                    EntityDamageUtil.applyHazardDamage(entity, DamageSources.getRadioactiveDamage(),
-                            (float) radiationDamage, EntityDamageUtil.ResistanceType.RADIATION);
-                    if (radiationDamage > 0.0 && entity instanceof EntityPlayer player) {
-                        RadiationEffectUtil.applyDebuff(player, (float) radiationDamage);
-                    }
-                }
-
-                {
-                    Material material = getMaterial(itemStack);
-                    if (material != null && material.hasProperty(PropertyKey.RADIOACTIVE)) {
-                        float radDamage = material.getProperty(PropertyKey.RADIOACTIVE).getRadioactivity();
-                        EntityDamageUtil.applyHazardDamage(entity, DamageSources.getRadioactiveDamage(),
-                                radDamage, EntityDamageUtil.ResistanceType.RADIATION);
-                        if (radDamage > 0.0f && entity instanceof EntityPlayer player) {
-                            RadiationEffectUtil.applyDebuff(player, radDamage);
-                        }
-                    }
-                }
-
-                {
-                    Material material = getMaterial(itemStack);
-                    if (material != null && material.hasProperty(PropertyKey.TOXIC)) {
-                        float poisonDamage = material.getProperty(PropertyKey.TOXIC).getToxicity();
-                        if (prefix.poisonDamageFunction != null) poisonDamage *= prefix.poisonDamageFunction.apply(material);
-                        poisonDamage *= EntityDamageUtil.getArmorResistance(entity, EntityDamageUtil.ResistanceType.POISON);
-                        if (poisonDamage > 0.0f) {
-                            entity.attackEntityFrom(DamageSources.getChemicalDamage().setDamageBypassesArmor(), poisonDamage);
-                            EntityDamageUtil.damageArmorForHazard(entity, DamageSources.getChemicalDamage(), poisonDamage);
-                            if (entity instanceof EntityLivingBase)
-                                ((EntityLivingBase) entity).addPotionEffect(new PotionEffect(MobEffects.POISON, (int)(poisonDamage * 100), 1));
-                        }
-                    }
-                }
-
-                {
-                    Material material = getMaterial(itemStack);
-                    if (material != null && material.hasProperty(PropertyKey.COLD)) {
-                        float frostDamage = material.getProperty(PropertyKey.COLD).getColdDamage();
-                        EntityDamageUtil.applyHazardDamage(entity, DamageSources.getFrostDamage(),
-                                frostDamage, EntityDamageUtil.ResistanceType.FROST);
-                    }
-                }
-            }
+        // Pincers let a player handle a hot or cold stack bare-handed, at the cost of their own durability.
+        // Only thermal stacks wear them out — a pair in hand should not decay on its own.
+        if (Hazard.carriesThermal(material, prefix) && wearsOutPincers(entity)) {
+            Hazard.applyAll(entity, material, prefix, hazard -> !hazard.isThermal());
+            return;
         }
+        Hazard.applyAll(entity, material, prefix);
+    }
+
+    /**
+     * Wears down the pincers the entity is holding and reports whether they shield it
+     * from heat and cold. Returns false for anything that is not a player holding pincers.
+     */
+    private static boolean wearsOutPincers(@NotNull EntityLivingBase entity) {
+        if (!(entity instanceof EntityPlayer player)) return false;
+        ItemStack held = player.getHeldItemMainhand();
+        if (held.isEmpty() || !held.getItem().getToolClasses(held).contains(ToolClasses.PINCERS)) return false;
+        if (entity.ticksExisted % PINCER_WEAR_INTERVAL == 0) held.damageItem(1, player);
+        return true;
     }
 
     @Override
@@ -314,144 +273,53 @@ public class MetaPrefixItem extends StandardMetaItem {
         if (itemEntity.getEntityWorld().isRemote)
             return false;
 
-        if (prefix.radiationDamageFunction != null) {
-            Material material = getMaterial(itemEntity.getItem());
-            if (material != null && itemEntity.ticksExisted % 40 == 0) {
-                double radiationDamage = prefix.radiationDamageFunction.apply(material.getDecaysPerSecond());
-                if (radiationDamage > 0.0) {
-                    AxisAlignedBB box = new AxisAlignedBB(
-                            itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
-                            itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
-                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
-                        EntityDamageUtil.applyHazardDamage(player, DamageSources.getRadioactiveDamage(),
-                                (float) radiationDamage, EntityDamageUtil.ResistanceType.RADIATION);
-                    }
-                }
-            }
-        }
-
-        {
-            Material material = getMaterial(itemEntity.getItem());
-            if (material != null && material.hasProperty(PropertyKey.RADIOACTIVE) && itemEntity.ticksExisted % 40 == 0) {
-                float radDamage = material.getProperty(PropertyKey.RADIOACTIVE).getRadioactivity();
-                if (radDamage > 0.0f) {
-                    AxisAlignedBB box = new AxisAlignedBB(
-                            itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
-                            itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
-                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
-                        EntityDamageUtil.applyHazardDamage(player, DamageSources.getRadioactiveDamage(),
-                                radDamage, EntityDamageUtil.ResistanceType.RADIATION);
-                    }
-                }
-            }
-        }
-
-        if (prefix.heatDamageFunction != null) {
-            Material material = getMaterial(itemEntity.getItem());
-            if (material != null && itemEntity.ticksExisted % 40 == 0) {
-                float heatDamage = prefix.heatDamageFunction.apply(material.getBlastTemperature());
-                if (heatDamage > 0.0f) {
-                    AxisAlignedBB box = new AxisAlignedBB(
-                            itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
-                            itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
-                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
-                        EntityDamageUtil.applyHazardDamage(player, DamageSources.getHeatDamage(),
-                                heatDamage, EntityDamageUtil.ResistanceType.HEAT);
-                    }
-                }
-            }
-        }
-
-        {
-            Material material = getMaterial(itemEntity.getItem());
-            if (material != null && material.hasProperty(PropertyKey.TOXIC) && itemEntity.ticksExisted % 40 == 0) {
-                float poisonDamage = material.getProperty(PropertyKey.TOXIC).getToxicity();
-                if (prefix.poisonDamageFunction != null) poisonDamage *= prefix.poisonDamageFunction.apply(material);
-                if (poisonDamage > 0.0f) {
-                    AxisAlignedBB box = new AxisAlignedBB(
-                            itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
-                            itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
-                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
-                        float dmg = poisonDamage * EntityDamageUtil.getArmorResistance(player, EntityDamageUtil.ResistanceType.POISON);
-                        if (dmg > 0.0f) {
-                            player.attackEntityFrom(DamageSources.getChemicalDamage().setDamageBypassesArmor(), dmg);
-                            EntityDamageUtil.damageArmorForHazard(player, DamageSources.getChemicalDamage(), dmg);
-                            player.addPotionEffect(new PotionEffect(MobEffects.POISON, (int)(dmg * 100), 1));
-                        }
-                    }
-                }
-            }
-        }
-
-        {
-            Material material = getMaterial(itemEntity.getItem());
-            if (material != null && material.hasProperty(PropertyKey.COLD) && itemEntity.ticksExisted % 40 == 0) {
-                float frostDamage = material.getProperty(PropertyKey.COLD).getColdDamage();
-                if (frostDamage > 0.0f) {
-                    AxisAlignedBB box = new AxisAlignedBB(
-                            itemEntity.posX - 2, itemEntity.posY - 2, itemEntity.posZ - 2,
-                            itemEntity.posX + 2, itemEntity.posY + 2, itemEntity.posZ + 2);
-                    for (EntityPlayer player : itemEntity.world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
-                        EntityDamageUtil.applyHazardDamage(player, DamageSources.getFrostDamage(),
-                                frostDamage, EntityDamageUtil.ResistanceType.FROST);
-                    }
-                }
-            }
+        Material material = getMaterial(itemEntity.getItem());
+        if (material != null && itemEntity.ticksExisted % DROPPED_HAZARD_INTERVAL == 0) {
+            Hazard.applyAllNearby(itemEntity.world, hazardBox(itemEntity), material, prefix);
         }
 
         if (EASY_COOLING && hotMap.containsKey(this.prefix)) {
-            boolean checkWater = true;
-            BlockPos pos = itemEntity.getPosition();
+            if (itemEntity.ticksExisted % 20 == 0) {
+                BlockPos pos = itemEntity.getPosition();
+                IBlockState state = itemEntity.world.getBlockState(pos);
+                boolean inWater = state.getBlock() == Blocks.WATER;
 
-            Material mat = getMaterial(itemEntity.getItem());
+                if (inWater) {
+                    ItemStack stack = itemEntity.getItem();
+                    int count = stack.getCount();
+                    ItemStack newStack = stack.copy();
+                    NBTTagCompound data = itemEntity.getEntityData();
 
-            for (int left = -1; left <= 1; left++) {
-                for (int up = -1; up <= 1; up++) {
-                    BlockPos checkPos = pos.add(left, 0, up);
-                    IBlockState state = itemEntity.world.getBlockState(checkPos);
-                    Block block = state.getBlock();
-                    if (block != Blocks.WATER) {
-                        checkWater = false;
+                    if (!data.hasKey("cooling")) {
+                        data.setInteger("cooling", 0);
                     }
-                }
-                if (!checkWater) break;
-            }
+                    int cooling = data.getInteger("cooling");
 
-            if (checkWater) {
-                ItemStack stack = itemEntity.getItem();
-                int count = stack.getCount();
-                ItemStack newStack = stack.copy();
-                NBTTagCompound data = itemEntity.getEntityData();
+                    if (cooling < 200) {
+                        if (cooling % 40 == 0) {
+                            itemEntity.playSound(SoundEvents.BLOCK_FIRE_EXTINGUISH, 1.0F, 1.0F);
+                        }
+                        data.setInteger("cooling", cooling + 20);
+                    } else {
+                        itemEntity.getEntityData().removeTag("cooling");
+                        itemEntity.world.setBlockState(pos, Blocks.AIR.getDefaultState());
+                        itemEntity.playSound(SoundEvents.BLOCK_FIRE_EXTINGUISH, 1.0F, -2.0F);
+                        itemEntity.playSound(SoundEvents.ENTITY_ITEM_BREAK, 1.0F, 1.0F);
 
-                if (!data.hasKey("cooling")) {
-                    data.setInteger("cooling", 0);
-                }
-                int cooling = data.getInteger("cooling");
+                        ItemStack nuggetStack = OreDictUnifier.get(hotMap.get(prefix), material, 9);
+                        EntityItem nuggetEntity = new EntityItem(itemEntity.world, pos.getX(), pos.getY() + 0.25, pos.getZ(), nuggetStack);
 
-                if (cooling < 200) {
-                    if (cooling % 40 == 0) {
-                        itemEntity.playSound(SoundEvents.BLOCK_FIRE_EXTINGUISH, 1.0F, 1.0F);
+                        if (count > 1) {
+                            newStack.setCount(count - 1);
+                            EntityItem overStack = new EntityItem(itemEntity.world, pos.getX(), pos.getY(), pos.getZ(), newStack);
+                            itemEntity.world.spawnEntity(overStack);
+                        }
+
+                        itemEntity.world.spawnEntity(nuggetEntity);
+                        itemEntity.setDead();
                     }
-                    data.setInteger("cooling", cooling + 1);
-                } else {
-                    itemEntity.getEntityData().removeTag("cooling");
-                    itemEntity.world.setBlockState(pos, Blocks.AIR.getDefaultState());
-                    itemEntity.playSound(SoundEvents.BLOCK_FIRE_EXTINGUISH, 1.0F, -2.0F);
-                    itemEntity.playSound(SoundEvents.ENTITY_ITEM_BREAK, 1.0F, 1.0F);
-
-                    ItemStack nuggetStack = OreDictUnifier.get(hotMap.get(prefix), mat, 9);
-                    EntityItem nuggetEntity = new EntityItem(itemEntity.world, pos.getX(), pos.getY() + 0.25, pos.getZ(), nuggetStack);
-
-                    if (count > 1) {
-                        newStack.setCount(count - 1);
-                        EntityItem overStack = new EntityItem(itemEntity.world, pos.getX(), pos.getY(), pos.getZ(), newStack);
-                        itemEntity.world.spawnEntity(overStack);
-                    }
-
-                    itemEntity.world.spawnEntity(nuggetEntity);
-                    itemEntity.setDead();
+                    return false;
                 }
-                return false;
             }
         }
 
@@ -462,9 +330,8 @@ public class MetaPrefixItem extends StandardMetaItem {
             Block block = state.getBlock();
 
             if (block == Blocks.WATER) {
-                Material mat = getMaterial(itemEntity.getItem());
                 int count = itemEntity.getItem().getCount();
-                ItemStack replacementStack = OreDictUnifier.get(purifyMap.get(prefix), mat, 1);
+                ItemStack replacementStack = OreDictUnifier.get(purifyMap.get(prefix), material, 1);
 
                 if (count > 1) {
                     ItemStack newStack = itemEntity.getItem().copy();
@@ -474,7 +341,6 @@ public class MetaPrefixItem extends StandardMetaItem {
                     overStack.setPickupDelay(10);
                 }
 
-                // Using a placeholder sound - you might want to replace this with the actual GTSoundEvents.BATH
                 itemEntity.playSound(SoundEvents.BLOCK_WATER_AMBIENT, 0.5F, 1.0F);
                 itemEntity.world.setBlockState(pos, Blocks.AIR.getDefaultState());
                 itemEntity.setItem(replacementStack);
@@ -483,7 +349,6 @@ public class MetaPrefixItem extends StandardMetaItem {
         }
 
         // Original cauldron cleaning behavior
-        Material material = getMaterial(itemEntity.getItem());
         if (!purifyMap.containsKey(this.prefix))
             return false;
 
@@ -505,23 +370,26 @@ public class MetaPrefixItem extends StandardMetaItem {
         return false;
     }
 
+    /** The volume around a dropped stack that its hazards reach. */
+    private static AxisAlignedBB hazardBox(@NotNull EntityItem itemEntity) {
+        return new AxisAlignedBB(
+                itemEntity.posX - DROPPED_HAZARD_REACH, itemEntity.posY - DROPPED_HAZARD_REACH,
+                itemEntity.posZ - DROPPED_HAZARD_REACH,
+                itemEntity.posX + DROPPED_HAZARD_REACH, itemEntity.posY + DROPPED_HAZARD_REACH,
+                itemEntity.posZ + DROPPED_HAZARD_REACH);
+    }
+
     protected void addMaterialTooltip(@NotNull List<String> lines, @NotNull ItemStack itemStack) {
-        if (this.prefix.tooltipFunc != null) {
-            lines.addAll(this.prefix.tooltipFunc.apply(getMaterial(itemStack)));
-        }
         Material material = getMaterial(itemStack);
         if (material == null) return;
-        if (material.hasProperty(PropertyKey.TOXIC)) {
-            lines.add(net.minecraft.client.resources.I18n.format("gregtech.material.tooltip.toxic"));
+        if (this.prefix.tooltipFunc != null) {
+            lines.addAll(this.prefix.tooltipFunc.apply(material));
         }
-        if (material.hasProperty(PropertyKey.BLAST)) {
-            lines.add(net.minecraft.client.resources.I18n.format("gregtech.material.tooltip.hot"));
-        }
-        if (material.hasProperty(PropertyKey.FISSION_FUEL) || material.hasProperty(PropertyKey.RADIOACTIVE)) {
-            lines.add(net.minecraft.client.resources.I18n.format("gregtech.material.tooltip.radioactive"));
-        }
-        if (material.hasProperty(PropertyKey.COLD)) {
-            lines.add(net.minecraft.client.resources.I18n.format("gregtech.material.tooltip.cold"));
+        for (Hazard hazard : Hazard.VALUES) {
+            String key = hazard.materialTooltipKey();
+            if (key != null && hazard.warnsOn(material)) {
+                lines.add(net.minecraft.client.resources.I18n.format(key));
+            }
         }
     }
 }

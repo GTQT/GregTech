@@ -3,7 +3,7 @@ package gregtech.api.unification.material.properties;
 public class ToxicProperty implements IMaterialProperty {
 
     /**
-     * Base toxicity damage per tick when held in inventory.
+     * Base toxicity damage per second when held in inventory.
      * The actual damage is multiplied by the armor's poison resistance.
      */
     private final float toxicity;

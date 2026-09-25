@@ -524,11 +524,7 @@ public class OrePrefix {
         public static final Predicate<Material> hasRotorProperty = mat -> mat.hasProperty(PropertyKey.ROTOR);
     }
 
-    public static void setRadiationDamageFunction(OrePrefix prefix, Function<Double, Double> function) {
-        prefix.radiationDamageFunction = function;
-    }
-
-    public void setHeatDamageFunction(OrePrefix prefix, Function<Integer, Float> function) {
+    public static void setHeatDamageFunction(OrePrefix prefix, Function<Material, Float> function) {
         prefix.heatDamageFunction = function;
     }
 
@@ -537,7 +533,10 @@ public class OrePrefix {
     }
 
     public static void init() {
-        ingotHot.heatDamageFunction = (temp) -> ((temp - 1750) / 1000.0F) + 2;
+        ingotHot.heatDamageFunction = mat -> mat.hasProperty(PropertyKey.BLAST) ?
+                ((mat.getBlastTemperature() - 1750) / 1000.0F) + 2 : 0f;
+        fuelRodHotDepleted.heatDamageFunction = mat -> 2f;
+
         gemFlawless.maxStackSize = 32;
         gemExquisite.maxStackSize = 16;
         gemLegendary.maxStackSize = 8;
@@ -686,15 +685,6 @@ public class OrePrefix {
 
         stick.modifyMaterialAmount(Materials.Blaze, 0.5f);
         stick.modifyMaterialAmount(Materials.Bone, 5);
-
-        OrePrefix.fuelRod.radiationDamageFunction = neutrons -> neutrons / 10e23;
-        OrePrefix.fuelPelletRaw.radiationDamageFunction = neutrons -> neutrons / 160e23;
-        OrePrefix.fuelPellet.radiationDamageFunction = neutrons -> neutrons / 160e23;
-
-        OrePrefix.fuelRodDepleted.radiationDamageFunction = neutrons -> neutrons / 1.5e23;
-        OrePrefix.fuelRodHotDepleted.radiationDamageFunction = neutrons -> neutrons / 1e23;
-        OrePrefix.fuelRodHotDepleted.heatDamageFunction = x -> 2f;
-        OrePrefix.fuelPelletDepleted.radiationDamageFunction = neutrons -> neutrons / 24e23;
     }
 
     private static void excludeAllGems(Material material) {
@@ -737,8 +727,9 @@ public class OrePrefix {
 
     public byte maxStackSize = 64;
     public final List<MaterialStack> secondaryMaterials = new ArrayList<>();
-    public Function<Integer, Float> heatDamageFunction = null; // Negative for Frost Damage
-    public Function<Double, Double> radiationDamageFunction = null;
+    /** Damage per second this prefix deals for a material's blast temperature. Negative means frost. */
+    public Function<Material, Float> heatDamageFunction = null;
+    /** Multiplier applied to a material's {@link PropertyKey#TOXIC} damage. Null means 1.0. */
     public Function<Material, Float> poisonDamageFunction = null;
     public Function<Material, List<String>> tooltipFunc;
 

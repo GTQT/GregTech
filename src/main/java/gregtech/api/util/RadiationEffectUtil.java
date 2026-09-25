@@ -14,9 +14,8 @@ import java.util.Random;
  * sufficient protection, one random missing debuff (out of six) is applied.
  * Duration and potency scale with the radiation strength of the source.
  * <p>
- * Called from {@code MetaPrefixItem#onUpdate} next to the radiation damage
- * branch; the per-tick debounce keeps multiple carried stacks from stacking
- * several debuffs in the same tick.
+ * Called from {@link Hazard#RADIATION}'s hit effect; the per-tick debounce keeps
+ * multiple carried stacks from stacking several debuffs in the same tick.
  */
 public final class RadiationEffectUtil {
 
@@ -51,8 +50,7 @@ public final class RadiationEffectUtil {
         if (player.world.isRemote) return;
 
         // Sufficient armor protection makes the player immune to debuffs
-        float resistance = EntityDamageUtil.getArmorResistance(player,
-                EntityDamageUtil.ResistanceType.RADIATION);
+        float resistance = Hazard.RADIATION.armorResistanceOf(player);
         if (resistance <= 0.01f) return;
 
         // Debounce: only one debuff per tick, no matter how many stacks are carried
