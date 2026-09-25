@@ -3218,6 +3218,26 @@ behavior.tricorder.quantum_controller.connected_items=Connected item storages: %
 behavior.tricorder.quantum_controller.connected_fluids=Connected fluid storages: %s
 behavior.tricorder.quantum_storage.usage=Contributing %s EU/t to Quantum Controller
 
+# Cover Copy/Paste tool
+metaitem.tool.cover_copy_paste.name=Cover Copy/Paste Tool
+metaitem.tool.cover_copy_paste.tooltip=§7Copies the data of a cover and pastes it onto covers of the same type
+behavior.cover_copy_paste.no_cover=§cNo cover found here
+behavior.cover_copy_paste.unavailable=§cThis cover type cannot be copied
+behavior.cover_copy_paste.not_enough_energy=Not Enough Energy!
+behavior.cover_copy_paste.invalid_cover=§cPlease copy a valid cover first
+behavior.cover_copy_paste.not_match=§cNot a matching cover
+behavior.cover_copy_paste.failed=§cFailed to paste the cover data
+behavior.cover_copy_paste.pasted=§aCover data pasted
+behavior.cover_copy_paste.position=§7----- §rX: §b%s§7 Y: §b%s§7 Z: §b%s§7 D: §b%s§7 -----
+behavior.cover_copy_paste.side=§7Block Side: §b%s§r
+behavior.cover_copy_paste.type=§7Cover Type: §a%s§r
+behavior.cover_copy_paste.stored=§9Stored Cover Data:
+behavior.cover_copy_paste.stored.position=§7Position: §b%s§7, §b%s§7, §b%s §7(Dim §b%s§7)
+behavior.cover_copy_paste.stored.side=§7Side: §b%s
+behavior.cover_copy_paste.stored.type=§7Type: §a%s
+behavior.cover_copy_paste.copy_hint=§7Sneak + Right-click a cover: §fcopy data
+behavior.cover_copy_paste.paste_hint=§7Right-click a cover of the same type: §fpaste data
+
 metaitem.mining_laser.name=Mining Laser
 # Mining Laser Behavior Messages
 behavior.mining_laser.mode_switched=Mining Laser mode: %s (%s EU/use)

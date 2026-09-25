@@ -7,7 +7,10 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.*;
+import net.minecraft.util.BlockRenderLayer;
+import net.minecraft.util.EnumActionResult;
+import net.minecraft.util.EnumFacing;
+import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
@@ -277,4 +280,15 @@ public interface Cover {
     }
 
     default void readCustomData(int discriminator, @NotNull PacketBuffer buf) {}
+
+    /**
+     * Whether the data of this cover may be copied and pasted by the Cover Copy/Paste tool.
+     * <p>
+     * Covers holding real items must return {@code false} so copied data can not be used to duplicate items.
+     *
+     * @return true if this cover supports the Cover Copy/Paste tool
+     */
+    default boolean allowsCopyPasteTool() {
+        return true;
+    }
 }

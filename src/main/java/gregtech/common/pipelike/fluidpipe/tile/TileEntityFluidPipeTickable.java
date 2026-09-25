@@ -15,7 +15,6 @@ import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.covers.CoverPump;
 import gregtech.common.pipelike.fluidpipe.net.PipeTankList;
 
-import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.init.Blocks;
 import net.minecraft.init.SoundEvents;
 import net.minecraft.nbt.NBTTagCompound;
@@ -257,12 +256,8 @@ public class TileEntityFluidPipeTickable extends TileEntityFluidPipe implements 
 
             // apply heat damage in area surrounding the pipe
             if (getOffsetTimer() % 20 == 0) {
-                List<EntityLivingBase> entities = getPipeWorld().getEntitiesWithinAABB(EntityLivingBase.class,
-                        new AxisAlignedBB(getPipePos()).grow(2));
-                for (EntityLivingBase entityLivingBase : entities) {
-                    EntityDamageUtil.applyTemperatureDamage(entityLivingBase, stack.getFluid().getTemperature(stack),
-                            2.0F, 10);
-                }
+                EntityDamageUtil.applyTemperatureDamageNearby(getPipeWorld(),
+                        new AxisAlignedBB(getPipePos()).grow(2), stack.getFluid().getTemperature(stack), 2.0F, 10);
             }
 
             // chance to do a small explosion
@@ -280,11 +275,8 @@ public class TileEntityFluidPipeTickable extends TileEntityFluidPipe implements 
 
             // apply chemical damage in area surrounding the pipe
             if (getOffsetTimer() % 20 == 0) {
-                List<EntityLivingBase> entities = getPipeWorld().getEntitiesWithinAABB(EntityLivingBase.class,
-                        new AxisAlignedBB(getPipePos()).grow(1));
-                for (EntityLivingBase entityLivingBase : entities) {
-                    EntityDamageUtil.applyChemicalDamage(entityLivingBase, 2);
-                }
+                EntityDamageUtil.applyChemicalDamageNearby(getPipeWorld(),
+                        new AxisAlignedBB(getPipePos()).grow(1), 2);
             }
 
             // 1/10 chance to void everything and destroy the pipe
@@ -308,12 +300,8 @@ public class TileEntityFluidPipeTickable extends TileEntityFluidPipe implements 
 
             // apply heat damage in area surrounding the pipe
             if (isMelting && getOffsetTimer() % 20 == 0) {
-                List<EntityLivingBase> entities = getPipeWorld().getEntitiesWithinAABB(EntityLivingBase.class,
-                        new AxisAlignedBB(getPipePos()).grow(2));
-                for (EntityLivingBase entityLivingBase : entities) {
-                    EntityDamageUtil.applyTemperatureDamage(entityLivingBase, stack.getFluid().getTemperature(stack),
-                            2.0F, 10);
-                }
+                EntityDamageUtil.applyTemperatureDamageNearby(getPipeWorld(),
+                        new AxisAlignedBB(getPipePos()).grow(2), stack.getFluid().getTemperature(stack), 2.0F, 10);
             }
 
             // 1/10 chance to void everything and burn the pipe
@@ -332,12 +320,8 @@ public class TileEntityFluidPipeTickable extends TileEntityFluidPipe implements 
 
             // apply frost damage in area surrounding the pipe
             if (getOffsetTimer() % 20 == 0) {
-                List<EntityLivingBase> entities = getPipeWorld().getEntitiesWithinAABB(EntityLivingBase.class,
-                        new AxisAlignedBB(getPipePos()).grow(2));
-                for (EntityLivingBase entityLivingBase : entities) {
-                    EntityDamageUtil.applyTemperatureDamage(entityLivingBase, stack.getFluid().getTemperature(stack),
-                            2.0F, 10);
-                }
+                EntityDamageUtil.applyTemperatureDamageNearby(getPipeWorld(),
+                        new AxisAlignedBB(getPipePos()).grow(2), stack.getFluid().getTemperature(stack), 2.0F, 10);
             }
 
             // 1/10 chance to void everything and freeze the pipe

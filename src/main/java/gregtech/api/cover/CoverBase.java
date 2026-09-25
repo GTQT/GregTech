@@ -1,13 +1,17 @@
 package gregtech.api.cover;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.util.GTLog;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleSidedCubeRenderer;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NBTTagCompound;
+import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
 import net.minecraftforge.fml.relauncher.Side;
@@ -20,6 +24,7 @@ import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.NotNull;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,5 +87,29 @@ public abstract class CoverBase implements Cover {
     @SideOnly(Side.CLIENT)
     protected @NotNull TextureAtlasSprite getPlateSprite() {
         return Textures.VOLTAGE_CASINGS[GTValues.LV].getSpriteOnSide(SimpleSidedCubeRenderer.RenderSide.SIDE);
+    }
+
+    /**
+     * Generic full NBT sync, used by the Cover Copy/Paste tool to push pasted data to clients.
+     * <p>
+     * Covers overriding this method must call {@code super.readCustomData(discriminator, buf)}.
+     */
+    @Override
+    public void readCustomData(int discriminator, @NotNull PacketBuffer buf) {
+        if (discriminator == GregtechDataCodes.UPDATE_COVER_NBT) {
+            NBTTagCompound tag;
+            try {
+                tag = buf.readCompoundTag();
+            } catch (IOException e) {
+                GTLog.logger.error("Failed to read cover NBT from network", e);
+                return;
+            }
+            if (tag != null) {
+                readFromNBT(tag);
+                if (getWorld() != null && getWorld().isRemote) {
+                    getCoverableView().scheduleRenderUpdate();
+                }
+            }
+        }
     }
 }

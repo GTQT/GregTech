@@ -99,6 +99,12 @@ public class CoverCraftingTable extends CoverBase
     }
 
     @Override
+    public boolean allowsCopyPasteTool() {
+        // 复制/粘贴会连同合成网格与内部库存一起复制，禁止以免刷物品
+        return false;
+    }
+
+    @Override
     public void renderCover(@NotNull CCRenderState renderState, @NotNull Matrix4 translation,
                             IVertexOperation[] pipeline, @NotNull Cuboid6 plateBox, @NotNull BlockRenderLayer layer) {
         Textures.CRAFTING.renderSided(getAttachedSide(), plateBox, renderState, pipeline, translation);

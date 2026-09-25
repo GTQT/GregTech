@@ -12,6 +12,7 @@ import net.minecraft.entity.monster.EntityPolarBear;
 import net.minecraft.entity.monster.EntitySnowman;
 import net.minecraft.entity.monster.EntityStray;
 import net.minecraft.entity.monster.EntityWitherSkeleton;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.MobEffects;
 import net.minecraft.inventory.EntityEquipmentSlot;
@@ -19,6 +20,8 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTBase;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.DamageSource;
+import net.minecraft.util.math.AxisAlignedBB;
+import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -45,6 +48,14 @@ public class EntityDamageUtil {
             int damage = (int) ((multiplier * (273 - temperature)) / 25.0F);
             if (maximum > 0) damage = Math.min(maximum, damage);
             Hazard.FROST.applyTo(entity, damage);
+        }
+    }
+
+    /** As {@link #applyTemperatureDamage}, for every player inside a box. */
+    public static void applyTemperatureDamageNearby(@NotNull World world, @NotNull AxisAlignedBB box,
+                                                    int temperature, float multiplier, int maximum) {
+        for (EntityPlayer player : world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
+            applyTemperatureDamage(player, temperature, multiplier, maximum);
         }
     }
 
@@ -75,6 +86,13 @@ public class EntityDamageUtil {
         if (entity instanceof AbstractSkeleton) return;
         Hazard.POISON.applyTo(entity, damage);
         if (entity instanceof EntityPlayerMP) AdvancementTriggers.CHEMICAL_DEATH.trigger((EntityPlayerMP) entity);
+    }
+
+    /** As {@link #applyChemicalDamage}, for every player inside a box. */
+    public static void applyChemicalDamageNearby(@NotNull World world, @NotNull AxisAlignedBB box, int damage) {
+        for (EntityPlayer player : world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
+            applyChemicalDamage(player, damage);
+        }
     }
 
     /** Damage chest armor durability after hazard damage. */

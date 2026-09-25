@@ -39,6 +39,7 @@ import gregtech.common.creativetab.GTCreativeTabs;
 import gregtech.common.entities.GTBoatEntity.GTBoatType;
 import gregtech.common.items.battery.BatteryCaseBehavior;
 import gregtech.common.items.behaviors.ClipboardBehavior;
+import gregtech.common.items.behaviors.CoverCopyPasteBehavior;
 import gregtech.common.items.behaviors.DataItemBehavior;
 import gregtech.common.items.behaviors.DoorBehavior;
 import gregtech.common.items.behaviors.DynamiteBehaviour;
@@ -1610,6 +1611,12 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
                 .addComponents(new WaterproofSprayBehavior());
+
+        TOOL_COVER_COPY_PASTE = addItem(1010, "tool.cover_copy_paste")
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
+                .addComponents(new CoverCopyPasteBehavior(),
+                        ElectricStats.createElectricItem(400_000L, GTValues.MV));
 
         registerWirelessCoverInput(1100);
         registerWirelessCoverOutput(1115);

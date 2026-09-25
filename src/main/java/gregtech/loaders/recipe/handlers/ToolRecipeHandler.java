@@ -648,6 +648,15 @@ public class ToolRecipeHandler {
                     'D', MetaItems.COVER_SCREEN.getStackForm(),
                     'C', new UnificationEntry(OrePrefix.circuit, MarkerMaterials.Tier.HV),
                     'B', batteryItem.getStackForm());
+
+            ModHandler.addShapedEnergyTransferRecipe("cover_copy_paste_" + batteryItem.unlocalizedName,
+                    MetaItems.TOOL_COVER_COPY_PASTE.getStackForm(),
+                    batteryItem::isItemEqual, true, true,
+                    "PSP", "PCP", "PBP",
+                    'P', new UnificationEntry(OrePrefix.plate, Materials.Aluminium),
+                    'S', MetaItems.TOOL_DATA_STICK.getStackForm(),
+                    'C', MetaItems.COVER_SCREEN.getStackForm(),
+                    'B', batteryItem.getStackForm());
         }
 
         for (MetaValueItem batteryItem : batteryItems.get(HV)) {

@@ -229,6 +229,9 @@ public class GregtechDataCodes {
     // Processing Array
     public static final int PROCESSING_ARRAY_RECIPE_MAP = assignId();
 
+    // Cover Copy/Paste tool: pushes the full NBT of a pasted cover to clients
+    public static final int UPDATE_COVER_NBT = assignId();
+
     // Everything below MUST be last in the class!
     public static final Int2ObjectMap<String> NAMES = new Int2ObjectArrayMap<>();
 

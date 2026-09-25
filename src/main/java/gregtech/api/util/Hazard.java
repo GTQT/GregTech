@@ -20,6 +20,8 @@ import net.minecraft.world.World;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -135,7 +137,8 @@ public enum Hazard {
      * The hazards armor keeps its own resistance value for, in tooltip order.
      * {@link #FROST} is absent because it shares {@link #HEAT}'s value.
      */
-    public static final List<Hazard> ARMOR_RESISTED = List.of(HEAT, RADIATION, POISON, ELECTRIC);
+    public static final List<Hazard> ARMOR_RESISTED = Collections
+            .unmodifiableList(Arrays.asList(HEAT, RADIATION, POISON, ELECTRIC));
 
     private final Supplier<DamageSource> damageSource;
     private final @Nullable String materialTooltipKey;
@@ -164,6 +167,19 @@ public enum Hazard {
     /** The lang key for this hazard's material tooltip line, or null if it has none. */
     public @Nullable String materialTooltipKey() {
         return materialTooltipKey;
+    }
+
+    /**
+     * The lang key for this hazard's armor resistance tooltip line.
+     * {@link #FROST} shares {@link #HEAT}'s value, so it reuses its key.
+     */
+    public String armorResistanceKey() {
+        return switch (this) {
+            case HEAT, FROST -> "gregtech.armor.resistance.heat";
+            case RADIATION -> "gregtech.armor.resistance.radiation";
+            case POISON -> "gregtech.armor.resistance.chemical";
+            case ELECTRIC -> "gregtech.armor.resistance.electric";
+        };
     }
 
     /** Heat and cold — the hazards a pair of pincers lets you ignore. */

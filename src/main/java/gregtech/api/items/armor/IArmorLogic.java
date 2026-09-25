@@ -111,21 +111,9 @@ public interface IArmorLogic {
     default List<String> getResistanceTooltips() {
         List<String> lines = new ArrayList<>();
         for (Hazard hazard : Hazard.ARMOR_RESISTED) {
-            addResistanceLine(lines, resistanceKey(hazard), hazard.resistanceOf(this));
+            addResistanceLine(lines, hazard.armorResistanceKey(), hazard.resistanceOf(this));
         }
         return lines;
-    }
-
-    /** The lang key describing a hazard's resistance value. */
-    private static String resistanceKey(Hazard hazard) {
-        return switch (hazard) {
-            case HEAT -> "gregtech.armor.resistance.heat";
-            case RADIATION -> "gregtech.armor.resistance.radiation";
-            case POISON -> "gregtech.armor.resistance.chemical";
-            case ELECTRIC -> "gregtech.armor.resistance.electric";
-            // FROST is not in ARMOR_RESISTED — it shares HEAT's value.
-            case FROST -> "gregtech.armor.resistance.heat";
-        };
     }
 
     static void addResistanceLine(List<String> lines, String key, float value) {

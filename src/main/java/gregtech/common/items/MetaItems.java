@@ -690,6 +690,7 @@ public final class MetaItems {
 
     public static MetaItem<?>.MetaValueItem BATTERY_CASE;
     public static MetaItem<?>.MetaValueItem WATERPROOF_SPRAY_CAN;
+    public static MetaItem<?>.MetaValueItem TOOL_COVER_COPY_PASTE;
 
     // Forge of the Gods
     public static MetaItem<?>.MetaValueItem STELLAR_FUEL;

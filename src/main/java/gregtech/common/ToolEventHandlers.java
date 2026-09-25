@@ -20,6 +20,7 @@ import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.TaskScheduler;
 import gregtech.client.renderer.handler.BlockHighlightRenderer;
+import gregtech.common.items.behaviors.CoverCopyPasteBehavior;
 import gregtech.common.items.behaviors.VajraBehavior;
 import gregtech.common.items.behaviors.spray.AbstractSprayBehavior;
 import gregtech.common.items.tool.rotation.CustomBlockRotations;
@@ -475,7 +476,9 @@ public class ToolEventHandlers {
             final boolean hasAnyCover = coverHolder.hasAnyCover();
             final boolean acceptsCovers = coverHolder.acceptsCovers();
 
-            return GTUtility.isCoverBehaviorItem(mainHand, () -> hasAnyCover, coverDefinition -> acceptsCovers);
+            return GTUtility.isCoverBehaviorItem(mainHand, () -> hasAnyCover, coverDefinition -> acceptsCovers) ||
+                    CoverCopyPasteBehavior.isCoverCopyPasteTool(mainHand) ||
+                    CoverCopyPasteBehavior.isCoverCopyPasteTool(offHand);
         }
         return false;
     }

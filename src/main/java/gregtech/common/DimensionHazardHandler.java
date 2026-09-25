@@ -8,6 +8,7 @@ import gregtech.api.util.Hazard;
 
 import net.minecraft.entity.player.EntityPlayer;
 
+import com.github.bsideup.jabel.Desugar;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -30,6 +31,7 @@ public class DimensionHazardHandler {
      * @param hazard     which hazard — also supplies its damage source and armor resistance
      * @param baseDamage damage per second
      */
+    @Desugar
     public record DimensionHazard(@NotNull Hazard hazard, float baseDamage) {}
 
     private static final Map<Integer, DimensionHazard> DIMENSION_HAZARDS = new HashMap<>();

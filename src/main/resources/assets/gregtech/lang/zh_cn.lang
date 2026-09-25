@@ -3212,6 +3212,26 @@ behavior.tricorder.quantum_controller.connected_items=已链接物品存储：%s
 behavior.tricorder.quantum_controller.connected_fluids=已链接流体存储：%s
 behavior.tricorder.quantum_storage.usage=为量子控制器提供%s EU/t
 
+# 覆盖板复制/粘贴工具
+metaitem.tool.cover_copy_paste.name=覆盖板复制/粘贴工具
+metaitem.tool.cover_copy_paste.tooltip=§7复制一块覆盖板的配置，并粘贴到同类型的覆盖板上
+behavior.cover_copy_paste.no_cover=§c这里没有覆盖板
+behavior.cover_copy_paste.unavailable=§c该覆盖板不支持复制
+behavior.cover_copy_paste.not_enough_energy=能量不足！
+behavior.cover_copy_paste.invalid_cover=§c请先复制一块覆盖板
+behavior.cover_copy_paste.not_match=§c覆盖板类型不匹配
+behavior.cover_copy_paste.failed=§c粘贴覆盖板数据失败
+behavior.cover_copy_paste.pasted=§a已粘贴覆盖板数据
+behavior.cover_copy_paste.position=§7----- §rX：§b%s§7 Y：§b%s§7 Z：§b%s§7 维度：§b%s§7 -----
+behavior.cover_copy_paste.side=§7朝向：§b%s§r
+behavior.cover_copy_paste.type=§7类型：§a%s§r
+behavior.cover_copy_paste.stored=§9已保存的覆盖板数据：
+behavior.cover_copy_paste.stored.position=§7位置：§b%s§7, §b%s§7, §b%s §7(维度 §b%s§7)
+behavior.cover_copy_paste.stored.side=§7朝向：§b%s
+behavior.cover_copy_paste.stored.type=§7类型：§a%s
+behavior.cover_copy_paste.copy_hint=§7潜行右键覆盖板：§f复制数据
+behavior.cover_copy_paste.paste_hint=§7右键同类覆盖板：§f粘贴数据
+
 metaitem.mining_laser.name=采矿镭射枪
 # Mining Laser Behavior Messages
 behavior.mining_laser.mode_switched=采矿镭射枪模式: %s (%s EU/次)

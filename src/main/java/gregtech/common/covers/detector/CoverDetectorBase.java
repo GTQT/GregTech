@@ -65,6 +65,7 @@ public abstract class CoverDetectorBase extends CoverBase {
 
     @Override
     public void readCustomData(int discriminator, @NotNull PacketBuffer buf) {
+        super.readCustomData(discriminator, buf);
         if (discriminator == UPDATE_INVERTED)
             setInverted(buf.readBoolean());
     }
