@@ -161,8 +161,6 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
                 .bindPlayerInventory();
     }
 
-
-
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
@@ -209,6 +207,26 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
     @Override
     public boolean isAllowInputFromOutputSideFluids() {
         return false;
+    }
+
+    @Override
+    public EnumFacing getOutputFacingItems() {
+        return null;
+    }
+
+    @Override
+    public void setOutputFacingItems(EnumFacing facing) {
+
+    }
+
+    @Override
+    public EnumFacing getOutputFacingFluids() {
+        return null;
+    }
+
+    @Override
+    public void setOutputFacingFluids(EnumFacing facing) {
+
     }
 
     @Override

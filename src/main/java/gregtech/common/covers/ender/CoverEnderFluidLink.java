@@ -3,9 +3,11 @@ package gregtech.common.covers.ender;
 import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
 import gregtech.api.util.FluidTankSwitchShim;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.virtualregistry.EntryTypes;
@@ -28,17 +30,21 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
+import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
 
 public class CoverEnderFluidLink extends CoverAbstractEnderLink<VirtualTank>
-        implements CoverWithUI, ITickable, IControllable {
+        implements CoverWithUI, CoverWithLeisureUI, ITickable, IControllable {
 
     public static final int TRANSFER_RATE = 8000; // mB/t
 
@@ -156,6 +162,37 @@ public class CoverEnderFluidLink extends CoverAbstractEnderLink<VirtualTank>
                         .overlay(GTGuiTextures.CONVEYOR_MODE_OVERLAY)
                         .lang("cover.pump.mode")
                         .build());
+    }
+
+    /**
+     * 机器主界面侧边按钮栏里的按钮：点击后在机器界面内部展开 / 收起末影流体链接设置子面板。
+     * 比基类多了一行过滤 + 一行泵模式，所以面板高 18。
+     */
+    @Override
+    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
+                                          int index) {
+        if (!isPrivate()) {
+            this.playerUUID = guiData.getPlayer().getUniqueID();
+        }
+
+        IPanelHandler panelHandler = guiSyncManager.syncedPanel("ender_fluid_link_leisure_panel" + index, true,
+                (syncManager, panel) -> GTGuis.createPopupPanel("ender_fluid_link_leisure" + index, 176,
+                                120)
+                        .child(CoverWithUI.createTitleRow(getPickItem()))
+                        .child(createWidgets(guiData, syncManager)));
+
+        return new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(getPickItem()).asIcon().size(16))
+                .addTooltipLine(IKey.str("末影流体链接覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
+                .onMousePressed(mouseButton -> {
+                    if (panelHandler.isPanelOpen()) {
+                        panelHandler.closePanel();
+                    } else {
+                        panelHandler.openPanel();
+                    }
+                    return true;
+                });
     }
 
     @Override

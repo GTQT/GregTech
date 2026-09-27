@@ -13,6 +13,9 @@ import com.cleanroommc.modularui.api.IGuiHolder;
 import com.cleanroommc.modularui.factory.AbstractUIFactory;
 import com.cleanroommc.modularui.factory.GuiManager;
 import com.cleanroommc.modularui.factory.PosGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Objects;
@@ -37,6 +40,21 @@ public class MetaTileEntityGuiFactory extends AbstractUIFactory<PosGuiData> {
         BlockPos pos = mte.getPos();
         PosGuiData data = new PosGuiData(player, pos.getX(), pos.getY(), pos.getZ());
         GuiManager.open(INSTANCE, data, (EntityPlayerMP) player);
+    }
+
+    @Override
+    public ModularPanel createPanel(PosGuiData guiData, PanelSyncManager syncManager, UISettings settings) {
+        ModularPanel panel = super.createPanel(guiData, syncManager, settings);
+        // 覆盖板的入口按钮必须在**两端**都构建：initCoverLeisureUI 内部会用 syncManager
+        // 注册子面板，服务端不注册就会导致客户端发来的同步包找不到处理器
+        // （日志表现：SyncHandler 'xxx' does not exist for panel 'yyy'）。
+        // 本方法是 IGuiHolder.buildUI 的唯一调用点，且服务端/客户端都会走到，
+        // 因此是唯一能同时满足"两端都跑"和"拿得到 PanelSyncManager"的时机。
+        IGuiHolder<PosGuiData> holder = getGuiHolder(guiData);
+        if (holder instanceof MetaTileEntity mte && panel != null) {
+            mte.initCoverLeisureUI(guiData, syncManager, panel);
+        }
+        return panel;
     }
 
     @Override

@@ -3,9 +3,11 @@ package gregtech.common.covers;
 import gregtech.api.capability.impl.FluidHandlerDelegate;
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
@@ -32,8 +34,12 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.drawable.Rectangle;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -42,6 +48,7 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
@@ -50,7 +57,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 
-public class CoverFluidFilter extends CoverBase implements CoverWithUI {
+public class CoverFluidFilter extends CoverBase implements CoverWithUI, CoverWithLeisureUI {
 
     protected final String titleLocale;
     protected final SimpleOverlayRenderer texture;
@@ -143,13 +150,50 @@ public class CoverFluidFilter extends CoverBase implements CoverWithUI {
 
     @Override
     public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        return getFilter().createPanel(guiSyncManager)
+                .size(176, 212).padding(7)
+                .child(buildContent(guiSyncManager))
+                .child(SlotGroupWidget.playerInventory(false).bottom(7).left(7));
+    }
+
+    /**
+     * 机器主界面侧边按钮栏里的按钮：点击后在机器界面内部展开 / 收起流体过滤设置子面板。
+     *
+     * <p>
+     * 子面板复用 {@link #buildContent}，和主界面里的控件完全一致；但不放玩家背包，
+     * 所以高度比 {@link #buildUI} 少 48（玩家背包那一块）。
+     */
+    @Override
+    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
+                                          int index) {
+        IPanelHandler panelHandler = guiSyncManager.syncedPanel("fluid_filter_leisure_panel" + index, true,
+                (syncManager, panel) -> GTGuis.createPopupPanel("fluid_filter_leisure" + index, 176, 212 - 48)
+                        .child(buildContent(syncManager)));
+
+        return new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(getFilterContainer().getFilterStack()).asIcon().size(16))
+                .addTooltipLine(IKey.str("流体过滤覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
+                .onMousePressed(mouseButton -> {
+                    if (panelHandler.isPanelOpen()) {
+                        panelHandler.closePanel();
+                    } else {
+                        panelHandler.openPanel();
+                    }
+                    return true;
+                });
+    }
+
+    /**
+     * 面板内容：主界面与侧边浮动子面板共用，两者的控件与同步值完全一致。
+     */
+    private @NotNull IWidget buildContent(@NotNull PanelSyncManager guiSyncManager) {
         var filteringMode = new EnumSyncValue<>(FluidFilterMode.class, this::getFilterMode, this::setFilterMode);
 
         guiSyncManager.syncValue("filtering_mode", filteringMode);
         this.fluidFilterContainer.setMaxTransferSize(1);
 
-        return getFilter().createPanel(guiSyncManager)
-                .size(176, 212).padding(7)
+        return Flow.column()
                 .child(CoverWithUI.createTitleRow(getFilterContainer().getFilterStack()))
                 .child(Flow.column().widthRel(1f).posRel(Alignment.TopLeft).top(22).coverChildrenHeight()
                         .child(new EnumRowBuilder<>(FluidFilterMode.class)
@@ -176,8 +220,7 @@ public class CoverFluidFilter extends CoverBase implements CoverWithUI {
                                         .leftRel(1f).anchorLeft(1f)))
                         .child(new Rectangle().color(UI_TEXT_COLOR).asWidget()
                                 .height(1).widthRel(0.95f).margin(0, 4))
-                        .child(getFilter().createWidgets(guiSyncManager)))
-                .child(SlotGroupWidget.playerInventory(false).bottom(7).left(7));
+                        .child(getFilter().createWidgets(guiSyncManager)));
     }
 
     @Override

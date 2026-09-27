@@ -6,6 +6,7 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.capability.impl.FluidHandlerDelegate;
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.mui.GTGuiTextures;
@@ -41,8 +42,12 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
@@ -59,7 +64,7 @@ import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public class CoverPump extends CoverBase implements CoverWithUI, ITickable, IControllable {
+public class CoverPump extends CoverBase implements CoverWithUI, CoverWithLeisureUI, ITickable, IControllable {
 
     public final int tier;
     public final int maxFluidTransferRate;
@@ -196,13 +201,46 @@ public class CoverPump extends CoverBase implements CoverWithUI, ITickable, ICon
 
     @Override
     public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        var panel = GTGuis.createPanel(this, 176, 210 + 18);
+        var panel = GTGuis.createPanel(this, 176, 210);
 
         getFluidFilterContainer().setMaxTransferSize(getMaxTransferRate());
 
         return panel.child(CoverWithUI.createTitleRow(getPickItem()))
                 .child(createUI(guiData, guiSyncManager))
                 .bindPlayerInventory();
+    }
+
+    /**
+     * 机器主界面侧边按钮栏里的按钮：点击后在机器界面内部展开 / 收起泵设置子面板，
+     * 这样不必开关主界面就能调传输量、更新间隔、过滤和 I/O 模式。
+     *
+     * <p>
+     * 子面板复用 {@link #createUI}，和主界面里的控件完全一致；但不调
+     * {@code bindPlayerInventory()} —— 那 36 个玩家背包槽位属于机器主界面，
+     * 这里再加一份会变成两套真实槽位。
+     */
+    @Override
+    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
+                                          int index) {
+        getFluidFilterContainer().setMaxTransferSize(getMaxTransferRate());
+
+        IPanelHandler panelHandler = guiSyncManager.syncedPanel("pump_leisure_panel" + index, true,
+                (syncManager, panel) -> GTGuis.createPopupPanel("pump_leisure" + index, 176, 138)
+                        .child(CoverWithUI.createTitleRow(getPickItem()))
+                        .child(createUI(guiData, syncManager)));
+
+        return new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(getPickItem()).asIcon().size(16))
+                .addTooltipLine(IKey.str("泵覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
+                .onMousePressed(mouseButton -> {
+                    if (panelHandler.isPanelOpen()) {
+                        panelHandler.closePanel();
+                    } else {
+                        panelHandler.openPanel();
+                    }
+                    return true;
+                });
     }
 
     protected Flow createUI(GuiData data, PanelSyncManager syncManager) {

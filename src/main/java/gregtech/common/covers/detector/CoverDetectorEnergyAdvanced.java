@@ -1,6 +1,7 @@
 package gregtech.common.covers.detector;
 
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.mui.GTGuis;
@@ -22,17 +23,22 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import org.jetbrains.annotations.NotNull;
 
-public class CoverDetectorEnergyAdvanced extends CoverDetectorEnergy implements CoverWithUI {
+public class CoverDetectorEnergyAdvanced extends CoverDetectorEnergy implements CoverWithUI, CoverWithLeisureUI {
 
     private static final long DEFAULT_MIN_EU = 0;
     private static final long DEFAULT_MAX_EU = 2048;
@@ -89,49 +95,85 @@ public class CoverDetectorEnergyAdvanced extends CoverDetectorEnergy implements 
         return GTGuis.defaultPanel(this)
                 .height(202)
                 .child(CoverWithUI.createTitleRow(getPickItem()))
-                .child(Flow.column()
-                        .name("min/max parent column")
-                        .top(28)
-                        .margin(10, 0)
-                        .coverChildrenHeight()
-                        .child(createMinMaxRow("cover.advanced_energy_detector.min",
-                                this::getMinValue, this::setMinValue,
-                                this::getPostFix, this::updateWidget))
-                        .child(createMinMaxRow("cover.advanced_energy_detector.max",
-                                this::getMaxValue, this::setMaxValue,
-                                this::getPostFix, this::updateWidget))
-                        .child(Flow.row()
-                                .name("mode row")
-                                .coverChildrenHeight()
-                                .marginBottom(5)
-                                .child(IKey.lang("cover.advanced_energy_detector.modes_label").asWidget()
-                                        .size(72, 18))
-                                .child(new ToggleButton()
-                                        .name("mode button")
-                                        .right(0)
-                                        .size(72, 18)
-                                        .addTooltipLine(IKey.lang("cover.advanced_energy_detector.modes_tooltip"))
-                                        .value(new BooleanSyncValue(this::isUsePercent, this::setUsePercent))
-                                        .overlay(true, IKey.lang("cover.advanced_energy_detector.mode_percent")
-                                                .style(IKey.WHITE))
-                                        .overlay(false, IKey.lang("cover.advanced_energy_detector.mode_eu")
-                                                .style(IKey.WHITE))))
-                        .child(Flow.row()
-                                .name("inverted row")
-                                .coverChildrenHeight()
-                                .child(IKey.lang("cover.generic.advanced_detector.invert_label").asWidget()
-                                        .size(72, 18))
-                                .child(new ToggleButton()
-                                        .name("inverted button")
-                                        .right(0)
-                                        .size(72, 18)
-                                        .addTooltipLine(IKey.lang("cover.advanced_energy_detector.invert_tooltip"))
-                                        .value(new BooleanSyncValue(this::isInverted, this::setInverted))
-                                        .overlay(true, IKey.lang("cover.advanced_energy_detector.inverted")
-                                                .style(IKey.WHITE))
-                                        .overlay(false, IKey.lang("cover.advanced_energy_detector.normal")
-                                                .style(IKey.WHITE)))))
+                .child(buildContent(syncManager))
                 .bindPlayerInventory();
+    }
+
+    /**
+     * 机器主界面侧边按钮栏里的按钮：点击后在机器界面内部展开 / 收起进阶能量探测器子面板。
+     *
+     * <p>
+     * 子面板复用 {@link #buildContent}，和主界面里的控件完全一致；但不调
+     * {@code bindPlayerInventory()}，所以高度比 {@link #buildUI} 少 48（玩家背包那一块）。
+     */
+    @Override
+    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
+                                          int index) {
+        IPanelHandler panelHandler = guiSyncManager.syncedPanel("energy_detector_adv_leisure_panel" + index, true,
+                (syncManager, panel) -> GTGuis.createPopupPanel("energy_detector_adv_leisure" + index, 176, 120)
+                        .child(CoverWithUI.createTitleRow(getPickItem()))
+                        .child(buildContent(syncManager)));
+
+        return new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(getPickItem()).asIcon().size(16))
+                .addTooltipLine(IKey.str("进阶能量探测器覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
+                .onMousePressed(mouseButton -> {
+                    if (panelHandler.isPanelOpen()) {
+                        panelHandler.closePanel();
+                    } else {
+                        panelHandler.openPanel();
+                    }
+                    return true;
+                });
+    }
+
+    /**
+     * 面板内容：主界面与侧边浮动子面板共用，两者的控件与同步值完全一致。
+     */
+    private @NotNull IWidget buildContent(@NotNull PanelSyncManager syncManager) {
+        return Flow.column()
+                .name("min/max parent column")
+                .top(28)
+                .margin(10, 0)
+                .coverChildrenHeight()
+                .child(createMinMaxRow("cover.advanced_energy_detector.min",
+                        this::getMinValue, this::setMinValue,
+                        this::getPostFix, this::updateWidget))
+                .child(createMinMaxRow("cover.advanced_energy_detector.max",
+                        this::getMaxValue, this::setMaxValue,
+                        this::getPostFix, this::updateWidget))
+                .child(Flow.row()
+                        .name("mode row")
+                        .coverChildrenHeight()
+                        .marginBottom(5)
+                        .child(IKey.lang("cover.advanced_energy_detector.modes_label").asWidget()
+                                .size(72, 18))
+                        .child(new ToggleButton()
+                                .name("mode button")
+                                .right(0)
+                                .size(72, 18)
+                                .addTooltipLine(IKey.lang("cover.advanced_energy_detector.modes_tooltip"))
+                                .value(new BooleanSyncValue(this::isUsePercent, this::setUsePercent))
+                                .overlay(true, IKey.lang("cover.advanced_energy_detector.mode_percent")
+                                        .style(IKey.WHITE))
+                                .overlay(false, IKey.lang("cover.advanced_energy_detector.mode_eu")
+                                        .style(IKey.WHITE))))
+                .child(Flow.row()
+                        .name("inverted row")
+                        .coverChildrenHeight()
+                        .child(IKey.lang("cover.generic.advanced_detector.invert_label").asWidget()
+                                .size(72, 18))
+                        .child(new ToggleButton()
+                                .name("inverted button")
+                                .right(0)
+                                .size(72, 18)
+                                .addTooltipLine(IKey.lang("cover.advanced_energy_detector.invert_tooltip"))
+                                .value(new BooleanSyncValue(this::isInverted, this::setInverted))
+                                .overlay(true, IKey.lang("cover.advanced_energy_detector.inverted")
+                                        .style(IKey.WHITE))
+                                .overlay(false, IKey.lang("cover.advanced_energy_detector.normal")
+                                        .style(IKey.WHITE))));
     }
 
     private void updateWidget(GTTextFieldWidget w) {

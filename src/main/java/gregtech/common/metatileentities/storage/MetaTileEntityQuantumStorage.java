@@ -358,6 +358,28 @@ public abstract class MetaTileEntityQuantumStorage<T> extends MetaTileEntity imp
         }
     }
 
+    // ---- IActiveOutputSide：量子储罐系只有单一输出面，两个通道都指向它 ----
+
+    @Override
+    public EnumFacing getOutputFacingItems() {
+        return getOutputFacing();
+    }
+
+    @Override
+    public EnumFacing getOutputFacingFluids() {
+        return getOutputFacing();
+    }
+
+    @Override
+    public void setOutputFacingItems(EnumFacing facing) {
+        setOutputFacing(facing);
+    }
+
+    @Override
+    public void setOutputFacingFluids(EnumFacing facing) {
+        setOutputFacing(facing);
+    }
+
     public boolean isAutoOutputItems() {
         return getType() == Type.ITEM && autoOutput;
     }

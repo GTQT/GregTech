@@ -138,7 +138,7 @@ public final class MultiblockPartRegistration {
             String voltageName = GTValues.VN[tier].toLowerCase();
             for (int v = 0; v < 4; v++) {
                 int slotCount = HUGE_SLOT_VARIANTS[v];
-                String slotKey = slotCount + "." + voltageName;
+                String slotKey = voltageName + "." + slotCount;
                 HUGE_ITEM_IMPORT_BUS[i][v] = registerMetaTileEntity(2210 + (i * 4 + v),
                         new MetaTileEntityHugeItemBus(gregtechId("huge_item_bus.import." + slotKey), tier, false,
                                 slotCount));

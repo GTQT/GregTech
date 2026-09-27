@@ -2,8 +2,10 @@ package gregtech.common.covers;
 
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.covers.filter.SmartItemFilter;
 import gregtech.common.pipelike.itempipe.net.ItemNetHandler;
@@ -19,6 +21,10 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
@@ -27,6 +33,7 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
@@ -203,7 +210,39 @@ public class CoverRoboticArm extends CoverConveyor {
 
     @Override
     public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
-        return super.buildUI(guiData, guiSyncManager, settings).height(192 + 36 + 18 + 2);
+        return super.buildUI(guiData, guiSyncManager, settings).height(228);
+    }
+
+    /**
+     * 机器主界面侧边按钮栏里的按钮：点击后在机器界面内部展开 / 收起机械臂设置子面板。
+     *
+     * <p>
+     * 子面板复用 {@link #createUI}，和主界面里的控件完全一致；但不调
+     * {@code bindPlayerInventory()}，所以高度比 {@link #buildUI} 少 48（玩家背包那一块）。
+     */
+    @Override
+    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
+                                          int index) {
+        getItemFilterContainer().setMaxTransferSize(getMaxStackSize());
+
+        IPanelHandler panelHandler = guiSyncManager.syncedPanel("robotic_arm_leisure_panel" + index, true,
+                (syncManager, panel) -> GTGuis.createPopupPanel("robotic_arm_leisure" + index, 176,
+                        156)
+                        .child(CoverWithUI.createTitleRow(getPickItem()))
+                        .child(createUI(guiData, syncManager)));
+
+        return new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(getPickItem()).asIcon().size(16))
+                .addTooltipLine(IKey.str("机械臂覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
+                .onMousePressed(mouseButton -> {
+                    if (panelHandler.isPanelOpen()) {
+                        panelHandler.closePanel();
+                    } else {
+                        panelHandler.openPanel();
+                    }
+                    return true;
+                });
     }
 
     @Override

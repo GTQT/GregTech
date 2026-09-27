@@ -17,6 +17,7 @@ import gregtech.api.cover.CoverHolder;
 import gregtech.api.cover.CoverRayTracer;
 import gregtech.api.cover.CoverSaveHandler;
 import gregtech.api.cover.CoverUtil;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.items.toolitem.ToolClasses;
@@ -25,6 +26,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.interfaces.IPollution;
 import gregtech.api.metatileentity.interfaces.ISyncedTileEntity;
 import gregtech.api.metatileentity.registry.MTERegistry;
+import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GregTechGuiScreen;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
@@ -91,11 +93,14 @@ import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.IGuiHolder;
+import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -505,6 +510,57 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     @Override
     public final ModularScreen createScreen(PosGuiData posGuiData, ModularPanel mainPanel) {
         return new GregTechGuiScreen(mainPanel, getUITheme());
+    }
+
+    public void initCoverLeisureUI(@NotNull PosGuiData guiData, @NotNull PanelSyncManager syncManager,
+                                   @NotNull ModularPanel mainPanel) {
+        Flow column = Flow.col()
+                .name("cover_leisure")
+                .coverChildren()
+                // 贴在主面板左侧外沿
+                .rightRel(1.0f)
+                .reverseLayout(true)
+                .padding(2)
+                .bottom(16)
+                .childPadding(2)
+                .crossAxisAlignment(Alignment.CrossAxis.CENTER)
+                .background(GTGuiTextures.BACKGROUND_POPUP);
+
+        for (EnumFacing side : EnumFacing.VALUES) {
+            Cover cover = getCoverAtSide(side);
+            if (cover == null) continue;
+
+            IWidget button = null;
+            try {
+                button = createCoverLeisureButton(guiData, syncManager, cover, side);
+            } catch (Throwable t) {
+                GTLog.logger.error("[CoverLeisure] 为 {} 面的覆盖板 {} 构建入口按钮失败",
+                        side, cover.getClass().getName(), t);
+            }
+            if (button != null) {
+                column.child(button);
+            }
+        }
+
+        if (!column.getChildren().isEmpty()) {
+            mainPanel.child(column);
+        }
+    }
+
+    /**
+     * 为单个覆盖板生成挂到主界面外侧的入口按钮；返回 {@code null} 表示这块覆盖板没有可打开的界面。
+     *
+     * <p>
+     * 唯一的判据就是覆盖板实现了 {@link CoverWithLeisureUI} —— 由覆盖板自己决定按钮长什么样、
+     * 浮动子面板里放什么。没有实现的覆盖板就没有入口按钮。
+     */
+    protected @Nullable IWidget createCoverLeisureButton(@NotNull PosGuiData guiData,
+                                                        @NotNull PanelSyncManager syncManager,
+                                                        @NotNull Cover cover, @NotNull EnumFacing side) {
+        if (cover instanceof CoverWithLeisureUI leisureCover) {
+            return leisureCover.initUILeisure(guiData, syncManager, side.getIndex());
+        }
+        return null;
     }
 
     public GTGuiTheme getUITheme() {

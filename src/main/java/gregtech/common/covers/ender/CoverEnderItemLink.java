@@ -4,6 +4,7 @@ import gregtech.api.capability.GregtechTileCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.metatileentity.MetaTileEntity;
@@ -37,9 +38,11 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.drawable.Rectangle;
 import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
@@ -51,6 +54,7 @@ import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
 import com.cleanroommc.modularui.value.sync.SyncHandlers;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Grid;
@@ -68,7 +72,8 @@ import java.util.regex.Pattern;
 //TODO: get itemslots to sync properly so that itemslots can be used with mui
 //TODO: implement integration with terminal?
 //From:https://github.com/Synthitic/GCYL-CEu/pull/30
-public class CoverEnderItemLink extends CoverBase implements CoverWithUI, ITickable, IControllable {
+public class CoverEnderItemLink extends CoverBase implements CoverWithUI, CoverWithLeisureUI, ITickable,
+                                 IControllable {
 
     public static final int TRANSFER_RATE = 1000;
 
@@ -299,6 +304,38 @@ public class CoverEnderItemLink extends CoverBase implements CoverWithUI, ITicka
         return panel.child(CoverWithUI.createTitleRow(getPickItem()))
                 .bindPlayerInventory()
                 .child(createWidgets(guiData, guiSyncManager));
+    }
+
+    /**
+     * 机器主界面侧边按钮栏里的按钮：点击后在机器界面内部展开 / 收起末影物品链接设置子面板。
+     * 比基类多了过滤相关的行，所以面板高 16。
+     */
+    @Override
+    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
+                                          int index) {
+        if (!isPrivate()) {
+            this.playerUUID = guiData.getPlayer().getUniqueID();
+        }
+        getItemFilterContainer().setMaxTransferSize(1);
+
+        IPanelHandler panelHandler = guiSyncManager.syncedPanel("ender_item_link_leisure_panel" + index, true,
+                (syncManager, panel) -> GTGuis.createPopupPanel("ender_item_link_leisure" + index, 176,
+                                138)
+                        .child(CoverWithUI.createTitleRow(getPickItem()))
+                        .child(createWidgets(guiData, syncManager)));
+
+        return new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(getPickItem()).asIcon().size(16))
+                .addTooltipLine(IKey.str("末影物品链接覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
+                .onMousePressed(mouseButton -> {
+                    if (panelHandler.isPanelOpen()) {
+                        panelHandler.closePanel();
+                    } else {
+                        panelHandler.openPanel();
+                    }
+                    return true;
+                });
     }
 
     protected Column createWidgets(GuiData guiData, PanelSyncManager syncManager) {

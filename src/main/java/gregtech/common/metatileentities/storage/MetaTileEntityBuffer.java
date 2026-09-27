@@ -1,6 +1,8 @@
 package gregtech.common.metatileentities.storage;
 
 import gregtech.api.GTValues;
+import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IActiveOutputSide;
 import gregtech.api.capability.impl.FilteredFluidHandler;
 import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
@@ -24,6 +26,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.world.World;
+import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandlerModifiable;
@@ -58,7 +61,7 @@ import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.*;
 
-public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaTileEntity {
+public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaTileEntity, IActiveOutputSide {
 
     private final int tier;
     private FluidTankList fluidTankList;
@@ -212,6 +215,18 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
         }
     }
 
+    // ---- IActiveOutputSide ----
+
+    @Override
+    public boolean isAllowInputFromOutputSideItems() {
+        return false;
+    }
+
+    @Override
+    public boolean isAllowInputFromOutputSideFluids() {
+        return false;
+    }
+
     @Override
     public boolean onWrenchClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
                                  CuboidRayTraceResult hitResult) {
@@ -231,9 +246,10 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
         this.outputFacingFluids = outputFacing;
         if (!getWorld().isRemote) {
             notifyBlockUpdate();
+            // 用 getter 而非原始字段：字段可能为 null，getter 有兜底面
             writeCustomData(UPDATE_OUTPUT_FACING, buf -> {
-                buf.writeByte(outputFacingItems.getIndex());
-                buf.writeByte(outputFacingFluids.getIndex());
+                buf.writeByte(getOutputFacingItems().getIndex());
+                buf.writeByte(getOutputFacingFluids().getIndex());
             });
             markDirty();
         }
@@ -274,6 +290,17 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
 
     public EnumFacing getOutputFacingFluids() {
         return outputFacingFluids == null ? getFrontFacing().getOpposite() : outputFacingFluids;
+    }
+
+    @Override
+    public <T> T getCapability(Capability<T> capability, EnumFacing side) {
+        if (capability == GregtechTileCapabilities.CAPABILITY_ACTIVE_OUTPUT_SIDE) {
+            if (side == getOutputFacingItems() || side == getOutputFacingFluids()) {
+                return GregtechTileCapabilities.CAPABILITY_ACTIVE_OUTPUT_SIDE.cast(this);
+            }
+            return null;
+        }
+        return super.getCapability(capability, side);
     }
 
     @Override

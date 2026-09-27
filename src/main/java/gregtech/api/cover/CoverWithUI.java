@@ -266,8 +266,13 @@ public interface CoverWithUI extends Cover, IGuiHolder<SidedPosGuiData>, gregtec
                 }
             }
 
-            if (this.lang != null && !this.lang.isEmpty())
-                row.child(IKey.lang(this.lang).asWidget().posRel(Alignment.CenterRight).height(18));
+            if (this.lang != null && !this.lang.isEmpty()) {
+                row.child(IKey.lang(this.lang).asWidget()
+                        .expanded()
+                        .height(18)
+                        .alignment(Alignment.CenterRight)
+                        .color(UI_TITLE_COLOR));
+            }
 
             return row;
         }

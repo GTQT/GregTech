@@ -11,7 +11,6 @@ import gregtech.api.capability.impl.GhostCircuitItemStackHandler;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.ItemHandlerProxy;
 import gregtech.api.cover.Cover;
-import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.gui.GuiTextures;
 import gregtech.api.gui.resources.TextureArea;
 import gregtech.api.gui.widgets.SlotWidget;
@@ -30,13 +29,6 @@ import gregtech.client.particle.IMachineParticleEffect;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.utils.RenderUtil;
-import gregtech.common.covers.CoverConveyor;
-import gregtech.common.covers.CoverFluidFilter;
-import gregtech.common.covers.CoverItemFilter;
-import gregtech.common.covers.CoverPump;
-import gregtech.common.covers.ender.CoverEnderFluidLink;
-import gregtech.common.covers.ender.CoverEnderItemLink;
-import gregtech.common.covers.filter.BaseFilterContainer;
 
 import net.minecraft.block.Block;
 import net.minecraft.client.resources.I18n;
@@ -95,7 +87,6 @@ import static gregtech.api.capability.GregtechDataCodes.*;
 public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         implements IActiveOutputSide, IGhostSlotConfigurable {
 
-    private static final int FONT_HEIGHT = 9; // Minecraft's FontRenderer FONT_HEIGHT value
     protected final GTItemStackHandler chargerInventory;
     @Nullable // particle run every tick when the machine is active
     protected final IMachineParticleEffect tickingParticle;
@@ -568,49 +559,14 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         return map != null && map.getRecipeMapUI().usesMui2();
     }
 
-    private BaseFilterContainer getFilterContainerFromCover(Cover cover) {
-        if (cover instanceof CoverConveyor conveyor) {
-            return conveyor.getItemFilterContainer();
-        } else if (cover instanceof CoverPump pump) {
-            return pump.getFluidFilterContainer();
-        } else if (cover instanceof CoverItemFilter itemFilter) {
-            return itemFilter.getFilterContainer();
-        } else if (cover instanceof CoverFluidFilter fluidFilter) {
-            return fluidFilter.getFilterContainer();
-        } else if (cover instanceof CoverEnderFluidLink enderFluidLink) {
-            return enderFluidLink.getFluidFilterContainer();
-        } else if (cover instanceof CoverEnderItemLink enderItemLink) {
-            return enderItemLink.getItemFilterContainer();
-        }
-        return null;
-    }
+    // 覆盖板入口按钮逻辑已上移到 MetaTileEntity.initCoverLeisureUI：基类在主面板左侧外沿挂
+    // 一列按钮，只有实现了 CoverWithLeisureUI 的覆盖板才有入口，这里不再内联处理。
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {
         RecipeMap<?> workableRecipeMap = Objects.requireNonNull(workable.getRecipeMap(), "recipe map is null");
 
         var throttle = panelSyncManager.syncedPanel("mte_setting", true, this::makeThrottlePanel);
-
-        Flow flowRow = Flow.row()
-                .name("col:extra.buttons")
-                .left(7).bottom(18 * 4 + 14);
-
-        int s = 0;
-
-        for (EnumFacing data : EnumFacing.VALUES) {
-            Cover cover = this.getCoverAtSide(data);
-            BaseFilterContainer filter = getFilterContainerFromCover(cover);
-
-            if (filter != null && filter.hasFilter()) {
-                flowRow.child(filter.initUILeisure(guiData, panelSyncManager, data.getIndex()));
-                s++;
-            } else if (cover instanceof CoverWithLeisureUI leisureCover) {
-                flowRow.child(leisureCover.initUILeisure(guiData, panelSyncManager, data.getIndex()));
-                s++;
-            }
-        }
-
-        flowRow.size(s * 18, 18);
 
         int colHeight = 18; // logo
         if (hasGhostCircuitInventory() && circuitInventory != null) colHeight += 18;
@@ -629,7 +585,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         BooleanSyncValue hasNoEnergy = new BooleanSyncValue(workable::isHasNotEnoughEnergy);
         panelSyncManager.syncValue("has_energy", hasNoEnergy);
 
-        int panelHeight = s > 0 ? 188 : 170;
+        int panelHeight = 170;
 
         ModularPanel panel = workableRecipeMap.getRecipeMapUI()
                 .constructPanel(this, builder -> builder
@@ -645,7 +601,6 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                                         .asIcon().size(18).marginTop(50))))
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(col)
-                .child(flowRow)
                 .child(SlotGroupWidget.playerInventory(true).left(7));
 
         int bottomOffset = 0;

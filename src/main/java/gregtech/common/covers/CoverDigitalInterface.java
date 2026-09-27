@@ -13,6 +13,7 @@ import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.ItemHandlerProxy;
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.gui.GuiTextures;
@@ -74,10 +75,14 @@ import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import codechicken.lib.vec.Rotation;
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -86,6 +91,7 @@ import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import org.apache.commons.lang3.ArrayUtils;
@@ -99,7 +105,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
-public class CoverDigitalInterface extends CoverBase implements IFastRenderMetaTileEntity, ITickable, CoverWithUI {
+public class CoverDigitalInterface extends CoverBase
+                                    implements IFastRenderMetaTileEntity, ITickable, CoverWithUI,
+                                    CoverWithLeisureUI {
 
     public CoverDigitalInterface(@NotNull CoverDefinition definition, @NotNull CoverableView coverableView,
                                  @NotNull EnumFacing attachedSide) {
@@ -496,6 +504,48 @@ public class CoverDigitalInterface extends CoverBase implements IFastRenderMetaT
 
     @Override
     public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        return GTGuis.createPanel(this, 176, 220)
+                .child(CoverWithUI.createTitleRow(getPickItem()).pos(5, 5))
+                .child(buildContent(guiSyncManager))
+                .bindPlayerInventory();
+    }
+
+    /**
+     * 机器主界面侧边按钮栏里的按钮：点击后在机器界面内部展开 / 收起数字接口设置子面板。
+     *
+     * <p>
+     * 子面板复用 {@link #buildContent}，和主界面里的控件完全一致；但不调
+     * {@code bindPlayerInventory()}，所以高度比 {@link #buildUI} 少 48（玩家背包那一块）。
+     */
+    @Override
+    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
+                                          int index) {
+        IPanelHandler panelHandler = guiSyncManager.syncedPanel("digital_interface_leisure_panel" + index, true,
+                (syncManager, panel) -> GTGuis.createPopupPanel("digital_interface_leisure" + index, 176, 138)
+                        .child(CoverWithUI.createTitleRow(getPickItem()).pos(5, 5))
+                        .child(buildContent(syncManager)));
+
+        return new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(getPickItem()).asIcon().size(16))
+                .addTooltipLine(IKey.str("数字接口覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
+                .onMousePressed(mouseButton -> {
+                    if (panelHandler.isPanelOpen()) {
+                        panelHandler.closePanel();
+                    } else {
+                        panelHandler.openPanel();
+                    }
+                    return true;
+                });
+    }
+
+    /**
+     * 面板内容：主界面与侧边浮动子面板共用，两者的控件与同步值完全一致。
+     * <p>
+     * 里面的行都是相对面板的绝对坐标（原本直接挂在面板上），所以这里套一层
+     * {@link ParentWidget} 把它们整体下移 24px（标题行的高度），再交给调用方挂到面板上。
+     */
+    private @NotNull ParentWidget<?> buildContent(@NotNull PanelSyncManager guiSyncManager) {
         Flow row = Flow.row()
                 .pos(10, 20)
                 .coverChildren()
@@ -521,61 +571,60 @@ public class CoverDigitalInterface extends CoverBase implements IFastRenderMetaT
                     .background(new DynamicDrawable(() -> mode.getOverlay(getMode() == mode))));
         }
 
-        return GTGuis.createPanel(this, 176, 202)
-                .child(CoverWithUI.createTitleRow(getPickItem())
-                        .pos(5, 5))
-                .child(row)
-                .child(Flow.row()
-                        .pos(10, 45)
-                        .coverChildren()
-                        .child(IKey.lang("monitor.gui.title.slot").asWidget()
-                                .size(30, 20))
-                        .child(new ButtonWidget<>()
-                                .size(20)
-                                .overlay(IKey.str("-")
-                                        .color(Color.WHITE.main))
-                                .onMousePressed(m -> {
-                                    int s = slotValue.getIntValue();
-                                    s -= Interactable.hasShiftDown() ? 10 : 1;
-                                    slotValue.setIntValue(s);
-                                    return true;
-                                }))
-                        .child(new GTTextFieldWidget()
-                                .setNumbers(0, Integer.MAX_VALUE)
-                                .value(slotValue)
-                                .size(80, 20)
-                                .setTextColor(Color.WHITE.main)
-                                .background(GTGuiTextures.DISPLAY))
-                        .child(new ButtonWidget<>()
-                                .size(20)
-                                .overlay(IKey.str("+")
-                                        .color(Color.WHITE.main))
-                                .onMousePressed(m -> {
-                                    int s = slotValue.getIntValue();
-                                    s += Interactable.hasShiftDown() ? 10 : 1;
-                                    slotValue.setIntValue(s);
-                                    return true;
-                                })))
-                .child(Flow.row()
-                        .pos(10, 75)
-                        .coverChildren()
-                        .child(IKey.lang("metaitem.cover.digital.title.spin").asWidget()
-                                .size(30, 20))
-                        .child(new ButtonWidget<>()
-                                .size(20)
-                                .overlay(IKey.str("R")
-                                        .color(Color.WHITE.main))
-                                .onMousePressed(m -> {
-                                    spinValue.setValue(spinValue.getValue().rotateY());
-                                    return true;
-                                }))
-                        .child(IKey.dynamic(() -> spinValue.getValue().toString()).asWidget()
-                                .alignment(Alignment.CenterLeft)
-                                .paddingLeft(4)
-                                .size(80, 20)
-                                .color(Color.WHITE.main)
-                                .background(GTGuiTextures.DISPLAY)))
-                .bindPlayerInventory();
+        ParentWidget<?> content = new ParentWidget<>()
+                .top(24).left(0).right(0).coverChildrenHeight();
+        content.child(row);
+        content.child(Flow.row()
+                .pos(10, 45)
+                .coverChildren()
+                .child(IKey.lang("monitor.gui.title.slot").asWidget()
+                        .size(30, 20))
+                .child(new ButtonWidget<>()
+                        .size(20)
+                        .overlay(IKey.str("-")
+                                .color(Color.WHITE.main))
+                        .onMousePressed(m -> {
+                            int s = slotValue.getIntValue();
+                            s -= Interactable.hasShiftDown() ? 10 : 1;
+                            slotValue.setIntValue(s);
+                            return true;
+                        }))
+                .child(new GTTextFieldWidget()
+                        .setNumbers(0, Integer.MAX_VALUE)
+                        .value(slotValue)
+                        .size(80, 20)
+                        .setTextColor(Color.WHITE.main)
+                        .background(GTGuiTextures.DISPLAY))
+                .child(new ButtonWidget<>()
+                        .size(20)
+                        .overlay(IKey.str("+")
+                                .color(Color.WHITE.main))
+                        .onMousePressed(m -> {
+                            int s = slotValue.getIntValue();
+                            s += Interactable.hasShiftDown() ? 10 : 1;
+                            slotValue.setIntValue(s);
+                            return true;
+                        })));
+        content.child(Flow.row()
+                .pos(10, 75)
+                .coverChildren()
+                .child(IKey.lang("metaitem.cover.digital.title.spin").asWidget()
+                        .size(30, 20))
+                .child(new ButtonWidget<>()
+                        .size(20)
+                        .overlay(IKey.str("R")
+                                .color(Color.WHITE.main))
+                        .onMousePressed(m -> {
+                            spinValue.setValue(spinValue.getValue().rotateY());
+                            return true;
+                        }))
+                .child(IKey.dynamic(() -> spinValue.getValue().toString()).asWidget()
+                        .alignment(Alignment.CenterLeft)
+                        .paddingLeft(4)
+                        .size(80, 20)
+                        .color(Color.WHITE.main)
+                        .background(GTGuiTextures.DISPLAY)));
+        return content;
     }
 
     private void syncAllInfo() {

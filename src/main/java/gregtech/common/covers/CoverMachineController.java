@@ -5,6 +5,7 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.cover.Cover;
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
+import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.mui.GTGuiTextures;
@@ -28,9 +29,12 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.drawable.Rectangle;
+import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -40,6 +44,7 @@ import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import org.jetbrains.annotations.NotNull;
@@ -48,7 +53,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CoverMachineController extends CoverBase implements CoverWithUI {
+public class CoverMachineController extends CoverBase implements CoverWithUI, CoverWithLeisureUI {
 
     private boolean isInverted;
     private ControllerMode controllerMode;
@@ -116,6 +121,45 @@ public class CoverMachineController extends CoverBase implements CoverWithUI {
 
     @Override
     public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        return GTGuis.createPanel(this, 176, 112)
+                .child(CoverWithUI.createTitleRow(getPickItem()))
+                .child(buildContent(guiSyncManager))
+                .bindPlayerInventory();
+    }
+
+    /**
+     * 机器主界面侧边按钮栏里的按钮：点击后在机器界面内部展开 / 收起控制器设置子面板。
+     *
+     * <p>
+     * 子面板复用 {@link #buildContent}，和主界面里的控件完全一致；但不调
+     * {@code bindPlayerInventory()}，所以高度比 {@link #buildUI} 少 48（玩家背包那一块）。
+     */
+    @Override
+    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
+                                          int index) {
+        IPanelHandler panelHandler = guiSyncManager.syncedPanel("machine_controller_leisure_panel" + index, true,
+                (syncManager, panel) -> GTGuis.createPopupPanel("machine_controller_leisure" + index, 176, 112 - 48)
+                        .child(CoverWithUI.createTitleRow(getPickItem()))
+                        .child(buildContent(syncManager)));
+
+        return new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(getPickItem()).asIcon().size(16))
+                .addTooltipLine(IKey.str("机器控制覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
+                .onMousePressed(mouseButton -> {
+                    if (panelHandler.isPanelOpen()) {
+                        panelHandler.closePanel();
+                    } else {
+                        panelHandler.openPanel();
+                    }
+                    return true;
+                });
+    }
+
+    /**
+     * 面板内容：主界面与侧边浮动子面板共用，两者的控件与同步值完全一致。
+     */
+    private @NotNull Flow buildContent(@NotNull PanelSyncManager guiSyncManager) {
         EnumSyncValue<ControllerMode> controllerModeValue = new EnumSyncValue<>(ControllerMode.class,
                 this::getControllerMode, this::setControllerMode);
         BooleanSyncValue invertedValue = new BooleanSyncValue(this::isInverted, this::setInverted);
@@ -123,54 +167,52 @@ public class CoverMachineController extends CoverBase implements CoverWithUI {
         guiSyncManager.syncValue("controller_mode", controllerModeValue);
         guiSyncManager.syncValue("inverted", invertedValue);
 
-        return GTGuis.createPanel(this, 176, 112)
-                .child(CoverWithUI.createTitleRow(getPickItem()))
-                .child(Flow.column()
-                        .widthRel(1.0f).margin(7, 0)
-                        .top(24).coverChildrenHeight()
+        return Flow.column()
+                .widthRel(1.0f).margin(7, 0)
+                .top(24).coverChildrenHeight()
 
-                        // Inverted mode
-                        .child(createSettingsRow()
-                                .child(new ToggleButton()
-                                        .size(16).left(0)
-                                        .value(new BoolValue.Dynamic(invertedValue::getValue,
-                                                $ -> invertedValue.setValue(true)))
-                                        .overlay(GTGuiTextures.BUTTON_REDSTONE_ON)
-                                        .selectedBackground(GTGuiTextures.MC_BUTTON_DISABLED))
-                                .child(IKey.lang("cover.machine_controller.enable_with_redstone").asWidget()
-                                        .heightRel(1.0f).left(20)))
-                        .child(createSettingsRow()
-                                .child(new ToggleButton()
-                                        .size(16).left(0)
-                                        .value(new BoolValue.Dynamic(() -> !invertedValue.getValue(),
-                                                $ -> invertedValue.setValue(false)))
-                                        .overlay(GTGuiTextures.BUTTON_REDSTONE_OFF)
-                                        .selectedBackground(GTGuiTextures.MC_BUTTON_DISABLED))
-                                .child(IKey.lang("cover.machine_controller.disable_with_redstone").asWidget()
-                                        .heightRel(1.0f).left(20)))
+                // Inverted mode
+                .child(createSettingsRow()
+                        .child(new ToggleButton()
+                                .size(16).left(0)
+                                .value(new BoolValue.Dynamic(invertedValue::getValue,
+                                        $ -> invertedValue.setValue(true)))
+                                .overlay(GTGuiTextures.BUTTON_REDSTONE_ON)
+                                .selectedBackground(GTGuiTextures.MC_BUTTON_DISABLED))
+                        .child(IKey.lang("cover.machine_controller.enable_with_redstone").asWidget()
+                                .heightRel(1.0f).left(20)))
+                .child(createSettingsRow()
+                        .child(new ToggleButton()
+                                .size(16).left(0)
+                                .value(new BoolValue.Dynamic(() -> !invertedValue.getValue(),
+                                        $ -> invertedValue.setValue(false)))
+                                .overlay(GTGuiTextures.BUTTON_REDSTONE_OFF)
+                                .selectedBackground(GTGuiTextures.MC_BUTTON_DISABLED))
+                        .child(IKey.lang("cover.machine_controller.disable_with_redstone").asWidget()
+                                .heightRel(1.0f).left(20)))
 
-                        // Separating line
-                        .child(new Rectangle().color(UI_TEXT_COLOR).asWidget()
-                                .height(1).widthRel(0.9f).alignX(0.5f).marginBottom(4).marginTop(4))
+                // Separating line
+                .child(new Rectangle().color(UI_TEXT_COLOR).asWidget()
+                        .height(1).widthRel(0.9f).alignX(0.5f).marginBottom(4).marginTop(4))
 
-                        // Controlling selector
-                        .child(createSettingsRow().height(16 + 2 + 16)
-                                .child(Flow.column().heightRel(1.0f).coverChildrenWidth()
-                                        .child(IKey.lang("cover.machine_controller.control").asWidget()
-                                                .left(0).height(16).marginBottom(2))
-                                        .child(modeButton(controllerModeValue, ControllerMode.MACHINE).left(0)))
-                                .child(modeColumn(controllerModeValue, ControllerMode.COVER_UP, IKey.str("U"))
-                                        .right(100))
-                                .child(modeColumn(controllerModeValue, ControllerMode.COVER_DOWN, IKey.str("D"))
-                                        .right(80))
-                                .child(modeColumn(controllerModeValue, ControllerMode.COVER_NORTH, IKey.str("N"))
-                                        .right(60))
-                                .child(modeColumn(controllerModeValue, ControllerMode.COVER_SOUTH, IKey.str("S"))
-                                        .right(40))
-                                .child(modeColumn(controllerModeValue, ControllerMode.COVER_EAST, IKey.str("E"))
-                                        .right(20))
-                                .child(modeColumn(controllerModeValue, ControllerMode.COVER_WEST, IKey.str("W"))
-                                        .right(0))));
+                // Controlling selector
+                .child(createSettingsRow().height(16 + 2 + 16)
+                        .child(Flow.column().heightRel(1.0f).coverChildrenWidth()
+                                .child(IKey.lang("cover.machine_controller.control").asWidget()
+                                        .left(0).height(16).marginBottom(2))
+                                .child(modeButton(controllerModeValue, ControllerMode.MACHINE).left(0)))
+                        .child(modeColumn(controllerModeValue, ControllerMode.COVER_UP, IKey.str("U"))
+                                .right(100))
+                        .child(modeColumn(controllerModeValue, ControllerMode.COVER_DOWN, IKey.str("D"))
+                                .right(80))
+                        .child(modeColumn(controllerModeValue, ControllerMode.COVER_NORTH, IKey.str("N"))
+                                .right(60))
+                        .child(modeColumn(controllerModeValue, ControllerMode.COVER_SOUTH, IKey.str("S"))
+                                .right(40))
+                        .child(modeColumn(controllerModeValue, ControllerMode.COVER_EAST, IKey.str("E"))
+                                .right(20))
+                        .child(modeColumn(controllerModeValue, ControllerMode.COVER_WEST, IKey.str("W"))
+                                .right(0)));
     }
 
     private Flow modeColumn(EnumSyncValue<ControllerMode> syncValue, ControllerMode mode, IKey title) {

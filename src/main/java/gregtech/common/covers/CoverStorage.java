@@ -106,7 +106,7 @@ public class CoverStorage extends CoverBase implements CoverWithUI, CoverWithLei
             }
         }
         return GTGuis.createPanel(this, 9 * 18 + 14, 18 + 4 * 18 + 5 + 14 + 18 * rows)
-                .child(IKey.lang("cover.storage.title").asWidget().pos(5, 5))
+                .child(IKey.str("存储覆盖板").asWidget().pos(5, 5))
                 .bindPlayerInventory()
                 .child(new Grid()
                         .top(18).left(7).right(7).height(rows * 18)
@@ -124,7 +124,7 @@ public class CoverStorage extends CoverBase implements CoverWithUI, CoverWithLei
                 .size(18, 18)
                 .overlay(new com.cleanroommc.modularui.drawable.ItemDrawable(
                         new net.minecraft.item.ItemStack(net.minecraft.init.Blocks.CHEST)))
-                .addTooltipLine(IKey.lang("cover.storage.title") + " 方位：" + EnumFacing.byIndex(index).getName())
+                .addTooltipLine(IKey.str("存储覆盖板") + " 方位：" + EnumFacing.byIndex(index).getName())
                 .onMousePressed(i -> {
                     if (componentPanel.isPanelOpen()) {
                         componentPanel.closePanel();
