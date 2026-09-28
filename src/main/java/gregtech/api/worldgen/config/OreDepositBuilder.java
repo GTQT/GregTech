@@ -16,6 +16,7 @@ import gregtech.api.worldgen.shape.LayeredGenerator;
 import gregtech.api.worldgen.shape.PlateGenerator;
 import gregtech.api.worldgen.shape.ShapeGenerator;
 import gregtech.api.worldgen.shape.SingleBlockGenerator;
+import gregtech.api.worldgen.shape.SlabGenerator;
 import gregtech.api.worldgen.shape.SphereGenerator;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.StoneVariantBlock;
@@ -125,6 +126,24 @@ public class OreDepositBuilder extends DepositBuilder<OreDepositBuilder, OreDepo
 
     public OreDepositBuilder singleBlockGeneration(int minBlocksCount, int maxBlocksCount) {
         this.shapeGenerator = new SingleBlockGenerator(minBlocksCount, maxBlocksCount);
+        return getThis();
+    }
+
+    /** 大平板矿脉：正方形 footprint，半径 [radiusMin, radiusMax)，默认 3 格厚 */
+    public OreDepositBuilder slabGeneration(int radiusMin, int radiusMax) {
+        this.shapeGenerator = new SlabGenerator(radiusMin, radiusMax);
+        return getThis();
+    }
+
+    /** 大平板矿脉：自定义 Y 半径（1 → 3 格厚，3 → 7 格厚） */
+    public OreDepositBuilder slabGeneration(int radiusMin, int radiusMax, int yRadius) {
+        this.shapeGenerator = new SlabGenerator(radiusMin, radiusMax, yRadius);
+        return getThis();
+    }
+
+    /** 注入任意自定义 shape（addon 用），会覆盖前面设置过的 shape */
+    public OreDepositBuilder shapeGenerator(ShapeGenerator shapeGenerator) {
+        this.shapeGenerator = shapeGenerator;
         return getThis();
     }
 
