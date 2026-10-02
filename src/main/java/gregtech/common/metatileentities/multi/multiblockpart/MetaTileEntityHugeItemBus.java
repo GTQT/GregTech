@@ -470,7 +470,7 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
             tooltip.add(I18n.format("gregtech.machine.item_bus.import.tooltip"));
         tooltip.add(I18n.format("gregtech.universal.tooltip.item_storage_capacity", getInventorySize()));
         tooltip.add(I18n.format("gregtech.universal.enabled"));
-        tooltip.add(GREEN + I18n.format("gregtech.machine.super_item_bus.tooltip"));
+        tooltip.add(GREEN + I18n.format("gregtech.machine.huge_item_bus.tooltip"));
     }
 
     @Override

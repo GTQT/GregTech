@@ -110,10 +110,7 @@ public final class WorkbenchUI {
             syncManager.registerSlotGroup(playerSlotGroup);
         }
 
-        // 直接放置合成页：它自身同时 cover 宽高，因此不依赖父级尺寸（外面再套一层 coverChildren 容器会触发
-        // MUI 的 "Can't cover children when all children depend on their parent"）。
-        // 面板右上角是关闭按钮，内容整体下移，避免遮挡配方记忆页签。
-        return GTGuis.createPopupPanel("workbench_cover_" + index, 176, 168)
+        return GTGuis.createPopupPanel("workbench_cover_" + index, 176, 150)
                 .child(IKey.lang(holder.getWorkbenchTitleKey()).asWidget().pos(5, 5))
                 .child(createWorkstationPage(holder, syncManager).top(30).left(7));
     }

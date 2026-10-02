@@ -5,6 +5,7 @@ import gregtech.api.GregTechAPI;
 import gregtech.api.block.machines.BlockMachine;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IActiveOutputSide;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDataStickIntractable;
 import gregtech.api.capability.IEnergyContainer;
@@ -30,6 +31,7 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GregTechGuiScreen;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
+import gregtech.api.mui.widget.WorldPreviewPanel;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTLog;
@@ -526,6 +528,12 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
                 .crossAxisAlignment(Alignment.CrossAxis.CENTER)
                 .background(GTGuiTextures.BACKGROUND_POPUP);
 
+        // 世界预览入口：和覆盖板按钮同一列，排在最上面
+        IWidget previewButton = createWorldPreviewButton(syncManager);
+        if (previewButton != null) {
+            column.child(previewButton);
+        }
+
         for (EnumFacing side : EnumFacing.VALUES) {
             Cover cover = getCoverAtSide(side);
             if (cover == null) continue;
@@ -534,8 +542,9 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
             try {
                 button = createCoverLeisureButton(guiData, syncManager, cover, side);
             } catch (Throwable t) {
-                GTLog.logger.error("[CoverLeisure] 为 {} 面的覆盖板 {} 构建入口按钮失败",
-                        side, cover.getClass().getName(), t);
+                if (ConfigHolder.misc.debug)
+                    GTLog.logger.error("[CoverLeisure] 为 {} 面的覆盖板 {} 构建入口按钮失败",
+                            side, cover.getClass().getName(), t);
             }
             if (button != null) {
                 column.child(button);
@@ -544,6 +553,59 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
         if (!column.getChildren().isEmpty()) {
             mainPanel.child(column);
+        }
+    }
+
+    /**
+     * 世界预览的入口按钮：点开一个浮动面板，面板里是机器周围的 3x3x3 方向渲染和方向按钮。
+     *
+     * <p>
+     * 面板本体、按钮行、点选状态都在 {@link WorldPreviewPanel} 里；这里只负责把它挂到
+     * 左侧那一列，并把"怎么在这台机器上设置方向"告诉它。
+     *
+     * <p>
+     * 返回 {@code null} 表示这次不显示（配置关闭、世界为空）。
+     */
+    protected @Nullable IWidget createWorldPreviewButton(@NotNull PanelSyncManager syncManager) {
+        if (!ConfigHolder.client.enableMachineWorldPreview) return null;
+
+        World world = getWorld();
+        if (world == null) return null;
+
+        return WorldPreviewPanel.create(syncManager, world, getPos(), hasFrontFacing(),
+                this instanceof IActiveOutputSide, this::applyFaceAction);
+    }
+
+    /**
+     * 执行一次方向设置。由 {@link WorldPreviewPanel} 的同步值触发，<b>两端都会被调用</b>，
+     * 所以这里先挡掉客户端那次，真正的修改只发生在服务端。
+     *
+     * <p>
+     * 校验照抄旧终端 {@code MachineConsoleWidget}：正面要过 {@link #isValidFrontFacing}，
+     * 输出面不能和正面是同一个面。
+     */
+    protected void applyFaceAction(@NotNull WorldPreviewPanel.FaceAction action, @NotNull EnumFacing facing) {
+        World world = getWorld();
+        if (world == null || world.isRemote) return;
+
+        switch (action) {
+            case FRONT -> {
+                if (hasFrontFacing() && isValidFrontFacing(facing)) {
+                    setFrontFacing(facing);
+                }
+            }
+            case ITEMS -> {
+                if (this instanceof IActiveOutputSide activeOutputSide &&
+                        !(hasFrontFacing() && getFrontFacing() == facing)) {
+                    activeOutputSide.setOutputFacingItems(facing);
+                }
+            }
+            case FLUIDS -> {
+                if (this instanceof IActiveOutputSide activeOutputSide &&
+                        !(hasFrontFacing() && getFrontFacing() == facing)) {
+                    activeOutputSide.setOutputFacingFluids(facing);
+                }
+            }
         }
     }
 

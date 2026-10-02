@@ -8299,6 +8299,7 @@ gregtech.machine.huge_item_bus.export.iv.1.name=IV Huge Output Bus (Single Slot)
 gregtech.machine.huge_item_bus.export.iv.4.name=IV Huge Output Bus (4 Slot)
 gregtech.machine.huge_item_bus.export.iv.9.name=IV Huge Output Bus (9 Slot)
 gregtech.machine.huge_item_bus.export.iv.16.name=IV Huge Output Bus (16 Slot)
+gregtech.machine.huge_item_bus.tooltip=A slot that can hold item stacks of more than 64
 
 gregtech.machine.dual_hatch.import.ulv.name=ULV Dual Input Hatch
 gregtech.machine.dual_hatch.import.lv.name=LV Dual Input Hatch

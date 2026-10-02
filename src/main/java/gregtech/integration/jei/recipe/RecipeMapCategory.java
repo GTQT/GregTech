@@ -23,6 +23,10 @@ import gregtech.integration.jei.utils.render.FluidStackTextRenderer;
 import gregtech.integration.jei.utils.render.ItemStackTextRenderer;
 
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.Tessellator;
+import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
@@ -40,6 +44,7 @@ import mezz.jei.api.ingredients.VanillaTypes;
 import mezz.jei.api.recipe.IRecipeCategory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -58,6 +63,11 @@ public class RecipeMapCategory implements IRecipeCategory<GTRecipeWrapper> {
     private IDrawable icon;
 
     private static final Map<GTRecipeCategory, RecipeMapCategory> gtCategories = new Object2ObjectOpenHashMap<>();
+    /**
+     * Voltage tier of the recipe page currently being laid out, captured in `setRecipe` because
+     * `drawExtras` only receives the client and cannot resolve the recipe itself.
+     */
+    private int pageVoltageTier = -1;
     private static final Map<RecipeMap<?>, List<RecipeMapCategory>> recipeMapCategories = new Object2ObjectOpenHashMap<>();
 
     public RecipeMapCategory(@NotNull RecipeMap<?> recipeMap, @NotNull GTRecipeCategory category,
@@ -136,6 +146,7 @@ public class RecipeMapCategory implements IRecipeCategory<GTRecipeWrapper> {
     @Override
     public void setRecipe(IRecipeLayout recipeLayout, @NotNull GTRecipeWrapper recipeWrapper,
                           @NotNull IIngredients ingredients) {
+        pageVoltageTier = voltageTierOf(recipeWrapper);
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
         IGuiFluidStackGroup fluidStackGroup = recipeLayout.getFluidStacks();
         for (Widget uiWidget : modularUI.guiWidgets.values()) {
@@ -235,6 +246,97 @@ public class RecipeMapCategory implements IRecipeCategory<GTRecipeWrapper> {
             widget.drawInBackground(0, 0, minecraft.getRenderPartialTicks(), new IRenderContext() {});
             widget.drawInForeground(0, 0);
         }
+        drawVoltageFrame();
+    }
+
+    /**
+     * Redraws the visible outline of JEI's recipe frame in the recipe's voltage tier colour.
+     *
+     * <p>
+     * JEI's frame is a nine slice texture: besides its outline it also tiles its middle area across the whole
+     * rectangle, and that fill <em>is</em> the recipe page background, because this category's background is a
+     * blank drawable ({@code guiHelper.createBlankDrawable(...)}) which paints nothing. Tinting the whole nine
+     * slice would therefore tint the page itself, so only the outline is repainted here and the corner notches
+     * are deliberately left alone.
+     *
+     * <p>
+     * The visible line is two pixels wide (a one pixel outline followed by a one pixel highlight, {@code #D8D8D8}
+     * and {@code #B3B3B3} on the bottom), offset three pixels outwards from the page edge so it floats inside
+     * JEI's four pixel padding band (JEI's {@code RECIPE_BORDER_PADDING}). Vertex colours are used because
+     * {@code Gui.drawRect} assigns its own colour through the same state and would override any tint set
+     * beforehand.
+     */
+    private void drawVoltageFrame() {
+        int tier = pageVoltageTier;
+        if (tier < 0 || tier >= GTValues.VC.length) {
+            return;
+        }
+        int width = backgroundDrawable.getWidth();
+        int height = backgroundDrawable.getHeight();
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+        int outline = shade(GTValues.VC[tier], 0x99);
+        int highlight = shade(GTValues.VC[tier], 0xD8);
+        int highlightBottom = shade(GTValues.VC[tier], 0xB3);
+        // Outline: one pixel, three pixels out from the page. Corner notches stay untouched.
+        drawSolidRect(-4, -4, width + 4, -3, outline);
+        drawSolidRect(-4, height + 3, width + 4, height + 4, outline);
+        drawSolidRect(-4, -3, -3, height + 3, outline);
+        drawSolidRect(width + 3, -3, width + 4, height + 3, outline);
+        // Highlight: one pixel, just inside the outline.
+        drawSolidRect(-3, -3, width + 3, -2, highlight);
+        drawSolidRect(-3, height + 2, width + 3, height + 3, highlightBottom);
+        drawSolidRect(-3, -2, -2, height + 2, highlight);
+        drawSolidRect(width + 2, -2, width + 3, height + 2, highlight);
+    }
+
+    /**
+     * @return the tier colour multiplied by one channel of a grey sample, which is how JEI's frame shading and
+     *         the tier colour combine
+     */
+    private static int shade(int base, int grey) {
+        int red = ((base >> 16) & 0xFF) * grey / 0xFF;
+        int green = ((base >> 8) & 0xFF) * grey / 0xFF;
+        int blue = (base & 0xFF) * grey / 0xFF;
+        return 0xFF000000 | (red << 16) | (green << 8) | blue;
+    }
+
+    /**
+     * Fills a rectangle with a solid ARGB colour. Vertex colours are used because {@code Gui.drawRect}
+     * assigns the colour through {@code GlStateManager.color}, which would override any tint set beforehand.
+     */
+    private static void drawSolidRect(int left, int top, int right, int bottom, int color) {
+        if (right <= left || bottom <= top) {
+            return;
+        }
+        float alpha = (color >>> 24) / 255.0F;
+        float red = ((color >> 16) & 0xFF) / 255.0F;
+        float green = ((color >> 8) & 0xFF) / 255.0F;
+        float blue = (color & 0xFF) / 255.0F;
+        GlStateManager.disableLighting();
+        GlStateManager.disableTexture2D();
+        GlStateManager.enableBlend();
+        GlStateManager.tryBlendFuncSeparate(GlStateManager.SourceFactor.SRC_ALPHA,
+                GlStateManager.DestFactor.ONE_MINUS_SRC_ALPHA, GlStateManager.SourceFactor.ONE,
+                GlStateManager.DestFactor.ZERO);
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.POSITION_COLOR);
+        buffer.pos(right, top, 0.0D).color(red, green, blue, alpha).endVertex();
+        buffer.pos(left, top, 0.0D).color(red, green, blue, alpha).endVertex();
+        buffer.pos(left, bottom, 0.0D).color(red, green, blue, alpha).endVertex();
+        buffer.pos(right, bottom, 0.0D).color(red, green, blue, alpha).endVertex();
+        tessellator.draw();
+        GlStateManager.enableTexture2D();
+        GlStateManager.disableBlend();
+    }
+
+    /**
+     * @return the voltage tier index of the recipe, matching {@link GTValues#VC}
+     */
+    private static int voltageTierOf(@NotNull GTRecipeWrapper recipeWrapper) {
+        return GTUtility.getTierByVoltage(recipeWrapper.getRecipe().getEUt());
     }
 
     @Nullable

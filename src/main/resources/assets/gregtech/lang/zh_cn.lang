@@ -8291,6 +8291,7 @@ gregtech.machine.huge_item_bus.export.iv.1.name=§1IV§r巨型输出总线(单�
 gregtech.machine.huge_item_bus.export.iv.4.name=§1IV§r巨型输出总线(4槽)
 gregtech.machine.huge_item_bus.export.iv.9.name=§1IV§r巨型输出总线(9槽)
 gregtech.machine.huge_item_bus.export.iv.16.name=§1IV§r巨型输出总线(16槽)
+gregtech.machine.huge_item_bus.tooltip=槽位可容纳数量超过64的物品栈
 
 gregtech.machine.dual_hatch.import.ulv.name=§8ULV§r输入总成
 gregtech.machine.dual_hatch.import.lv.name=§7LV§r输入总成
@@ -8450,10 +8451,6 @@ gregtech.machine.cross_parallel_hatch.max.name=§c§lMAX§r跨并控制仓
 gregtech.machine.cross_parallel_hatch.tooltip=跨配方并行：并行预算在多个配方之间弹性分配，槽位不封顶。
 gregtech.machine.cross_parallel_hatch.incompatible=§c与线程控制仓不兼容§7，同时安装时线程数不生效。
 gregtech.machine.cross_parallel_hatch.display=调整多方块的并行预算。
-
-
-
-
 
 gregtech.machine.tiered_hatch.ulv.name=§8ULV§r控制单元
 gregtech.machine.tiered_hatch.lv.name=§7LV§r控制单元

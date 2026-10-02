@@ -675,6 +675,10 @@ public class ConfigHolder {
         @Config.RequiresMcRestart
         public boolean collapseGTItems = true;
 
+        @Config.Comment({ "Whether machines' MUI2 GUIs show a world preview next to the cover buttons.",
+                "Default: true" })
+        public boolean enableMachineWorldPreview = true;
+
         public static class GuiConfig {
 
             @Config.Comment({ "The scrolling speed of widgets", "Default: 13" })
