@@ -276,9 +276,10 @@ public class RecipeMapCategory implements IRecipeCategory<GTRecipeWrapper> {
         if (width <= 0 || height <= 0) {
             return;
         }
-        int outline = shade(GTValues.VC[tier], 0x99);
-        int highlight = shade(GTValues.VC[tier], 0xD8);
-        int highlightBottom = shade(GTValues.VC[tier], 0xB3);
+        int baseColor = GTValues.TIER_COLORS[tier];
+        int outline = shade(baseColor, 0x99);
+        int highlight = shade(baseColor, 0xD8);
+        int highlightBottom = shade(baseColor, 0xB3);
         // Outline: one pixel, three pixels out from the page. Corner notches stay untouched.
         drawSolidRect(-4, -4, width + 4, -3, outline);
         drawSolidRect(-4, height + 3, width + 4, height + 4, outline);
