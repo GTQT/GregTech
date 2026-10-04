@@ -180,7 +180,7 @@ public class ToolEventHandlers {
             MiningSession old = MINING_SESSIONS.remove(player.getUniqueID());
             if (old != null) world.sendBlockBreakProgress(player.getEntityId(), old.pos, -1);
             world.sendBlockBreakProgress(player.getEntityId(), pos, -1);
-            VajraBehavior.breakBlock(heldItem, player, world, pos, silkTouch, energyCost);
+            VajraBehavior.breakBlock(heldItem, player, world, pos, energyCost);
             return;
         }
 
@@ -223,8 +223,7 @@ public class ToolEventHandlers {
         if (session.progress >= session.neededTicks) {
             MINING_SESSIONS.remove(player.getUniqueID());
             world.sendBlockBreakProgress(player.getEntityId(), session.pos, -1);
-            boolean silkTouch = VajraBehavior.isSilkTouchMode(heldItem);
-            VajraBehavior.breakBlock(heldItem, player, world, session.pos, silkTouch,
+            VajraBehavior.breakBlock(heldItem, player, world, session.pos,
                     VajraBehavior.getEnergyCost(heldItem));
         } else {
             int stage = Math.max(1, Math.min(9, session.progress * 9 / session.neededTicks));

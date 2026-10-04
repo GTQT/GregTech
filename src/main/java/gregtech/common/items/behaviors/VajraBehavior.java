@@ -5,9 +5,6 @@ import gregtech.api.capability.IElectricItem;
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.stats.IEnchantabilityHelper;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
-import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.pipenet.tile.IPipeTile;
-import gregtech.api.util.GTUtility;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.block.Block;
@@ -16,7 +13,6 @@ import net.minecraft.client.resources.I18n;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.item.EntityItem;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.init.Blocks;
@@ -40,9 +36,6 @@ import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.jetbrains.annotations.NotNull;
 
-import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -130,13 +123,18 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
 
     /**
      * Left-click block breaking logic — ported from Laser Destroyer's approach.
-     * Uses removedByPlayer + onPlayerDestroy for proper block removal,
+     * Uses removedByPlayer + harvestBlock so that vanilla and Forge drop logic runs,
      * sends SPacketBlockChange for immediate client sync.
+     *
+     * <p>Drops are deliberately not collected and spawned by hand: doing so bypassed all
+     * tile-entity aware drop handling (containers such as chests/shulker boxes kept their
+     * full inventory, GT machines lost their item data and covers). Passing the tool stack
+     * down to {@code harvestBlock} also lets the enchantment-driven silk touch branch and
+     * the {@code canSilkHarvest} check work as in vanilla.
      */
     @SuppressWarnings("deprecation")
     public static boolean breakBlock(@NotNull ItemStack stack, @NotNull EntityPlayer player,
-                                     @NotNull World world, @NotNull BlockPos pos,
-                                     boolean silkTouch, long energyCost) {
+                                     @NotNull World world, @NotNull BlockPos pos, long energyCost) {
         if (world.isRemote) return true;
 
         // Energy check
@@ -151,18 +149,6 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
             return false;
         }
 
-        // Collect drops
-        List<ItemStack> drops = new ArrayList<>();
-        MetaTileEntity mte = GTUtility.getMetaTileEntity(world, pos);
-        if (mte != null) {
-            drops.add(mte.getStackForm());
-            mte.onRemoval();
-        } else if (silkTouch) {
-            drops.add(getSilkDrops(world, pos, state));
-        } else {
-            drops = getNormalDrops(world, pos, state);
-        }
-
         // Play break sound
         var soundType = block.getSoundType(state, world, pos, player);
         world.playSound(player, pos, soundType.getBreakSound(), SoundCategory.BLOCKS, 1.0f, 1.0f);
@@ -172,64 +158,26 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
             ((EntityPlayerMP) player).connection.sendPacket(new SPacketBlockChange(world, pos));
         }
 
-        // Proper block removal
-        boolean removed = block.removedByPlayer(state, world, pos, player, !silkTouch);
-        if (removed) {
-            block.onPlayerDestroy(world, pos, state);
-        } else {
-            block.onPlayerDestroy(world, pos, state);
+        // Proper block removal. willHarvest is always true: harvestBlock below is what
+        // actually destroys the block and spawns the drops.
+        if (!block.removedByPlayer(state, world, pos, player, true)) {
+            return false;
+        }
+
+        block.onPlayerDestroy(world, pos, state);
+        block.harvestBlock(world, player, pos, state, world.getTileEntity(pos), stack);
+
+        // Containers such as chests overwrite the block state instead of removing it
+        if (world.getBlockState(pos) != Blocks.AIR.getDefaultState()) {
             world.setBlockState(pos, Blocks.AIR.getDefaultState(), 3);
         }
 
-        // Spawn drops on ground
-        for (ItemStack drop : drops) {
-            if (player.isCreative()) continue;
-            float f = 0.7f;
-            double dx = world.rand.nextFloat() * f + (1.0f - f) * 0.5;
-            double dy = world.rand.nextFloat() * f + (1.0f - f) * 0.5;
-            double dz = world.rand.nextFloat() * f + (1.0f - f) * 0.5;
-            EntityItem entityItem = new EntityItem(world,
-                    pos.getX() + dx, pos.getY() + dy, pos.getZ() + dz, drop);
-            entityItem.setDefaultPickupDelay();
-            world.spawnEntity(entityItem);
+        // Energy is only spent once the block is actually gone
+        if (!player.isCreative()) {
+            drainEnergy(stack, energyCost, false);
         }
 
         return true;
-    }
-
-    @SuppressWarnings("deprecation")
-    private static List<ItemStack> getNormalDrops(World world, BlockPos pos, IBlockState state) {
-        // GT pipes / wires keep their contents in the pipe tile entity and drop nothing
-        // by default, so drop the pipe item itself instead.
-        if (world.getTileEntity(pos) instanceof IPipeTile<?, ?>) {
-            ItemStack item = state.getBlock().getItem(world, pos, state);
-            return item.isEmpty() ? Collections.emptyList() : Collections.singletonList(item);
-        }
-        return state.getBlock().getDrops(world, pos, state, 0);
-    }
-
-    @SuppressWarnings("deprecation")
-    private static ItemStack getSilkDrops(World world, BlockPos pos, IBlockState state) {
-        if (world.getTileEntity(pos) instanceof IPipeTile<?, ?>) {
-            ItemStack item = state.getBlock().getItem(world, pos, state);
-            if (!item.isEmpty()) return item;
-        }
-        // getSilkTouchDrop may be protected, so walk up the class hierarchy for declared methods
-        try {
-            Class<?> blockClass = state.getBlock().getClass();
-            while (blockClass != null) {
-                try {
-                    Method silkTouchDrop = blockClass.getDeclaredMethod("getSilkTouchDrop", IBlockState.class);
-                    silkTouchDrop.setAccessible(true);
-                    return (ItemStack) silkTouchDrop.invoke(state.getBlock(), state);
-                } catch (NoSuchMethodException ignored) {
-                    blockClass = blockClass.getSuperclass();
-                }
-            }
-            throw new NoSuchMethodException();
-        } catch (Exception e) {
-            return new ItemStack(state.getBlock(), 1, state.getBlock().getMetaFromState(state));
-        }
     }
 
     private static boolean drainEnergy(@NotNull ItemStack stack, long amount, boolean simulate) {
@@ -291,6 +239,15 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
         int currentMode = getMode(stack);
         int newMode = (currentMode + 1) % 2;
         setMode(stack, newMode);
+
+        // harvestBlock picks silk touch up from the tool's enchantment, so the mode has to be
+        // mirrored onto the item; leaving a stale SILK_TOUCH enchantment behind would keep
+        // silk-touching while the tool reports normal mode.
+        if (newMode == 1) {
+            stack.addEnchantment(Enchantments.SILK_TOUCH, 1);
+        } else if (stack.getTagCompound() != null) {
+            stack.getTagCompound().removeTag("ench");
+        }
 
         if (!player.world.isRemote) {
             String modeName = getModeName(newMode);
