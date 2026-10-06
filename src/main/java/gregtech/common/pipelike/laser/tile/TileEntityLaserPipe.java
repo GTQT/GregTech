@@ -36,6 +36,8 @@ public class TileEntityLaserPipe extends TileEntityPipeBase<LaserPipeType, Laser
     private int ticksActive = 0;
     private int activeDuration = 0;
     private boolean isActive = false;
+    /** 是否已经排了一个 queueDisconnect 任务，避免重复排导致 ticksActive 走双倍。 */
+    private boolean disconnectPending = false;
 
     public ILaserContainer getClientCapability()
     {
@@ -165,7 +167,12 @@ public class TileEntityLaserPipe extends TileEntityPipeBase<LaserPipeType, Laser
             notifyBlockUpdate();
             markDirty();
             writeCustomData(GregtechDataCodes.PIPE_LASER_ACTIVE, buf -> buf.writeBoolean(this.isActive));
-            if (active && duration != this.activeDuration) {
+            if (active && duration > 0 && !disconnectPending) {
+                // 用 pending 标志而不是 duration != activeDuration 判断"要不要排任务"：
+                // 后者在 setActive(false, 正数) 之后再 setActive(true, 同一个正数) 时会漏排，
+                // 结果激光管永远亮着；duration <= 0 还会让 queueDisconnect 里的 % 除零，
+                // 而任务跑在世界 tick 循环里，异常会打断整个 tick。
+                disconnectPending = true;
                 TaskScheduler.scheduleTask(getWorld(), this::queueDisconnect);
             }
         }
@@ -177,8 +184,9 @@ public class TileEntityLaserPipe extends TileEntityPipeBase<LaserPipeType, Laser
     }
 
     public boolean queueDisconnect() {
-        if (++this.ticksActive % activeDuration == 0) {
+        if (activeDuration <= 0 || ++this.ticksActive % activeDuration == 0) {
             this.ticksActive = 0;
+            this.disconnectPending = false;
             setActive(false, -1);
             return false;
         }
@@ -202,6 +210,7 @@ public class TileEntityLaserPipe extends TileEntityPipeBase<LaserPipeType, Laser
         // schedule a disconnect on world load, gotta set the duration to something
         if (isActive) {
             activeDuration = 100;
+            disconnectPending = true;
             TaskScheduler.scheduleTask(getWorld(), this::queueDisconnect);
         }
     }

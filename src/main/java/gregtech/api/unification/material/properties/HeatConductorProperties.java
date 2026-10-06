@@ -1,21 +1,26 @@
 package gregtech.api.unification.material.properties;
 
-import gregtech.api.unification.material.Material;
-
 import java.util.Objects;
-
-import static gregtech.api.unification.material.info.MaterialFlags.GENERATE_FOIL;
 
 public class HeatConductorProperties implements IMaterialProperty {
 
     private int maxTemperature;           // 最大承受温度（开尔文）
     private int heatTransferRate;         // 热传导率（HU/tick，Heat Unit）
-    private float heatLossPerBlock;       // 每格热损失系数（0.0-1.0）
+    private float heatLossPerBlock;       // 每格热损失系数（0.0-1.0 的比例）
+
+    /**
+     * 把热损失夹到 [0, 1)。取值 1 会让 {@code 1 - loss} 变成 0（热量完全传不出去），
+     * 大于 1 更会算出负效率，所以上界必须严格小于 1。
+     */
+    private static float clampHeatLoss(float heatLossPerBlock) {
+        if (Float.isNaN(heatLossPerBlock) || heatLossPerBlock < 0.0f) return 0.0f;
+        return Math.min(0.99f, heatLossPerBlock);
+    }
 
     public HeatConductorProperties(int maxTemperature, int heatTransferRate, float heatLossPerBlock) {
         this.maxTemperature = maxTemperature;
         this.heatTransferRate = heatTransferRate;
-        this.heatLossPerBlock = Math.max(0.0f, Math.min(100.0f, heatLossPerBlock)); // 限制在0-100之间
+        this.heatLossPerBlock = clampHeatLoss(heatLossPerBlock);
     }
 
     /**
@@ -68,7 +73,7 @@ public class HeatConductorProperties implements IMaterialProperty {
     /**
      * 获取每格热损失系数
      *
-     * @return 热损失系数（0.0-100.0）
+     * @return 热损失系数（0.0 - 0.99 的比例，0.02 表示每格损失 2%）
      */
     public float getHeatLossPerBlock() {
         return heatLossPerBlock;
@@ -77,46 +82,19 @@ public class HeatConductorProperties implements IMaterialProperty {
     /**
      * 设置每格热损失系数
      *
-     * @param heatLossPerBlock 新的热损失系数
+     * @param heatLossPerBlock 新的热损失系数（0.0 - 0.99 的比例）
      * @return 当前实例，便于链式调用
      */
     public HeatConductorProperties setHeatLossPerBlock(float heatLossPerBlock) {
-        this.heatLossPerBlock = Math.max(0.0f, Math.min(100.0f, heatLossPerBlock));
+        this.heatLossPerBlock = clampHeatLoss(heatLossPerBlock);
         return this;
-    }
-
-    /**
-     * 计算实际热传导率（考虑环境因素）
-     *
-     * @param ambientTemperature 环境温度
-     * @return 实际热传导率
-     */
-    public int getEffectiveHeatTransfer(int ambientTemperature) {
-        if (ambientTemperature >= maxTemperature) {
-            return 0; // 超过最大温度，热传导失效
-        }
-
-        // 温度越高，热传导效率可能降低（模拟热阻增加）
-        float efficiency = 1.0f;
-        if (ambientTemperature > maxTemperature * 0.8) {
-            efficiency = 1.0f - (ambientTemperature - maxTemperature * 0.8f) / (maxTemperature * 0.2f);
-        }
-
-        return (int) (heatTransferRate * efficiency);
     }
 
     @Override
     public void verifyProperty(MaterialProperties properties) {
-        // 热导管道需要材料具有DUST属性（固体材料）
-        properties.ensureSet(PropertyKey.DUST, true);
-
-        // 如果材料有INGOT属性，确保有板状形态用于制作管道
-        Material thisMaterial = properties.getMaterial();
-        if (properties.hasProperty(PropertyKey.INGOT)) {
-            if (!thisMaterial.hasFlag(GENERATE_FOIL)) {
-                thisMaterial.addFlags(GENERATE_FOIL);
-            }
-        }
+        // 热导管道由锭/板加工而来，BlockHeatConductor.isValidPipeMaterial 也要求 INGOT，
+        // 这里必须保持一致，否则会出现"属性通过校验但配方/物品生成不出来"。
+        properties.ensureSet(PropertyKey.INGOT, true);
     }
 
     @Override

@@ -17,6 +17,11 @@ import java.util.function.Predicate;
 
 public class HeatContainerHandler extends MTETrait implements IHeatable {
 
+    /** 环境温度（K）。任何温度都不会低于它。 */
+    public static final int AMBIENT_TEMPERATURE = 293;
+    /** 超过最大温度的这个倍数才真正爆炸，余量以内只封顶。 */
+    private static final float OVERHEAT_EXPLODE_FACTOR = 1.2f;
+
     protected long maxHeatCapacity;      // 最大热容量（HU）
     protected int maxTemperature;        // 最大工作温度（K）
     protected long heatStored;           // 当前存储的热量（HU）
@@ -34,7 +39,7 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
     protected long heatOutputPerSec = 0;
 
     // 温度相关
-    private int currentTemperature = 293; // 当前温度（K），默认室温
+    private int currentTemperature = AMBIENT_TEMPERATURE; // 当前温度（K），默认室温
 
     // 热流限制
     protected long inputHeatFlowThisTick = 0;
@@ -153,39 +158,34 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
 
         // 如果存储了热量并且可以输出，尝试向周围输出
         if (getHeatStored() > 0 && getMaxOutputHeatFlow() > 0) {
-            long outputHeat = Math.min(getHeatStored(), getMaxOutputHeatFlow() - outputHeatFlowThisTick);
-            if (outputHeat > 0) {
-                long outputUsed = 0;
+            // 预算同时受"存量"和"本 tick 剩余输出额度"限制
+            long budget = Math.min(getHeatStored(),
+                    Math.max(0L, getMaxOutputHeatFlow() - outputHeatFlowThisTick));
 
-                for (EnumFacing side : EnumFacing.VALUES) {
-                    if (!canOutputHeat(side)) continue;
+            for (EnumFacing side : EnumFacing.VALUES) {
+                if (budget <= 0) break;
+                if (!canOutputHeat(side)) continue;
 
-                    TileEntity tileEntity = metaTileEntity.getNeighbor(side);
-                    EnumFacing oppositeSide = side.getOpposite();
+                TileEntity tileEntity = metaTileEntity.getNeighbor(side);
+                EnumFacing oppositeSide = side.getOpposite();
+                if (tileEntity == null) continue;
 
-                    if (tileEntity != null && tileEntity.hasCapability(
-                            GregtechCapabilities.CAPABILITY_HEAT_CONTAINER, oppositeSide)) {
+                IHeatable heatable = tileEntity.getCapability(
+                        GregtechCapabilities.CAPABILITY_HEAT_CONTAINER, oppositeSide);
+                if (heatable == null || !heatable.canAcceptHeat()) continue;
 
-                        IHeatable heatable = tileEntity.getCapability(
-                                GregtechCapabilities.CAPABILITY_HEAT_CONTAINER, oppositeSide);
+                long offered = Math.min(budget, getMaxOutputHeatFlow());
+                if (offered <= 0) break;
 
-                        if (heatable == null || !heatable.canAcceptHeat()) continue;
+                // 输出热量，同时传递当前温度
+                long accepted = heatable.transferHeat(offered, getTemperature());
+                if (accepted <= 0) continue;
 
-                        // 输出热量，同时传递当前温度
-                        long heatToTransfer = Math.min(outputHeat - outputUsed, getMaxOutputHeatFlow());
-                        long heatAccepted = heatable.transferHeat(heatToTransfer, getTemperature());
+                budget -= accepted;
+                outputHeatFlowThisTick += accepted;
 
-                        if (heatAccepted > 0) {
-                            outputUsed += heatAccepted;
-                            outputHeatFlowThisTick += heatAccepted;
-
-                            // 从存储中减去输出的热量
-                            setHeatStored(getHeatStored() - heatAccepted);
-
-                            if (outputUsed >= outputHeat) break;
-                        }
-                    }
-                }
+                // 从存储中减去输出的热量
+                setHeatStored(getHeatStored() - accepted);
             }
         }
     }
@@ -195,36 +195,28 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
         // 检查是否可以接受热量
         if (heatToTransfer <= 0 || !canAcceptHeat()) return 0;
 
-        // 检查输入热流限制
-        if (inputHeatFlowThisTick >= getMaxInputHeatFlow()) return 0;
-
         // 计算可接受的热量
         long availableSpace = maxHeatCapacity - heatStored;
         long availableInput = getMaxInputHeatFlow() - inputHeatFlowThisTick;
 
         long heatToAccept = Math.min(Math.min(heatToTransfer, availableSpace), availableInput);
+        if (heatToAccept <= 0) return 0;
 
-        if (heatToAccept > 0) {
-            // 接受热量
-            setHeatStored(heatStored + heatToAccept);
-            inputHeatFlowThisTick += heatToAccept;
+        // 热量守恒的混合温度：
+        // 旧实现直接 setTemperature(sourceTemperature)，1 HU 的 2000K 就能把 1000K 上限的仓室炸掉，
+        // 而且下面那个加权平均分支因为前面 return 了永远走不到。
+        // 改成按"已有热量 x 已有温度 + 新增热量 x 热源温度"加权，温度随累积热量平滑逼近热源温度。
+        long storedBefore = heatStored;
+        int temperatureBefore = getTemperature();
+        long newStored = storedBefore + heatToAccept;
+        double mixed = (storedBefore * (double) temperatureBefore + heatToAccept * (double) sourceTemperature) /
+                newStored;
 
-            // 同步温度（使用热源温度，或取平均值）
-            if (sourceTemperature > getTemperature()) {
-                // 热力学第二定律：热量从高温传到低温
-                // 这里简化处理：直接使用热源温度
-                setTemperature(sourceTemperature);
-            } else if (heatStored > 0) {
-                // 如果热源温度较低，使用加权平均
-                long totalHeat = getHeatStored() * getTemperature() + heatToAccept * sourceTemperature;
-                int avgTemp = (int)(totalHeat / (getHeatStored() + heatToAccept));
-                setTemperature(avgTemp);
-            }
+        setHeatStored(newStored);
+        inputHeatFlowThisTick += heatToAccept;
+        setTemperature((int) Math.round(mixed));
 
-            return heatToAccept;
-        }
-
-        return 0;
+        return heatToAccept;
     }
 
     @Override
@@ -234,7 +226,8 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
 
     @Override
     public boolean canAcceptHeat() {
-        return heatStored < maxHeatCapacity && currentTemperature <= maxTemperature;
+        // 只能进不能出的容器（如热输出仓）不应该报告"可以接受热量"
+        return maxInputHeatFlow > 0 && heatStored < maxHeatCapacity && currentTemperature <= maxTemperature;
     }
 
     public boolean canAcceptHeat(EnumFacing side) {
@@ -268,14 +261,21 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
         // 安全地设置温度
         if (metaTileEntity == null || metaTileEntity.getWorld() == null) {
             // 在初始化阶段，直接设置温度
-            this.currentTemperature = Math.max(293, Math.min(temperature, maxTemperature));
+            this.currentTemperature = Math.max(AMBIENT_TEMPERATURE, Math.min(temperature, maxTemperature));
             return;
         }
 
-        // 检查温度是否超过最大温度
+        if (temperature < AMBIENT_TEMPERATURE) {
+            temperature = AMBIENT_TEMPERATURE;
+        }
+
         if (temperature > maxTemperature) {
-            handleOverheat(temperature);
-            return;
+            if (temperature >= maxTemperature * OVERHEAT_EXPLODE_FACTOR) {
+                handleOverheat(temperature);
+                return;
+            }
+            // 超过上限但在 20% 余量以内：封顶，烧红但不炸
+            temperature = maxTemperature;
         }
 
         if (this.currentTemperature != temperature) {
@@ -304,15 +304,13 @@ public class HeatContainerHandler extends MTETrait implements IHeatable {
     }
 
     protected void handleOverheat(int temperature) {
-        // 触发过热事件
-        if (temperature >= maxTemperature * 1.2) { // 超过20%安全余量
-            metaTileEntity.doExplosion(GTUtility.getExplosionPower(
-                    (int)((temperature - maxTemperature) / 100.0f)
-            ));
-        } else {
-            // 只是警告，不爆炸
-            // 可以在这里添加粒子效果、声音等
+        // 只在真正超出安全余量时爆炸；余量以内的封顶由 setTemperature 处理。
+        // 这里再判一次是因为 setMaxTemperature（下调上限）也会走到这里。
+        if (temperature < maxTemperature * OVERHEAT_EXPLODE_FACTOR) {
+            return;
         }
+        metaTileEntity.doExplosion(GTUtility.getExplosionPower(
+                (int) ((temperature - maxTemperature) / 100.0f)));
     }
 
     public long getHeatCanBeInserted() {

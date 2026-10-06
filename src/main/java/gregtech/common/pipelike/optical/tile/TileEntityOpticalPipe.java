@@ -235,16 +235,20 @@ public class TileEntityOpticalPipe extends TileEntityMaterialPipeBase<OpticalPip
             this.isActive = false;
             stateChanged = true;
         } else if (!this.isActive && active) {
-            this.isActive = true;
-            stateChanged = true;
-            TaskScheduler.scheduleTask(getWorld(), () -> {
-                if (++this.ticksActive % duration == 0) {
-                    this.ticksActive = 0;
-                    setActive(false, -1);
-                    return false;
-                }
-                return true;
-            });
+            // duration <= 0 会让任务里的 % duration 除零。任务是在世界 tick 循环里跑的，
+            // 一个算术异常会直接打断整个 tick，所以这里必须挡掉。
+            if (duration > 0) {
+                this.isActive = true;
+                stateChanged = true;
+                TaskScheduler.scheduleTask(getWorld(), () -> {
+                    if (++this.ticksActive % duration == 0) {
+                        this.ticksActive = 0;
+                        setActive(false, -1);
+                        return false;
+                    }
+                    return true;
+                });
+            }
         }
 
         if (stateChanged) {

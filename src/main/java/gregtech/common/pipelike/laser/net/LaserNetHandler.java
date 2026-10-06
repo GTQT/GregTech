@@ -5,6 +5,7 @@ import gregtech.common.pipelike.laser.tile.TileEntityLaserPipe;
 
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.World;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -25,9 +26,21 @@ public class LaserNetHandler implements ILaserContainer {
         this.net = net;
     }
 
+    /** 上次点亮全网的 tick，用于把 O(N) 的全网扫描限制到每 tick 一次。 */
+    private long lastActivateTick = -1L;
+
     private void setPipesActive() {
+        if (net == null) return;
+        World world = pipe.getWorld();
+        long now = world.getTotalWorldTime();
+        // 点亮只是视觉效果：同一个 tick 里被多个消费端各扫一遍全网没有任何意义
+        if (now == lastActivateTick) return;
+        lastActivateTick = now;
+
         for (BlockPos pos : net.getAllNodes().keySet()) {
-            if (pipe.getWorld().getTileEntity(pos) instanceof TileEntityLaserPipe laserPipe) {
+            // 必须先判区块是否加载：World#getTileEntity 对未加载区块的行为不适合这里
+            if (!world.isBlockLoaded(pos)) continue;
+            if (world.getTileEntity(pos) instanceof TileEntityLaserPipe laserPipe) {
                 laserPipe.setActive(true, 100);
             }
         }

@@ -96,10 +96,32 @@ public class TileEntityCable extends TileEntityMaterialPipeBase<Insulation, Wire
         super.onLoad();
         if (!world.isRemote) {
             setTemperature(temperature);
-            if (temperature > getDefaultTemp()) {
-                TaskScheduler.scheduleTask(world, this::update);
-            }
+            scheduleTemperatureTick();
         }
+    }
+
+    /**
+     * 排一个"温度 tick"任务：累积热量、降温、必要时熔断。
+     * <p>
+     * 任务用弱引用持有电缆，所以区块卸载后它不会把 TileEntity 钉在内存里、也不会在旧对象上继续跑；
+     * {@code onChunkUnload}/{@code invalidate} 会把 {@code isTicking} 复位让任务自然结束。
+     * <p>
+     * 早期版本直接 {@code scheduleTask(world, this::update)}，而且 {@code onLoad} 那条路径忘了置
+     * {@code isTicking}，于是随后的 {@code applyHeat} 会再排一个任务 —— 同一根电缆可以并发跑好几个。
+     */
+    private void scheduleTemperatureTick() {
+        if (isTicking || world == null || world.isRemote) return;
+        if (temperature <= getDefaultTemp() && heatQueue <= 0) return;
+
+        isTicking = true;
+        WeakReference<TileEntityCable> ref = new WeakReference<>(this);
+        TaskScheduler.scheduleTask(world, () -> {
+            TileEntityCable cable = ref.get();
+            if (cable == null || cable.isInvalid() || !cable.isTicking) return false;
+            if (cable.update()) return true;
+            cable.isTicking = false;
+            return false;
+        });
     }
 
     /**
@@ -125,10 +147,7 @@ public class TileEntityCable extends TileEntityMaterialPipeBase<Insulation, Wire
 
     public void applyHeat(int amount) {
         heatQueue += amount;
-        if (!world.isRemote && !isTicking && temperature + heatQueue > getDefaultTemp()) {
-            TaskScheduler.scheduleTask(world, this::update);
-            isTicking = true;
-        }
+        scheduleTemperatureTick();
     }
 
     private boolean update() {
@@ -181,10 +200,7 @@ public class TileEntityCable extends TileEntityMaterialPipeBase<Insulation, Wire
                 }
             }
             newCable.setTemperature(temp);
-            if (!newCable.isTicking) {
-                TaskScheduler.scheduleTask(world, newCable::update);
-                newCable.isTicking = true;
-            }
+            newCable.scheduleTemperatureTick();
         }
     }
 
@@ -297,6 +313,14 @@ public class TileEntityCable extends TileEntityMaterialPipeBase<Insulation, Wire
     public void onChunkUnload() {
         super.onChunkUnload();
         this.handlers.clear();
+        // 让弱引用任务在下一次运行时自己结束，不要继续操作已卸载区块里的实体
+        this.isTicking = false;
+    }
+
+    @Override
+    public void invalidate() {
+        super.invalidate();
+        this.isTicking = false;
     }
 
     @Override

@@ -4,6 +4,7 @@ import gregtech.api.pipenet.Node;
 import gregtech.api.pipenet.PipeNet;
 import gregtech.api.pipenet.WorldPipeNet;
 import gregtech.api.unification.material.properties.OpticalCableProperties;
+import gregtech.api.util.FacingPos;
 
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.EnumFacing;
@@ -18,10 +19,13 @@ import java.util.Map;
 public class OpticalPipeNet extends PipeNet<OpticalCableProperties> {
 
     /**
-     * Cached route per pipe and capability kind. A cable can lead to a machine providing
-     * computation on one end and a data hatch on the other, so the two are cached separately.
+     * Cached route per pipe, capability kind and <b>querying face</b>. A cable can lead to a machine
+     * providing computation on one end and a data hatch on the other, so the kinds are cached
+     * separately; and {@code OpticalNetWalker} excludes the face it was asked from, so the two ends
+     * must be cached separately as well. Keying by position alone made whichever end asked first
+     * pin the answer for the other end.
      */
-    private final Map<OpticalRoutePath.Kind, Map<BlockPos, OpticalRoutePath>> NET_DATA = new EnumMap<>(
+    private final Map<OpticalRoutePath.Kind, Map<FacingPos, OpticalRoutePath>> NET_DATA = new EnumMap<>(
             OpticalRoutePath.Kind.class);
 
     public OpticalPipeNet(WorldPipeNet<OpticalCableProperties, ? extends PipeNet<OpticalCableProperties>> world) {
@@ -30,21 +34,21 @@ public class OpticalPipeNet extends PipeNet<OpticalCableProperties> {
 
     @Nullable
     public OpticalRoutePath getNetData(BlockPos pipePos, EnumFacing facing, OpticalRoutePath.Kind kind) {
-        Map<BlockPos, OpticalRoutePath> cache = NET_DATA.get(kind);
-        if (cache == null) {
-            cache = new Object2ObjectOpenHashMap<>();
-            NET_DATA.put(kind, cache);
-        }
-        if (cache.containsKey(pipePos)) {
-            return cache.get(pipePos);
+        Map<FacingPos, OpticalRoutePath> cache = NET_DATA.computeIfAbsent(kind,
+                k -> new Object2ObjectOpenHashMap<>());
+        FacingPos key = new FacingPos(pipePos, facing);
+        // containsKey 而不是 get() != null：信号在 decayDistance 内走不到终点时 walker 返回的就是
+        // null（不是 FAILED_MARKER），那也是算过的结果，必须缓存，否则每次查询都重走一遍。
+        if (cache.containsKey(key)) {
+            return cache.get(key);
         }
         OpticalRoutePath data = OpticalNetWalker.createNetData(getWorldData(), pipePos, facing, kind);
         if (data == OpticalNetWalker.FAILED_MARKER) {
-            // walker failed or the signal decayed, don't cache, so it tries again on next insertion
+            // walker failed（源方块已经不是光纤）, don't cache, so it tries again on next insertion
             return null;
         }
 
-        cache.put(pipePos, data);
+        cache.put(key, data);
         return data;
     }
 

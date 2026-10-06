@@ -86,7 +86,10 @@ public class MetaTileEntityHeatHatch extends MetaTileEntityMultiblockPart implem
 
     @Override
     public <T> T getCapability(Capability<T> capability, EnumFacing side) {
-        if (capability.equals(CAPABILITY_HEAT_CONTAINER)) {
+        // 热仓是多方块部件，只有正面才是对外的那个面。
+        // 早期实现忽略了 side，热导管道可以从结构的任意一面接进来
+        // （BlockHeatConductor.canPipeConnectToBlock 只看 capability 是否存在）。
+        if (capability == CAPABILITY_HEAT_CONTAINER && (side == null || side == getFrontFacing())) {
             return CAPABILITY_HEAT_CONTAINER.cast(heatable);
         }
         return super.getCapability(capability, side);

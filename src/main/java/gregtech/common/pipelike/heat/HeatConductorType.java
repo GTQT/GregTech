@@ -9,14 +9,14 @@ import org.jetbrains.annotations.NotNull;
 
 public enum HeatConductorType implements IMaterialPipeType<HeatConductorProperties> {
 
-    // 普通热导管道系列（热损失较大）
+    // 普通热导管道系列：传导率按管径翻倍，但热损失系数也更大
     HEAT_CONDUCTOR_SINGLE("heat_conductor_single", 0.125f, 1, 2, OrePrefix.pipeHeatConductorSingle, -1),
     HEAT_CONDUCTOR_DOUBLE("heat_conductor_double", 0.25f, 2, 2, OrePrefix.pipeHeatConductorDouble, -1),
     HEAT_CONDUCTOR_QUADRUPLE("heat_conductor_quadruple", 0.375f, 4, 3, OrePrefix.pipeHeatConductorQuadruple, -1),
     HEAT_CONDUCTOR_OCTAL("heat_conductor_octal", 0.5f, 8, 3, OrePrefix.pipeHeatConductorOctal, -1),
     HEAT_CONDUCTOR_HEX("heat_conductor_hex", 0.75f, 16, 3, OrePrefix.pipeHeatConductorHex, -1),
 
-    // 隔热热导管道系列（热损失小，厚度更大）
+    // 隔热热导管道系列：传导率与普通系列相同，但热损失系数固定为 1（即材料本身的损失），厚度更大
     INSULATED_HEAT_CONDUCTOR_SINGLE("insulated_heat_conductor_single", 0.25f, 1, 1, OrePrefix.insulatedHeatConductorSingle, 0),
     INSULATED_HEAT_CONDUCTOR_DOUBLE("insulated_heat_conductor_double", 0.375f, 2, 1, OrePrefix.insulatedHeatConductorDouble, 1),
     INSULATED_HEAT_CONDUCTOR_QUADRUPLE("insulated_heat_conductor_quadruple", 0.5f, 4, 1, OrePrefix.insulatedHeatConductorQuadruple, 2),
@@ -27,18 +27,22 @@ public enum HeatConductorType implements IMaterialPipeType<HeatConductorProperti
 
     public final String name;
     public final float thickness;
-    public final int heatMultiplier;  // 热量传输倍率
-    public final float lossFactor;    // 热损失系数（每格损失的比例）
+    /** 热量传输倍率，乘到材料的 heatTransfer 上（决定 HU/t 上限）。 */
+    public final int heatMultiplier;
+    /** 热损失倍数，乘到材料的 heatLossPerBlock 上（1 = 不放大，越大漏得越多）。 */
+    public final float lossFactor;
     public final OrePrefix orePrefix;
+    /** 渲染用的隔热层等级，-1 表示裸管。 */
     public final int insulationLevel;
 
-    HeatConductorType(String name, float thickness, int heatMultiplier, float lossFactor, OrePrefix orePrefix, int insulated) {
+    HeatConductorType(String name, float thickness, int heatMultiplier, float lossFactor, OrePrefix orePrefix,
+                      int insulationLevel) {
         this.name = name;
         this.thickness = thickness;
         this.heatMultiplier = heatMultiplier;
         this.lossFactor = lossFactor;
         this.orePrefix = orePrefix;
-        this.insulationLevel = insulated;
+        this.insulationLevel = insulationLevel;
     }
 
     @NotNull

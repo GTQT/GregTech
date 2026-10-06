@@ -37,12 +37,13 @@ public class EnergyNetHandler implements IEnergyContainer {
 
     @Override
     public long getInputPerSec() {
-        return net.getEnergyFluxPerSec();
+        return net.getEnergyFluxInputPerSec();
     }
 
     @Override
     public long getOutputPerSec() {
-        return net.getEnergyFluxPerSec();
+        // 目的地收到的是"扣掉沿途压降后的电压 × 电流"，而源侧扣的是全电压，两者之差就是线损。
+        return net.getEnergyFluxOutputPerSec();
     }
 
     @Override
@@ -59,6 +60,8 @@ public class EnergyNetHandler implements IEnergyContainer {
         }
 
         long amperesUsed = 0L;
+        long energySupplied = 0L;  // 源侧付出：amps × 全电压
+        long energyDelivered = 0L; // 实际送达：amps × 扣除沿途压降后的电压
         for (EnergyRoutePath path : net.getNetData(cable.getPos())) {
             if (path.getMaxLoss() >= voltage) {
                 // Will lose all the energy with this path, so don't use it
@@ -104,6 +107,8 @@ public class EnergyNetHandler implements IEnergyContainer {
             if (amps == 0) continue;
 
             amperesUsed += amps;
+            energySupplied += amps * voltage;
+            energyDelivered += amps * pathVoltage;
             long voltageTraveled = voltage;
             for (TileEntityCable cable : path.getPath()) {
                 voltageTraveled -= cable.getNodeData().getLossPerBlock();
@@ -117,7 +122,7 @@ public class EnergyNetHandler implements IEnergyContainer {
             if (amperage == amperesUsed) break;
         }
 
-        net.addEnergyFluxPerSec(amperesUsed * voltage);
+        net.addEnergyFluxPerSec(energySupplied, energyDelivered);
         return amperesUsed;
     }
 

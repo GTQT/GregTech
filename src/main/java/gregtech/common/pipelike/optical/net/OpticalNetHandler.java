@@ -77,8 +77,19 @@ public class OpticalNetHandler implements IDataAccessHatch, IOpticalComputationP
         return traverseCanBridge(seen);
     }
 
+    /** 上次点亮全网的 tick，用于把 O(N) 的全网扫描限制到每 tick 一次。 */
+    private long lastActivateTick = -1L;
+
     private void setPipesActive() {
+        if (net == null) return;
+        long now = world.getTotalWorldTime();
+        // 点亮只是视觉效果：isRecipeAvailable / requestCWUt 可能一 tick 内被调用很多次
+        if (now == lastActivateTick) return;
+        lastActivateTick = now;
+
         for (BlockPos pos : net.getAllNodes().keySet()) {
+            // 先判区块是否加载，避免因为点亮效果而触碰未加载的区块
+            if (!world.isBlockLoaded(pos)) continue;
             if (world.getTileEntity(pos) instanceof TileEntityOpticalPipe opticalPipe) {
                 opticalPipe.setActive(true, 100);
             }

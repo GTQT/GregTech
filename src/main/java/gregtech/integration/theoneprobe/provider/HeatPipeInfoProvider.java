@@ -39,7 +39,8 @@ public class HeatPipeInfoProvider implements IProbeInfoProvider {
 
             // 热传导率和热损失
             int heatTransfer = properties.getHeatTransfer();
-            float heatLossPercent = properties.getHeatLossPerBlock();
+            // getHeatLossPerBlock() 是比例（0.02 = 每格 2%），显示时要乘 100
+            float heatLossPercent = properties.getHeatLossPerBlock() * 100.0f;
 
             // 创建水平面板显示基本信息
             IProbeInfo horizontalPane = iProbeInfo.horizontal(
@@ -57,7 +58,8 @@ public class HeatPipeInfoProvider implements IProbeInfoProvider {
 
             // 热损失显示
             iProbeInfo.text(TextStyleClass.INFO + "{*gregtech.top.heat_pipe.heat_loss*}" +
-                    TextStyleClass.INFO + " " + TextStyleClass.WARNING + heatLossPercent + "%");
+                    TextStyleClass.INFO + " " + TextStyleClass.WARNING +
+                    String.format("%.2f", heatLossPercent) + "%");
 
             // 温度进度条（显示当前温度占最大温度的比例）
             if (maxTemp > 0) {

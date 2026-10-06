@@ -11,12 +11,12 @@ import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.material.registry.MaterialRegistry;
 import gregtech.client.renderer.pipe.HeatConductorRenderer;
 import gregtech.client.renderer.pipe.PipeRenderer;
+import gregtech.client.utils.RenderUtil;
 import gregtech.common.creativetab.GTCreativeTabs;
 import gregtech.common.pipelike.heat.net.WorldHNet;
 import gregtech.common.pipelike.heat.tile.TileEntityHeatConductor;
 import gregtech.common.pipelike.heat.tile.TileEntityHeatConductorTickable;
 
-import net.minecraft.block.ITileEntityProvider;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.entity.player.EntityPlayer;
@@ -35,8 +35,7 @@ import org.jetbrains.annotations.NotNull;
 
 import static gregtech.api.capability.GregtechCapabilities.CAPABILITY_HEAT_CONTAINER;
 
-public class BlockHeatConductor extends BlockMaterialPipe<HeatConductorType, HeatConductorProperties, WorldHNet>
-        implements ITileEntityProvider {
+public class BlockHeatConductor extends BlockMaterialPipe<HeatConductorType, HeatConductorProperties, WorldHNet> {
 
     public BlockHeatConductor(HeatConductorType pipeType, MaterialRegistry registry) {
         super(pipeType, registry);
@@ -116,11 +115,6 @@ public class BlockHeatConductor extends BlockMaterialPipe<HeatConductorType, Hea
     }
 
     @Override
-    public TileEntity createNewTileEntity(World worldIn, int meta) {
-        return new TileEntityHeatConductor();
-    }
-
-    @Override
     public TileEntityPipeBase<HeatConductorType, HeatConductorProperties> createNewTileEntity(boolean supportsTicking) {
         return supportsTicking ? new TileEntityHeatConductorTickable() : new TileEntityHeatConductor();
     }
@@ -128,6 +122,10 @@ public class BlockHeatConductor extends BlockMaterialPipe<HeatConductorType, Hea
     @Override
     @SideOnly(Side.CLIENT)
     protected Pair<TextureAtlasSprite, Integer> getParticleTexture(World world, BlockPos blockPos) {
-        return HeatConductorRenderer.INSTANCE.getParticleTexture((TileEntityHeatConductor) world.getTileEntity(blockPos));
+        TileEntity tile = world.getTileEntity(blockPos);
+        if (tile instanceof TileEntityHeatConductor conductor) {
+            return HeatConductorRenderer.INSTANCE.getParticleTexture(conductor);
+        }
+        return Pair.of(RenderUtil.getMissingSprite(), 0xFFFFFF);
     }
 }

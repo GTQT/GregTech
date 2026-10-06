@@ -238,7 +238,7 @@ public class ElementMaterials {
                 .element(Elements.Cu)
                 .cableProperties(V[MV], 1, 2)
                 .fluidPipeProperties(1696, 6, true)
-                .heatConductorProperties(1000, 100, 0f)
+                .heatConductorProperties(1000, 100, 0.02f)
                 .build();
 
         Curium = Material.builder(26, gregtechId("curium"))
