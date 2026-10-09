@@ -221,6 +221,7 @@ import gregtech.common.metatileentities.storage.MetaTileEntityCreativeChest;
 import gregtech.common.metatileentities.storage.MetaTileEntityCreativeEnergy;
 import gregtech.common.metatileentities.storage.MetaTileEntityCreativeTank;
 import gregtech.common.metatileentities.storage.MetaTileEntityDrum;
+import gregtech.common.metatileentities.storage.MetaTileEntityHugeBuffer;
 import gregtech.common.metatileentities.storage.MetaTileEntityLockedSafe;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumChest;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumExtender;
@@ -228,7 +229,6 @@ import gregtech.common.metatileentities.storage.MetaTileEntityQuantumMultiTank;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumProxy;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumStorageController;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
-import gregtech.common.metatileentities.store.MetaTileEntityHugeBuffer;
 import gregtech.common.metatileentities.workbench.MetaTileEntityWorkbench;
 import gregtech.common.pipelike.fluidpipe.longdistance.MetaTileEntityLDFluidEndpoint;
 import gregtech.common.pipelike.itempipe.longdistance.MetaTileEntityLDItemEndpoint;
@@ -438,6 +438,8 @@ public class MetaTileEntities {
     public static final MetaTileEntityQuantumChest[] QUANTUM_CHEST = new MetaTileEntityQuantumChest[10];
     public static final MetaTileEntityQuantumTank[] QUANTUM_TANK = new MetaTileEntityQuantumTank[10];
     public static final MetaTileEntityBuffer[] BUFFER = new MetaTileEntityBuffer[5];
+    public static final MetaTileEntityHugeBuffer[] HUGE_BUFFER = new MetaTileEntityHugeBuffer[5];
+
     public static final MetaTileEntityEnergyDistributor[] ENERGY_DISTRIBUTOR = new MetaTileEntityEnergyDistributor[GTValues.V.length]; // ULV-MAX
     public static final MetaTileEntityPump[] PUMP = new MetaTileEntityPump[9];
     public static final MetaTileEntityBlockBreaker[] BLOCK_BREAKER = new MetaTileEntityBlockBreaker[4];
@@ -454,7 +456,6 @@ public class MetaTileEntities {
     public static final MetaTileEntityHeatHatch[] HEAT_OUTPUT_HATCH = new MetaTileEntityHeatHatch[10];
     public static final MetaTileEntityElectricHeater[] ELECTRIC_HEATER = new MetaTileEntityElectricHeater[10];
     public static final MetaTileEntityQuantumMultiTank[] MULTI_QUANTUM_TANK = new MetaTileEntityQuantumMultiTank[10];
-    public static final MetaTileEntityHugeBuffer[] HUGE_BUFFER = new MetaTileEntityHugeBuffer[5];
 
     public static MetaTileEntityFuelRodImportBus FUEL_ROD_INPUT;
     public static MetaTileEntityFuelRodExportBus FUEL_ROD_OUTPUT;

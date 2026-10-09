@@ -144,7 +144,7 @@ public abstract class MetaTileEntityBaseWithControl extends MultiblockWithDispla
         this.energyContainer = new EnergyContainerList(inputEnergy);
 
         List<IEnergyContainer> outEnergy = new ArrayList<>(getAbilities(MultiblockAbility.OUTPUT_ENERGY));
-        outEnergy.addAll(getAbilities(MultiblockAbility.OUTPUT_ENERGY));
+        outEnergy.addAll(getAbilities(MultiblockAbility.SUBSTATION_OUTPUT_ENERGY));
         outEnergy.addAll(getAbilities(MultiblockAbility.OUTPUT_LASER));
         this.outEnergyContainer = new EnergyContainerList(outEnergy);
     }

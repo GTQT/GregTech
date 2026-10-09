@@ -33,6 +33,7 @@ import gregtech.common.metatileentities.storage.MetaTileEntityCreativeChest;
 import gregtech.common.metatileentities.storage.MetaTileEntityCreativeEnergy;
 import gregtech.common.metatileentities.storage.MetaTileEntityCreativeTank;
 import gregtech.common.metatileentities.storage.MetaTileEntityDrum;
+import gregtech.common.metatileentities.storage.MetaTileEntityHugeBuffer;
 import gregtech.common.metatileentities.storage.MetaTileEntityLockedSafe;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumChest;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumExtender;
@@ -40,7 +41,6 @@ import gregtech.common.metatileentities.storage.MetaTileEntityQuantumMultiTank;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumProxy;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumStorageController;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
-import gregtech.common.metatileentities.store.MetaTileEntityHugeBuffer;
 import gregtech.common.metatileentities.workbench.MetaTileEntityWorkbench;
 import gregtech.common.pipelike.fluidpipe.longdistance.MetaTileEntityLDFluidEndpoint;
 import gregtech.common.pipelike.itempipe.longdistance.MetaTileEntityLDItemEndpoint;
@@ -190,6 +190,17 @@ public final class InfrastructureRegistration {
         BUFFER[2] = registerMetaTileEntity(4097, new MetaTileEntityBuffer(gregtechId("buffer.hv"), 3));
         BUFFER[3] = registerMetaTileEntity(4098, new MetaTileEntityBuffer(gregtechId("buffer.ev"), 4));
         BUFFER[4] = registerMetaTileEntity(4099, new MetaTileEntityBuffer(gregtechId("buffer.iv"), 5));
+
+        // ---- 4100-4104: Huge Buffers ----
+        HUGE_BUFFER[0] = registerMetaTileEntity(4100, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.lv"), 1));
+        HUGE_BUFFER[1] = registerMetaTileEntity(4101, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.mv"), 2));
+        HUGE_BUFFER[2] = registerMetaTileEntity(4102, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.hv"), 3));
+        HUGE_BUFFER[3] = registerMetaTileEntity(4103, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.ev"), 4));
+        HUGE_BUFFER[4] = registerMetaTileEntity(4104, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.iv"), 5));
+
+        // ---- 4105-4109: Auto Workbench ----
+
+
     }
 
     // ======================== 4125-4339: 外壳 / 变压器 / 二极管 / 电池缓存 ========================
@@ -328,12 +339,7 @@ public final class InfrastructureRegistration {
             registerMetaTileEntity(4370 + i, MULTI_QUANTUM_TANK[i]);
         }
 
-        // ---- 4380-4384: Huge Buffers ----
-        HUGE_BUFFER[0] = registerMetaTileEntity(4380, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.lv"), 1));
-        HUGE_BUFFER[1] = registerMetaTileEntity(4381, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.mv"), 2));
-        HUGE_BUFFER[2] = registerMetaTileEntity(4382, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.hv"), 3));
-        HUGE_BUFFER[3] = registerMetaTileEntity(4383, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.ev"), 4));
-        HUGE_BUFFER[4] = registerMetaTileEntity(4384, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.iv"), 5));
+
 
         // ---- 4430-4447: Drums ----
         WOODEN_DRUM = registerMetaTileEntity(4430,

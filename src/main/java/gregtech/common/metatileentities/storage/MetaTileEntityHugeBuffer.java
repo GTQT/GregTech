@@ -1,4 +1,4 @@
-package gregtech.common.metatileentities.store;
+package gregtech.common.metatileentities.storage;
 
 import gregtech.api.GTValues;
 import gregtech.api.capability.GregtechTileCapabilities;
