@@ -1072,6 +1072,9 @@ public class MetaTileEntityLoader {
                 PIPE_LARGE);
         registerMachineRecipe(MetaTileEntities.FISHER, "WTW", "PMP", "TGT", 'M', HULL, 'W', CIRCUIT, 'G', PUMP, 'T',
                 MOTOR, 'P', PISTON);
+        // 自动工作台 (LV-IV), 配方沿用 GT5-Unofficial 的 "PCP / IHI / PRP"
+        registerMachineRecipe(MetaTileEntities.AUTO_WORKBENCH, "PCP", "IHI", "PRP", 'P', PLATE, 'C',
+                new ItemStack(Blocks.CRAFTING_TABLE), 'I', CIRCUIT, 'H', HULL, 'R', ROBOT_ARM);
         registerMachineRecipe(MetaTileEntities.ITEM_COLLECTOR, "MRM", "RHR", "CWC", 'M', MOTOR, 'R', ROTOR, 'H', HULL,
                 'C', CIRCUIT, 'W', CABLE);
         registerMachineRecipe(MetaTileEntities.BLOCK_BREAKER, "MGM", "CHC", "WSW", 'M', MOTOR, 'H', HULL, 'C', CIRCUIT,

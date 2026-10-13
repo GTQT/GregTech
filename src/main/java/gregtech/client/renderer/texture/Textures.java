@@ -484,6 +484,9 @@ public class Textures {
             "cover/overlay_ender_item_link");
     public static final SimpleOverlayRenderer STORAGE = new SimpleOverlayRenderer("cover/overlay_storage");
     public static final SimpleOverlayRenderer CRAFTING = new SimpleOverlayRenderer("cover/overlay_crafting");
+    /** 自动工作台的合成台面板纹理, 移植自 GT5-Unofficial 的 machine_top_crafting */
+    public static final SimpleOverlayRenderer AUTO_WORKBENCH_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_auto_workbench");
     public static final SimpleOverlayRenderer PIPE_ITEM_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_pipe_item");
     public static final SimpleOverlayRenderer PIPE_FLUID_OVERLAY = new SimpleOverlayRenderer(

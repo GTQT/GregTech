@@ -825,6 +825,15 @@ public class GTGuiTextures {
         return UITexture.fullImage(GTValues.MODID, path, colorType);
     }
 
+    /** 加载 {@code path_0 .. path_(count-1)} 这一组同尺寸按钮纹理 */
+    public static UITexture[] buttonSet(String path, int count) {
+        UITexture[] textures = new UITexture[count];
+        for (int i = 0; i < count; i++) {
+            textures[i] = fullImage(path + "_" + i);
+        }
+        return textures;
+    }
+
     @SuppressWarnings("SameParameterValue")
     public static UITexture[] slice(String path, int imageWidth, int imageHeight, int sliceWidth, int sliceHeight) {
         return slice(path, imageWidth, imageHeight, sliceWidth, sliceHeight, null);
@@ -1086,6 +1095,12 @@ public class GTGuiTextures {
         "textures/gui/picture/rainbow_square");
     public static final UITexture PICTURE_UPGRADE_CONNECTOR_RAINBOW_OPAQUE = fullImage(
         "textures/gui/picture/rainbow_square");
+
+    // 自动工作台 (移植自 GT5-Unofficial)
+    public static final UITexture PICTURE_WORKBENCH_CIRCLE = fullImage("textures/gui/picture/workbench_circle");
+    public static final UITexture PICTURE_ARROW_WHITE_DOWN = fullImage("textures/gui/picture/arrow_white_down");
+    public static final UITexture[] OVERLAY_BUTTON_THROUGHPUT = buttonSet("textures/gui/overlay_button/throughput", 4);
+    public static final UITexture[] OVERLAY_BUTTON_MODE = buttonSet("textures/gui/overlay_button/mode", 10);
 
     public static final UITexture PICTURE_OVERLAY_BLUE = UITexture.builder()
         .location(GTValues.MODID, "gui/picture/overlay_blue")

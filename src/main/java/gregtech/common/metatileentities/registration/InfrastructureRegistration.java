@@ -41,6 +41,7 @@ import gregtech.common.metatileentities.storage.MetaTileEntityQuantumMultiTank;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumProxy;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumStorageController;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
+import gregtech.common.metatileentities.workbench.MetaTileEntityAutoWorkbench;
 import gregtech.common.metatileentities.workbench.MetaTileEntityWorkbench;
 import gregtech.common.pipelike.fluidpipe.longdistance.MetaTileEntityLDFluidEndpoint;
 import gregtech.common.pipelike.itempipe.longdistance.MetaTileEntityLDItemEndpoint;
@@ -199,8 +200,11 @@ public final class InfrastructureRegistration {
         HUGE_BUFFER[4] = registerMetaTileEntity(4104, new MetaTileEntityHugeBuffer(gregtechId("huge_buffer.iv"), 5));
 
         // ---- 4105-4109: Auto Workbench ----
-
-
+        AUTO_WORKBENCH[0] = registerMetaTileEntity(4105, new MetaTileEntityAutoWorkbench(gregtechId("auto_workbench.lv"), 1));
+        AUTO_WORKBENCH[1] = registerMetaTileEntity(4106, new MetaTileEntityAutoWorkbench(gregtechId("auto_workbench.mv"), 2));
+        AUTO_WORKBENCH[2] = registerMetaTileEntity(4107, new MetaTileEntityAutoWorkbench(gregtechId("auto_workbench.hv"), 3));
+        AUTO_WORKBENCH[3] = registerMetaTileEntity(4108, new MetaTileEntityAutoWorkbench(gregtechId("auto_workbench.ev"), 4));
+        AUTO_WORKBENCH[4] = registerMetaTileEntity(4109, new MetaTileEntityAutoWorkbench(gregtechId("auto_workbench.iv"), 5));
     }
 
     // ======================== 4125-4339: 外壳 / 变压器 / 二极管 / 电池缓存 ========================

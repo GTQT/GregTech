@@ -229,6 +229,7 @@ import gregtech.common.metatileentities.storage.MetaTileEntityQuantumMultiTank;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumProxy;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumStorageController;
 import gregtech.common.metatileentities.storage.MetaTileEntityQuantumTank;
+import gregtech.common.metatileentities.workbench.MetaTileEntityAutoWorkbench;
 import gregtech.common.metatileentities.workbench.MetaTileEntityWorkbench;
 import gregtech.common.pipelike.fluidpipe.longdistance.MetaTileEntityLDFluidEndpoint;
 import gregtech.common.pipelike.itempipe.longdistance.MetaTileEntityLDItemEndpoint;
@@ -738,6 +739,8 @@ public class MetaTileEntities {
     public static MetaTileEntityCrate NEUTRONIUM_CRATE;
     // MISC MACHINES SECTION
     public static MetaTileEntityWorkbench WORKBENCH;
+    /** 自动工作台, LV-IV */
+    public static final MetaTileEntityAutoWorkbench[] AUTO_WORKBENCH = new MetaTileEntityAutoWorkbench[5];
     public static MetaTileEntityCreativeEnergy CREATIVE_ENERGY;
     public static MetaTileEntityCreativeTank CREATIVE_TANK;
     public static MetaTileEntityCreativeChest CREATIVE_CHEST;

@@ -9,16 +9,14 @@ import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
 import gregtech.api.pattern.MultiPiecePattern;
-import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.StructureBuildResult;
+import gregtech.api.pattern.StructureFailureReport;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
-
-import com.cleanroommc.modularui.widgets.layout.Flow;
 import gregtech.client.renderer.handler.GhostBlockRenderer;
 import gregtech.common.ConfigHolder;
 
@@ -33,7 +31,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -51,9 +49,9 @@ import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -84,6 +82,9 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
     private static final int MAX_CHANNEL_ROWS = 12;
     private static final int MAX_VISIBLE_ROWS = 6;
     private static final int ROW_HEIGHT = 18;
+
+    /** Hint appended to a structure failure report, pointing at this tool's auto-build mode. */
+    private static final String AUTO_BUILD_ADVICE = "gregtech.multiblock.pattern.failure.advice.build";
 
     // --- Static NBT read/write helpers ---
 
@@ -255,35 +256,19 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
             }
 
             // Server-side: store supported channel ranges into NBT for GUI use
-            PatternError structureError = multiblock.isStructureFormed() ?
-                    null : multiblock.getLastStructureError();
             saveControllerChannelRanges(heldStack, multiblock);
-            spawnStructureHints(multiblock, player, heldStack, channelValues);
 
-            // Server-side: show error info if structure is not formed
-            if (!multiblock.isStructureFormed()) {
-                PatternError error = structureError != null ? structureError : multiblock.getLastStructureError();
-                if (error != null) {
-                    player.sendMessage(new TextComponentString("============================"));
-                    player.sendMessage(
-                            new TextComponentTranslation("gregtech.multiblock.pattern.error_message_header"));
-                    for (List<ItemStack> stack : error.getCandidates()) {
-                        if (stack == null || stack.isEmpty() || stack.get(0).isEmpty()) {
-                            continue;
-                        }
-                        player.sendMessage(new TextComponentString(
-                                TextFormatting.RED + "  " + stack.get(0).getDisplayName()));
-                    }
-                    player.sendMessage(new TextComponentString(
-                            TextFormatting.GRAY + "  @ " + error.getPosString(error.getPos())));
-                    player.sendMessage(new TextComponentString(
-                            TextFormatting.YELLOW + "  " + error.getErrorInfo()));
-                    player.sendMessage(new TextComponentString("============================"));
-                    return EnumActionResult.SUCCESS;
-                }
+            if (multiblock.isStructureFormed()) {
+                spawnStructureHints(multiblock, player, heldStack, channelValues);
+                player.sendMessage(new TextComponentTranslation("gregtech.multiblock.pattern.no_errors")
+                        .setStyle(new Style().setColor(TextFormatting.GREEN)));
+                return EnumActionResult.SUCCESS;
             }
-            player.sendMessage(new TextComponentTranslation("gregtech.multiblock.pattern.no_errors")
-                    .setStyle(new net.minecraft.util.text.Style().setColor(TextFormatting.GREEN)));
+
+            // Report the failure before spawning hints: hint generation re-runs pattern
+            // matching, which recycles the shared block-state buffer the live error points at.
+            StructureFailureReport.sendTo(player, multiblock, world, AUTO_BUILD_ADVICE);
+            spawnStructureHints(multiblock, player, heldStack, channelValues);
             return EnumActionResult.SUCCESS;
         }
     }
@@ -293,7 +278,7 @@ public class StructureProjectorBehavior implements IItemBehaviour, ItemUIFactory
      * This allows the GUI to show proper min/max ranges for each channel.
      */
     private static void saveControllerChannelRanges(@NotNull ItemStack stack,
-                                                     @NotNull MultiblockControllerBase controller) {
+                                                    @NotNull MultiblockControllerBase controller) {
         List<StructureChannel> supported = controller.getSupportedChannels();
         Map<String, int[]> ranges = new HashMap<>();
         for (StructureChannel ch : supported) {
