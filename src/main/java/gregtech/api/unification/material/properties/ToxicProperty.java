@@ -18,6 +18,7 @@ public class ToxicProperty implements IMaterialProperty {
 
     @Override
     public void verifyProperty(MaterialProperties properties) {
-        properties.ensureSet(PropertyKey.DUST, true);
+        // Hazard properties must not force a DUST property onto the material,
+        // otherwise gas-only materials (e.g. Chlorine) would generate solid dust items.
     }
 }
