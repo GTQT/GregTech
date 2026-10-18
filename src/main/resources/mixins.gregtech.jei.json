@@ -16,7 +16,8 @@
     "StackHelperMixin"
   ],
   "client": [
-    "GuiIngredientAccessor"
+    "GuiIngredientAccessor",
+    "MultiblockRecipeLayoutMixin"
   ],
   "server": []
 }

@@ -164,6 +164,10 @@ public class GTRecipeWrapper extends AdvancedRecipeWrapper {
 
             ingredients.setOutputs(VanillaTypes.FLUID, recipeOutputs);
         }
+
+        for (var entry : recipe.propertyStorage().entrySet()) {
+            entry.getKey().addRecipeIngredients(ingredients, entry.getValue());
+        }
     }
 
     public void addItemTooltip(int slotIndex, boolean input, Object ingredient, List<String> tooltip) {

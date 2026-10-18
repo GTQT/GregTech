@@ -23,24 +23,19 @@ import org.lwjgl.opengl.GL11;
 import javax.vecmath.Vector3f;
 
 /**
- * Created with IntelliJ IDEA.
+ * Shared offscreen scene renderer for monitors and structure previews.
+ * Owns framebuffer allocation, cached scene rendering, texture presentation and resource cleanup;
+ * block geometry caching is provided by {@link VBOWorldSceneRenderer}.
  *
- * @Author: KilaBash
- * @Date: 2021/08/23
- * @Description: FBO-based offscreen renderer that inherits VBO caching from
- *               {@link VBOWorldSceneRenderer}. Renders the scene into an FBO texture
- *               and draws the result as a textured quad.
- *
- *               Supports dirty-flag mechanism: the FBO is only re-rendered when
- *               the scene actually changes (camera movement, layer switch, structure switch).
- *               On clean frames, only the cached FBO texture quad is drawn (~zero cost).
+ * <p>Structure preview picking and independently composited overlays belong to
+ * {@link StructurePreviewRenderer}. The monitor uses this base renderer directly.
  */
 @SideOnly(Side.CLIENT)
 public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
 
     private int resolutionWidth = 1080;
     private int resolutionHeight = 1080;
-    private Framebuffer fbo;
+    protected Framebuffer fbo;
     private boolean fboAllocationFailed;
 
     // Dirty flag: when true, the FBO content needs to be re-rendered
@@ -144,10 +139,10 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
 
     /**
      * Allocate the framebuffer only when the preview is actually rendered or
-     * queried. JEI may construct a recipe layout before that recipe becomes
-     * visible, so eager allocation here would retain one texture per wrapper.
+     * queried. Scene owners may be created before they become visible, so eager
+     * allocation here would retain unused textures.
      */
-    private boolean ensureFBO() {
+    protected boolean ensureFBO() {
         if (fbo != null) {
             return true;
         }
@@ -156,7 +151,7 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
         }
         try {
             fbo = new Framebuffer(resolutionWidth, resolutionHeight, true);
-            GTLog.logger.debug("[JEIMultiblockPreview] allocated FBO {}x{}", resolutionWidth, resolutionHeight);
+            GTLog.logger.debug("[SceneRenderer] allocated FBO {}x{}", resolutionWidth, resolutionHeight);
             return true;
         } catch (Exception e) {
             fboAllocationFailed = true;
@@ -197,7 +192,7 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
     /**
      * Draw the FBO texture as a textured quad covering the specified screen area.
      */
-    private void drawFBOQuad(float x, float y, float width, float height) {
+    protected void drawFBOQuad(float x, float y, float width, float height) {
         GlStateManager.enableTexture2D();
         GlStateManager.disableLighting();
         int lastTexID = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);

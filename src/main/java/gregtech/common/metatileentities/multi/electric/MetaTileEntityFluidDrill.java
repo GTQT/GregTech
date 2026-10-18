@@ -68,6 +68,8 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
 
     private final FluidDrillLogic minerLogic;
     private final IFluidDrillType type;
+    private int productionBoostMultiplier = 1;
+    private long productionBoostExpiresAt;
     protected IMultipleTankHandler inputFluidInventory;
     protected IMultipleTankHandler outputFluidInventory;
     protected IEnergyContainer energyContainer;
@@ -232,8 +234,25 @@ public class MetaTileEntityFluidDrill extends MultiblockWithDisplayBase
         return this.type.getTier();
     }
 
+    /** Applies a temporary, non-stacking production boost to this drill instance. */
+    public void applyProductionBoost(int multiplier, int durationTicks) {
+        if (multiplier < 1 || durationTicks <= 0) {
+            throw new IllegalArgumentException("Invalid fluid drill production boost");
+        }
+        World world = getWorld();
+        if (world == null || world.isRemote) return;
+        productionBoostMultiplier = multiplier;
+        productionBoostExpiresAt = world.getTotalWorldTime() + durationTicks;
+    }
+
+    public int getProductionBoostMultiplier() {
+        World world = getWorld();
+        return world != null && world.getTotalWorldTime() < productionBoostExpiresAt ?
+                productionBoostMultiplier : 1;
+    }
+
     public int getRigMultiplier() {
-        return type.getRigMultiplier();
+        return type.getRigMultiplier() * getProductionBoostMultiplier();
     }
 
     public int getDepletionChance() {

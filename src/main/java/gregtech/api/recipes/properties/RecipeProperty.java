@@ -5,6 +5,7 @@ import net.minecraft.nbt.NBTBase;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
+import mezz.jei.api.ingredients.IIngredients;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -41,6 +42,10 @@ public abstract class RecipeProperty<T> {
 
     @SideOnly(Side.CLIENT)
     public void getTooltipStrings(List<String> tooltip, int mouseX, int mouseY, Object value) {}
+
+    /** Supplies custom recipe ingredients to JEI, including recipe lookup by ingredient. */
+    @SideOnly(Side.CLIENT)
+    public void addRecipeIngredients(@NotNull IIngredients ingredients, @NotNull Object value) {}
 
     public int getInfoHeight(@NotNull Object value) {
         return 10; // GTRecipeWrapper#LINE_HEIGHT

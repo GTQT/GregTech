@@ -10347,3 +10347,5 @@ commands.gregtech.mover.adapter_entry= - %s | 支持旋转：%s
 commands.gregtech.mover.performance_summary=移动性能样本 %s/128 | 成功 %s | 失败 %s | 回滚 %s | 总耗时 平均/P95/最大 = %s/%s/%s ms
 commands.gregtech.mover.performance_stages=阶段平均耗时：选择捕获 %s | 提交捕获 %s | 校验 %s | 世界快照 %s | 恢复日志 %s | 提交 %s | 回滚 %s ms
 commands.gregtech.mover.performance_cleared=已清空 %s 条移动性能样本
+
+gregtech.glass_tier.tooltip=玻璃等级：%s

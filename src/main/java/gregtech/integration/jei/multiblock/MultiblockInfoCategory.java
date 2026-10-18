@@ -32,7 +32,8 @@ public class MultiblockInfoCategory implements IRecipeCategory<MultiblockInfoRec
 
     public MultiblockInfoCategory(IJeiHelpers helpers) {
         this.guiHelper = helpers.getGuiHelper();
-        this.background = this.guiHelper.createBlankDrawable(176, 184);
+        this.background = this.guiHelper.createBlankDrawable(CompactPreviewLayout.WIDTH,
+                CompactPreviewLayout.RECIPE_HEIGHT);
         this.icon = guiHelper.drawableBuilder(GuiTextures.MULTIBLOCK_CATEGORY.imageLocation, 0, 0, 16, 16)
                 .setTextureSize(16, 16).build();
     }

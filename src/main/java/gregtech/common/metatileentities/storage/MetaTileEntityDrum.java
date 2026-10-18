@@ -367,6 +367,14 @@ public class MetaTileEntityDrum extends MetaTileEntity {
         return false;
     }
 
+    protected IPropertyFluidFilter getFluidFilter() {
+        return fluidFilter;
+    }
+
+    protected int getColor() {
+        return color;
+    }
+
     public int getTankSize() {
         return tankSize;
     }

@@ -23,6 +23,8 @@ import gregtech.api.items.metaitem.stats.IItemDurabilityManager;
 import gregtech.api.items.metaitem.stats.IItemMaxStackSizeProvider;
 import gregtech.api.items.metaitem.stats.IItemModelDispatcher;
 import gregtech.api.items.metaitem.stats.IItemNameProvider;
+import gregtech.api.items.metaitem.stats.IItemRenderer;
+import gregtech.api.items.metaitem.stats.IItemRendererManager;
 import gregtech.api.items.metaitem.stats.IItemUseManager;
 import gregtech.api.items.metaitem.stats.IMouseEventHandler;
 import gregtech.api.items.metaitem.stats.ISubItemHandler;
@@ -164,6 +166,7 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
                 ModelResourceLocation[] resourceLocations = new ModelResourceLocation[numberOfModels];
                 for (int i = 0; i < resourceLocations.length; i++) {
                     ResourceLocation resourceLocation = createItemModelPath(metaValueItem, "/" + (i + 1));
+                    registerItemRenderer(metaValueItem, resourceLocation);
                     ModelBakery.registerItemVariants(this, resourceLocation);
                     resourceLocations[i] = new ModelResourceLocation(resourceLocation, "inventory");
                 }
@@ -171,12 +174,19 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
                 continue;
             }
             ResourceLocation resourceLocation = createItemModelPath(metaValueItem, "");
+            registerItemRenderer(metaValueItem, resourceLocation);
             if (numberOfModels > 0) {
                 ModelBakery.registerItemVariants(this, resourceLocation);
             }
             metaItemsModels.put((short) (metaItemOffset + itemMetaKey),
                     new ModelResourceLocation(resourceLocation, "inventory"));
         }
+    }
+
+    @SideOnly(Side.CLIENT)
+    private void registerItemRenderer(T metaValueItem, ResourceLocation location) {
+        IItemRendererManager renderer = metaValueItem.getRendererManager();
+        if (renderer != null) renderer.onRendererRegistry(location);
     }
 
     @SideOnly(Side.CLIENT)
@@ -797,7 +807,7 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
         ToolChargeBarRenderer.renderBarsItem(this, stack, xPosition, yPosition);
     }
 
-    public class MetaValueItem {
+    public class MetaValueItem implements IItemRenderer {
 
         public MetaItem<T> getMetaItem() {
             return MetaItem.this;
@@ -820,6 +830,7 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
         private IItemDurabilityManager durabilityManager;
         private IEnchantabilityHelper enchantabilityHelper;
         private IItemModelDispatcher itemModelDispatcher;
+        private IItemRendererManager rendererManager;
         private IMouseEventHandler mouseEventHandler;
         private EnumRarity rarity;
         private int tier = 0;
@@ -974,8 +985,17 @@ public abstract class MetaItem<T extends MetaItem<?>.MetaValueItem> extends Item
                 if (itemComponent instanceof IMouseEventHandler mouseEventHandler) {
                     this.mouseEventHandler = mouseEventHandler;
                 }
+                if (itemComponent instanceof IItemRendererManager rendererManager) {
+                    this.rendererManager = rendererManager;
+                }
                 this.allStats.add(itemComponent);
             }
+        }
+
+        @Override
+        @Nullable
+        public IItemRendererManager getRendererManager() {
+            return rendererManager;
         }
 
         @Nullable

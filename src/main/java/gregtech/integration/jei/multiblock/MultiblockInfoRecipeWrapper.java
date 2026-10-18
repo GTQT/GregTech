@@ -8,7 +8,6 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
-import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.StructureElementPreview;
@@ -17,7 +16,8 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.GregFakePlayer;
 import gregtech.api.util.ItemStackHashStrategy;
-import gregtech.client.renderer.scene.FBOWorldSceneRenderer;
+import gregtech.client.renderer.scene.StructurePreviewRenderer;
+import gregtech.client.renderer.scene.PreviewBlockAccess;
 import gregtech.client.renderer.scene.WorldSceneRenderer;
 import gregtech.client.utils.RenderUtil;
 import gregtech.client.utils.TrackedDummyWorld;
@@ -90,21 +90,23 @@ import java.util.stream.Collectors;
 
 public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
-    // Left parts panel layout constants
-    private static final int PARTS_COLUMNS = 2;
-    private static final int SLOTS_PER_COL = 10; // vertical slots per column on left panel
-    private static final int MAX_PARTS = PARTS_COLUMNS * SLOTS_PER_COL;
     private static final int SLOT_SIZE = 18;
-    private static final int PARTS_WIDTH = PARTS_COLUMNS * SLOT_SIZE + 4;
+    private int initializedPartsCount;
     private static final int ICON_SIZE = 20;
     private static final int RIGHT_PADDING = 5;
-    private static final int INFO_ICON_Y = 22;
-    private static final int LAYER_BUTTON_Y = INFO_ICON_Y + ICON_SIZE + 2;
-    private static final int CANDIDATE_SLOT_START_Y = LAYER_BUTTON_Y + ICON_SIZE + 2;
+    private static final int INFO_ICON_Y = CompactPreviewLayout.CONTROLS_Y + 3;
+    private static final int CHANNEL_TOP = CompactPreviewLayout.CONTROLS_Y + 4;
+    private static final int CHANNEL_ROWS = CompactPreviewLayout.CHANNEL_ROWS;
+    private int channelPage;
+    private final ChannelSliderDrag channelDrag = new ChannelSliderDrag();
+    private long lastClickDiagnostic;
+    private static final int LAYER_BUTTON_Y = INFO_ICON_Y;
+    private static final int CANDIDATE_SLOT_START_Y = 20;
     // Right candidates panel layout constants
     private static final int CANDIDATES_COLUMNS = 1;
     private static final int CANDIDATES_PER_COL = 6;
     private static final int MAX_CANDIDATES = CANDIDATES_COLUMNS * CANDIDATES_PER_COL;
+    private static final int CANDIDATE_SLOT_BASE = -MAX_CANDIDATES;
     // Candidate cycling interval in milliseconds
     private static final long CANDIDATE_CYCLE_INTERVAL_MS = 1000L;
     // Hard cap for the offscreen preview buffer. The buffer follows the displayed size (see
@@ -125,11 +127,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private final List<ItemStack> ingredientInputs = new ArrayList<>();
     private final GuiButton nextLayerButton;
     private final List<PreviewCandidate> previewCandidates;
+    private final List<PreviewCandidate> cachedCandidateGroups = new ArrayList<>();
+    private final List<BlockInfo> cachedCandidateBlocks = new ArrayList<>();
     private final Map<String, Integer> channelValues = new HashMap<>();
     private List<StructureChannel> supportedChannels = Collections.emptyList();
     private int[][] channelRanges = new int[0][]; // [channelIdx][0=min, 1=max]
     @Nullable
     private MBPattern[] patterns;
+    private StructurePreviewRenderer previewRenderer;
     @Nullable
     private PreviewLoadTask previewLoadTask;
     @Nullable
@@ -161,10 +166,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     public MultiblockInfoRecipeWrapper(@NotNull MultiblockControllerBase controller) {
         this.controller = controller;
-        this.nextLayerButton = new GuiButton(0, 176 - (ICON_SIZE + RIGHT_PADDING), LAYER_BUTTON_Y, ICON_SIZE,
+        this.nextLayerButton = new GuiButton(0, 176 - (2 * ICON_SIZE + RIGHT_PADDING + 2), LAYER_BUTTON_Y, ICON_SIZE,
                 ICON_SIZE, "");
         this.buttons.put(nextLayerButton, this::toggleNextLayer);
         this.previewCandidates = new ArrayList<>();
+        GuiButton channelPageButton = new GuiButton(1, 176 - (3 * ICON_SIZE + RIGHT_PADDING + 4), INFO_ICON_Y, 20, 20, ">>");
+        this.buttons.put(channelPageButton, () -> {
+            int pages = Math.max(1, (supportedChannels.size() + CHANNEL_ROWS - 1) / CHANNEL_ROWS);
+            channelPage = (channelPage + 1) % pages;
+        });
     }
 
     /**
@@ -226,6 +236,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         MBPattern loaded = task.takePattern();
         this.patterns = new MBPattern[] { loaded };
+        this.previewRenderer = task.renderer;
         this.rendererContainsFullStructure = true;
         GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
         previewLoadTask = null;
@@ -273,10 +284,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         lastCandidateCycleTime = now;
         candidateCycleIndex++;
-        markRendererDirty();
     }
 
     private void releasePreviewResources() {
+        channelDrag.cancel();
+        cachedCandidateGroups.clear();
+        cachedCandidateBlocks.clear();
         selected = null;
         previewCandidates.clear();
         previewTips = null;
@@ -303,6 +316,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private void releasePreviewPatterns() {
         MBPattern[] previous = this.patterns;
         this.patterns = null;
+        this.previewRenderer = null;
         if (previous == null) return;
 
         GregTechAPI.removePatterns(controller.metaTileEntityId, previous);
@@ -313,16 +327,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         GTLog.logger.debug("[JEIMultiblockPreview] released renderer resources for controller={}",
                 controller.metaTileEntityId);
-    }
-
-    @NotNull
-    private static Collection<PartInfo> gatherStructureBlocks(World world, @NotNull Map<BlockPos, BlockInfo> blocks) {
-        Map<ItemStack, PartInfo> partsMap = new Object2ObjectOpenCustomHashMap<>(
-                ItemStackHashStrategy.comparingAllButCount());
-        for (Entry<BlockPos, BlockInfo> entry : blocks.entrySet()) {
-            collectStructureBlock(world, entry.getKey(), entry.getValue(), partsMap);
-        }
-        return partsMap.values();
     }
 
     private static void collectStructureBlock(@NotNull World world,
@@ -412,20 +416,26 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private void renderCandidateBlockAtPosition(World world, BlockPos pos) {
         advanceCandidateCycle();
 
-        // Collect all candidate BlockInfo from typed preview groups.
-        List<BlockInfo> allCandidateBlocks = new ArrayList<>();
-        for (PreviewCandidate candidate : previewCandidates) {
-            for (BlockInfo info : candidate.getBlockCandidates()) {
-                if (info != null && info.getBlockState().getBlock() != net.minecraft.init.Blocks.AIR) {
-                    allCandidateBlocks.add(info);
+        // Flatten alternatives only when the selection changes, not on every overlay frame.
+        if (!cachedCandidateGroups.equals(previewCandidates)) {
+            cachedCandidateGroups.clear();
+            cachedCandidateGroups.addAll(previewCandidates);
+            cachedCandidateBlocks.clear();
+            for (PreviewCandidate candidate : previewCandidates) {
+                for (BlockInfo info : candidate.getBlockCandidates()) {
+                    if (info != null && info.getBlockState().getBlock() != net.minecraft.init.Blocks.AIR) {
+                        cachedCandidateBlocks.add(info);
+                    }
                 }
             }
         }
+        List<BlockInfo> allCandidateBlocks = cachedCandidateBlocks;
         if (allCandidateBlocks.isEmpty()) return;
 
         int index = candidateCycleIndex % allCandidateBlocks.size();
         BlockInfo candidateInfo = allCandidateBlocks.get(index);
-        IBlockState candidateState = candidateInfo.getBlockState();
+        PreviewBlockAccess candidateAccess = new PreviewBlockAccess(world, pos, candidateInfo);
+        IBlockState candidateState = candidateInfo.getBlockState().getActualState(candidateAccess, pos);
 
         // Render the candidate block at the selected position using immediate mode
         GlStateManager.enableTexture2D();
@@ -439,6 +449,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         net.minecraft.client.renderer.BufferBuilder buffer = Tessellator.getInstance().getBuffer();
         BlockRenderLayer oldLayer = net.minecraftforge.client.MinecraftForgeClient.getRenderLayer();
+        TileEntity candidateTile = candidateInfo.getTileEntity();
+        World previousWorld = candidateTile == null ? null : candidateTile.getWorld();
+        BlockPos previousPos = candidateTile == null ? null : candidateTile.getPos();
+        if (candidateTile != null) {
+            candidateTile.setWorld(world);
+            candidateTile.setPos(pos);
+        }
+        GlStateManager.enablePolygonOffset();
+        GlStateManager.doPolygonOffset(-1.0F, -1.0F);
         try {
             for (BlockRenderLayer layer : BlockRenderLayer.values()) {
                 net.minecraftforge.client.ForgeHooksClient.setRenderLayer(layer);
@@ -448,11 +467,21 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 WorldSceneRenderer.setDefaultPassRenderState(pass);
 
                 buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-                dispatcher.renderBlock(candidateState, pos, world, buffer);
+                if (candidateState.getRenderType() == gregtech.client.renderer.handler.MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
+                    gregtech.client.renderer.handler.MetaTileEntityRenderer.INSTANCE.renderBlock(candidateAccess, pos, candidateState, buffer);
+                } else {
+                    dispatcher.renderBlock(candidateState, pos, candidateAccess, buffer);
+                }
                 Tessellator.getInstance().draw();
             }
         } finally {
             net.minecraftforge.client.ForgeHooksClient.setRenderLayer(oldLayer);
+            GlStateManager.doPolygonOffset(0.0F, 0.0F);
+            GlStateManager.disablePolygonOffset();
+            if (candidateTile != null) {
+                candidateTile.setWorld(previousWorld);
+                candidateTile.setPos(previousPos);
+            }
         }
 
         GlStateManager.disableBlend();
@@ -571,7 +600,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     public void setRecipeLayout(RecipeLayout layout, IGuiHelper guiHelper) {
         boolean layoutChanged = this.recipeLayout != layout;
         this.recipeLayout = layout;
+        if (layoutChanged) initializedPartsCount = 0;
         boolean switchedWrapper = lastWrapper != this;
+        if (layoutChanged || switchedWrapper) channelDrag.cancel();
         if (lastWrapper != null && lastWrapper != this) {
             lastWrapper.releasePreviewResources();
         }
@@ -582,7 +613,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 .setTextureSize(ICON_SIZE, ICON_SIZE).build();
 
         IDrawable border = layout.getRecipeCategory().getBackground();
-        preparePlaceForParts(border.getHeight());
+        preparePlaceForParts();
         if (layoutChanged) {
             // JEI recreates the item-stack group while handling wheel input. Its slots are empty even when the
             // preview renderer remains valid, so the layout must be populated again below.
@@ -590,7 +621,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         pendingMouseWheel = Mouse.getEventDWheel();
         resetViewWhenPreviewReady = pendingMouseWheel == 0 || switchedWrapper;
-        this.nextLayerButton.x = border.getWidth() - (ICON_SIZE + RIGHT_PADDING);
+        this.nextLayerButton.x = border.getWidth() - (2 * ICON_SIZE + RIGHT_PADDING + 2);
         this.nextLayerButton.y = LAYER_BUTTON_Y;
         if (resetViewWhenPreviewReady) {
             selected = null;
@@ -605,7 +636,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     private void configureLoadedPreviewLayout() {
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer == null || recipeLayout == null) {
             return;
         }
@@ -646,9 +677,13 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         pendingMouseWheel = 0;
     }
 
+    private static StructurePreviewRenderer createPreviewRenderer(TrackedDummyWorld world) {
+        return new StructurePreviewRenderer(world, PREVIEW_MAX_RESOLUTION, PREVIEW_MAX_RESOLUTION);
+    }
+
     @Nullable
-    public WorldSceneRenderer getCurrentRenderer() {
-        return hasLivePreview() ? patterns[0].getSceneRenderer() : null;
+    public StructurePreviewRenderer getCurrentRenderer() {
+        return hasLivePreview() ? previewRenderer : null;
     }
 
     public int getLayerIndex() {
@@ -656,7 +691,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     private void toggleNextLayer() {
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer == null) {
             return;
         }
@@ -672,7 +707,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private void setNextLayer(int newLayer) {
         this.layerIndex = newLayer;
         this.nextLayerButton.displayString = "L:" + (layerIndex == -1 ? "A" : Integer.toString(layerIndex + 1));
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer != null) {
             TrackedDummyWorld world = ((TrackedDummyWorld) renderer.world);
             resetCenter(world, renderer);
@@ -695,7 +730,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
     }
 
-    private void resetCenter(TrackedDummyWorld world, WorldSceneRenderer renderer) {
+    private void resetCenter(TrackedDummyWorld world, StructurePreviewRenderer renderer) {
         Vector3f size = world.getSize();
         Vector3f minPos = world.getMinPos();
         center = new Vector3f(minPos.x + size.x / 2, minPos.y + size.y / 2, minPos.z + size.z / 2);
@@ -719,7 +754,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @NotNull
     private EnumFacing getPreviewControllerFacing() {
         MultiblockControllerBase classFallback = null;
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer == null) {
             return EnumFacing.SOUTH;
         }
@@ -762,6 +797,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         int max = channelRanges[channelIndex][1];
         int firstValue = getFirstSelectableValue(min);
         int clamped = value <= 0 || max < firstValue ? 0 : Math.max(firstValue, Math.min(max, value));
+        if (channelValues.getOrDefault(channelName, 0) == clamped) return;
         if (clamped == 0) {
             channelValues.remove(channelName);
         } else {
@@ -778,6 +814,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     private void clearPreviewSelection() {
+        cachedCandidateGroups.clear();
+        cachedCandidateBlocks.clear();
         this.selected = null;
         this.candidateCycleIndex = 0;
         this.lastCandidateCycleTime = 0L;
@@ -785,7 +823,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
             for (int i = 0; i < MAX_CANDIDATES; i++) {
                 try {
-                    itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
+                    itemStackGroup.set(i + CANDIDATE_SLOT_BASE, ItemStack.EMPTY);
                 } catch (Exception ignored) {
                     // Candidate slots are created lazily; ignore slots that do not exist yet.
                 }
@@ -795,27 +833,28 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         previewTips = null;
     }
 
-    private void preparePlaceForParts(int recipeHeight) {
+    public int getCompactPartCount() {
+        return hasLivePreview() ? patterns[0].getParts().size() : 0;
+    }
+
+    private void preparePlaceForParts() {
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
-        // Place item slots on the left panel: 2 columns, up to SLOTS_PER_COL rows each
-        for (int i = 0; i < MAX_PARTS; ++i) {
-            int col = i / SLOTS_PER_COL;
-            int row = i % SLOTS_PER_COL;
-            itemStackGroup.init(i, true,
-                    col * SLOT_SIZE + 1,
-                    row * SLOT_SIZE + 2);
+        int count = getCompactPartCount();
+        for (int i = count; i < initializedPartsCount; i++) {
+            itemStackGroup.set(i, (ItemStack) null);
         }
+        for (int i = 0; i < count; i++) {
+            itemStackGroup.init(i, true, CompactPreviewLayout.partSlotX(i), CompactPreviewLayout.partSlotY(i));
+        }
+        initializedPartsCount = count;
     }
 
     private void updateParts() {
+        preparePlaceForParts();
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
         List<ItemStack> parts = this.patterns[0].getParts();
-        int limit = Math.min(parts.size(), MAX_PARTS);
-        for (int i = 0; i < limit; ++i) {
+        for (int i = 0; i < parts.size(); i++) {
             itemStackGroup.set(i, parts.get(i));
-        }
-        for (int i = parts.size(); i < MAX_PARTS; ++i) {
-            itemStackGroup.set(i, (ItemStack) null);
         }
     }
 
@@ -824,17 +863,19 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             return;
         }
         IGuiItemStackGroup itemStackGroup = recipeLayout.getItemStacks();
-        for (int i = 0; i < MAX_PARTS; i++) {
+        for (int i = 0; i < initializedPartsCount; i++) {
             itemStackGroup.set(i, (ItemStack) null);
         }
     }
     @Override
     public void drawInfo(@NotNull Minecraft minecraft, int recipeWidth, int recipeHeight, int mouseX, int mouseY) {
+        boolean draggingChannel = channelDrag.isActive();
+        updateChannelDrag(mouseX, Mouse.isButtonDown(0));
         ensurePreviewLoadStarted();
         advancePreviewLoading();
         advanceCandidateCycle();
         if (!hasLivePreview()) {
-            drawPreviewLoading(minecraft, recipeWidth, recipeHeight);
+            drawPreviewLoading(minecraft, recipeWidth, CompactPreviewLayout.HEIGHT);
             tooltipBlockStack = null;
             this.previewTips = null;
             lastRender = System.currentTimeMillis();
@@ -843,68 +884,28 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             return;
         }
         configureLoadedPreviewLayout();
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer == null) {
-            drawPreviewLoading(minecraft, recipeWidth, recipeHeight);
+            drawPreviewLoading(minecraft, recipeWidth, CompactPreviewLayout.HEIGHT);
             return;
         }
-        // The preview is rendered for the full recipe panel, as if the channel sliders did not exist. They are
-        // drawn afterwards as a translucent overlay. This keeps the rendered area's aspect ratio constant, so
-        // adding or removing sliders can never squash or stretch the structure.
         int sceneX = 0;
         int sceneY = 0;
-        int sceneWidth = recipeWidth;
-        int sceneHeight = recipeHeight;
+        int sceneWidth = CompactPreviewLayout.WIDTH;
+        int sceneHeight = CompactPreviewLayout.HEIGHT;
+        int panelBackground = 0xFF000000 | ConfigHolder.client.multiblockPreviewColor;
+        int partCount = getCompactPartCount();
+        if (partCount > 0) {
+            int partsX = CompactPreviewLayout.partsX(partCount);
+            int partsWidth = CompactPreviewLayout.partsWidth(partCount);
+            int partsHeight = CompactPreviewLayout.partsHeight(partCount);
+            drawRect(partsX, 0, partsX + partsWidth, partsHeight, panelBackground);
+            drawPreviewFrame(partsX, 0, partsWidth, partsHeight);
+        }
+        drawRect(0, CompactPreviewLayout.CONTROLS_Y, recipeWidth,
+                CompactPreviewLayout.CONTROLS_Y + CompactPreviewLayout.CONTROLS_HEIGHT, panelBackground);
+        drawPreviewFrame(0, CompactPreviewLayout.CONTROLS_Y, recipeWidth, CompactPreviewLayout.CONTROLS_HEIGHT);
         matchBufferAspect(renderer, sceneWidth, sceneHeight);
-
-        // Render 3D scene (OpenGL state safety)
-        GlStateManager.pushMatrix();
-        GlStateManager.pushAttrib();
-        try {
-            GlStateManager.enableRescaleNormal();
-            GlStateManager.enableLighting();
-            RenderHelper.enableStandardItemLighting();
-            renderer.render(sceneX, sceneY, sceneWidth, sceneHeight, mouseX, mouseY);
-        } finally {
-            GlStateManager.popAttrib();
-            GlStateManager.popMatrix();
-        }
-        drawPreviewFrame(sceneX, sceneY, sceneWidth, sceneHeight);
-
-        // Draw multiblock name and tier info (overlaid on 3D scene)
-        drawMultiblockName(recipeWidth);
-        drawMultiblockTier(recipeWidth);
-        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
-
-        // Draw info icon (top-right corner)
-        int iconX = recipeWidth - (ICON_SIZE + RIGHT_PADDING);
-        int iconY = INFO_ICON_Y;
-        this.infoIcon.draw(minecraft, iconX, iconY);
-        this.drawInfoIcon = mouseX >= iconX && mouseX <= iconX + ICON_SIZE &&
-                mouseY >= iconY && mouseY <= iconY + ICON_SIZE;
-
-        // Draw left-side parts slots (only for actual items, no empty slots to avoid blocking 3D)
-        int actualPartsCount = Math.min(this.patterns[0].getParts().size(), MAX_PARTS);
-        for (int i = 0; i < actualPartsCount; ++i) {
-            int col = i / SLOTS_PER_COL;
-            int row = i % SLOTS_PER_COL;
-            int slotX = col * SLOT_SIZE + 1;
-            int slotY = row * SLOT_SIZE + 2;
-            this.slot.draw(minecraft, slotX, slotY);
-        }
-
-        // Draw right-side candidate slots (overlaid on 3D scene, no overlap with left panel)
-        for (int i = 0; i < previewCandidates.size() && i < MAX_CANDIDATES; i++) {
-            int col = i / CANDIDATES_PER_COL;
-            int row = i % CANDIDATES_PER_COL;
-            int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
-            int slotY = row * SLOT_SIZE + CANDIDATE_SLOT_START_Y;
-            this.slot.draw(minecraft, slotX, slotY);
-        }
-
-        for (GuiButton button : buttons.keySet()) {
-            button.drawButton(minecraft, mouseX, mouseY, 0.0f);
-        }
 
         boolean isMouseOverButton = false;
         for (GuiButton button : buttons.keySet()) {
@@ -914,10 +915,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 break;
             }
         }
-        // The preview fills the whole panel, so the hit test covers the whole panel too.
+        // Camera interaction is confined to the structure viewport.
         boolean insideView = mouseX >= sceneX && mouseY >= sceneY &&
                 mouseX < sceneX + sceneWidth && mouseY < sceneY + sceneHeight &&
-                !isMouseOverButton;
+                !isMouseOverButton && !draggingChannel;
 
         boolean leftClickHeld = Mouse.isButtonDown(0);
         boolean rightClickHeld = Mouse.isButtonDown(1);
@@ -929,14 +930,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             if (Math.abs(deltaX) > 0.5f || Math.abs(deltaY) > 0.5f) {
                 final float panSensitivity = 0.08f;
 
-                double yawRad = Math.toRadians(rotationPitch);   // rotationPitch = yaw
-                double pitchRad = Math.toRadians(rotationYaw);   // rotationYaw = pitch
-
-                Vec3d forward = new Vec3d(
-                        Math.cos(pitchRad) * Math.sin(yawRad),
-                        Math.sin(pitchRad),
-                        Math.cos(pitchRad) * Math.cos(yawRad)
-                ).normalize();
+                Vec3d forward = new Vec3d(renderer.getLookAt().x - renderer.getEyePos().x,
+                        renderer.getLookAt().y - renderer.getEyePos().y,
+                        renderer.getLookAt().z - renderer.getEyePos().z).normalize();
 
                 Vec3d right = forward.crossProduct(new Vec3d(0.0, 1.0, 0.0)).normalize();
                 if (right.lengthSquared() < 1e-6) {
@@ -945,9 +941,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
                 Vec3d up = right.crossProduct(forward).normalize();
 
-                center.x += (float)(-deltaX * right.x * panSensitivity);
-                center.y += (float)(-deltaX * right.y * panSensitivity);
-                center.z += (float)(-deltaX * right.z * panSensitivity);
+                center.x += (float)(deltaX * right.x * panSensitivity);
+                center.y += (float)(deltaX * right.y * panSensitivity);
+                center.z += (float)(deltaX * right.z * panSensitivity);
 
                 center.x += (float)(-deltaY * up.x * panSensitivity);
                 center.y += (float)(-deltaY * up.y * panSensitivity);
@@ -956,7 +952,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 cameraModified = true;
             }
         }
-        else if (insideView && leftClickHeld) {
+        else if (insideView && leftClickHeld && (mouseX != lastMouseX || mouseY != lastMouseY)) {
             rotationPitch += (mouseX - lastMouseX);
             rotationPitch %= 360.0f;
             if (rotationPitch < 0) rotationPitch += 360.0f;
@@ -978,6 +974,55 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
 
         // 悬停检测（仅当未拖拽时）
+
+        // Render 3D scene (OpenGL state safety)
+        GlStateManager.pushMatrix();
+        GlStateManager.pushAttrib();
+        try {
+            GlStateManager.enableRescaleNormal();
+            GlStateManager.enableLighting();
+            RenderHelper.enableStandardItemLighting();
+            renderer.render(sceneX, sceneY, sceneWidth, sceneHeight, mouseX, mouseY);
+        } finally {
+            GlStateManager.popAttrib();
+            GlStateManager.popMatrix();
+        }
+        drawPreviewFrame(sceneX, sceneY, sceneWidth, sceneHeight);
+
+        // Draw the title and channel controls outside the structure viewport.
+        drawMultiblockName(recipeWidth);
+        drawMultiblockTier(recipeWidth);
+        GlStateManager.color(1.0F, 1.0F, 1.0F, 1.0F);
+
+        // Fullscreen action in the bottom toolbar.
+        int iconX = recipeWidth - (ICON_SIZE + RIGHT_PADDING);
+        int iconY = INFO_ICON_Y;
+        this.infoIcon.draw(minecraft, iconX, iconY);
+        this.drawInfoIcon = mouseX >= iconX && mouseX <= iconX + ICON_SIZE &&
+                mouseY >= iconY && mouseY <= iconY + ICON_SIZE;
+
+        // Draw left-side parts slots (only for actual items, no empty slots to avoid blocking 3D)
+        for (int i = 0; i < partCount; ++i) {
+            this.slot.draw(minecraft, CompactPreviewLayout.partSlotX(i), CompactPreviewLayout.partSlotY(i));
+        }
+
+        // Candidate slots have a dedicated rail beside the viewport.
+        for (int i = 0; i < previewCandidates.size() && i < MAX_CANDIDATES; i++) {
+            int col = i / CANDIDATES_PER_COL;
+            int row = i % CANDIDATES_PER_COL;
+            int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
+            int slotY = row * SLOT_SIZE + CANDIDATE_SLOT_START_Y;
+            this.slot.draw(minecraft, slotX, slotY);
+        }
+
+        for (GuiButton button : buttons.keySet()) {
+            if (button.id == 1) {
+                button.visible = supportedChannels.size() > CHANNEL_ROWS;
+                button.displayString = (channelPage + 1) + "/" + Math.max(1, (supportedChannels.size() + CHANNEL_ROWS - 1) / CHANNEL_ROWS);
+            }
+            button.drawButton(minecraft, mouseX, mouseY, 0.0f);
+        }
+
         tooltipBlockStack = null;
         this.previewTips = null;
         RayTraceResult rayTraceResult = renderer.getLastTraceResult();
@@ -1037,7 +1082,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private void drawMultiblockName(int recipeWidth) {
         String localizedName = I18n.format(controller.getMetaFullName());
         FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
-        List<String> lines = fontRenderer.listFormattedStringToWidth(localizedName, recipeWidth - 10);
+        List<String> lines = fontRenderer.listFormattedStringToWidth(localizedName, recipeWidth - 8);
         for (int i = 0; i < lines.size(); i++) {
             fontRenderer.drawString(lines.get(i), (recipeWidth - fontRenderer.getStringWidth(lines.get(i))) / 2,
                     fontRenderer.FONT_HEIGHT * i, ConfigHolder.client.multiblockPreviewFontColor);
@@ -1048,24 +1093,23 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         if (supportedChannels.isEmpty()) return;
         FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
 
-        // The channel sliders are a translucent overlay on top of the preview, which is rendered for the full
-        // panel as if they were not there. The strip below keeps them readable and clickable.
-        int sliderStartY = 184 - (supportedChannels.size() * 16 + 6);
-        int sliderWidth = recipeWidth - PARTS_WIDTH - 10;
-        int sliderX = PARTS_WIDTH + 5;
-        drawRect(0, sliderStartY - 4, recipeWidth, 184, 0x80101820);
+        // Fixed-height channel pages keep the camera viewport stable across structures.
+        int sliderStartY = CHANNEL_TOP;
+        int sliderWidth = getSliderWidth(recipeWidth);
+        int sliderX = getSliderX();
 
-        for (int i = 0; i < supportedChannels.size(); i++) {
+        for (int i = channelPage * CHANNEL_ROWS; i < Math.min(supportedChannels.size(), (channelPage + 1) * CHANNEL_ROWS); i++) {
             StructureChannel channel = supportedChannels.get(i);
             String channelName = channel.getName();
             int min = channelRanges[i][0];
             int max = channelRanges[i][1];
-            int value = channelValues.getOrDefault(channelName, 0);
-            int rowY = sliderStartY + i * 16;
+            int value = getChannelValue(channel);
+            int rowY = sliderStartY + (i - channelPage * CHANNEL_ROWS) * 16;
 
             // Draw channel label (localized)
             String label = I18n.format(channel.getDefaultTooltip());
-            fontRenderer.drawString(label, sliderX, rowY, 0xFFCFE9F5);
+            fontRenderer.drawString(fontRenderer.trimStringToWidth(label, sliderWidth - 28), sliderX, rowY,
+                    ConfigHolder.client.multiblockPreviewFontColor);
 
             // Draw slider track
             int trackX = sliderX;
@@ -1082,12 +1126,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
             // Draw value text (right-aligned)
             String valueText = value == 0 ? "Auto" : String.valueOf(value);
-            ItemStack indicator = channel.getIndicatorItem(value);
-            if (!indicator.isEmpty() && value > 0) {
-                valueText = indicator.getDisplayName();
-            }
             fontRenderer.drawString(valueText, sliderX + sliderWidth - fontRenderer.getStringWidth(valueText),
-                    rowY, 0xFFEAF7FF);
+                    rowY, ConfigHolder.client.multiblockPreviewFontColor);
         }
     }
 
@@ -1119,14 +1159,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         return hasLivePreview();
     }
 
-    /**
-     * @return the live preview renderer, or null while the preview is still loading.
-     */
-    @Nullable
-    public WorldSceneRenderer getRenderer() {
-        return getCurrentRenderer();
-    }
-
     @NotNull
     public List<ItemStack> getPreviewParts() {
         return hasLivePreview() ? patterns[0].getParts() : Collections.emptyList();
@@ -1150,13 +1182,34 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     public int getChannelValue(@NotNull StructureChannel channel) {
-        return channelValues.getOrDefault(channel.getName(), 0);
+        int index = supportedChannels.indexOf(channel);
+        int committed = channelValues.getOrDefault(channel.getName(), 0);
+        if (index < 0) return committed;
+        int min = channelRanges[index][0], max = channelRanges[index][1];
+        return sliderIndexToChannelValue(channelDrag.indexFor(index,
+                channelValueToSliderIndex(committed, min, max)), min, max);
+    }
+
+    public void beginChannelDrag(int channel, int trackX, int trackWidth, int mouseX) {
+        channelDrag.begin(channel, trackX, trackWidth, getSliderSteps(channel), mouseX);
+    }
+
+    public boolean isDraggingChannel() {
+        return channelDrag.isActive();
+    }
+
+    public void updateChannelDrag(int mouseX, boolean held) {
+        channelDrag.update(mouseX, held, this::applyChannelSliderValue);
+    }
+
+    public void cancelChannelDrag() {
+        channelDrag.cancel();
     }
 
     /**
      * Applies a slider index (0 = auto, 1..n = concrete values) to the channel and regenerates the preview.
      */
-    public void setChannelValueFromSlider(int channelIndex, int sliderIndex) {
+    private void applyChannelSliderValue(int channelIndex, int sliderIndex) {
         if (channelIndex < 0 || channelIndex >= supportedChannels.size()) {
             return;
         }
@@ -1178,7 +1231,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         int min = channelRanges[channelIndex][0];
         int max = channelRanges[channelIndex][1];
-        return channelValueToSliderIndex(channelValues.getOrDefault(channel.getName(), 0), min, max);
+        return channelValueToSliderIndex(getChannelValue(channel), min, max);
     }
 
     /**
@@ -1226,7 +1279,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      * @return the maximum selectable layer index (structure height - 1), or -1 when no preview is loaded.
      */
     public int getMaxLayerIndex() {
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer == null) {
             return -1;
         }
@@ -1272,7 +1325,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      * Pushes the current camera state into the renderer, marking the cached FBO content as dirty.
      */
     public void applyCamera() {
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer == null) {
             return;
         }
@@ -1280,9 +1333,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     public void markRendererDirty() {
-        WorldSceneRenderer renderer = getCurrentRenderer();
-        if (renderer instanceof FBOWorldSceneRenderer fboRenderer) {
-            fboRenderer.markFBODirty();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
+        if (renderer != null) {
+            renderer.markFBODirty();
         }
     }
 
@@ -1352,7 +1405,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         if (recipeLayout == null) {
             return;
         }
-        preparePlaceForParts(recipeLayout.getRecipeCategory().getBackground().getHeight());
+        preparePlaceForParts();
         if (hasLivePreview()) {
             updateParts();
         }
@@ -1369,7 +1422,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      */
     public void renderScene(@NotNull Minecraft minecraft, int x, int y, int width, int height, int mouseX,
                             int mouseY) {
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer == null || width <= 0 || height <= 0) {
             return;
         }
@@ -1403,10 +1456,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      * full-screen 3D scene, and rendering several times more pixels than the window shows is what made
      * dragging the camera stutter. A little softness is the accepted trade for a smooth drag.
      */
-    private void matchBufferAspect(@NotNull WorldSceneRenderer renderer, int areaWidth, int areaHeight) {
-        if (!(renderer instanceof FBOWorldSceneRenderer fboRenderer)) {
-            return;
-        }
+    private void matchBufferAspect(@NotNull StructurePreviewRenderer renderer, int areaWidth, int areaHeight) {
         int displayedLongest = Math.max(1, Math.max(areaWidth, areaHeight)) * guiScale();
         int quality = Math.max(256, Math.min(displayedLongest, PREVIEW_MAX_RESOLUTION));
         float aspect = (float) Math.max(1, areaWidth) / Math.max(1, areaHeight);
@@ -1419,8 +1469,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             height = quality;
             width = Math.max(96, Math.round(quality * aspect));
         }
-        int currentWidth = fboRenderer.getResolutionWidth();
-        int currentHeight = Math.max(1, fboRenderer.getResolutionHeight());
+        int currentWidth = renderer.getResolutionWidth();
+        int currentHeight = Math.max(1, renderer.getResolutionHeight());
         // Reallocate only on a meaningful change: a few pixels of viewport drift must not rebuild the buffer
         // (and force a full scene re-render) every frame.
         float ratio = Math.abs(width - currentWidth) / (float) Math.max(1, Math.max(width, currentWidth));
@@ -1429,7 +1479,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         if (ratio <= 0.15F && aspectDelta <= 0.06F) {
             return;
         }
-        fboRenderer.setFBOSize(width, height);
+        renderer.setFBOSize(width, height);
     }
 
     private static int guiScale() {
@@ -1450,7 +1500,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     public void updateHoverState(@NotNull Minecraft minecraft, int mouseX, int mouseY, boolean insideView) {
         tooltipBlockStack = null;
         this.previewTips = null;
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         this.lastMouseX = mouseX;
         this.lastMouseY = mouseY;
         lastRender = System.currentTimeMillis();
@@ -1474,6 +1524,19 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      * Selects the block under the given preview-world position, loading its typed alternatives. Also used by
      * the fullscreen viewer so both views share the same selection state.
      */
+    public RayTraceResult pickPreview(int mouseX, int mouseY, int x, int y, int width, int height) {
+        StructurePreviewRenderer renderer = getCurrentRenderer();
+        RayTraceResult hit = renderer == null ? null : renderer.pick(mouseX, mouseY, x, y, width, height);
+        long now = System.currentTimeMillis();
+        if (now - lastClickDiagnostic >= 5000) {
+            GTLog.logger.info("[JEIMultiblockPreview] click controller={} mouse=({}, {}) viewport=({}, {}, {}, {}) hit={} blocks={}",
+                    controller.metaTileEntityId, mouseX, mouseY, x, y, width, height,
+                    hit == null ? "none" : hit.getBlockPos(), renderer == null ? 0 : renderer.renderedBlocks.size());
+            lastClickDiagnostic = now;
+        }
+        return hit;
+    }
+
     public void selectBlock(@NotNull BlockPos pos) {
         if (Objects.equals(this.selected, pos)) {
             return;
@@ -1483,12 +1546,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         this.candidateCycleIndex = 0;
         this.lastCandidateCycleTime = 0L;
         previewCandidates.addAll(loadPreviewCandidates(pos));
-        markRendererDirty();
     }
 
     public void clearSelection() {
         clearPreviewSelection();
-        markRendererDirty();
     }
 
     /**
@@ -1510,9 +1571,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      * The camera distance has to grow with the offscreen resolution, because the renderer's field of view is
      * measured against the buffer size. Returns 1.0 for the baseline square buffer and scales from there.
      */
-    private static float resolutionFactor(@NotNull WorldSceneRenderer renderer) {
-        int width = renderer instanceof FBOWorldSceneRenderer fboRenderer ? fboRenderer.getResolutionWidth()
-                : PREVIEW_MAX_RESOLUTION;
+    private static float resolutionFactor(@NotNull StructurePreviewRenderer renderer) {
+        int width = renderer.getResolutionWidth();
         return Math.max(1.0F, width / (float) PREVIEW_MAX_RESOLUTION);
     }
 
@@ -1530,15 +1590,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private int getSliderTrackY(int channelIdx, int sliderStartY) {
         FontRenderer fontRenderer = Minecraft.getMinecraft().fontRenderer;
-        return sliderStartY + channelIdx * 16 + fontRenderer.FONT_HEIGHT + 1;
+        return sliderStartY + (channelIdx - channelPage * CHANNEL_ROWS) * 16 + fontRenderer.FONT_HEIGHT + 1;
     }
 
     private int getSliderX() {
-        return PARTS_WIDTH + 5;
+        return 5;
     }
 
     private int getSliderWidth(int recipeWidth) {
-        return recipeWidth - PARTS_WIDTH - 10;
+        return recipeWidth - 3 * ICON_SIZE - RIGHT_PADDING - 14;
     }
 
     private static int getFirstSelectableValue(int min) {
@@ -1569,7 +1629,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         if (!hasLivePreview()) {
             return false;
         }
-        WorldSceneRenderer renderer = getCurrentRenderer();
+        StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer == null) {
             return false;
         }
@@ -1586,20 +1646,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         // Handle channel slider clicks
         if (mouseButton == 0 && !supportedChannels.isEmpty()) {
-            int sliderStartY = 184 - (supportedChannels.size() * 16 + 6);
+            int sliderStartY = CHANNEL_TOP;
             int sliderX = getSliderX();
             int sliderWidth = getSliderWidth(176);
-            for (int i = 0; i < supportedChannels.size(); i++) {
+            for (int i = channelPage * CHANNEL_ROWS; i < Math.min(supportedChannels.size(), (channelPage + 1) * CHANNEL_ROWS); i++) {
                 int trackY = getSliderTrackY(i, sliderStartY);
                 // Click area: track region with some vertical tolerance
                 if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth
                         && mouseY >= trackY - 3 && mouseY <= trackY + 7) {
-                    int min = channelRanges[i][0];
-                    int max = channelRanges[i][1];
-                    float ratio = (float) (mouseX - sliderX) / sliderWidth;
-                    int newIndex = Math.round(ratio * getSliderStepCount(min, max));
-                    int newValue = sliderIndexToChannelValue(newIndex, min, max);
-                    setChannelValue(i, newValue);
+                    beginChannelDrag(i, sliderX, sliderWidth, mouseX);
                     return true;
                 }
             }
@@ -1612,39 +1667,24 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 return true;
             }
         }
-        if (mouseButton == 1) {
+        if (mouseButton == 0 || mouseButton == 1) {
+            if (!CompactPreviewLayout.containsViewport(mouseX, mouseY)) return false;
+            if (!previewCandidates.isEmpty() && mouseX >= 176 - RIGHT_PADDING - SLOT_SIZE &&
+                    mouseY >= CANDIDATE_SLOT_START_Y && mouseY < CANDIDATE_SLOT_START_Y +
+                    Math.min(MAX_CANDIDATES, previewCandidates.size()) * SLOT_SIZE) return false;
+            pickPreview(mouseX, mouseY, 0, 0, CompactPreviewLayout.WIDTH, CompactPreviewLayout.HEIGHT);
             if (renderer.getLastTraceResult() == null) {
-                if (this.selected != null) {
-                    this.selected = null;
-                    // Clear predicates without directly accessing item stacks
-                    // JEI will handle clearing the slots when they are re-initialized
-                    previewCandidates.clear();
-                    this.candidateCycleIndex = 0;
-                    this.lastCandidateCycleTime = 0L;
-                    return true;
-                }
-                return false;
+                boolean hadSelection = selected != null;
+                clearSelection();
+                return hadSelection;
             }
-            BlockPos selected = renderer.getLastTraceResult().getBlockPos();
-            if (!Objects.equals(this.selected, selected)) {
-                // Clear old predicates without accessing item stacks directly
-                // The item stacks will be properly cleared in setItemStackGroup when new slots are initialized
-                previewCandidates.clear();
-                this.selected = selected;
-                // Reset candidate cycling state for 3D in-place preview
-                this.candidateCycleIndex = 0;
-                this.lastCandidateCycleTime = 0L;
-                previewCandidates.addAll(loadPreviewCandidates(this.selected));
-                // Only call setItemStackGroup if we have valid candidates
-                if (!previewCandidates.isEmpty()) {
-                    setItemStackGroup();
-                }
-                // Mark FBO dirty so scene re-renders with candidate block cycling
-                if (renderer instanceof FBOWorldSceneRenderer fboRenderer) {
-                    fboRenderer.markFBODirty();
-                }
-                return true;
+            BlockPos target = renderer.getLastTraceResult().getBlockPos();
+            if (!Objects.equals(selected, target)) {
+                clearPreviewSelection();
+                selectBlock(target);
+                setItemStackGroup();
             }
+            return true;
         }
         return false;
     }
@@ -1656,10 +1696,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         IDrawable border = recipeLayout.getRecipeCategory().getBackground();
         int recipeWidth = border.getWidth();
         
-        // First, clear all old candidate slots (MAX_PARTS to MAX_PARTS + MAX_CANDIDATES)
+        // First, clear all old candidate slots (CANDIDATE_SLOT_BASE to CANDIDATE_SLOT_BASE + MAX_CANDIDATES)
         for (int i = 0; i < MAX_CANDIDATES; i++) {
             try {
-                itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
+                itemStackGroup.set(i + CANDIDATE_SLOT_BASE, ItemStack.EMPTY);
             } catch (Exception e) {
                 // Ignore if slot is not initialized yet
             }
@@ -1672,19 +1712,19 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             int row = i % CANDIDATES_PER_COL;
             int slotX = recipeWidth - RIGHT_PADDING - (col + 1) * SLOT_SIZE;
             int slotY = row * SLOT_SIZE + CANDIDATE_SLOT_START_Y;
-            itemStackGroup.init(i + MAX_PARTS, true, slotX, slotY);
+            itemStackGroup.init(i + CANDIDATE_SLOT_BASE, true, slotX, slotY);
             PreviewCandidate candidate = previewCandidates.get(i);
             if (candidate != null && !candidate.getItemCandidates().isEmpty()) {
-                itemStackGroup.set(i + MAX_PARTS, candidate.getItemCandidates());
+                itemStackGroup.set(i + CANDIDATE_SLOT_BASE, candidate.getItemCandidates());
             } else {
-                itemStackGroup.set(i + MAX_PARTS, ItemStack.EMPTY);
+                itemStackGroup.set(i + CANDIDATE_SLOT_BASE, ItemStack.EMPTY);
             }
         }
 
         // Add tooltip callback with safety checks
         itemStackGroup.addTooltipCallback((slotIndex, input, itemStack, tooltip) -> {
-            if (slotIndex >= MAX_PARTS && slotIndex < MAX_PARTS + previewCandidates.size()) {
-                int predIndex = slotIndex - MAX_PARTS;
+            if (slotIndex >= CANDIDATE_SLOT_BASE && slotIndex < CANDIDATE_SLOT_BASE + Math.min(MAX_CANDIDATES, previewCandidates.size())) {
+                int predIndex = slotIndex - CANDIDATE_SLOT_BASE;
                 if (predIndex >= 0 && predIndex < previewCandidates.size()) {
                     tooltip.addAll(previewCandidates.get(predIndex).getTooltip());
                 }
@@ -1791,18 +1831,18 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         // Channel slider tooltips
         if (!supportedChannels.isEmpty()) {
-            int sliderStartY = 184 - (supportedChannels.size() * 16 + 6);
+            int sliderStartY = CHANNEL_TOP;
             int sliderX = getSliderX();
             int sliderWidth = getSliderWidth(176);
-            for (int i = 0; i < supportedChannels.size(); i++) {
-                int rowY = sliderStartY + i * 16;
+            for (int i = channelPage * CHANNEL_ROWS; i < Math.min(supportedChannels.size(), (channelPage + 1) * CHANNEL_ROWS); i++) {
+                int rowY = sliderStartY + (i - channelPage * CHANNEL_ROWS) * 16;
                 int trackY = getSliderTrackY(i, sliderStartY);
                 if (mouseX >= sliderX && mouseX <= sliderX + sliderWidth
                         && mouseY >= rowY && mouseY <= trackY + 7) {
                     StructureChannel channel = supportedChannels.get(i);
                     int min = channelRanges[i][0];
                     int max = channelRanges[i][1];
-                    int value = channelValues.getOrDefault(channel.getName(), 0);
+                    int value = getChannelValue(channel);
                     List<String> tips = new ArrayList<>();
                     tips.add(TextFormatting.WHITE + I18n.format(channel.getDefaultTooltip()));
                     tips.add(TextFormatting.GRAY + I18n.format("gregtech.multiblock.preview.channel_range",
@@ -1851,135 +1891,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             return tooltip;
         }
         return Collections.emptyList();
-    }
-
-    @SuppressWarnings("NewExpressionSideOnly")
-    @NotNull
-    private MBPattern initializePattern(@NotNull MultiblockShapeInfo shapeInfo) {
-        Map<BlockPos, BlockInfo> blockMap = new HashMap<>();
-        MultiblockControllerBase controllerBase = null;
-        BlockPos controllerBlockPos = null;
-        MultiblockControllerBase controllerClassFallback = null;
-        BlockPos controllerClassFallbackPos = null;
-        BlockInfo[][][] blocks = shapeInfo.getBlocks();
-        for (int x = 0; x < blocks.length; x++) {
-            BlockInfo[][] aisle = blocks[x];
-            for (int y = 0; y < aisle.length; y++) {
-                BlockInfo[] column = aisle[y];
-                for (int z = 0; z < column.length; z++) {
-                    if (column[z].getTileEntity() instanceof IGregTechTileEntity &&
-                            ((IGregTechTileEntity) column[z].getTileEntity())
-                                    .getMetaTileEntity() instanceof MultiblockControllerBase) {
-                        MultiblockControllerBase previewController =
-                                (MultiblockControllerBase) ((IGregTechTileEntity) column[z].getTileEntity())
-                                        .getMetaTileEntity();
-                        BlockPos pos = new BlockPos(x, y, z);
-                        if (controllerBlockPos == null &&
-                                controller.metaTileEntityId.equals(previewController.metaTileEntityId)) {
-                            controllerBase = previewController;
-                            controllerBlockPos = pos;
-                        } else if (controllerClassFallbackPos == null &&
-                                controller.getClass().isInstance(previewController)) {
-                            controllerClassFallback = previewController;
-                            controllerClassFallbackPos = pos;
-                        }
-                    }
-                    blockMap.put(new BlockPos(x, y, z), column[z]);
-                }
-            }
-        }
-        if (controllerBlockPos == null) {
-            controllerBase = controllerClassFallback;
-            controllerBlockPos = controllerClassFallbackPos;
-        }
-
-        // When using selfPredicateByClass, the preview's controller block comes from the
-        // first matching candidate in the registry, which may not be the actual controller
-        // for this JEI recipe entry. Replace it with the correct controller instance.
-        if (controllerBlockPos != null && controllerBase != null) {
-            if (!controller.metaTileEntityId.equals(controllerBase.metaTileEntityId)) {
-                // Non-parametric controllers with selfPredicateByClass: different MTE IDs
-                // sharing the same class (e.g. LargeMiner, LargeBoiler, LargeTurbine)
-                replaceControllerInPreview(blockMap, controllerBlockPos, controllerBase);
-            }
-        }
-
-        TrackedDummyWorld world = new TrackedDummyWorld();
-        // FBO renderer: offscreen rendering with dirty-flag caching
-        // Resolution dynamically based on typical JEI preview area (~200x200 scaled pixels → 400x400 native)
-        FBOWorldSceneRenderer worldSceneRenderer = new FBOWorldSceneRenderer(world, PREVIEW_MAX_RESOLUTION, PREVIEW_MAX_RESOLUTION);
-
-        worldSceneRenderer.setClearColor(ConfigHolder.client.multiblockPreviewColor);
-        world.addBlocks(blockMap);
-
-        Vector3f size = world.getSize();
-        Vector3f minPos = world.getMinPos();
-        center = new Vector3f(minPos.x + size.x / 2, minPos.y + size.y / 2, minPos.z + size.z / 2);
-
-        // Internal block culling: remove fully-enclosed blocks for medium/large structures
-        int totalBlocks = world.renderedBlocks.size();
-        if (totalBlocks > 50) {
-            worldSceneRenderer.setCullInternalBlocks(true);
-        }
-
-        worldSceneRenderer.addRenderedBlocks(world.renderedBlocks);
-        worldSceneRenderer.setOnLookingAt(ray -> {});
-
-        // TESR optimization: limit tile entity rendering for large structures
-        int blockCount = worldSceneRenderer.renderedBlocks.size();
-        if (blockCount > 100) {
-            // Large structures: only render controller TESR, skip all others
-            worldSceneRenderer.setTileEntityFilter(te ->
-                    te instanceof IGregTechTileEntity gtte &&
-                            gtte.getMetaTileEntity() instanceof MultiblockControllerBase);
-            worldSceneRenderer.setHitTestInterval(5);
-        } else if (blockCount > 50) {
-            // Medium structures: cap TESR count and add distance culling
-            worldSceneRenderer.setMaxTileEntityRenderers(8);
-            worldSceneRenderer.setMaxTileEntityRenderDistance(16.0);
-            worldSceneRenderer.setHitTestInterval(3);
-        }
-        // Small structures (<= 50 blocks): no limits
-
-        worldSceneRenderer.setAfterWorldRender(renderer -> {
-            BlockPos look = worldSceneRenderer.getLastTraceResult() == null ? null :
-                    worldSceneRenderer.getLastTraceResult().getBlockPos();
-            if (look != null && look.equals(selected)) {
-                renderBlockOverLay(selected, 200, 75, 75);
-            } else {
-                renderBlockOverLay(look, 150, 150, 150);
-                renderBlockOverLay(selected, 255, 0, 0);
-            }
-            // Render candidate block cycling at the selected position (GT5 style in-place preview)
-            if (selected != null && !previewCandidates.isEmpty()) {
-                renderCandidateBlockAtPosition(world, selected);
-            }
-        });
-        world.updateEntities();
-        world.setRenderFilter(worldSceneRenderer.renderedBlocks::contains);
-
-        Map<BlockPos, StructureElementPreviewEntry> previewEntries = new HashMap<>();
-        Map<BlockPos, StructureElementPreviewEntry> sourcePreviewEntries =
-                controller.buildStructurePreviewEntries(channelValues);
-        sourcePreviewEntries.forEach((previewPos, entry) -> {
-            if (blockMap.containsKey(previewPos)) {
-                previewEntries.put(previewPos, entry);
-            }
-        });
-        logTypedPreviewEntrySource(controllerBase, blockMap.size(), sourcePreviewEntries.size(),
-                previewEntries.size());
-
-        List<ItemStack> sortedParts = gatherStructureBlocks(worldSceneRenderer.world, blockMap).stream()
-                .sorted((one, two) -> {
-                    if (one.isController) return -1;
-                    if (two.isController) return +1;
-                    if (one.isTile && !two.isTile) return -1;
-                    if (two.isTile && !one.isTile) return +1;
-                    if (one.blockId != two.blockId) return two.blockId - one.blockId;
-                    return two.amount - one.amount;
-                }).map(PartInfo::getItemStack).collect(Collectors.toList());
-
-        return new MBPattern(worldSceneRenderer, sortedParts, previewEntries);
     }
 
     private void logTypedPreviewEntrySource(@Nullable MultiblockControllerBase previewController,
@@ -2038,7 +1949,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         @Nullable
         private TrackedDummyWorld world;
         @Nullable
-        private FBOWorldSceneRenderer renderer;
+        private StructurePreviewRenderer renderer;
         @Nullable
         private MultiblockControllerBase previewController;
         @NotNull
@@ -2079,7 +1990,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             previewEntries = new HashMap<>(previewBuild.getPreviewEntries());
             previewController = correctPreviewController(blockMap);
             world = new TrackedDummyWorld();
-            renderer = new FBOWorldSceneRenderer(world, PREVIEW_MAX_RESOLUTION, PREVIEW_MAX_RESOLUTION);
+            renderer = createPreviewRenderer(world);
             renderer.setClearColor(ConfigHolder.client.multiblockPreviewColor);
             worldBlocks = blockMap.entrySet().iterator();
             transitionTo(PreviewLoadStage.POPULATING_WORLD);
@@ -2118,17 +2029,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 renderer.setCullInternalBlocks(true);
             }
             renderer.addRenderedBlocks(world.renderedBlocks);
-            renderer.setOnLookingAt(ray -> {});
 
             if (renderer.renderedBlocks.size() > 100) {
                 renderer.setTileEntityFilter(te ->
                         te instanceof IGregTechTileEntity gtte &&
                                 gtte.getMetaTileEntity() instanceof MultiblockControllerBase);
-                renderer.setHitTestInterval(5);
             } else if (renderer.renderedBlocks.size() > 50) {
                 renderer.setMaxTileEntityRenderers(8);
                 renderer.setMaxTileEntityRenderDistance(16.0);
-                renderer.setHitTestInterval(3);
             }
 
             renderer.setAfterWorldRender(ignored -> {

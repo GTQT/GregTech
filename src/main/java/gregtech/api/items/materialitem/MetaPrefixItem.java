@@ -2,6 +2,8 @@ package gregtech.api.items.materialitem;
 
 import gregtech.api.GTValues;
 import gregtech.api.items.metaitem.StandardMetaItem;
+import gregtech.api.items.metaitem.stats.IItemRenderer;
+import gregtech.api.items.metaitem.stats.IItemRendererManager;
 import gregtech.api.items.toolitem.ToolClasses;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Material;
@@ -88,7 +90,11 @@ public class MetaPrefixItem extends StandardMetaItem {
         for (Material material : registry) {
             short i = (short) registry.getIDForObject(material);
             if (prefix != null && canGenerate(prefix, material)) {
-                addItem(i, new UnificationEntry(prefix, material).toString());
+                var item = addItem(i, new UnificationEntry(prefix, material).toString());
+                if (material.getMaterialIconSet() instanceof IItemRenderer renderer &&
+                        renderer.getRendererManager() != null) {
+                    item.addComponents(renderer.getRendererManager());
+                }
             }
         }
     }
@@ -147,6 +153,8 @@ public class MetaPrefixItem extends StandardMetaItem {
             if (!alreadyRegistered.containsKey(registrationKey)) {
                 ResourceLocation resourceLocation = Objects.requireNonNull(prefix.materialIconType)
                         .getItemModelPath(materialIconSet);
+                IItemRendererManager renderer = metaItems.get(metaItem).getRendererManager();
+                if (renderer != null) renderer.onRendererRegistry(resourceLocation);
                 ModelBakery.registerItemVariants(this, resourceLocation);
                 alreadyRegistered.put(registrationKey, new ModelResourceLocation(resourceLocation, "inventory"));
             }

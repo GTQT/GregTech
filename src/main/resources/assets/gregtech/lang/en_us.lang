@@ -10366,3 +10366,5 @@ commands.gregtech.mover.adapter_entry= - %s | rotatable: %s
 commands.gregtech.mover.performance_summary=Mover performance samples %s/128 | success %s | failure %s | rollback %s | total avg/P95/max = %s/%s/%s ms
 commands.gregtech.mover.performance_stages=Average stages: selection capture %s | commit capture %s | validation %s | world snapshot %s | journal %s | commit %s | rollback %s ms
 commands.gregtech.mover.performance_cleared=Cleared %s mover performance samples
+
+gregtech.glass_tier.tooltip=Glass Tier: %s

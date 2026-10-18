@@ -1,7 +1,7 @@
 package gregtech.integration.jei.multiblock;
 
 import gregtech.api.pattern.casing.StructureChannel;
-import gregtech.client.renderer.scene.WorldSceneRenderer;
+import gregtech.client.renderer.scene.StructurePreviewRenderer;
 import gregtech.client.utils.TrackedDummyWorld;
 import gregtech.integration.jei.multiblock.MultiblockInfoRecipeWrapper.PreviewCandidate;
 
@@ -129,7 +129,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
     /** Renderer this viewer has already upgraded to fullscreen resolution. */
     @Nullable
-    private WorldSceneRenderer syncedRenderer;
+    private StructurePreviewRenderer syncedRenderer;
 
     // Computed layout for the current frame.
     private int viewportX;
@@ -155,6 +155,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
     // Interaction state.
     private boolean draggingLeft;
+    private int channelPage;
     private boolean insideViewport;
     private int lastMouseX;
     private int lastMouseY;
@@ -191,7 +192,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
      * Re-applied when the renderer changes, so a channel change that rebuilds the preview keeps the framing.
      */
     private void fitCameraToViewport() {
-        WorldSceneRenderer renderer = wrapper.getRenderer();
+        StructurePreviewRenderer renderer = wrapper.getCurrentRenderer();
         if (!(renderer != null && renderer.world instanceof TrackedDummyWorld world)) {
             return;
         }
@@ -224,6 +225,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
      * Collapses the viewer and puts the shared item slots back where the compact recipe page expects them.
      */
     public void close() {
+        wrapper.cancelChannelDrag();
         if (openScreen == this) {
             openScreen = null;
         }
@@ -249,6 +251,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
     @Override
     public void onGuiClosed() {
+        wrapper.cancelChannelDrag();
         close();
         super.onGuiClosed();
     }
@@ -328,6 +331,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
         // The compact recipe page is not drawn while this viewer is open, so the viewer has to drive the
         // resumable preview build itself; otherwise a rebuild triggered by a channel change never finishes.
+        wrapper.updateChannelDrag(mouseX, Mouse.isButtonDown(0));
         wrapper.advancePreviewLoadingStep();
         syncFullscreenRenderer();
         // Keeps the in-place candidate rotation ticking even while the cached preview FBO is clean.
@@ -455,7 +459,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
      */
     @NotNull
     private String buildDimensions() {
-        WorldSceneRenderer renderer = wrapper.getRenderer();
+        StructurePreviewRenderer renderer = wrapper.getCurrentRenderer();
         if (!(renderer != null && renderer.world instanceof TrackedDummyWorld world)) {
             return "";
         }
@@ -555,7 +559,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
      * over from the wrapper's compact default.
      */
     private void syncFullscreenRenderer() {
-        WorldSceneRenderer renderer = wrapper.getRenderer();
+        StructurePreviewRenderer renderer = wrapper.getCurrentRenderer();
         if (renderer == null || renderer == syncedRenderer) {
             return;
         }
@@ -659,15 +663,22 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
             return;
         }
 
+        int pages = Math.max(1, (channels.size() + MAX_SLIDER_ROWS - 1) / MAX_SLIDER_ROWS);
+        channelPage %= pages;
+        if (pages > 1) {
+            String pageLabel = (channelPage + 1) + "/" + pages + " >";
+            fontRenderer.drawString(pageLabel, bottomPanelX + bottomPanelWidth - 40, bottomPanelY + 4, ACCENT);
+        }
         int rowY = bottomPanelY + HEADER_HEIGHT + 2;
         for (int i = 0; i < MAX_SLIDER_ROWS; i++) {
             int y = rowY + i * SLIDER_ROW_HEIGHT;
+            int channelIndex = channelPage * MAX_SLIDER_ROWS + i;
             boolean hovered;
-            if (i < channels.size()) {
-                StructureChannel channel = channels.get(i);
+            if (channelIndex < channels.size()) {
+                StructureChannel channel = channels.get(channelIndex);
                 int value = wrapper.getChannelValue(channel);
-                int steps = wrapper.getSliderSteps(i);
-                int sliderIndex = wrapper.getSliderIndexFor(channel, i);
+                int steps = wrapper.getSliderSteps(channelIndex);
+                int sliderIndex = wrapper.getSliderIndexFor(channel, channelIndex);
                 float ratio = steps <= 0 ? 0.0F : (float) sliderIndex / steps;
 
                 String label = fontRenderer.trimStringToWidth(I18n.format(channel.getDefaultTooltip()),
@@ -701,7 +712,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
                 if (hovered) {
                     List<String> tips = new ArrayList<>();
                     tips.add(TextFormatting.WHITE + I18n.format(channel.getDefaultTooltip()));
-                    int[] range = wrapper.getChannelRange(i);
+                    int[] range = wrapper.getChannelRange(channelIndex);
                     tips.add(TextFormatting.GRAY + I18n.format("gregtech.multiblock.preview.channel_range", range[0],
                             range[1]));
                     tips.add(value > 0
@@ -835,17 +846,18 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         }
         // Channel sliders.
         List<StructureChannel> channels = wrapper.getSupportedChannels();
+        int pages = Math.max(1, (channels.size() + MAX_SLIDER_ROWS - 1) / MAX_SLIDER_ROWS);
+        if (pages > 1 && isInside(mouseX, mouseY, bottomPanelX + bottomPanelWidth - 44,
+                bottomPanelY, 44, HEADER_HEIGHT)) {
+            channelPage = (channelPage + 1) % pages;
+            return true;
+        }
         int rowY = bottomPanelY + HEADER_HEIGHT + 4;
-        for (int i = 0; i < channels.size() && i < MAX_SLIDER_ROWS; i++) {
+        for (int i = 0; channelPage * MAX_SLIDER_ROWS + i < channels.size() && i < MAX_SLIDER_ROWS; i++) {
+            int channelIndex = channelPage * MAX_SLIDER_ROWS + i;
             int y = rowY + i * SLIDER_ROW_HEIGHT;
             if (isInside(mouseX, mouseY, sliderTrackX, y, sliderTrackWidth, SLIDER_ROW_HEIGHT - 4)) {
-                int steps = wrapper.getSliderSteps(i);
-                float ratio = (float) (mouseX - sliderTrackX) / Math.max(1, sliderTrackWidth);
-                if (wrapper.getChannelValue(channels.get(i)) > 0 || ratio > 0.04F) {
-                    wrapper.setChannelValueFromSlider(i, Math.round(ratio * steps));
-                } else {
-                    wrapper.setChannelValueFromSlider(i, 0);
-                }
+                wrapper.beginChannelDrag(channelIndex, sliderTrackX, sliderTrackWidth, mouseX);
                 return true;
             }
         }
@@ -858,10 +870,11 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     }
 
     private boolean handleRightClick(int mouseX, int mouseY) {
-        if (!insideViewport) {
+        if (!isInside(mouseX, mouseY, viewportX + 2, viewportY + 2, viewportWidth - 4, viewportHeight - 4)) {
             return false;
         }
-        WorldSceneRenderer renderer = wrapper.getRenderer();
+        wrapper.pickPreview(mouseX, mouseY, viewportX + 2, viewportY + 2, viewportWidth - 4, viewportHeight - 4);
+        StructurePreviewRenderer renderer = wrapper.getCurrentRenderer();
         if (renderer == null || renderer.getLastTraceResult() == null) {
             if (wrapper.getSelectedBlock() != null) {
                 wrapper.clearSelection();
@@ -880,6 +893,12 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
         applyLayout(width, height);
+        if (wrapper.isDraggingChannel()) {
+            wrapper.updateChannelDrag(mouseX, true);
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+            return;
+        }
         int deltaX = mouseX - lastMouseX;
         int deltaY = mouseY - lastMouseY;
         boolean inView = mouseX >= viewportX && mouseX < viewportX + viewportWidth
@@ -897,38 +916,29 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
     private void panCamera(int deltaX, int deltaY) {
         final float sensitivity = 0.05F;
-        double yaw = Math.toRadians(wrapper.getRotationPitch());
-        double pitch = Math.toRadians(wrapper.getRotationYaw());
-        double forwardX = Math.cos(pitch) * Math.sin(yaw);
-        double forwardY = Math.sin(pitch);
-        double forwardZ = Math.cos(pitch) * Math.cos(yaw);
-        // right = forward x up
-        double rightX = forwardZ;
-        double rightZ = -forwardX;
-        double rightLength = Math.sqrt(rightX * rightX + rightZ * rightZ);
-        if (rightLength < 1.0E-4D) {
-            rightX = 1.0D;
-            rightZ = 0.0D;
-            rightLength = 1.0D;
-        }
-        rightX /= rightLength;
-        rightZ /= rightLength;
-        // up = right x forward
-        double upX = -rightZ * forwardY;
-        double upY = rightZ * forwardX - rightX * forwardZ;
-        double upZ = rightX * forwardY;
+        StructurePreviewRenderer renderer = wrapper.getCurrentRenderer();
+        if (renderer == null) return;
+        net.minecraft.util.math.Vec3d forward = new net.minecraft.util.math.Vec3d(
+                renderer.getLookAt().x - renderer.getEyePos().x,
+                renderer.getLookAt().y - renderer.getEyePos().y,
+                renderer.getLookAt().z - renderer.getEyePos().z).normalize();
+        net.minecraft.util.math.Vec3d right = forward.crossProduct(new net.minecraft.util.math.Vec3d(0, 1, 0)).normalize();
+        net.minecraft.util.math.Vec3d up = right.crossProduct(forward).normalize();
+        double rightX = right.x, rightZ = right.z;
+        double upX = up.x, upY = up.y, upZ = up.z;
 
         Vector3f center = wrapper.getCameraCenter();
         Vector3f moved = new Vector3f(
-                center.x + (float) ((-deltaX * rightX - deltaY * upX) * sensitivity),
+                center.x + (float) ((deltaX * rightX - deltaY * upX) * sensitivity),
                 center.y + (float) (-deltaY * upY * sensitivity),
-                center.z + (float) ((-deltaX * rightZ - deltaY * upZ) * sensitivity));
+                center.z + (float) ((deltaX * rightZ - deltaY * upZ) * sensitivity));
         wrapper.setCameraCenter(moved);
         wrapper.applyCamera();
     }
 
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int state) {
+        if (state == 0) wrapper.updateChannelDrag(mouseX, false);
         draggingLeft = false;
         super.mouseReleased(mouseX, mouseY, state);
     }

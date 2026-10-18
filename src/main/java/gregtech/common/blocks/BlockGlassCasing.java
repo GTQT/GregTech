@@ -1,11 +1,17 @@
 package gregtech.common.blocks;
 
+import gregtech.api.GTValues;
+import gregtech.api.block.IGlassTier;
 import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.items.toolitem.ToolClasses;
 
 import net.minecraft.block.SoundType;
 import net.minecraft.block.material.Material;
 import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.item.ItemStack;
+import net.minecraft.world.World;
 import net.minecraft.entity.EntityLiving;
 import net.minecraft.util.BlockRenderLayer;
 import net.minecraft.util.EnumFacing;
@@ -16,6 +22,9 @@ import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 public class BlockGlassCasing extends VariantActiveBlock<BlockGlassCasing.CasingType> {
 
@@ -72,17 +81,33 @@ public class BlockGlassCasing extends VariantActiveBlock<BlockGlassCasing.Casing
                 super.shouldSideBeRendered(state, world, pos, side);
     }
 
-    public enum CasingType implements IStringSerializable {
+    @Override
+    @SideOnly(Side.CLIENT)
+    public void addInformation(@NotNull ItemStack stack, @Nullable World world,
+                               @NotNull List<String> tooltip, @NotNull ITooltipFlag flag) {
+        super.addInformation(stack, world, tooltip, flag);
+        tooltip.add(I18n.format("gregtech.glass_tier.tooltip",
+                GTValues.VNF[getState(getStateFromMeta(stack.getMetadata())).getGlassTier()]));
+    }
 
-        TEMPERED_GLASS("tempered_glass"),
-        FUSION_GLASS("fusion_glass"),
-        LAMINATED_GLASS("laminated_glass"),
-        CLEANROOM_GLASS("cleanroom_glass");
+    public enum CasingType implements IStringSerializable, IGlassTier {
+
+        TEMPERED_GLASS("tempered_glass", GTValues.MV),
+        FUSION_GLASS("fusion_glass", GTValues.UV),
+        LAMINATED_GLASS("laminated_glass", GTValues.IV),
+        CLEANROOM_GLASS("cleanroom_glass", GTValues.HV);
 
         private final String name;
+        private final int glassTier;
 
-        CasingType(String name) {
+        CasingType(String name, int glassTier) {
             this.name = name;
+            this.glassTier = glassTier;
+        }
+
+        @Override
+        public int getGlassTier() {
+            return glassTier;
         }
 
         @Override
