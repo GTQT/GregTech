@@ -16,8 +16,9 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.GregFakePlayer;
 import gregtech.api.util.ItemStackHashStrategy;
-import gregtech.client.renderer.scene.StructurePreviewRenderer;
+import gregtech.client.renderer.handler.MetaTileEntityRenderer;
 import gregtech.client.renderer.scene.PreviewBlockAccess;
+import gregtech.client.renderer.scene.StructurePreviewRenderer;
 import gregtech.client.renderer.scene.WorldSceneRenderer;
 import gregtech.client.utils.RenderUtil;
 import gregtech.client.utils.TrackedDummyWorld;
@@ -36,6 +37,7 @@ import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.client.util.ITooltipFlag.TooltipFlags;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.init.Blocks;
 import net.minecraft.item.EnumRarity;
 import net.minecraft.item.Item;
@@ -132,6 +134,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private final Map<String, Integer> channelValues = new HashMap<>();
     private List<StructureChannel> supportedChannels = Collections.emptyList();
     private int[][] channelRanges = new int[0][]; // [channelIdx][0=min, 1=max]
+    /** Height of the compact channel strip, following the channel count instead of always reserving four rows. */
+    private int compactControlsHeight = CompactPreviewLayout.CONTROLS_HEIGHT;
     @Nullable
     private MBPattern[] patterns;
     private StructurePreviewRenderer previewRenderer;
@@ -200,6 +204,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         for (int i = 0; i < supportedChannels.size(); i++) {
             channelRanges[i] = controller.getChannelRange(supportedChannels.get(i));
         }
+        this.compactControlsHeight = CompactPreviewLayout.controlsHeight(supportedChannels.size());
         this.previewMetadataInitialized = true;
     }
 
@@ -467,8 +472,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 WorldSceneRenderer.setDefaultPassRenderState(pass);
 
                 buffer.begin(GL11.GL_QUADS, DefaultVertexFormats.BLOCK);
-                if (candidateState.getRenderType() == gregtech.client.renderer.handler.MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
-                    gregtech.client.renderer.handler.MetaTileEntityRenderer.INSTANCE.renderBlock(candidateAccess, pos, candidateState, buffer);
+                if (candidateState.getRenderType() == MetaTileEntityRenderer.BLOCK_RENDER_TYPE) {
+                    MetaTileEntityRenderer.INSTANCE.renderBlock(candidateAccess, pos, candidateState, buffer);
                 } else {
                     dispatcher.renderBlock(candidateState, pos, candidateAccess, buffer);
                 }
@@ -633,6 +638,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         if (hasLivePreview()) {
             updateParts();
         }
+        // JEI reads the category background for the recipe border and the page layout, so it has to know how many
+        // channel rows this multiblock actually needs.
+        MultiblockInfoCategory.setRecipeHeight(CompactPreviewLayout.CONTROLS_Y + getCompactControlsHeight());
+        applyHiddenRenderBlock();
     }
 
     private void configureLoadedPreviewLayout() {
@@ -831,6 +840,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
         previewCandidates.clear();
         previewTips = null;
+        applyHiddenRenderBlock();
     }
 
     public int getCompactPartCount() {
@@ -902,9 +912,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             drawRect(partsX, 0, partsX + partsWidth, partsHeight, panelBackground);
             drawPreviewFrame(partsX, 0, partsWidth, partsHeight);
         }
+        int controlsHeight = getCompactControlsHeight();
         drawRect(0, CompactPreviewLayout.CONTROLS_Y, recipeWidth,
-                CompactPreviewLayout.CONTROLS_Y + CompactPreviewLayout.CONTROLS_HEIGHT, panelBackground);
-        drawPreviewFrame(0, CompactPreviewLayout.CONTROLS_Y, recipeWidth, CompactPreviewLayout.CONTROLS_HEIGHT);
+                CompactPreviewLayout.CONTROLS_Y + controlsHeight, panelBackground);
+        drawPreviewFrame(0, CompactPreviewLayout.CONTROLS_Y, recipeWidth, controlsHeight);
         matchBufferAspect(renderer, sceneWidth, sceneHeight);
 
         boolean isMouseOverButton = false;
@@ -1031,10 +1042,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 !renderer.world.isAirBlock(rayTraceResult.getBlockPos())) {
 
             IBlockState blockState = renderer.world.getBlockState(rayTraceResult.getBlockPos());
-            ItemStack itemStack = blockState.getBlock().getPickBlock(
-                    blockState, rayTraceResult, renderer.world,
-                    rayTraceResult.getBlockPos(), minecraft.player
-            );
+            ItemStack itemStack = getPreviewBlockStack(renderer.world, rayTraceResult.getBlockPos(),
+                    blockState, rayTraceResult, minecraft.player);
 
             this.previewTips = previewTooltipFor(rayTraceResult.getBlockPos());
             if (!itemStack.isEmpty()) {
@@ -1168,6 +1177,14 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     public List<StructureChannel> getSupportedChannels() {
         initializePreviewMetadata();
         return supportedChannels;
+    }
+
+    /**
+     * @return height the compact page has to reserve for its channel strip for this multiblock. Until the channel
+     *         metadata is known the maximum height is reported, so the strip never shrinks before it is drawn.
+     */
+    public int getCompactControlsHeight() {
+        return compactControlsHeight;
     }
 
     /**
@@ -1512,12 +1529,82 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             return;
         }
         IBlockState blockState = renderer.world.getBlockState(rayTraceResult.getBlockPos());
-        ItemStack itemStack = blockState.getBlock().getPickBlock(blockState, rayTraceResult, renderer.world,
-                rayTraceResult.getBlockPos(), minecraft.player);
+        ItemStack itemStack = getPreviewBlockStack(renderer.world, rayTraceResult.getBlockPos(), blockState,
+                rayTraceResult, minecraft.player);
         this.previewTips = previewTooltipFor(rayTraceResult.getBlockPos());
         if (!itemStack.isEmpty()) {
             tooltipBlockStack = itemStack;
         }
+    }
+
+    /**
+     * Resolves the item shown by the hover tooltip. Picking the preview scene only produces a plain
+     * {@link RayTraceResult}, while {@link gregtech.api.block.machines.BlockMachine#getPickBlock} only answers
+     * {@link codechicken.lib.raytracer.CuboidRayTraceResult}s and returns empty for everything else. Controllers
+     * and hatches are machine blocks, which is why they used to show no name at all. Read their MetaTileEntity
+     * directly and keep the block lookup for every other block.
+     */
+    @NotNull
+    private static ItemStack getHoveredStack(@NotNull World world, @NotNull BlockPos pos,
+                                             @NotNull IBlockState blockState, @NotNull RayTraceResult hitResult,
+                                             @Nullable EntityPlayer player) {
+        TileEntity tileEntity = world.getTileEntity(pos);
+        if (tileEntity instanceof IGregTechTileEntity gregTechTile) {
+            MetaTileEntity metaTileEntity = gregTechTile.getMetaTileEntity();
+            if (metaTileEntity != null) {
+                ItemStack stack = metaTileEntity.getStackForm();
+                if (!stack.isEmpty()) {
+                    return stack;
+                }
+            }
+        }
+        return blockState.getBlock().getPickBlock(blockState, hitResult, world, pos, player);
+    }
+
+    /**
+     * Resolves the tooltip item for the block under the cursor. When the cursor is on the selected position, the
+     * in-place candidate rotation is what the player actually sees, so the tooltip has to describe that alternative
+     * instead of the block that happens to be stored in the preview world.
+     */
+    @NotNull
+    private ItemStack getPreviewBlockStack(@NotNull World world, @NotNull BlockPos pos, @NotNull IBlockState blockState,
+                                           @NotNull RayTraceResult hitResult, @Nullable EntityPlayer player) {
+        BlockInfo displayed = getDisplayedCandidate(pos);
+        if (displayed != null) {
+            return getCandidateStack(displayed);
+        }
+        return getHoveredStack(world, pos, blockState, hitResult, player);
+    }
+
+    /**
+     * @return the alternative that {@link #renderCandidateBlockAtPosition(World, BlockPos)} currently draws at
+     *         {@code pos}, or {@code null} when that position is not the selected one or has no typed alternatives.
+     */
+    @Nullable
+    private BlockInfo getDisplayedCandidate(@NotNull BlockPos pos) {
+        if (selected == null || !selected.equals(pos) || previewCandidates.isEmpty()) {
+            return null;
+        }
+        if (cachedCandidateBlocks.isEmpty()) {
+            return null;
+        }
+        // Same flattened list and index the in-place renderer uses, so name and rendered block always match.
+        return cachedCandidateBlocks.get(Math.floorMod(candidateCycleIndex, cachedCandidateBlocks.size()));
+    }
+
+    @NotNull
+    private static ItemStack getCandidateStack(@NotNull BlockInfo candidate) {
+        TileEntity tileEntity = candidate.getTileEntity();
+        if (tileEntity instanceof IGregTechTileEntity gregTechTile) {
+            MetaTileEntity metaTileEntity = gregTechTile.getMetaTileEntity();
+            if (metaTileEntity != null) {
+                ItemStack stack = metaTileEntity.getStackForm();
+                if (!stack.isEmpty()) {
+                    return stack;
+                }
+            }
+        }
+        return GTUtility.toItem(candidate.getBlockState());
     }
 
     /**
@@ -1529,7 +1616,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         RayTraceResult hit = renderer == null ? null : renderer.pick(mouseX, mouseY, x, y, width, height);
         long now = System.currentTimeMillis();
         if (now - lastClickDiagnostic >= 5000) {
-            GTLog.logger.info("[JEIMultiblockPreview] click controller={} mouse=({}, {}) viewport=({}, {}, {}, {}) hit={} blocks={}",
+            if(ConfigHolder.misc.debug) GTLog.logger.info("[JEIMultiblockPreview] click controller={} mouse=({}, {}) viewport=({}, {}, {}, {}) hit={} blocks={}",
                     controller.metaTileEntityId, mouseX, mouseY, x, y, width, height,
                     hit == null ? "none" : hit.getBlockPos(), renderer == null ? 0 : renderer.renderedBlocks.size());
             lastClickDiagnostic = now;
@@ -1546,6 +1633,23 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         this.candidateCycleIndex = 0;
         this.lastCandidateCycleTime = 0L;
         previewCandidates.addAll(loadPreviewCandidates(pos));
+        applyHiddenRenderBlock();
+    }
+
+    /**
+     * Removes the preview world's block at the selected position while its candidate rotation is drawn in place, so
+     * the scene shows one block instead of the candidate stacked on top of the original. Picking keeps the position,
+     * because only rendering is skipped.
+     */
+    private void applyHiddenRenderBlock() {
+        StructurePreviewRenderer renderer = getCurrentRenderer();
+        if (renderer == null) {
+            return;
+        }
+        BlockPos hidden = selected != null && !previewCandidates.isEmpty() ? selected : null;
+        if (!Objects.equals(renderer.getHiddenBlock(), hidden)) {
+            renderer.setHiddenBlock(hidden);
+        }
     }
 
     public void clearSelection() {
@@ -1754,9 +1858,47 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             if (line == null || line.isEmpty()) {
                 continue;
             }
-            localized.add(I18n.format(line));
+            localized.add(localizeTooltipLine(line));
         }
         return localized;
+    }
+
+    /**
+     * A preview tooltip line is either a bare translation key or a key followed by space-separated arguments, as
+     * produced by {@link gregtech.api.pattern.element.IStructureElement#addTooltip(String, Object...)}. Formatting the
+     * whole line as a key left those arguments glued into it and surfaced the raw key in the tooltip, so split the line
+     * first and let the translation fill its placeholders.
+     */
+    @NotNull
+    private static String localizeTooltipLine(@NotNull String line) {
+        int separator = line.indexOf(' ');
+        String key = separator < 0 ? line : line.substring(0, separator);
+        if (!I18n.hasKey(key)) {
+            // Already localized text, or a line without a translation: leave it untouched.
+            return line;
+        }
+        if (separator < 0) {
+            return I18n.format(key);
+        }
+        return I18n.format(key, parseTooltipArguments(line.substring(separator + 1)));
+    }
+
+    /**
+     * The arguments of an {@code addTooltip(key, args...)} line are written as text, but keys may still use
+     * {@code %d}, so whole-number tokens are restored to integers before formatting.
+     */
+    @NotNull
+    private static Object[] parseTooltipArguments(@NotNull String arguments) {
+        String[] tokens = arguments.split(" ");
+        Object[] parsed = new Object[tokens.length];
+        for (int i = 0; i < tokens.length; i++) {
+            try {
+                parsed[i] = Integer.valueOf(tokens[i]);
+            } catch (NumberFormatException ignored) {
+                parsed[i] = tokens[i];
+            }
+        }
+        return parsed;
     }
 
     @NotNull

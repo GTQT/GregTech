@@ -22,7 +22,8 @@ public class MultiblockRecipeLayoutMixin {
     @Inject(method = "isMouseOver", at = @At("HEAD"), cancellable = true)
     private void gregtech$includePreviewPanels(int mouseX, int mouseY, CallbackInfoReturnable<Boolean> cir) {
         if (recipeWrapper instanceof MultiblockInfoRecipeWrapper wrapper &&
-                CompactPreviewLayout.containsExtensions(mouseX - posX, mouseY - posY, wrapper.getCompactPartCount())) {
+                CompactPreviewLayout.containsExtensions(mouseX - posX, mouseY - posY,
+                        wrapper.getCompactPartCount(), wrapper.getCompactControlsHeight())) {
             cir.setReturnValue(true);
         }
     }

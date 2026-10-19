@@ -80,7 +80,7 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
                 .block('G', getGearboxState(isExtreme))
                 .where('D', Elements.withTooltips(
                         Elements.metaTileEntities(getAllowedEnergyOutputs(getTier(isExtreme))),
-                        "gregtech.multiblock.pattern.error.limited.1"))
+                        "gregtech.multiblock.pattern.error.energy_hatch_required"))
                 .where('A', Elements.withTooltips(
                         Elements.block(getIntakeState(isExtreme)),
                         "gregtech.multiblock.pattern.clear_amount_1"))

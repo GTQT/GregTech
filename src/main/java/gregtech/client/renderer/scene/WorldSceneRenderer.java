@@ -11,14 +11,16 @@ import gregtech.client.utils.RenderUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.*;
+import net.minecraft.client.renderer.BufferBuilder;
+import net.minecraft.client.renderer.GlStateManager;
+import net.minecraft.client.renderer.RenderHelper;
+import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntityRendererDispatcher;
 import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
 import net.minecraft.init.Blocks;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumBlockRenderType;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -36,6 +38,7 @@ import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.glu.GLU;
 
+import javax.vecmath.Vector3f;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.DoubleBuffer;
@@ -47,8 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
-
-import javax.vecmath.Vector3f;
 
 /**
  * Created with IntelliJ IDEA.
@@ -78,6 +79,12 @@ public abstract class WorldSceneRenderer {
     protected final Map<BlockPos, TileEntity> tileEntities = new Object2ObjectArrayMap<>();
     public final World world;
     public final Collection<BlockPos> renderedBlocks = new ObjectOpenHashSet<>();
+    /**
+     * Position whose block and tile entity are drawn by the scene owner as an overlay instead. Skipping it here keeps
+     * both copies from overlapping; picking still sees it because {@link #renderedBlocks} is not changed.
+     */
+    @Nullable
+    private BlockPos hiddenBlock;
     protected Consumer<WorldSceneRenderer> beforeRender;
     protected Consumer<WorldSceneRenderer> afterRender;
     private Consumer<RayTraceResult> onLookingAt;
@@ -291,6 +298,19 @@ public abstract class WorldSceneRenderer {
         this.clearColor = clearColor;
     }
 
+    /**
+     * Excludes one block position from block and tile entity rendering. The scene owner is expected to draw that
+     * position itself (for example a rotating candidate block); picking is unaffected.
+     */
+    public void setHiddenBlock(@Nullable BlockPos hiddenBlock) {
+        this.hiddenBlock = hiddenBlock;
+    }
+
+    @Nullable
+    public BlockPos getHiddenBlock() {
+        return hiddenBlock;
+    }
+
     public RayTraceResult getLastTraceResult() {
         return lastTraceResult;
     }
@@ -488,6 +508,9 @@ public abstract class WorldSceneRenderer {
      * several JEI frames while retaining the same rendering path as immediate scenes.
      */
     protected void renderBlock(BlockRenderLayer layer, BlockPos pos, BufferBuilder buffer) {
+        if (pos.equals(hiddenBlock)) {
+            return;
+        }
         IBlockState state = world.getBlockState(pos);
         Block block = state.getBlock();
         state = state.getActualState(world, pos);
@@ -516,6 +539,7 @@ public abstract class WorldSceneRenderer {
                 BlockPos pos = entry.getKey();
                 TileEntity tile = entry.getValue();
 
+                if (pos.equals(hiddenBlock)) continue;
                 if (!tile.shouldRenderInPass(finalPass)) continue;
 
                 // Distance culling

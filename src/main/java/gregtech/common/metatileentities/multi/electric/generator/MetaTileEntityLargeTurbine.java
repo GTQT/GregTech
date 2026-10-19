@@ -81,7 +81,8 @@ public class MetaTileEntityLargeTurbine extends FuelMultiblockController impleme
                                                         (((ITieredMetaTileEntity) mte).getTier() >= type.getTier()))
                                                 .toArray(MetaTileEntity[]::new)),
                                         "gregtech.multiblock.pattern.clear_amount_3",
-                                        "gregtech.multiblock.pattern.error.limited.1 " + GTValues.VN[type.getTier()]),
+                                        "gregtech.multiblock.pattern.error.rotor_holder_tier " +
+                                                GTValues.VN[type.getTier()]),
                                 () -> getDefaultRotorHolder(type)),
                         Elements.withDefaultCandidate(
                                 Elements.abilities(1, 1, MultiblockAbility.OUTPUT_ENERGY),

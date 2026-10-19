@@ -334,14 +334,45 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
     @SideOnly(Side.CLIENT)
     public boolean canRenderInLayer(BlockRenderLayer renderLayer) {
+        return canRenderInLayer(renderLayer, null);
+    }
+
+    /**
+     * Same as {@link #canRenderInLayer(BlockRenderLayer)}, but uses the given state to determine machine opacity.
+     * <p>
+     * The state in the world is not always the machine state: JEI structure previews draw candidate machines on top of
+     * a fallback block (for example a casing), and the machine is not placed in that world at all. Reading the world
+     * state in that case would either crash on a missing {@link BlockMachine#OPAQUE} property or fall back to an
+     * unrelated block, so callers that render a specific state have to pass it in here.
+     *
+     * @param renderLayer the layer being rendered
+     * @param blockState  the state being rendered, or {@code null} to read it from the world
+     */
+    @SideOnly(Side.CLIENT)
+    public boolean canRenderInLayer(BlockRenderLayer renderLayer, @Nullable IBlockState blockState) {
         IBlockState casing = getCasingBlock();
         if (casing != null && casing.getBlock().canRenderInLayer(casing, renderLayer)) {
             return true;
         }
-        return renderLayer == BlockRenderLayer.CUTOUT_MIPPED ||
-                renderLayer == BloomEffectUtil.getEffectiveBloomLayer() ||
-                (renderLayer == BlockRenderLayer.TRANSLUCENT &&
-                        !getWorld().getBlockState(getPos()).getValue(BlockMachine.OPAQUE));
+        if (renderLayer == BlockRenderLayer.CUTOUT_MIPPED ||
+                renderLayer == BloomEffectUtil.getEffectiveBloomLayer()) {
+            return true;
+        }
+        if (renderLayer != BlockRenderLayer.TRANSLUCENT) {
+            return false;
+        }
+        IBlockState machineState = blockState;
+        if (machineState == null) {
+            World world = getWorld();
+            BlockPos pos = getPos();
+            if (world != null && pos != null && world.isBlockLoaded(pos)) {
+                machineState = world.getBlockState(pos);
+            }
+        }
+        // Only BlockMachine states carry the opacity flag. Anything else (preview fallbacks, unloaded chunks)
+        // cannot be inspected, so keep the machine visible instead of silently dropping it from this layer.
+        return !(machineState != null && machineState.getBlock() instanceof BlockMachine) ||
+                !machineState.getValue(BlockMachine.OPAQUE);
     }
 
     @Override

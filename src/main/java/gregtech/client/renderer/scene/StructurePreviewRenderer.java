@@ -14,6 +14,7 @@ import net.minecraft.util.math.RayTraceResult;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
+import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.ARBFramebufferObject;
 import org.lwjgl.opengl.EXTFramebufferBlit;
 import org.lwjgl.opengl.GL11;
@@ -23,6 +24,7 @@ import org.lwjgl.opengl.GLContext;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /** JEI scene: cached static color/depth, live overlays, and independent CPU picking. */
@@ -49,6 +51,20 @@ public final class StructurePreviewRenderer extends FBOWorldSceneRenderer {
         pickIndex = new PreviewPickIndex(boxes);
         markFBODirty();
         return this;
+    }
+
+    /**
+     * Hides a position because the owner draws a rotating candidate there instead. Block geometry is cached in the
+     * VBO together with every other block, so the mesh has to be rebuilt when the hidden position changes.
+     */
+    @Override
+    public void setHiddenBlock(@Nullable BlockPos hiddenBlock) {
+        if (Objects.equals(getHiddenBlock(), hiddenBlock)) {
+            return;
+        }
+        super.setHiddenBlock(hiddenBlock);
+        this.isDirty = true;
+        markFBODirty();
     }
 
     public RayTraceResult pick(float mouseX, float mouseY, float viewX, float viewY,
