@@ -24,6 +24,10 @@ import java.util.List;
 @Mod.EventBusSubscriber(Side.CLIENT)
 public class ClientWirelessHUD {
 
+    // 注意: 本类只通过 @Mod.EventBusSubscriber 注册一次。
+    // 早期版本在 ClientProxy.preInit 里又 new 了一个实例注册, 导致同一事件被处理两遍
+    // (HUD 绘制两遍 + 轮询频率翻倍), 不要再手动 register。
+
     /** 采样点: 一次轮询得到的瞬时数据快照 */
     public static final class EnergySample {
         public final BigInteger stored;
@@ -98,7 +102,7 @@ public class ClientWirelessHUD {
     }
 
     @SubscribeEvent
-    public void onClientTick(TickEvent.ClientTickEvent event) {
+    public static void onClientTick(TickEvent.ClientTickEvent event) {
         if (event.phase != TickEvent.Phase.END) return;
         Minecraft mc = Minecraft.getMinecraft();
         if (mc.player == null || mc.world == null) {
@@ -118,10 +122,20 @@ public class ClientWirelessHUD {
     }
 
     @SubscribeEvent
-    public void onRenderOverlay(RenderGameOverlayEvent.Text event) {
+    public static void onRenderOverlay(RenderGameOverlayEvent.Post event) {
+        // ALL 每帧只触发一次, 保证面板不会被重复绘制
+        if (event.getType() != RenderGameOverlayEvent.ElementType.ALL) return;
         if (!hasNetwork) return;
         if (!ConfigHolder.client.wirelessHud.enabled) return;
         if (samples.isEmpty()) return;
+
+        Minecraft mc = Minecraft.getMinecraft();
+        if (mc.player == null || mc.world == null) return;
+        // 任意界面打开 / F3 调试屏 / F1 隐藏界面时都不绘制, 避免与其它 UI 叠在一起
+        if (mc.currentScreen != null) return;
+        if (mc.gameSettings.showDebugInfo) return;
+        if (mc.gameSettings.hideGUI) return;
+
         WirelessHudRenderer.INSTANCE.render();
     }
 

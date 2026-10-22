@@ -25,8 +25,19 @@ import java.util.function.Function;
 
 /**
  * 无线电网 HUD 整体渲染器。
- * 移植自 GTNH PowerGoggles 的 SimplePowerGogglesRenderer：
- * 文字块 + 渐变储能条 + 5m/1h 差值 + GL_LINES 折线图，适配 1.12.2 API。
+ * 移植自 GTNH PowerGoggles 的 SimplePowerGogglesRenderer，适配 1.12.2 API。
+ *
+ * <p>布局: 整块内容以 {@code screenHeight - hudOffsetY} 为底边, 自上而下排列</p>
+ * <pre>
+ *   无线网络                 (标题)
+ *   1.23MEU            57.8% (储能值 + 占历史峰值百分比)
+ *   [====================]   (趋势渐变储能条)
+ *   能量吞吐: -1.2MEU/s
+ *   纯流入: 3.4MEU/s  纯流出: 4.6MEU/s
+ *   5m: +12.3MEU (+20.5 KEU/t)
+ *   1h: -48.1MEU (-13.4 KEU/t)
+ *   [====================]   (5m 折线图)
+ * </pre>
  */
 @SideOnly(Side.CLIENT)
 public class WirelessHudRenderer {
@@ -34,7 +45,7 @@ public class WirelessHudRenderer {
     public static final WirelessHudRenderer INSTANCE = new WirelessHudRenderer();
 
     // ===== 颜色（ARGB）=====
-    private static final int COLOR_WHITE = 0xFFFFFFFF;
+    private static final int COLOR_TEXT = 0xFFFFFFFF;
     private static final int COLOR_GOOD = 0xFF55FF55;
     private static final int COLOR_BAD = 0xFFFF5555;
     private static final int COLOR_OK = 0xFFAAAAAA;
@@ -45,6 +56,7 @@ public class WirelessHudRenderer {
     // ===== 布局常量 =====
     private static final int BORDER_RADIUS = 3;
     private static final int GAP = 2;
+    private static final int FONT_HEIGHT = 9;
     private static final int LINE_HEIGHT = 10;
     private static final int BAR_HEIGHT = 8;
     private static final double SUB_SCALE = 0.5;
@@ -67,90 +79,134 @@ public class WirelessHudRenderer {
             return;
         }
 
-        ScaledResolution res = new ScaledResolution(mc);
-        int screenHeight = res.getScaledHeight();
+        boolean hasThroughput = !ClientWirelessHUD.throughputString.isEmpty();
+        boolean showBar = cfg.showPowerBar;
+        boolean showDiff = cfg.showTimeDifference;
+        boolean showChart = cfg.showPowerChart;
+
+        // 竖直方向的高度预算, 必须与下面 cursor 的推进完全一致
+        int contentHeight = FONT_HEIGHT
+                + GAP + FONT_HEIGHT
+                + (showBar ? GAP + BAR_HEIGHT : 0)
+                + (hasThroughput ? GAP + LINE_HEIGHT : 0)
+                + GAP + FONT_HEIGHT
+                + (showDiff ? GAP + SUB_LINE_HEIGHT + GAP + SUB_LINE_HEIGHT : 0)
+                + (showChart ? GAP + cfg.chartHeight : 0);
+
+        int screenHeight = new ScaledResolution(mc).getScaledHeight();
         int x = cfg.hudOffsetX;
         int bottom = screenHeight - cfg.hudOffsetY;
+        int contentTop = bottom - contentHeight;
+        int barWidth = Math.max(cfg.chartWidth, Math.max(getTextBlockWidth(), getStorageLineWidth()));
 
-        // ===== 布局计算（自底向上）=====
-        int textY3 = bottom - fontRenderer.FONT_HEIGHT;              // 纯流入/纯流出行
-        int textY2 = textY3 - LINE_HEIGHT;                           // 能量吞吐行
-        int textY1 = textY2 - LINE_HEIGHT;                           // 标题行
-        int storageY = textY1 - GAP - fontRenderer.FONT_HEIGHT;      // 储能大字
-        int barTop = storageY - GAP - BAR_HEIGHT;                    // 渐变储能条
-        int diff1hY = barTop - GAP - SUB_LINE_HEIGHT;                // 1h 差值小字
-        int diff5mY = diff1hY - GAP - SUB_LINE_HEIGHT;               // 5m 差值小字
-        int chartTop = diff5mY - GAP - cfg.chartHeight;              // 折线图顶
+        // 背景板
+        drawRect(x - BORDER_RADIUS, contentTop - BORDER_RADIUS,
+                x + barWidth + BORDER_RADIUS, bottom + BORDER_RADIUS, COLOR_BG);
 
-        int barWidth = Math.max(cfg.chartWidth, getTextBlockWidth());
-        int bgLeft = x - BORDER_RADIUS;
-        int bgRight = x + barWidth + BORDER_RADIUS;
-        int bgTop = chartTop - BORDER_RADIUS;
-        int bgBottom = bottom + BORDER_RADIUS;
+        int cursor = contentTop;
 
-        // 背景
-        drawRect(bgLeft, bgTop, bgRight, bgBottom, COLOR_BG);
+        drawTitle(x, cursor);
+        cursor += FONT_HEIGHT;
 
-        // 原版文字块（储能行由下方大字替代）
-        drawTextBlock(x, textY1, textY2, textY3);
-        // 储能大字 + 填充百分比
-        ClientWirelessHUD.EnergySample last = ClientWirelessHUD.samples.getLast();
-        String storedStr = TextFormattingUtil.formatBigIntToScientificString(last.stored, 4) + " EU";
-        int storageColor = getTextColor(ClientWirelessHUD.euDifference5m);
-        drawScaledString(storedStr, x, storageY, storageColor, 1.0);
-        String percentage = formatPercentage();
-        drawScaledString(percentage, x + barWidth - fontRenderer.getStringWidth(percentage), storageY, storageColor, 1.0);
-        // 渐变储能条
-        if (cfg.showPowerBar) {
-            renderPowerBar(x, barTop, barWidth, last.stored, ClientWirelessHUD.euDifference5m);
+        cursor += GAP;
+        drawStorageLine(x, cursor, barWidth);
+        cursor += FONT_HEIGHT;
+
+        if (showBar) {
+            cursor += GAP;
+            renderPowerBar(x, cursor, barWidth, ClientWirelessHUD.samples.getLast().stored,
+                    ClientWirelessHUD.euDifference5m);
+            cursor += BAR_HEIGHT;
         }
-        // 5m/1h 差值
-        if (cfg.showTimeDifference) {
-            renderTimedDifferences(x, diff5mY, diff1hY);
+
+        if (hasThroughput) {
+            cursor += GAP;
+            drawThroughput(x, cursor);
+            cursor += LINE_HEIGHT;
         }
-        // 折线图
-        if (cfg.showPowerChart) {
-            renderPowerChart(x, chartTop, cfg);
+
+        cursor += GAP;
+        drawFlowLine(x, cursor);
+        cursor += FONT_HEIGHT;
+
+        if (showDiff) {
+            cursor += GAP;
+            int diff5mY = cursor;
+            cursor += SUB_LINE_HEIGHT + GAP;
+            renderTimedDifferences(x, diff5mY, cursor);
+        }
+
+        if (showChart) {
+            cursor += GAP;
+            renderPowerChart(x, cursor, barWidth, cfg);
         }
     }
 
-    // ===== 原版文字块 =====
+    // ===== 文字块 =====
+
+    private void drawTitle(int x, int y) {
+        fontRenderer.drawStringWithShadow("无线网络", x, y, COLOR_TEXT);
+    }
+
+    private void drawThroughput(int x, int y) {
+        String throughput = ClientWirelessHUD.throughputString;
+        int color = COLOR_OK;
+        if (throughput.startsWith("+")) {
+            color = COLOR_GOOD;
+        } else if (throughput.startsWith("-")) {
+            color = COLOR_BAD;
+        }
+        fontRenderer.drawStringWithShadow("能量吞吐: " + throughput, x, y, color);
+    }
+
+    /** 储能值(左) + 占历史峰值百分比(右对齐) */
+    private void drawStorageLine(int x, int y, int barWidth) {
+        int color = getTextColor(ClientWirelessHUD.euDifference5m);
+        fontRenderer.drawStringWithShadow(getStoredString(), x, y, color);
+        String percentage = formatPercentage();
+        fontRenderer.drawStringWithShadow(percentage,
+                x + barWidth - fontRenderer.getStringWidth(percentage), y, color);
+    }
+
+    /** 纯流入 / 纯流出 */
+    private void drawFlowLine(int x, int y) {
+        ClientWirelessHUD.EnergySample last = ClientWirelessHUD.samples.getLast();
+        String inputStr = formatEnergy(last.inputRate) + "/s";
+        String outputStr = formatEnergy(last.outputRate) + "/s";
+
+        String inputLabel = "纯流入: ";
+        int xPos = x;
+        fontRenderer.drawStringWithShadow(inputLabel, xPos, y, COLOR_TEXT);
+        xPos += fontRenderer.getStringWidth(inputLabel);
+        fontRenderer.drawStringWithShadow(inputStr, xPos, y, COLOR_GOOD);
+        xPos += fontRenderer.getStringWidth(inputStr);
+
+        String outputLabel = "  纯流出: ";
+        fontRenderer.drawStringWithShadow(outputLabel, xPos, y, COLOR_TEXT);
+        xPos += fontRenderer.getStringWidth(outputLabel);
+        fontRenderer.drawStringWithShadow(outputStr, xPos, y, COLOR_BAD);
+    }
+
+    private String getStoredString() {
+        return TextFormattingUtil.formatBigIntToScientificString(ClientWirelessHUD.samples.getLast().stored, 4) + " EU";
+    }
 
     private int getTextBlockWidth() {
         ClientWirelessHUD.EnergySample last = ClientWirelessHUD.samples.getLast();
         String inputStr = formatEnergy(last.inputRate) + "/s";
         String outputStr = formatEnergy(last.outputRate) + "/s";
         int width = fontRenderer.getStringWidth("纯流入: " + inputStr + "  纯流出: " + outputStr);
-        return Math.max(width, fontRenderer.getStringWidth("能量吞吐: " + ClientWirelessHUD.throughputString));
+        if (!ClientWirelessHUD.throughputString.isEmpty()) {
+            width = Math.max(width, fontRenderer.getStringWidth("能量吞吐: " + ClientWirelessHUD.throughputString));
+        }
+        return width;
     }
 
-    private void drawTextBlock(int x, int textY1, int textY2, int textY3) {
-        ClientWirelessHUD.EnergySample last = ClientWirelessHUD.samples.getLast();
-        fontRenderer.drawStringWithShadow("无线网络", x, textY1, 0xFFFFFF);
-
-        String throughput = ClientWirelessHUD.throughputString;
-        if (!throughput.isEmpty()) {
-            int color = 0xAAAAAA;
-            if (throughput.startsWith("+")) {
-                color = 0x55FF55;
-            } else if (throughput.startsWith("-")) {
-                color = 0xFF5555;
-            }
-            fontRenderer.drawStringWithShadow("能量吞吐: " + throughput, x, textY2, color);
-        }
-
-        String inputStr = formatEnergy(last.inputRate) + "/s";
-        String outputStr = formatEnergy(last.outputRate) + "/s";
-        String inputLabel = "纯流入: ";
-        int xPos = x;
-        fontRenderer.drawStringWithShadow(inputLabel, xPos, textY3, 0xFFFFFF);
-        xPos += fontRenderer.getStringWidth(inputLabel);
-        fontRenderer.drawStringWithShadow(inputStr, xPos, textY3, 0x55FF55);
-        xPos += fontRenderer.getStringWidth(inputStr);
-        String outputLabel = "  纯流出: ";
-        fontRenderer.drawStringWithShadow(outputLabel, xPos, textY3, 0xFFFFFF);
-        xPos += fontRenderer.getStringWidth(outputLabel);
-        fontRenderer.drawStringWithShadow(outputStr, xPos, textY3, 0xFF5555);
+    /** 储能值 + 百分比同一行不重叠所需的最小宽度 */
+    private int getStorageLineWidth() {
+        return fontRenderer.getStringWidth(getStoredString())
+                + GAP * 4
+                + fontRenderer.getStringWidth(formatPercentage());
     }
 
     // ===== 渐变储能条 =====
@@ -160,11 +216,7 @@ public class WirelessHudRenderer {
 
         double differenceRatio;
         if (lastStored.compareTo(BigInteger.ZERO) == 0) {
-            if (ClientWirelessHUD.getMaxStoredInSamples().compareTo(BigInteger.ZERO) > 0) {
-                differenceRatio = -1;
-            } else {
-                differenceRatio = 0;
-            }
+            differenceRatio = ClientWirelessHUD.getMaxStoredInSamples().compareTo(BigInteger.ZERO) > 0 ? -1 : 0;
         } else {
             differenceRatio = euDifference5m.doubleValue() / lastStored.doubleValue();
         }
@@ -246,14 +298,14 @@ public class WirelessHudRenderer {
         }
     }
 
-    private void renderPowerChart(int x, int chartTop, ConfigHolder.ClientOptions.WirelessHud cfg) {
+    private void renderPowerChart(int x, int chartTop, int chartWidth, ConfigHolder.ClientOptions.WirelessHud cfg) {
         int chartBottom = chartTop + cfg.chartHeight;
-        int chartRight = x + cfg.chartWidth;
+        int chartRight = x + chartWidth;
 
-        // 背景 + 边框
+        // 先画外边框再画内部背景, 否则边框会把背景整块盖住
+        drawRect(x - BORDER_RADIUS, chartTop - BORDER_RADIUS, chartRight + BORDER_RADIUS,
+                chartBottom + BORDER_RADIUS, COLOR_CHART_BORDER);
         drawRect(x, chartTop, chartRight, chartBottom, COLOR_CHART_BG);
-        drawRect(x - BORDER_RADIUS, chartTop - BORDER_RADIUS, chartRight + BORDER_RADIUS, chartBottom + BORDER_RADIUS,
-                COLOR_CHART_BORDER);
 
         List<ChartLine> lines = new ArrayList<>();
         if (cfg.chartShowStored) {
@@ -300,7 +352,7 @@ public class WirelessHudRenderer {
 
         // 画各线
         for (ChartLine line : lines) {
-            drawChartLine(x, chartTop, chartBottom, cfg.chartWidth, window, line, minReading, maxReading);
+            drawChartLine(x, chartTop, chartBottom, chartWidth, window, line, minReading, maxReading);
         }
     }
 
@@ -310,7 +362,6 @@ public class WirelessHudRenderer {
         double chartLeft = x + BORDER_RADIUS + chartWidth * 0.2;
         double lineStep = chartWidth * 0.8 / (window.size() - 1);
 
-        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         GlStateManager.disableTexture2D();
         GlStateManager.enableBlend();
         GlStateManager.disableAlpha();
@@ -344,11 +395,12 @@ public class WirelessHudRenderer {
         }
 
         tessellator.draw();
+        GL11.glLineWidth(1.0f);
+
+        // 恢复成常规 HUD 状态: 后续文字绘制依赖纹理与混合
         GlStateManager.shadeModel(GL11.GL_FLAT);
         GlStateManager.enableAlpha();
-        GlStateManager.disableBlend();
         GlStateManager.enableTexture2D();
-        GL11.glPopAttrib();
     }
 
     private double getPointY(int chartTop, int chartBottom, BigInteger minReading, BigInteger maxReading,
@@ -383,7 +435,6 @@ public class WirelessHudRenderer {
     }
 
     private void drawGradientRect(int left, int top, int right, int bottom, int colorLeft, int colorRight) {
-        GL11.glPushAttrib(GL11.GL_ALL_ATTRIB_BITS);
         GlStateManager.disableTexture2D();
         GlStateManager.enableBlend();
         GlStateManager.blendFunc(GlStateManager.SourceFactor.SRC_ALPHA,
@@ -399,10 +450,10 @@ public class WirelessHudRenderer {
         buffer.pos(right, top, 0).color(red(colorRight), green(colorRight), blue(colorRight), alpha(colorRight)).endVertex();
         tessellator.draw();
 
+        // 恢复成常规 HUD 状态: 不能用 glPushAttrib/glPopAttrib, 否则 GlStateManager 缓存会与 GL 实际状态脱节,
+        // 之后的文字会带着错误的混合/纹理状态绘制
         GlStateManager.shadeModel(GL11.GL_FLAT);
-        GlStateManager.disableBlend();
         GlStateManager.enableTexture2D();
-        GL11.glPopAttrib();
     }
 
     private int getTextColor(BigInteger value) {

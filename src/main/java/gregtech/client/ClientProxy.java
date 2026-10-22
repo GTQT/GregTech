@@ -14,7 +14,6 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.IBlockOre;
 import gregtech.api.util.Mods;
 import gregtech.api.util.input.KeyBind;
-import gregtech.api.wireless.ClientWirelessHUD;
 import gregtech.client.event.CreativeSprayClientHandler;
 import gregtech.client.model.customtexture.CustomTextureModelHandler;
 import gregtech.client.model.customtexture.MetadataSectionCTM;
@@ -452,7 +451,6 @@ public class ClientProxy extends CommonProxy {
         MetaEntities.initRenderers();
 
         MinecraftForge.EVENT_BUS.register(KeyBind.class);
-        MinecraftForge.EVENT_BUS.register(new ClientWirelessHUD());
         MinecraftForge.EVENT_BUS.register(new MultiblockMoverPreviewRenderer());
         MoverRotationKeyHandler.init();
         MultiblockToolModeKeyHandler.init();
