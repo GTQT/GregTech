@@ -313,6 +313,28 @@ public class GTGuiTextures {
     public static final UITexture FLUID_LOCK_OVERLAY = fullImage("textures/gui/widget/button_lock.png",
             ColorType.DEFAULT);
 
+    public static final UITexture ITEM_SIDE_SELECTION_BACK = fullImage("textures/gui/widget/item/side_selection_back.png",
+            ColorType.DEFAULT);
+    public static final UITexture ITEM_SIDE_SELECTION_DOWN = fullImage("textures/gui/widget/item/side_selection_down.png",
+            ColorType.DEFAULT);
+    public static final UITexture ITEM_SIDE_SELECTION_UP = fullImage("textures/gui/widget/item/side_selection_up.png",
+            ColorType.DEFAULT);
+    public static final UITexture ITEM_SIDE_SELECTION_LEFT = fullImage("textures/gui/widget/item/side_selection_left.png",
+            ColorType.DEFAULT);
+    public static final UITexture ITEM_SIDE_SELECTION_RIGHT = fullImage("textures/gui/widget/item/side_selection_right.png",
+            ColorType.DEFAULT);
+
+    public static final UITexture FLUID_SIDE_SELECTION_BACK = fullImage("textures/gui/widget/item/side_selection_back.png",
+            ColorType.DEFAULT);
+    public static final UITexture FLUID_SIDE_SELECTION_DOWN = fullImage("textures/gui/widget/item/side_selection_down.png",
+            ColorType.DEFAULT);
+    public static final UITexture FLUID_SIDE_SELECTION_UP = fullImage("textures/gui/widget/item/side_selection_up.png",
+            ColorType.DEFAULT);
+    public static final UITexture FLUID_SIDE_SELECTION_LEFT = fullImage("textures/gui/widget/item/side_selection_left.png",
+            ColorType.DEFAULT);
+    public static final UITexture FLUID_SIDE_SELECTION_RIGHT = fullImage("textures/gui/widget/item/side_selection_right.png",
+            ColorType.DEFAULT);
+
     // todo bronze/steel/primitive fluid slots?
     public static final UITexture TERMINAL_FRAME = fullImage("textures/gui/terminal/terminal_frame.png");
     public static final UITexture HOME_BUTTON = fullImage("textures/gui/terminal/home_button.png");

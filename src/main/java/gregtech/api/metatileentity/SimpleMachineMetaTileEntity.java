@@ -759,8 +759,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 顶部IO按钮
                         .child(new ToggleButton()
                                 .pos(40, 45)
-                                .overlay(true, GTGuiTextures.OVERLAY_ITEM_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_ITEM_EXPORT[0])
+                                .overlay(GTGuiTextures.ITEM_SIDE_SELECTION_UP)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingItems == EnumFacing.UP,
                                         val -> {
@@ -775,8 +774,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 正面IO按钮
                         .child(new ToggleButton()
                                 .pos(40, 65)
-                                .overlay(true, GTGuiTextures.OVERLAY_ITEM_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_ITEM_EXPORT[0])
+                                .overlay(GTGuiTextures.OVERLAY_ITEM_EXPORT[1])
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingItems == frontFacing,
                                         val -> {
@@ -791,8 +789,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 左面IO按钮
                         .child(new ToggleButton()
                                 .pos(20, 65)
-                                .overlay(true, GTGuiTextures.OVERLAY_ITEM_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_ITEM_EXPORT[0])
+                                .overlay(GTGuiTextures.ITEM_SIDE_SELECTION_LEFT)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingItems == frontFacing.rotateY(),
                                         val -> {
@@ -807,8 +804,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 右面IO按钮
                         .child(new ToggleButton()
                                 .pos(60, 65)
-                                .overlay(true, GTGuiTextures.OVERLAY_ITEM_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_ITEM_EXPORT[0])
+                                .overlay(GTGuiTextures.ITEM_SIDE_SELECTION_RIGHT)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingItems == frontFacing.getOpposite().rotateY(),
                                         val -> {
@@ -823,8 +819,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 底部IO按钮
                         .child(new ToggleButton()
                                 .pos(40, 85)
-                                .overlay(true, GTGuiTextures.OVERLAY_ITEM_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_ITEM_EXPORT[0])
+                                .overlay(GTGuiTextures.ITEM_SIDE_SELECTION_DOWN)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingItems == EnumFacing.DOWN,
                                         val -> {
@@ -839,8 +834,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 背面IO按钮
                         .child(new ToggleButton()
                                 .pos(20, 85)
-                                .overlay(true, GTGuiTextures.OVERLAY_ITEM_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_ITEM_EXPORT[0])
+                                .overlay(GTGuiTextures.ITEM_SIDE_SELECTION_BACK)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingItems == frontFacing.getOpposite(),
                                         val -> {
@@ -856,8 +850,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 顶部IO按钮
                         .child(new ToggleButton()
                                 .pos(120, 45)
-                                .overlay(true, GTGuiTextures.OVERLAY_FLUID_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_FLUID_EXPORT[0])
+                                .overlay(GTGuiTextures.FLUID_SIDE_SELECTION_UP)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingFluids == EnumFacing.UP,
                                         val -> {
@@ -872,8 +865,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 正面IO按钮
                         .child(new ToggleButton()
                                 .pos(120, 65)
-                                .overlay(true, GTGuiTextures.OVERLAY_FLUID_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_FLUID_EXPORT[0])
+                                .overlay(GTGuiTextures.OVERLAY_FLUID_EXPORT[1])
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingFluids == frontFacing,
                                         val -> {
@@ -888,8 +880,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 左面IO按钮
                         .child(new ToggleButton()
                                 .pos(100, 65)
-                                .overlay(true, GTGuiTextures.OVERLAY_FLUID_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_FLUID_EXPORT[0])
+                                .overlay(GTGuiTextures.FLUID_SIDE_SELECTION_LEFT)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingFluids == frontFacing.rotateY(),
                                         val -> {
@@ -904,8 +895,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 右面IO按钮
                         .child(new ToggleButton()
                                 .pos(140, 65)
-                                .overlay(true, GTGuiTextures.OVERLAY_FLUID_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_FLUID_EXPORT[0])
+                                .overlay(GTGuiTextures.FLUID_SIDE_SELECTION_RIGHT)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingFluids == frontFacing.getOpposite().rotateY(),
                                         val -> {
@@ -920,8 +910,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 底部IO按钮
                         .child(new ToggleButton()
                                 .pos(120, 85)
-                                .overlay(true, GTGuiTextures.OVERLAY_FLUID_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_FLUID_EXPORT[0])
+                                .overlay(GTGuiTextures.FLUID_SIDE_SELECTION_DOWN)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingFluids == EnumFacing.DOWN,
                                         val -> {
@@ -936,8 +925,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                         // 背面IO按钮
                         .child(new ToggleButton()
                                 .pos(100, 85)
-                                .overlay(true, GTGuiTextures.OVERLAY_FLUID_EXPORT[1])
-                                .overlay(false, GTGuiTextures.OVERLAY_FLUID_EXPORT[0])
+                                .overlay(GTGuiTextures.FLUID_SIDE_SELECTION_BACK)
                                 .value(new BooleanSyncValue(
                                         () -> outputFacingFluids == frontFacing.getOpposite(),
                                         val -> {
