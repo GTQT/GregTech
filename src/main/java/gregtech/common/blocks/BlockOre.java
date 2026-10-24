@@ -85,16 +85,13 @@ public class BlockOre extends Block implements IBlockOre {
     @NotNull
     @Override
     public Item getItemDropped(@NotNull IBlockState state, @NotNull Random rand, int fortune) {
-        // 获取当前方块状态对应的 StoneType
         StoneType stoneType = state.getValue(STONE_TYPE);
 
-        // 直接返回粗矿物品，忽略原分支逻辑
         ItemStack rawOreStack = OreDictUnifier.get(OrePrefix.rawOre, this.material);
         if (!rawOreStack.isEmpty()) {
-            return rawOreStack.getItem(); // 返回粗矿物品（忽略元数据）
+            return rawOreStack.getItem();
         }
 
-        // 粗矿不存在时回退到原逻辑
         if (stoneType.shouldBeDroppedAsItem || StoneType.STONE_TYPE_REGISTRY.getIDForObject(stoneType) < 16) {
             return super.getItemDropped(state, rand, fortune);
         } else {
@@ -103,20 +100,15 @@ public class BlockOre extends Block implements IBlockOre {
         }
     }
 
-    // 新增方法：处理掉落数量和元数据
     @Override
     public int damageDropped(@NotNull IBlockState state) {
-        // 返回粗矿对应的元数据值
         ItemStack rawOreStack = OreDictUnifier.get(OrePrefix.rawOre, this.material);
         return rawOreStack.isEmpty() ? 0 : rawOreStack.getItemDamage();
     }
 
     @Override
-    public int quantityDropped(IBlockState state, int fortune, @NotNull Random random) {
-        // 基础掉落数量 = 1 + 时运增幅
+    public int quantityDropped(@NotNull IBlockState state, int fortune, @NotNull Random random) {
         int base = 1 + random.nextInt(Math.min(fortune,3) + 1);
-
-        // 粗矿处理：时运每级增加 1 个额外掉落
         ItemStack rawOreStack = OreDictUnifier.get(OrePrefix.rawOre, this.material);
         return rawOreStack.isEmpty() ? super.quantityDropped(state, fortune, random) : base;
     }
