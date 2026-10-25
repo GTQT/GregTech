@@ -395,7 +395,7 @@ public class MetaPrefixItem extends StandardMetaItem {
         }
         for (Hazard hazard : Hazard.VALUES) {
             String key = hazard.materialTooltipKey();
-            if (key != null && hazard.warnsOn(material)) {
+            if (key != null && hazard.warnsOn(material, prefix)) {
                 lines.add(net.minecraft.client.resources.I18n.format(key));
             }
         }

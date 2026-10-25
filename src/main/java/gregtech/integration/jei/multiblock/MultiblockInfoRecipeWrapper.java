@@ -96,6 +96,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private int initializedPartsCount;
     private static final int ICON_SIZE = 20;
     private static final int RIGHT_PADDING = 5;
+    /** Cursor movement, in GUI pixels, a drag has to cover before it starts moving the camera. */
+    private static final int CAMERA_DRAG_THRESHOLD = 2;
+    /** Vertical field of view of the preview camera, matching the renderer's projection. */
+    private static final double CAMERA_FOV_DEGREES = 60.0D;
     private static final int INFO_ICON_Y = CompactPreviewLayout.CONTROLS_Y + 3;
     private static final int CHANNEL_TOP = CompactPreviewLayout.CONTROLS_Y + 4;
     private static final int CHANNEL_ROWS = CompactPreviewLayout.CHANNEL_ROWS;
@@ -153,12 +157,18 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private int pendingMouseWheel;
     private RecipeLayout recipeLayout;
     private int layerIndex = -1;
-    private int lastMouseX;
-    private int lastMouseY;
     private Vector3f center;
     private float rotationYaw;
     private float rotationPitch;
     private float zoom;
+    // Camera drag state. Both preview views feed this instead of tracking their own anchor positions.
+    @Nullable
+    private CameraDragMode cameraDragMode;
+    private int cameraDragAnchorX;
+    private int cameraDragAnchorY;
+    private int cameraDragLastX;
+    private int cameraDragLastY;
+    private boolean cameraDragStarted;
     private IDrawable slot;
     private IDrawable infoIcon;
     private boolean drawInfoIcon;
@@ -212,6 +222,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         long preparationStart = System.nanoTime();
         releasePreviewPatterns();
         cancelPreviewLoading();
+        // A rebuild interrupts camera interaction, so the next drag starts from a fresh anchor instead of
+        // applying the cursor movement of the whole loading phase at once.
+        resetCameraDrag();
         previewLoadFailure = null;
         previewLayoutInitialized = false;
         rendererContainsFullStructure = false;
@@ -293,6 +306,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private void releasePreviewResources() {
         channelDrag.cancel();
+        resetCameraDrag();
         cachedCandidateGroups.clear();
         cachedCandidateBlocks.clear();
         selected = null;
@@ -889,8 +903,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             tooltipBlockStack = null;
             this.previewTips = null;
             lastRender = System.currentTimeMillis();
-            this.lastMouseX = mouseX;
-            this.lastMouseY = mouseY;
             return;
         }
         configureLoadedPreviewLayout();
@@ -933,56 +945,13 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
         boolean leftClickHeld = Mouse.isButtonDown(0);
         boolean rightClickHeld = Mouse.isButtonDown(1);
-        boolean cameraModified = false;
-
-        if (insideView && rightClickHeld) {
-            float deltaX = mouseX - lastMouseX;
-            float deltaY = mouseY - lastMouseY;
-            if (Math.abs(deltaX) > 0.5f || Math.abs(deltaY) > 0.5f) {
-                final float panSensitivity = 0.08f;
-
-                Vec3d forward = new Vec3d(renderer.getLookAt().x - renderer.getEyePos().x,
-                        renderer.getLookAt().y - renderer.getEyePos().y,
-                        renderer.getLookAt().z - renderer.getEyePos().z).normalize();
-
-                Vec3d right = forward.crossProduct(new Vec3d(0.0, 1.0, 0.0)).normalize();
-                if (right.lengthSquared() < 1e-6) {
-                    right = new Vec3d(1.0, 0.0, 0.0);
-                }
-
-                Vec3d up = right.crossProduct(forward).normalize();
-
-                center.x += (float)(deltaX * right.x * panSensitivity);
-                center.y += (float)(deltaX * right.y * panSensitivity);
-                center.z += (float)(deltaX * right.z * panSensitivity);
-
-                center.x += (float)(-deltaY * up.x * panSensitivity);
-                center.y += (float)(-deltaY * up.y * panSensitivity);
-                center.z += (float)(-deltaY * up.z * panSensitivity);
-
-                cameraModified = true;
-            }
+        // Right drag pans, left drag orbits; the right button wins when both are held. The drag itself is handled
+        // by the shared camera-drag state, which the fullscreen viewer feeds as well.
+        CameraDragMode dragMode = null;
+        if (insideView) {
+            dragMode = rightClickHeld ? CameraDragMode.PAN : (leftClickHeld ? CameraDragMode.ROTATE : null);
         }
-        else if (insideView && leftClickHeld && (mouseX != lastMouseX || mouseY != lastMouseY)) {
-            rotationPitch += (mouseX - lastMouseX);
-            rotationPitch %= 360.0f;
-            if (rotationPitch < 0) rotationPitch += 360.0f;
-
-            rotationYaw = (float) MathHelper.clamp(
-                    rotationYaw + (mouseY - lastMouseY),
-                    -89.9f, 89.9f
-            );
-            cameraModified = true;
-        }
-        // 更新相机
-        if (cameraModified) {
-            renderer.setCameraLookAt(
-                    center,
-                    zoom,
-                    Math.toRadians(rotationPitch), // yaw
-                    Math.toRadians(rotationYaw)    // pitch
-            );
-        }
+        updateCameraDrag(dragMode, mouseX, mouseY, sceneHeight);
 
         // 悬停检测（仅当未拖拽时）
 
@@ -1054,8 +1023,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
 
         lastRender = System.currentTimeMillis();
-        this.lastMouseX = mouseX;
-        this.lastMouseY = mouseY;
 
         GlStateManager.disableRescaleNormal();
         GlStateManager.disableLighting();
@@ -1358,6 +1325,124 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         }
     }
 
+    /** How the preview camera reacts to a cursor drag. */
+    public enum CameraDragMode {
+        /** Left drag: orbit the structure around the camera target. */
+        ROTATE,
+        /** Right drag: slide the structure along with the cursor. */
+        PAN
+    }
+
+    /**
+     * Feeds one frame of preview camera dragging. The compact recipe page polls the button state while the
+     * fullscreen viewer forwards its mouse-move events, but both go through this method, so the two views keep
+     * the same drag feel and cannot drift apart again.
+     *
+     * <p>
+     * The camera only starts moving once the cursor left a small threshold, and the first step is measured from
+     * the position the drag started in. Without that, a click that lands while the preview is sampled would
+     * already shift the view by a pixel or two and the structure would crawl away under the cursor.
+     *
+     * @param mode       drag in progress, or {@code null} when the preview is not being dragged this frame
+     * @param mouseX     cursor x in GUI coordinates
+     * @param mouseY     cursor y in GUI coordinates
+     * @param viewHeight rendered viewport height in GUI pixels, used to scale panning
+     */
+    public void updateCameraDrag(@Nullable CameraDragMode mode, int mouseX, int mouseY, int viewHeight) {
+        if (mode == null) {
+            resetCameraDrag();
+            return;
+        }
+        if (mode != cameraDragMode) {
+            // (Re-)anchor on the cursor: a drag must never inherit a position from an earlier, unrelated one.
+            cameraDragMode = mode;
+            cameraDragAnchorX = mouseX;
+            cameraDragAnchorY = mouseY;
+            cameraDragLastX = mouseX;
+            cameraDragLastY = mouseY;
+            cameraDragStarted = false;
+            return;
+        }
+        if (!cameraDragStarted) {
+            if (Math.abs(mouseX - cameraDragAnchorX) <= CAMERA_DRAG_THRESHOLD &&
+                    Math.abs(mouseY - cameraDragAnchorY) <= CAMERA_DRAG_THRESHOLD) {
+                return;
+            }
+            cameraDragStarted = true;
+        }
+        int deltaX = mouseX - cameraDragLastX;
+        int deltaY = mouseY - cameraDragLastY;
+        if (deltaX == 0 && deltaY == 0) {
+            return;
+        }
+        cameraDragLastX = mouseX;
+        cameraDragLastY = mouseY;
+        if (mode == CameraDragMode.PAN) {
+            panCamera(deltaX, deltaY, viewHeight);
+        } else {
+            orbitCamera(deltaX, deltaY);
+        }
+    }
+
+    /**
+     * Drops the drag in progress. The next drag anchors on the cursor again instead of continuing from a stale
+     * position, which is what made the view jump when a drag was interrupted by a panel or the window edge.
+     */
+    public void resetCameraDrag() {
+        cameraDragMode = null;
+        cameraDragStarted = false;
+    }
+
+    /**
+     * Orbits the camera around the preview target using the drag-the-structure convention: dragging right turns
+     * the visible face of the structure to the right, dragging down tips its top towards the viewer.
+     */
+    public void orbitCamera(float deltaX, float deltaY) {
+        if (deltaX == 0.0F && deltaY == 0.0F) {
+            return;
+        }
+        rotationPitch = (rotationPitch + deltaX) % 360.0F;
+        if (rotationPitch < 0.0F) {
+            rotationPitch += 360.0F;
+        }
+        rotationYaw = MathHelper.clamp(rotationYaw + deltaY, -89.9F, 89.9F);
+        applyCamera();
+    }
+
+    /**
+     * Slides the camera target so the structure follows the cursor. The translation is derived from the
+     * projection at the view target instead of a fixed sensitivity, so one pixel of cursor movement moves the
+     * structure by one pixel at any zoom level and in any viewport size.
+     */
+    public void panCamera(double deltaX, double deltaY, int viewHeight) {
+        StructurePreviewRenderer renderer = getCurrentRenderer();
+        if (renderer == null || center == null || (deltaX == 0.0D && deltaY == 0.0D)) {
+            return;
+        }
+        Vec3d forward = new Vec3d(renderer.getLookAt().x - renderer.getEyePos().x,
+                renderer.getLookAt().y - renderer.getEyePos().y,
+                renderer.getLookAt().z - renderer.getEyePos().z).normalize();
+        Vec3d right = forward.crossProduct(new Vec3d(0.0D, 1.0D, 0.0D));
+        if (right.lengthSquared() < 1.0E-6D) {
+            right = new Vec3d(1.0D, 0.0D, 0.0D);
+        }
+        right = right.normalize();
+        Vec3d up = right.crossProduct(forward).normalize();
+
+        // The projection at the target plane spans 2 * distance * tan(fov / 2) over the viewport height, which
+        // is exactly how far the structure has to move for a pixel of cursor movement to stay under the cursor.
+        double unitsPerPixel = 2.0D * Math.max(0.01D, zoom) * Math.tan(Math.toRadians(CAMERA_FOV_DEGREES / 2.0D))
+                / Math.max(1, viewHeight);
+        // The camera moves against the cursor; that is what makes the structure move along with it.
+        double slideRight = -deltaX * unitsPerPixel;
+        double slideUp = deltaY * unitsPerPixel;
+        this.center = new Vector3f(
+                (float) (center.x + right.x * slideRight + up.x * slideUp),
+                (float) (center.y + right.y * slideRight + up.y * slideUp),
+                (float) (center.z + right.z * slideRight + up.z * slideUp));
+        applyCamera();
+    }
+
     /**
      * @return a freshly laid out candidate list for the given preview position; empty when the element
      *         carries no typed alternatives.
@@ -1520,8 +1605,6 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         tooltipBlockStack = null;
         this.previewTips = null;
         StructurePreviewRenderer renderer = getCurrentRenderer();
-        this.lastMouseX = mouseX;
-        this.lastMouseY = mouseY;
         lastRender = System.currentTimeMillis();
         if (renderer == null || !insideView || Mouse.isButtonDown(0) || Mouse.isButtonDown(1)) {
             return;

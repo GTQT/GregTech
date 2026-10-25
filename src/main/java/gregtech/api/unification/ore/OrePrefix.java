@@ -8,6 +8,7 @@ import gregtech.api.unification.material.info.MaterialIconType;
 import gregtech.api.unification.material.properties.IMaterialProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.stack.MaterialStack;
+import gregtech.api.util.Hazard;
 import gregtech.api.util.LocalizationUtils;
 import gregtech.api.util.function.TriConsumer;
 import gregtech.common.ConfigHolder;
@@ -26,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -463,30 +465,26 @@ public class OrePrefix {
     public static final OrePrefix circuit = new OrePrefix("circuit", -1, null, null, ENABLE_UNIFICATION, null);
     public static final OrePrefix component = new OrePrefix("component", -1, null, null, ENABLE_UNIFICATION, null);
 
-    // Nuclear stuff, introduced by Zalgo and Bruberu
+    // Nuclear stuff, introduced by Zalgo and Bruberu.
+    // Their radiation warning comes from the fuel material's RadioactiveProperty, like every
+    // other shape of the same substance — not from a second, hand-written tooltip here.
     public static final OrePrefix fuelRod = new OrePrefix("fuelRod", -1, null, MaterialIconType.fuelRod, 0,
-            material -> material.hasProperty(FISSION_FUEL),
-            mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
+            material -> material.hasProperty(FISSION_FUEL));
 
     public static final OrePrefix fuelRodDepleted = new OrePrefix("fuelRodDepleted", -1, null,
-            MaterialIconType.fuelRodDepleted, 0, material -> material.hasProperty(FISSION_FUEL),
-            mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
+            MaterialIconType.fuelRodDepleted, 0, material -> material.hasProperty(FISSION_FUEL));
 
     public static final OrePrefix fuelRodHotDepleted = new OrePrefix("fuelRodHotDepleted", -1, null,
-            MaterialIconType.fuelRodHotDepleted, 0, material -> material.hasProperty(FISSION_FUEL),
-            mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
+            MaterialIconType.fuelRodHotDepleted, 0, material -> material.hasProperty(FISSION_FUEL));
 
     public static final OrePrefix fuelPelletRaw = new OrePrefix("fuelPelletRaw", -1, null,
-            MaterialIconType.fuelPelletRaw, 0, material -> material.hasProperty(FISSION_FUEL),
-            mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
+            MaterialIconType.fuelPelletRaw, 0, material -> material.hasProperty(FISSION_FUEL));
 
     public static final OrePrefix fuelPellet = new OrePrefix("fuelPellet", -1, null,
-            MaterialIconType.fuelPellet, 0, material -> material.hasProperty(FISSION_FUEL),
-            mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
+            MaterialIconType.fuelPellet, 0, material -> material.hasProperty(FISSION_FUEL));
 
     public static final OrePrefix fuelPelletDepleted = new OrePrefix("fuelPelletDepleted", -1, null,
-            MaterialIconType.fuelPelletDepleted, 0, material -> material.hasProperty(FISSION_FUEL),
-            mat -> Collections.singletonList(I18n.format("metaitem.nuclear.tooltip.radioactive")));
+            MaterialIconType.fuelPelletDepleted, 0, material -> material.hasProperty(FISSION_FUEL));
 
     public static final OrePrefix dustSpentFuel = new OrePrefix("dustSpentFuel", -1, null,
             MaterialIconType.dustSpentFuel, 0, material -> material.hasProperty(FISSION_FUEL));
@@ -524,18 +522,29 @@ public class OrePrefix {
         public static final Predicate<Material> hasRotorProperty = mat -> mat.hasProperty(PropertyKey.ROTOR);
     }
 
-    public static void setHeatDamageFunction(OrePrefix prefix, Function<Material, Float> function) {
-        prefix.heatDamageFunction = function;
-    }
+    /**
+     * Base damage per second of a hot shape. A hot shape is hot because of its shape, not
+     * because of its material — the blast temperature only adds to this.
+     */
+    public static final float HOT_SHAPE_BASE_DAMAGE = 2f;
 
-    public static void setPoisonDamageFunction(OrePrefix prefix, Function<Material, Float> function) {
-        prefix.poisonDamageFunction = function;
+    /**
+     * A hot ingot burns for every material. Blast temperature only adds on top; materials that
+     * cannot be blasted simply get the shape's base reading.
+     */
+    private static float hotIngotDamage(@NotNull Material material) {
+        float blastBonus = material.hasProperty(PropertyKey.BLAST)
+                ? Math.max(0f, (material.getBlastTemperature() - 1750) / 1000.0F)
+                : 0f;
+        return HOT_SHAPE_BASE_DAMAGE + blastBonus;
     }
 
     public static void init() {
-        ingotHot.heatDamageFunction = mat -> mat.hasProperty(PropertyKey.BLAST) ?
-                ((mat.getBlastTemperature() - 1750) / 1000.0F) + 2 : 0f;
-        fuelRodHotDepleted.heatDamageFunction = mat -> 2f;
+        // A hot shape burns any material: the base damage comes from the shape itself, and a
+        // material's blast temperature only adds on top of it. Depleted hot fuel rods glow
+        // at the same flat rate whatever fuel they came from.
+        ingotHot.setHazardDamage(Hazard.HEAT, OrePrefix::hotIngotDamage);
+        fuelRodHotDepleted.setHazardDamage(Hazard.HEAT, material -> HOT_SHAPE_BASE_DAMAGE);
 
         gemFlawless.maxStackSize = 32;
         gemExquisite.maxStackSize = 16;
@@ -727,10 +736,11 @@ public class OrePrefix {
 
     public byte maxStackSize = 64;
     public final List<MaterialStack> secondaryMaterials = new ArrayList<>();
-    /** Damage per second this prefix deals for a material's blast temperature. Negative means frost. */
-    public Function<Material, Float> heatDamageFunction = null;
-    /** Multiplier applied to a material's {@link PropertyKey#TOXIC} damage. Null means 1.0. */
-    public Function<Material, Float> poisonDamageFunction = null;
+    /**
+     * The shape entry of the hazard system: damage per second this prefix adds for any material,
+     * by hazard. Created lazily because almost no prefix carries a hazard.
+     */
+    private @Nullable EnumMap<Hazard, Function<Material, Float>> hazardDamageFunctions;
     public Function<Material, List<String>> tooltipFunc;
 
     private String alternativeOreName = null;
@@ -770,6 +780,33 @@ public class OrePrefix {
 
     public void setMarkerPrefix(boolean isMarkerPrefix) {
         this.isMarkerPrefix = isMarkerPrefix;
+    }
+
+    /**
+     * The shape entry of a hazard: damage per second this prefix adds for any material it is
+     * made of. Zero when the shape does not carry that hazard. Readings are clamped at zero —
+     * a shape that cools registers its function under {@link Hazard#FROST}.
+     */
+    public float getHazardDamage(@NotNull Hazard hazard, @NotNull Material material) {
+        if (hazardDamageFunctions == null) return 0f;
+        Function<Material, Float> function = hazardDamageFunctions.get(hazard);
+        if (function == null) return 0f;
+        Float damage = function.apply(material);
+        return damage == null ? 0f : Math.max(0f, damage);
+    }
+
+    /**
+     * Registers this shape's damage per second for a hazard, or clears it when the function is
+     * null. The function runs for every material the prefix is generated for, so it has to
+     * answer for materials that do not have the relevant property as well.
+     */
+    public void setHazardDamage(@NotNull Hazard hazard, @Nullable Function<Material, Float> function) {
+        if (function == null) {
+            if (hazardDamageFunctions != null) hazardDamageFunctions.remove(hazard);
+            return;
+        }
+        if (hazardDamageFunctions == null) hazardDamageFunctions = new EnumMap<>(Hazard.class);
+        hazardDamageFunctions.put(hazard, function);
     }
 
     public long getMaterialAmount(@Nullable Material material) {
@@ -954,6 +991,7 @@ public class OrePrefix {
     private long flags;
     private Predicate<Material> condition;
     private Function<Material, List<String>> tooltipFunc;
+    private final Map<Hazard, Function<Material, Float>> hazardDamageFunctions = new EnumMap<>(Hazard.class);
 
     private Builder(String name, long materialAmount) {
         this.name = name;
@@ -989,8 +1027,20 @@ public class OrePrefix {
         return this;
     }
 
+    /**
+     * Registers damage per second this shape deals for any material, under the given hazard.
+     * This is the shape entry of the hazard system — see {@link Hazard}.
+     */
+    public Builder hazardDamage(@NotNull Hazard hazard, @NotNull Function<Material, Float> function) {
+        this.hazardDamageFunctions.put(hazard, function);
+        return this;
+    }
+
     public OrePrefix build() {
-        return new OrePrefix(name, materialAmount, material, materialIconType, flags, condition, tooltipFunc);
+        OrePrefix prefix = new OrePrefix(name, materialAmount, material, materialIconType, flags, condition,
+                tooltipFunc);
+        hazardDamageFunctions.forEach(prefix::setHazardDamage);
+        return prefix;
     }
 }
 

@@ -4,6 +4,7 @@ import gregtech.api.damagesources.DamageSources;
 import gregtech.api.items.armor.ArmorMetaItem;
 import gregtech.api.items.armor.IArmorLogic;
 import gregtech.api.unification.material.Material;
+import gregtech.api.unification.material.properties.HazardProperty;
 import gregtech.api.unification.material.properties.PropertyKey;
 import gregtech.api.unification.ore.OrePrefix;
 
@@ -24,111 +25,52 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 
 /**
- * A hazard an entity can be exposed to, and the single place that knows how to
- * resolve, resist and apply it.
+ * One kind of damage an entity can be exposed to, and the single pipeline that resolves,
+ * resists and applies it.
  * <p>
- * Every hazard answers four questions, so that adding one means adding one enum
- * constant rather than editing four call sites:
+ * <b>Every hazard has exactly the same two entries</b>, both measured in unshielded damage per
+ * second before armor:
  * <ul>
- * <li>{@link #intensityOf} — how much of it does this (material, prefix) pair emit?</li>
- * <li>{@link #warnsOn} — should the item advertise it in its tooltip?</li>
- * <li>{@link #resistanceOf} — which armor stat scales it down?</li>
- * <li>{@link #onHit} — what non-damage effect comes with it?</li>
+ * <li><b>shape entry</b> — a function on the {@link OrePrefix}. It applies to every material the
+ * shape is made of: {@code ingotHot} burns no matter which metal it is, and a hot depleted fuel
+ * rod glows no matter which fuel it came from. Registered with
+ * {@link OrePrefix#setHazardDamage(Hazard, java.util.function.Function)}.</li>
+ * <li><b>substance entry</b> — a {@link HazardProperty} on the {@link Material}. It applies in
+ * every prefix: every shape of uranium irradiates, every shape of chlorine is toxic. Registered
+ * by setting the material's property.</li>
  * </ul>
- * This replaces the four hand-written copies of "look up armor resistance, scale
- * the damage, bypass armor, wear the chestplate" that used to live in
- * {@code MetaPrefixItem#onUpdate}, {@code MetaPrefixItem#onEntityItemUpdate},
- * {@code DimensionHazardHandler#onPlayerTick} and {@code BlockCable}.
+ * The two entries are added; neither overrides the other. A hot uranium ingot therefore burns
+ * and irradiates in the same tick, and a (material, prefix) pair whose sum is zero carries
+ * nothing. Negative readings are not a thing: a cold shape registers under {@link #FROST}
+ * instead of returning a negative {@link #HEAT}.
  * <p>
- * Hazards fall into two camps. {@link #HEAT} and {@link #POISON} are prefix-sensitive
- * — a hot ingot burns you but hot dust does not exist. {@link #RADIATION} and
- * {@link #FROST} are material-wide: every derivative of a radioactive or cryogenic
- * material hurts uniformly. {@link #ELECTRIC} is not carried by materials at all.
+ * Everything else is plain data on the enum constant — damage source, tooltip keys, which armor
+ * stat resists it and which extra effect comes with it. There are no per-constant overrides, so
+ * all hazards travel the same path: sum the two entries, scale by armor, deal damage, wear the
+ * chestplate, apply the effect. {@link #ELECTRIC} is the one hazard with no item entries; it is
+ * applied directly by sources such as bare cables, through the same {@link #applyTo} pipeline.
  */
 public enum Hazard {
 
-    HEAT(DamageSources::getHeatDamage, "gregtech.material.tooltip.hot") {
+    // damage source, item tooltip key, substance property, armor tooltip key, thermal, armor stat, extra effect
+    HEAT(DamageSources.getHeatDamage(), "gregtech.material.tooltip.hot", null,
+            "gregtech.armor.resistance.heat", true, IArmorLogic::getHeatResistance, HazardEffect.NONE),
 
-        @Override
-        public float intensityOf(@NotNull Material material, @NotNull OrePrefix prefix) {
-            if (prefix.heatDamageFunction == null) return 0f;
-            // Signed: a negative result means this prefix radiates cold, not heat.
-            // Which materials the function applies to is the prefix's business, not ours —
-            // a blast-temperature formula and a flat "hot depleted rod" value differ in that.
-            return prefix.heatDamageFunction.apply(material);
-        }
+    FROST(DamageSources.getFrostDamage(), "gregtech.material.tooltip.cold", PropertyKey.COLD,
+            "gregtech.armor.resistance.heat", true, IArmorLogic::getHeatResistance, HazardEffect.NONE),
 
-        @Override
-        public boolean warnsOn(@NotNull Material material) {
-            return material.hasProperty(PropertyKey.BLAST);
-        }
-    },
+    RADIATION(DamageSources.getRadioactiveDamage(), "gregtech.material.tooltip.radioactive",
+            PropertyKey.RADIOACTIVE, "gregtech.armor.resistance.radiation", false,
+            IArmorLogic::getRadiationResistance, Hazard::radiationDebuff),
 
-    FROST(DamageSources::getFrostDamage, "gregtech.material.tooltip.cold") {
+    POISON(DamageSources.getChemicalDamage(), "gregtech.material.tooltip.toxic", PropertyKey.TOXIC,
+            "gregtech.armor.resistance.chemical", false, IArmorLogic::getPoisonResistance,
+            Hazard::poisonEffect),
 
-        @Override
-        public float intensityOf(@NotNull Material material, @NotNull OrePrefix prefix) {
-            if (!material.hasProperty(PropertyKey.COLD)) return 0f;
-            return material.getProperty(PropertyKey.COLD).getColdDamage();
-        }
-
-        @Override
-        public boolean warnsOn(@NotNull Material material) {
-            return material.hasProperty(PropertyKey.COLD);
-        }
-    },
-
-    RADIATION(DamageSources::getRadioactiveDamage, "gregtech.material.tooltip.radioactive") {
-
-        @Override
-        public float intensityOf(@NotNull Material material, @NotNull OrePrefix prefix) {
-            if (!material.hasProperty(PropertyKey.RADIOACTIVE)) return 0f;
-            return material.getProperty(PropertyKey.RADIOACTIVE).getRadioactivity();
-        }
-
-        @Override
-        public boolean warnsOn(@NotNull Material material) {
-            return material.hasProperty(PropertyKey.FISSION_FUEL) || material.hasProperty(PropertyKey.RADIOACTIVE);
-        }
-
-        @Override
-        protected void onHit(@NotNull EntityLivingBase entity, float intensity, float resisted) {
-            // RadiationEffectUtil grades its debuff against the unshielded strength.
-            if (entity instanceof EntityPlayer player) {
-                RadiationEffectUtil.applyDebuff(player, intensity);
-            }
-        }
-    },
-
-    POISON(DamageSources::getChemicalDamage, "gregtech.material.tooltip.toxic") {
-
-        @Override
-        public float intensityOf(@NotNull Material material, @NotNull OrePrefix prefix) {
-            if (!material.hasProperty(PropertyKey.TOXIC)) return 0f;
-            float toxicity = material.getProperty(PropertyKey.TOXIC).getToxicity();
-            if (prefix.poisonDamageFunction != null) {
-                toxicity *= prefix.poisonDamageFunction.apply(material);
-            }
-            return toxicity;
-        }
-
-        @Override
-        public boolean warnsOn(@NotNull Material material) {
-            return material.hasProperty(PropertyKey.TOXIC);
-        }
-
-        @Override
-        protected void onHit(@NotNull EntityLivingBase entity, float intensity, float resisted) {
-            entity.addPotionEffect(new PotionEffect(MobEffects.POISON, (int) (resisted * 100), 1));
-        }
-    },
-
-    ELECTRIC(DamageSources::getElectricDamage, null) {
-        // Not carried by materials — only applied directly, e.g. by bare cables.
-    };
+    ELECTRIC(DamageSources.getElectricDamage(), null, null, "gregtech.armor.resistance.electric", false,
+            IArmorLogic::getElectricResistance, HazardEffect.NONE);
 
     /** All hazards, in canonical application order. */
     public static final Hazard[] VALUES = values();
@@ -140,28 +82,76 @@ public enum Hazard {
     public static final List<Hazard> ARMOR_RESISTED = Collections
             .unmodifiableList(Arrays.asList(HEAT, RADIATION, POISON, ELECTRIC));
 
-    private final Supplier<DamageSource> damageSource;
-    private final @Nullable String materialTooltipKey;
+    @FunctionalInterface
+    public interface ArmorResistance {
 
-    Hazard(@NotNull Supplier<DamageSource> damageSource, @Nullable String materialTooltipKey) {
+        float apply(@NotNull IArmorLogic armor);
+    }
+
+    /** An effect applied on top of the damage, such as a poison or radiation debuff. */
+    @FunctionalInterface
+    public interface HazardEffect {
+
+        void apply(@NotNull EntityLivingBase entity, float intensity, float resisted);
+
+        HazardEffect NONE = (entity, intensity, resisted) -> {};
+    }
+
+    private final DamageSource damageSource;
+    private final @Nullable String materialTooltipKey;
+    private final @Nullable PropertyKey<? extends HazardProperty> materialProperty;
+    private final String armorResistanceKey;
+    private final boolean thermal;
+    private final ArmorResistance armorResistance;
+    private final HazardEffect effect;
+
+    Hazard(@NotNull DamageSource damageSource,
+           @Nullable String materialTooltipKey,
+           @Nullable PropertyKey<? extends HazardProperty> materialProperty,
+           @NotNull String armorResistanceKey,
+           boolean thermal,
+           @NotNull ArmorResistance armorResistance,
+           @NotNull HazardEffect effect) {
         this.damageSource = damageSource;
         this.materialTooltipKey = materialTooltipKey;
+        this.materialProperty = materialProperty;
+        this.armorResistanceKey = armorResistanceKey;
+        this.thermal = thermal;
+        this.armorResistance = armorResistance;
+        this.effect = effect;
     }
 
     /**
-     * The raw damage per second this hazard deals from a given (material, prefix)
-     * pair, before armor. Zero means the pair does not emit this hazard.
-     * <p>
-     * {@link #HEAT} is the one hazard whose result is signed: a negative value
-     * means the prefix emits {@link #FROST} instead.
+     * The raw damage per second this (material, prefix) pair emits, before armor: the substance
+     * entry plus the shape entry. Zero means the pair carries none of this hazard.
      */
     public float intensityOf(@NotNull Material material, @NotNull OrePrefix prefix) {
-        return 0f;
+        return materialIntensity(material) + prefixIntensity(material, prefix);
     }
 
-    /** Whether this hazard is worth advertising on the material's tooltip. */
-    public boolean warnsOn(@NotNull Material material) {
-        return false;
+    /**
+     * The substance entry: damage per second this material emits in every one of its shapes.
+     * Zero for hazards that are not carried by substances ({@link #HEAT}, {@link #ELECTRIC}).
+     */
+    public float materialIntensity(@NotNull Material material) {
+        if (materialProperty == null || !material.hasProperty(materialProperty)) return 0f;
+        return material.getProperty(materialProperty).getHazardDamage();
+    }
+
+    /**
+     * The shape entry: damage per second this prefix adds for any material. Zero for shapes
+     * that do not carry this hazard.
+     */
+    public float prefixIntensity(@NotNull Material material, @NotNull OrePrefix prefix) {
+        return prefix.getHazardDamage(this, material);
+    }
+
+    /**
+     * Whether this (material, prefix) pair is worth advertising on the item's tooltip.
+     * Anything that actually hurts is worth warning about, whichever entry supplied it.
+     */
+    public boolean warnsOn(@NotNull Material material, @NotNull OrePrefix prefix) {
+        return intensityOf(material, prefix) > 0f;
     }
 
     /** The lang key for this hazard's material tooltip line, or null if it has none. */
@@ -169,32 +159,19 @@ public enum Hazard {
         return materialTooltipKey;
     }
 
-    /**
-     * The lang key for this hazard's armor resistance tooltip line.
-     * {@link #FROST} shares {@link #HEAT}'s value, so it reuses its key.
-     */
+    /** The lang key for this hazard's armor resistance tooltip line. */
     public String armorResistanceKey() {
-        return switch (this) {
-            case HEAT, FROST -> "gregtech.armor.resistance.heat";
-            case RADIATION -> "gregtech.armor.resistance.radiation";
-            case POISON -> "gregtech.armor.resistance.chemical";
-            case ELECTRIC -> "gregtech.armor.resistance.electric";
-        };
+        return armorResistanceKey;
     }
 
     /** Heat and cold — the hazards a pair of pincers lets you ignore. */
     public boolean isThermal() {
-        return this == HEAT || this == FROST;
+        return thermal;
     }
 
     /** The multiplier this armor logic applies to this hazard. 1.0 means no protection. */
     public float resistanceOf(@NotNull IArmorLogic armor) {
-        return switch (this) {
-            case HEAT, FROST -> armor.getHeatResistance();
-            case RADIATION -> armor.getRadiationResistance();
-            case POISON -> armor.getPoisonResistance();
-            case ELECTRIC -> armor.getElectricResistance();
-        };
+        return armorResistance.apply(armor);
     }
 
     /**
@@ -221,21 +198,11 @@ public enum Hazard {
         float resisted = intensity * armorResistanceOf(entity);
         if (resisted <= 0f) return;
 
-        DamageSource source = damageSource.get();
-        entity.attackEntityFrom(source.setDamageBypassesArmor(), resisted);
+        DamageSource source = damageSource.setDamageBypassesArmor();
+        entity.attackEntityFrom(source, resisted);
         EntityDamageUtil.damageArmorForHazard(entity, source, resisted);
-        onHit(entity, intensity, resisted);
+        effect.apply(entity, intensity, resisted);
     }
-
-    /**
-     * The effect this hazard applies on top of its damage.
-     *
-     * @param intensity damage per second <em>before</em> armor scaling —
-     *                  {@link RadiationEffectUtil} grades its debuff on this
-     * @param resisted  damage per second actually dealt — poison scales its
-     *                  effect duration on this
-     */
-    protected void onHit(@NotNull EntityLivingBase entity, float intensity, float resisted) {}
 
     /**
      * Whether this (material, prefix) pair emits heat or cold at all. Callers that
@@ -243,7 +210,7 @@ public enum Hazard {
      * shield — a pair of pincers should not wear out on a stack that was never hot.
      */
     public static boolean carriesThermal(@NotNull Material material, @NotNull OrePrefix prefix) {
-        return HEAT.intensityOf(material, prefix) != 0f || FROST.intensityOf(material, prefix) != 0f;
+        return HEAT.intensityOf(material, prefix) > 0f || FROST.intensityOf(material, prefix) > 0f;
     }
 
     /** Applies every hazard this (material, prefix) pair carries. */
@@ -259,19 +226,22 @@ public enum Hazard {
      */
     public static void applyAll(@NotNull EntityLivingBase entity, @NotNull Material material,
                                 @NotNull OrePrefix prefix, @NotNull Predicate<Hazard> filter) {
+        boolean applied = false;
         for (Hazard hazard : VALUES) {
             if (!filter.test(hazard)) continue;
 
             float raw = hazard.intensityOf(material, prefix);
-            if (raw == 0f) continue;
+            if (raw <= 0f) continue;
 
-            // heatDamageFunction is signed: a negative result means the prefix radiates cold.
-            if (hazard == HEAT && raw < 0f) {
-                // The substituted hazard has to clear the filter on its own account.
-                if (filter.test(FROST)) FROST.applyTo(entity, -raw);
-            } else {
-                hazard.applyTo(entity, raw);
-            }
+            // Hazards are independent sources. Vanilla's hurt-resistance window would otherwise
+            // swallow every hazard after the first one applied in the same tick — a hot uranium
+            // ingot would only burn, never irradiate. Clear it between hazards so both land.
+            if (applied) entity.hurtResistantTime = 0;
+
+            // Each hazard clears the filter on its own account: shielding against heat does
+            // not by itself shield against the cold of the same stack.
+            hazard.applyTo(entity, raw);
+            applied = true;
         }
     }
 
@@ -288,5 +258,16 @@ public enum Hazard {
         for (EntityPlayer player : world.getEntitiesWithinAABB(EntityPlayer.class, box)) {
             applyAll(player, material, prefix, filter);
         }
+    }
+
+    private static void radiationDebuff(@NotNull EntityLivingBase entity, float intensity, float resisted) {
+        // Graded against the unshielded strength, not the damage actually dealt.
+        if (entity instanceof EntityPlayer player) {
+            RadiationEffectUtil.applyDebuff(player, intensity);
+        }
+    }
+
+    private static void poisonEffect(@NotNull EntityLivingBase entity, float intensity, float resisted) {
+        entity.addPotionEffect(new PotionEffect(MobEffects.POISON, (int) (resisted * 100), 1));
     }
 }

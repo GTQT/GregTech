@@ -36,11 +36,11 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
                     .aisle("               ", "F F         F F", "F F         F F", "F F         F F", "F F         F F", "F F         F F", "               ")
                     .self('~', MetaTileEntityElectricImplosionCompressor.class)
                     .block('A', geGlassState())
-                    .block('B', getCasingState())
+                    .block('B', getStructureState())
                     .block('C', getPipeState())
                     .frames('D', Materials.Naquadah)
                     .air('E')
-                    .casing('F', getStructureState())
+                    .casing('F', getCasingState())
                     .energyInput(1,4)
                     .maintenance()
                     .preset(HatchPresets.STANDARD_IO)
@@ -53,13 +53,12 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
         super(metaTileEntityId, RecipeMaps.ELECTRIC_IMPLOSION_RECIPES);
     }
 
-    public static IBlockState getStructureState() {
+    private static IBlockState getStructureState() {
         return MetaBlocks.METAL_CASING.getState(BlockMetalCasing.MetalCasingType.TUNGSTENSTEEL_ROBUST);
     }
 
-    private static IBlockState getCasingState() {
-        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(
-                BlockLargeMultiblockCasing.CasingType.NAQUADAH_REINFORCED_CASING);
+    public static IBlockState getCasingState() {
+        return MetaBlocks.LARGE_MULTIBLOCK_CASING.getState(BlockLargeMultiblockCasing.CasingType.NAQUADAH_REINFORCED_CASING);
     }
 
     private static IBlockState getPipeState() {

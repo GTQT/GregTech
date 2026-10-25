@@ -1,24 +1,18 @@
 package gregtech.api.unification.material.properties;
 
-public class ToxicProperty implements IMaterialProperty {
-
-    /**
-     * Base toxicity damage per second when held in inventory.
-     * The actual damage is multiplied by the armor's poison resistance.
-     */
-    private final float toxicity;
+/**
+ * Makes every shape of a material toxic: dust, ingot, fluid-containing item and everything
+ * else. Armor chemical resistance scales the damage down.
+ */
+public class ToxicProperty extends HazardProperty {
 
     public ToxicProperty(float toxicity) {
-        this.toxicity = toxicity;
+        super(toxicity);
     }
 
+    /** @deprecated use {@link #getHazardDamage()} */
+    @Deprecated
     public float getToxicity() {
-        return toxicity;
-    }
-
-    @Override
-    public void verifyProperty(MaterialProperties properties) {
-        // Hazard properties must not force a DUST property onto the material,
-        // otherwise gas-only materials (e.g. Chlorine) would generate solid dust items.
+        return getHazardDamage();
     }
 }

@@ -3,6 +3,7 @@ package gregtech.integration.jei.multiblock;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.client.renderer.scene.StructurePreviewRenderer;
 import gregtech.client.utils.TrackedDummyWorld;
+import gregtech.integration.jei.multiblock.MultiblockInfoRecipeWrapper.CameraDragMode;
 import gregtech.integration.jei.multiblock.MultiblockInfoRecipeWrapper.PreviewCandidate;
 
 import net.minecraft.client.Minecraft;
@@ -157,8 +158,6 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     private boolean draggingLeft;
     private int channelPage;
     private boolean insideViewport;
-    private int lastMouseX;
-    private int lastMouseY;
     private long lastClickTime;
     private long lastClickButton = -1L;
 
@@ -226,6 +225,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
      */
     public void close() {
         wrapper.cancelChannelDrag();
+        wrapper.resetCameraDrag();
         if (openScreen == this) {
             openScreen = null;
         }
@@ -352,9 +352,6 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         wrapper.updateHoverState(mc, mouseX, mouseY, insideViewport && !isOverlayHovered());
 
         drawTooltips(mouseX, mouseY);
-
-        this.lastMouseX = mouseX;
-        this.lastMouseY = mouseY;
     }
 
     private boolean isOverlayHovered() {
@@ -895,51 +892,28 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         applyLayout(width, height);
         if (wrapper.isDraggingChannel()) {
             wrapper.updateChannelDrag(mouseX, true);
-            lastMouseX = mouseX;
-            lastMouseY = mouseY;
             return;
         }
-        int deltaX = mouseX - lastMouseX;
-        int deltaY = mouseY - lastMouseY;
         boolean inView = mouseX >= viewportX && mouseX < viewportX + viewportWidth
                 && mouseY >= viewportY && mouseY < viewportY + viewportHeight;
-        if (clickedMouseButton == 0 && draggingLeft && inView) {
-            wrapper.setRotation(wrapDegrees(wrapper.getRotationPitch() + deltaX),
-                    clamp(wrapper.getRotationYaw() + deltaY, -89.9F, 89.9F));
-            wrapper.applyCamera();
-        } else if (clickedMouseButton == 1 && inView) {
-            panCamera(deltaX, deltaY);
+        // Same drag handling as the compact recipe page: left drag orbits, right drag pans, and the pan
+        // distance follows the camera projection instead of a fixed sensitivity.
+        CameraDragMode mode = null;
+        if (inView) {
+            if (clickedMouseButton == 0 && draggingLeft) {
+                mode = CameraDragMode.ROTATE;
+            } else if (clickedMouseButton == 1) {
+                mode = CameraDragMode.PAN;
+            }
         }
-        lastMouseX = mouseX;
-        lastMouseY = mouseY;
-    }
-
-    private void panCamera(int deltaX, int deltaY) {
-        final float sensitivity = 0.05F;
-        StructurePreviewRenderer renderer = wrapper.getCurrentRenderer();
-        if (renderer == null) return;
-        net.minecraft.util.math.Vec3d forward = new net.minecraft.util.math.Vec3d(
-                renderer.getLookAt().x - renderer.getEyePos().x,
-                renderer.getLookAt().y - renderer.getEyePos().y,
-                renderer.getLookAt().z - renderer.getEyePos().z).normalize();
-        net.minecraft.util.math.Vec3d right = forward.crossProduct(new net.minecraft.util.math.Vec3d(0, 1, 0)).normalize();
-        net.minecraft.util.math.Vec3d up = right.crossProduct(forward).normalize();
-        double rightX = right.x, rightZ = right.z;
-        double upX = up.x, upY = up.y, upZ = up.z;
-
-        Vector3f center = wrapper.getCameraCenter();
-        Vector3f moved = new Vector3f(
-                center.x + (float) ((deltaX * rightX - deltaY * upX) * sensitivity),
-                center.y + (float) (-deltaY * upY * sensitivity),
-                center.z + (float) ((deltaX * rightZ - deltaY * upZ) * sensitivity));
-        wrapper.setCameraCenter(moved);
-        wrapper.applyCamera();
+        wrapper.updateCameraDrag(mode, mouseX, mouseY, Math.max(1, viewportHeight - 4));
     }
 
     @Override
     protected void mouseReleased(int mouseX, int mouseY, int state) {
         if (state == 0) wrapper.updateChannelDrag(mouseX, false);
         draggingLeft = false;
+        wrapper.resetCameraDrag();
         super.mouseReleased(mouseX, mouseY, state);
     }
 
@@ -965,15 +939,6 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
     private static boolean isInside(int mouseX, int mouseY, int x, int y, int w, int h) {
         return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
-    }
-
-    private static float clamp(float value, float min, float max) {
-        return value < min ? min : (value > max ? max : value);
-    }
-
-    private static float wrapDegrees(float angle) {
-        float wrapped = angle % 360.0F;
-        return wrapped < 0.0F ? wrapped + 360.0F : wrapped;
     }
 
     private static int withAlpha(int color, float alpha) {
