@@ -991,8 +991,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         GlStateManager.pushAttrib();
         try {
             GlStateManager.enableRescaleNormal();
-            GlStateManager.enableLighting();
-            RenderHelper.enableStandardItemLighting();
+            // The preview renderer disables lighting for the baked block mesh and only enables it
+            // around tile entity rendering itself. Enabling it here would leave GL_LIGHTING on
+            // after the renderer's popAttrib, which GlStateManager's cache cannot observe, and the
+            // final scene texture would be multiplied by the fixed-function lighting (dark preview).
             renderer.render(sceneX, sceneY, sceneWidth, sceneHeight, mouseX, mouseY);
         } finally {
             GlStateManager.popAttrib();
@@ -1450,8 +1452,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         GlStateManager.pushAttrib();
         try {
             GlStateManager.enableRescaleNormal();
-            GlStateManager.enableLighting();
-            RenderHelper.enableStandardItemLighting();
+            // Lighting is managed by the renderer; enabling it here breaks the cached GL state
+            // after the renderer's popAttrib and makes the whole preview look dark.
             renderer.render(x, y, width, height, mouseX, mouseY);
         } finally {
             GlStateManager.popAttrib();

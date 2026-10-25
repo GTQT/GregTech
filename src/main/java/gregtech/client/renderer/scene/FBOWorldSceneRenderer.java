@@ -1,9 +1,9 @@
 package gregtech.client.renderer.scene;
 
+import gregtech.api.util.GTLog;
 import gregtech.api.util.Position;
 import gregtech.api.util.PositionedRect;
 import gregtech.api.util.Size;
-import gregtech.api.util.GTLog;
 
 import net.minecraft.client.renderer.BufferBuilder;
 import net.minecraft.client.renderer.GlStateManager;
@@ -195,6 +195,10 @@ public class FBOWorldSceneRenderer extends VBOWorldSceneRenderer {
     protected void drawFBOQuad(float x, float y, float width, float height) {
         GlStateManager.enableTexture2D();
         GlStateManager.disableLighting();
+        // GlStateManager's cached lighting flag cannot observe glPopAttrib() in resetCamera(), so
+        // the call above may be skipped while GL still has lighting enabled. A lit screen quad is
+        // exactly what turned every structure preview into a dark image.
+        GL11.glDisable(GL11.GL_LIGHTING);
         int lastTexID = GL11.glGetInteger(GL11.GL_TEXTURE_BINDING_2D);
         GlStateManager.bindTexture(fbo.framebufferTexture);
         GlStateManager.color(1, 1, 1, 1);
