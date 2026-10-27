@@ -5,17 +5,15 @@ import gregtech.common.ConfigHolder;
 import gregtech.common.network.NetworkHandler;
 import gregtech.common.network.multiblock.ClearMoverPreviewPacket;
 import gregtech.common.network.multiblock.StartMoverPreviewPacket;
-import gregtech.common.items.MetaItems;
-import gregtech.common.items.behaviors.MultiblockToolBehavior;
+
 import net.minecraft.entity.player.EntityPlayerMP;
 import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.PlayerEvent;
 import net.minecraftforge.fml.common.gameevent.TickEvent;
 
 import java.util.ArrayList;
@@ -26,7 +24,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class MoverSessionManager {
     public static final MoverSessionManager INSTANCE = new MoverSessionManager();
-    private static final String ITEM_TAG = "GTMultiblockMoverSession";
     private static boolean registered;
 
     private final Map<UUID, MoverSession> sessions = new ConcurrentHashMap<>();
@@ -55,7 +52,7 @@ public final class MoverSessionManager {
             MoverSession session = new MoverSession(
                     id, player.getUniqueID(), snapshot, captureNanos);
             sessions.put(player.getUniqueID(), session);
-            writeItemSession(mover, session);
+            MoverBinding.bind(mover, session);
             GTLog.logger.info("Multiblock mover session {} selected by {} ({}) in dimension {} at {}; blocks={}, tileEntities={}",
                     id, player.getName(), player.getUniqueID(), snapshot.getDimension(),
                     snapshot.getControllerPos(), snapshot.getBlockCount(), snapshot.getTileEntityCount());
@@ -87,13 +84,13 @@ public final class MoverSessionManager {
                     "gregtech.multiblock_mover.error.invalid_session"), true);
             return;
         }
-        ItemStack mover = findMover(player, session);
+        ItemStack mover = MoverBinding.findBound(player, session);
         if (mover.isEmpty()) {
             cancel(player, ItemStack.EMPTY, true, "gregtech.multiblock_mover.item_missing");
             return;
         }
-        if (!itemMatchesSession(player.getHeldItemMainhand(), session)
-                && !itemMatchesSession(player.getHeldItemOffhand(), session)) {
+        if (!MoverBinding.matches(player.getHeldItemMainhand(), session)
+                && !MoverBinding.matches(player.getHeldItemOffhand(), session)) {
             player.sendStatusMessage(new TextComponentTranslation(
                     "gregtech.multiblock_mover.error.invalid_session"), true);
             return;
@@ -136,10 +133,10 @@ public final class MoverSessionManager {
         if (session == null) {
             player.sendStatusMessage(new TextComponentTranslation(
                     "gregtech.multiblock_mover.error.no_session"), true);
-            clearItemSession(mover);
+            MoverBinding.clear(mover);
             return;
         }
-        if (session.isCommitting() || !itemMatchesSession(mover, session)) {
+        if (session.isCommitting() || !MoverBinding.matches(mover, session)) {
             player.sendStatusMessage(new TextComponentTranslation(
                     "gregtech.multiblock_mover.error.invalid_session"), true);
             cancel(player, mover, true, null);
@@ -186,9 +183,9 @@ public final class MoverSessionManager {
                        String messageKey) {
         MoverSession removed = sessions.remove(player.getUniqueID());
         if (removed != null) {
-            clearItemSession(findMover(player, removed));
+            MoverBinding.clear(MoverBinding.findBound(player, removed));
         }
-        clearItemSession(mover);
+        MoverBinding.clear(mover);
         if (removed != null && notifyClient) {
             NetworkHandler.INSTANCE.sendTo(new ClearMoverPreviewPacket(removed.getId()), player);
         }
@@ -200,27 +197,6 @@ public final class MoverSessionManager {
         }
     }
 
-    private static void writeItemSession(ItemStack stack, MoverSession session) {
-        NBTTagCompound tag = stack.getOrCreateSubCompound(ITEM_TAG);
-        tag.setUniqueId("Id", session.getId());
-        tag.setInteger("Dimension", session.getSnapshot().getDimension());
-        tag.setLong("Controller", session.getSnapshot().getControllerPos().toLong());
-    }
-
-    private static boolean itemMatchesSession(ItemStack stack, MoverSession session) {
-        if (!MultiblockToolBehavior.isMultiblockTool(stack)) return false;
-        NBTTagCompound root = stack.getTagCompound();
-        if (root == null || !root.hasKey(ITEM_TAG, 10)) return false;
-        NBTTagCompound tag = root.getCompoundTag(ITEM_TAG);
-        return tag.hasUniqueId("Id") && session.getId().equals(tag.getUniqueId("Id"));
-    }
-
-    private static void clearItemSession(ItemStack stack) {
-        if (stack == null || stack.isEmpty() || stack.getTagCompound() == null) return;
-        stack.getTagCompound().removeTag(ITEM_TAG);
-        if (stack.getTagCompound().getKeySet().isEmpty()) stack.setTagCompound(null);
-    }
-
     @SubscribeEvent
     public void onPlayerTick(TickEvent.PlayerTickEvent event) {
         if (event.phase != TickEvent.Phase.END || event.player.world.isRemote
@@ -230,7 +206,7 @@ public final class MoverSessionManager {
         EntityPlayerMP player = (EntityPlayerMP) event.player;
         MoverSession session = sessions.get(player.getUniqueID());
         if (session == null) return;
-        ItemStack boundMover = findMover(player, session);
+        ItemStack boundMover = MoverBinding.findBound(player, session);
         if (boundMover.isEmpty()) {
             GTLog.logger.info("Multiblock mover session {} cancelled because {} no longer carries the bound item",
                     session.getId(), player.getName());
@@ -271,16 +247,6 @@ public final class MoverSessionManager {
         if (session == null) return;
         GTLog.logger.info("Multiblock mover session {} cancelled due to {} for {}",
                 session.getId(), reason, player.getName());
-        cancel(player, findMover(player, session), true, null);
-    }
-
-    private static ItemStack findMover(EntityPlayerMP player, MoverSession session) {
-        for (ItemStack stack : player.inventory.mainInventory) {
-            if (itemMatchesSession(stack, session)) return stack;
-        }
-        for (ItemStack stack : player.inventory.offHandInventory) {
-            if (itemMatchesSession(stack, session)) return stack;
-        }
-        return ItemStack.EMPTY;
+        cancel(player, MoverBinding.findBound(player, session), true, null);
     }
 }

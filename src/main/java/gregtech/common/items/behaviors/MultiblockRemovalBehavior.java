@@ -5,12 +5,9 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.StructureFailureReport;
-import gregtech.api.util.GTUtility;
-import gregtech.api.util.KeyUtil;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.EnumActionResult;
@@ -18,15 +15,17 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextComponentString;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
-import org.jetbrains.annotations.NotNull;
-
 import java.util.List;
 
+/**
+ * 多方块拆除行为：潜行右键拆除已成型结构，直接右键输出结构诊断报告。
+ *
+ * <p>无状态：不读写物品 NBT，世界修改全部交给控制器自身（{@code dismantleStructure}）。
+ */
 public class MultiblockRemovalBehavior implements IItemBehaviour {
 
     @Override
@@ -40,42 +39,34 @@ public class MultiblockRemovalBehavior implements IItemBehaviour {
         if (world.isRemote) return EnumActionResult.SUCCESS;
 
         if (player.isSneaking()) {
-            // If sneaking, try to build the multiblock.
-            // Only try to auto-build if the structure is not already formed
+            // 潜行：拆除已成型结构；未成型时给出提示而不是静默失败
             if (multiblock.isStructureFormed()) {
                 multiblock.dismantleStructure(player);
-
-                // 显示结构名称
-                player.sendMessage(new TextComponentString(
-                        TextFormatting.GREEN + "拆除多方块: " +
-                                TextFormatting.WHITE + KeyUtil.lang(multiblock.getMetaFullName())));
-                return EnumActionResult.SUCCESS;
-            } else {
                 player.sendMessage(new TextComponentTranslation(
-                        "无法拆除多方块" + KeyUtil.lang(multiblock.getMetaFullName()))
-                        .setStyle(new Style().setColor(TextFormatting.RED)));
-            }
-            return EnumActionResult.PASS;
-        } else {
-            // If not sneaking, report why the structure is not formed.
-            if (!multiblock.isStructureFormed()) {
-                StructureFailureReport.sendTo(player, multiblock, world);
+                        "gregtech.multiblock_removal.dismantled",
+                        new TextComponentTranslation(multiblock.getMetaFullName()))
+                        .setStyle(new Style().setColor(TextFormatting.GREEN)));
                 return EnumActionResult.SUCCESS;
             }
-            player.sendMessage(new TextComponentTranslation("gregtech.multiblock.pattern.no_errors")
-                    .setStyle(new Style().setColor(TextFormatting.GREEN)));
+            player.sendMessage(new TextComponentTranslation(
+                    "gregtech.multiblock_removal.not_formed",
+                    new TextComponentTranslation(multiblock.getMetaFullName()))
+                    .setStyle(new Style().setColor(TextFormatting.RED)));
+            return EnumActionResult.PASS;
+        }
+
+        // 非潜行：报告结构为什么不成立，或确认没有错误
+        if (!multiblock.isStructureFormed()) {
+            StructureFailureReport.sendTo(player, multiblock, world);
             return EnumActionResult.SUCCESS;
         }
-    }
-
-    @Override
-    public void addPropertyOverride(@NotNull Item item) {
-        item.addPropertyOverride(GTUtility.gregtechId("auto_mode"),
-                (stack, world, entity) -> (entity != null && entity.isSneaking()) ? 1.0F : 0.0F);
+        player.sendMessage(new TextComponentTranslation("gregtech.multiblock.pattern.no_errors")
+                .setStyle(new Style().setColor(TextFormatting.GREEN)));
+        return EnumActionResult.SUCCESS;
     }
 
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
-        lines.add(I18n.format("metaitem.tool.multiblock_remover.tooltip2"));
+        lines.add(I18n.format("metaitem.tool.multiblock_remover.tooltip"));
     }
 }

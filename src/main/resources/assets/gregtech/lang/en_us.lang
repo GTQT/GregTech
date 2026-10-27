@@ -757,123 +757,6 @@ metaitem.circuit.integrated.tooltip=Use to open configuration GUI/n/nShift-Right
 metaitem.circuit.integrated.gui=Circuit Configuration
 metaitem.circuit.integrated.jei_description=JEI is only showing recipes for the given configuration.\n\nYou can select a configuration in the Programmed Circuit configuration tab.
 
-metaitem.tool.mutliblock_preview.name=Multiblock Projector
-gregtech.multiblock_mover.selected=Selected structure: %s blocks, %s block entities; estimated cost %s EU
-gregtech.multiblock_mover.success=Moved %s blocks successfully
-gregtech.multiblock_mover.rotated=Multiblock preview rotated to %s degrees; estimated cost %s EU
-gregtech.multiblock_mover.cancelled=Multiblock move cancelled
-gregtech.multiblock_mover.expired=Multiblock move session expired
-gregtech.multiblock_mover.item_missing=Multiblock move cancelled: the bound mover is no longer in your inventory
-gregtech.multiblock_mover.error.not_controller=The target is not a GT multiblock controller
-gregtech.multiblock_mover.error.not_formed=The multiblock structure is not formed
-gregtech.multiblock_mover.error.active=The machine is active and cannot be moved
-gregtech.multiblock_mover.error.no_permission=You do not have permission to move this structure
-gregtech.multiblock_mover.error.unsupported_tile=The structure contains an unsupported block entity
-gregtech.multiblock_mover.error.empty_pattern=Could not read the multiblock structure bounds
-gregtech.multiblock_mover.error.too_large=The multiblock exceeds the mover limits
-gregtech.multiblock_mover.error.chunk_unloaded=The structure crosses an unloaded chunk
-gregtech.multiblock_mover.error.wrong_dimension=Multiblocks cannot be moved across dimensions
-gregtech.multiblock_mover.error.same_position=The destination is the same as the source
-gregtech.multiblock_mover.error.too_far=The destination is too far away
-gregtech.multiblock_mover.error.source_changed=The source structure changed; select it again
-gregtech.multiblock_mover.error.out_of_world=The destination exceeds the world height
-gregtech.multiblock_mover.error.blocked=The destination is obstructed
-gregtech.multiblock_mover.error.no_session=There is no active multiblock move session
-gregtech.multiblock_mover.error.invalid_session=The mover session is invalid
-gregtech.multiblock_mover.error.move_failed=Move failed and the source structure was restored
-gregtech.multiblock_mover.error.rollback_failed=Move and rollback both failed; contact an administrator and inspect the log
-gregtech.multiblock_mover.error.journal_failed=Could not create the recovery journal; the world was not changed
-gregtech.multiblock_mover.error.adapter_failed=A block entity movement adapter failed; inspect the server log
-gregtech.multiblock_mover.error.no_energy=Insufficient mover energy; %s EU required
-gregtech.multiblock_mover.error.rotation_disabled=Multiblock rotation is disabled by the server
-gregtech.multiblock_mover.error.rotation_unsupported=The structure contains a block entity, cover, or directional state that cannot be rotated safely
-gregtech.multiblock_mover.error.rotation_collision=Rotation produced duplicate block coordinates
-gregtech.multiblock_mover.error.rotation_unsafe_state=Block direction state or block entity data cannot be rotated reversibly
-
-metaitem.tool.multiblock_tool.name=Multiblock Universal Tool
-gregtech.multiblock_tool.current_mode=Current mode: %s
-gregtech.multiblock_tool.switch_hint=Press M to switch mode; use R/Shift+R to rotate in mover mode
-gregtech.multiblock_tool.mode.project=Project / Build
-gregtech.multiblock_tool.mode.remove=Remove
-gregtech.multiblock_tool.mode.move=Move
-gregtech.multiblock_tool.mode_changed=Switched to %s mode
-gregtech.multiblock_tool.mover.tooltip.1=Right-click a formed, idle GT multiblock controller to select it
-gregtech.multiblock_tool.mover.tooltip.2=Right-click a block or air again to place; sneak-right-click to cancel
-gregtech.multiblock_tool.mover.tooltip.air_target=When pointing at air, the controller target is %s blocks along your view
-gregtech.multiblock_tool.mover.tooltip.energy=Mover battery capacity: %s EU (IV)
-gregtech.multiblock_tool.mover.tooltip.rotation=Rotate: R clockwise, Shift+R counterclockwise
-
-metaitem.tool.offhand_placer.name=Offhand Placer
-metaitem.tool.offhand_placer.tooltip=Right-click to place the block from your offhand one block in front of the player.
-
-metaitem.tool.battery_case.name=Battery Case
-gregtech.tooltip.battery_case.charge=Charge: §e%s §7/ §e%s §7EU
-gregtech.tooltip.battery_case.tier=Voltage: §e%s
-gregtech.tooltip.battery_case.tier_empty=Voltage: §c(No Battery)
-gregtech.tooltip.battery_case.count=Batteries: §e%s §7/ §e%s
-gregtech.tooltip.battery_case.open_ui=Right-click to open the Battery Case
-gregtech.tooltip.battery_case.toggle_mode=Sneak right-click to toggle discharge mode
-gregtech.tooltip.battery_case.same_tier=Only batteries of the same voltage tier can be inserted
-
-metaitem.tool.waterproof_spray_can.name=Waterproof Spray Can
-gregtech.tooltip.waterproof_spray_can.right_click=Right-click a placed machine: set it waterproof
-gregtech.tooltip.waterproof_spray_can.offhand=Hold in offhand while placing a machine: apply waterproofing automatically
-gregtech.tooltip.waterproof_spray_can.uses=Remaining uses: §e%,d
-gregtech.top.waterproof=Waterproof
-
-# Structure Projector
-gregtech.tool.projector.tooltip1=§7Right-click Controller: Show hologram preview
-gregtech.tool.projector.tooltip2=§7Shift+Right-click Controller: Auto-build structure
-gregtech.tool.projector.tooltip3=§7Right-click Air: Open config GUI for channels
-gregtech.tool.projector.compare_on=§aCompare Mode: ON
-gregtech.tool.projector.no_hatch_on=§cNo Hatch Mode: ON
-gregtech.tool.projector.channels_set=§eChannels: %s set
-gregtech.tool.projector.channel_config_hint=§8Right-click controller to auto-fill channels, right-click air to open GUI
-gregtech.tool.projector.gui_title=Multiblock Projector Config
-gregtech.tool.projector.compare_tooltip=Toggle Compare Mode (highlight missing/wrong blocks)
-gregtech.tool.projector.no_hatch_tooltip=Toggle No Hatch Mode (skip hatch placement during auto-build)
-gregtech.tool.projector.clear=Clear Channels
-gregtech.tool.projector.structure_height=Height
-gregtech.tool.projector.structure_width=Width
-gregtech.tool.projector.structure_length=Length
-
-# Structure Builder
-gregtech.tool.builder.tooltip1=§7Shift+Right-click Controller: Auto-build structure
-gregtech.tool.builder.tooltip2=§7Right-click Air: Open config GUI for channels
-gregtech.tool.builder.no_hatch_on=§cNo Hatch Mode: ON
-gregtech.tool.builder.channels_set=§eChannels: %s set
-gregtech.tool.builder.channel_config_hint=§8Right-click controller to auto-fill channels, right-click air to open GUI
-gregtech.tool.builder.gui_title=Multiblock Builder Config
-gregtech.tool.builder.no_hatch_tooltip=Toggle No Hatch Mode (skip hatch placement during auto-build)
-gregtech.tool.builder.clear=Clear Channels
-gregtech.tool.builder.structure_height=Height
-gregtech.tool.builder.structure_width=Width
-gregtech.tool.builder.structure_length=Length
-
-# Structure Channels
-gregtech.structure_channel.heating_coil=Heating Coil Tier
-gregtech.structure_channel.wire_coil=Wire Coil Tier
-gregtech.structure_channel.borosilicate_glass=Glass Tier
-gregtech.structure_channel.machine_casing=Machine Casing Tier
-gregtech.structure_channel.solid_casing=Solid Casing Tier
-gregtech.structure_channel.pipe_casing=Pipe Casing Tier
-gregtech.structure_channel.item_pipe_casing=Item Pipe Casing Tier
-gregtech.structure_channel.structure_height=Structure Height
-gregtech.structure_channel.structure_length=Structure Length
-gregtech.structure_channel.structure_width=Structure Width
-gregtech.structure_channel.structure_tier=Structural dimension specifications
-gregtech.structure_channel.hatch_tier=Hatch Tier
-gregtech.structure_channel.energy_casing=Energy Casing Tier
-gregtech.structure_channel.solenoid=Solenoid Tier
-gregtech.structure_channel.battery=Battery Tier
-gregtech.structure_channel.no_hatch=No Hatches
-gregtech.structure_channel.structure_piece=Structure Piece
-
-# Casing Groups
-gregtech.casing_group.heating_coil=Heating Coil
-gregtech.casing_group.machine_casing=Machine Casing
-gregtech.casing_group.borosilicate_glass=Borosilicate Glass
-
 item.glass.lens=Glass Lens (White)
 metaitem.glass_lens.orange.name=Glass Lens (Orange)
 metaitem.glass_lens.magenta.name=Glass Lens (Magenta)
@@ -1572,11 +1455,92 @@ metaitem.power_thruster.name=Power Thruster
 metaitem.power_thruster_advanced.name=Advanced Power Thruster
 metaitem.gravitation_engine.name=Gravitation Engine Unit
 
-metaitem.tool.multiblock_builder.name=多方块建造器
+metaitem.tool.structure_builder.name=Structure Builder
+metaitem.tool.structure_builder.tooltip=Build your multiblock structures!
 
-metaitem.tool.multiblock_remover.name=Multiblock demolition
-metaitem.tool.multiblock_remover.tooltip=Dismantle your Multiblock structure！
-metaitem.tool.multiblock_remover.tooltip2=Hold down the SHIFT key and right-click on the Multiblock structure controller to automatically dismantle it
+metaitem.tool.multiblock_builder.name=Multiblock Builder
+metaitem.tool.multiblock_builder.tooltip=Build your multiblock structures!
+gregtech.tool.multiblock_builder.compare_on=§aCompare Mode: ON
+gregtech.tool.multiblock_builder.no_hatch_on=§cDisable Hatch Placement: ON
+gregtech.tool.multiblock_builder.channels_set=§eChannels Configured: %s
+gregtech.tool.multiblock_builder.channel_config_hint=§8Right-click controller to auto-fill supported channels, right-click air to open GUI config
+gregtech.tool.multiblock_builder.gui_title=Multiblock Projector Configuration
+gregtech.tool.multiblock_builder.compare_tooltip=Toggle Compare Mode (Highlight missing/incorrect blocks)
+gregtech.tool.multiblock_builder.no_hatch_tooltip=Toggle Disable Hatch Placement mode (No hatches will be placed during auto-build)
+gregtech.tool.multiblock_builder.clear=Clear Channels
+gregtech.tool.multiblock_builder.structure_height=Height
+gregtech.tool.multiblock_builder.structure_width=Width
+gregtech.tool.multiblock_builder.structure_length=Length
+
+metaitem.tool.multiblock_remover.name=Multiblock Remover
+metaitem.tool.multiblock_remover.tooltip=Dismantle your multiblock structures!
+gregtech.multiblock_removal.dismantled=Dismantled multiblock: %s
+gregtech.multiblock_removal.not_formed=Cannot dismantle multiblock: %s
+
+metaitem.tool.multiblock_mover.name=Multiblock Mover
+metaitem.tool.multiblock_mover.tooltip=Move your multiblock structures!
+gregtech.multiblock_mover.selected=Structure selected: %s blocks, %s tile entities; estimated cost %s EU
+gregtech.multiblock_mover.success=Successfully moved %s blocks
+gregtech.multiblock_mover.rotated=Multiblock preview rotated to %s°; estimated cost %s EU
+gregtech.multiblock_mover.cancelled=Multiblock move cancelled
+gregtech.multiblock_mover.expired=Multiblock move session expired
+gregtech.multiblock_mover.item_missing=Multiblock move cancelled: The bound mover is no longer in the inventory
+gregtech.multiblock_mover.error.not_controller=Target is not a GT multiblock controller
+gregtech.multiblock_mover.error.not_formed=Multiblock structure is not formed
+gregtech.multiblock_mover.error.active=Machine is active and cannot be moved
+gregtech.multiblock_mover.error.no_permission=You do not have permission to move this structure
+gregtech.multiblock_mover.error.unsupported_tile=Structure contains unsupported tile entities
+gregtech.multiblock_mover.error.empty_pattern=Failed to read multiblock structure bounds
+gregtech.multiblock_mover.error.too_large=Multiblock structure exceeds mover limit
+gregtech.multiblock_mover.error.chunk_unloaded=Structure spans unloaded chunks
+gregtech.multiblock_mover.error.wrong_dimension=Cannot move multiblocks across dimensions
+gregtech.multiblock_mover.error.same_position=Target position is the same as the original position
+gregtech.multiblock_mover.error.too_far=Target position is too far from the player
+gregtech.multiblock_mover.error.source_changed=Source structure has changed, please select again
+gregtech.multiblock_mover.error.out_of_world=Target structure is outside world height limits
+gregtech.multiblock_mover.error.blocked=Target position contains unbreakable/unreplaceable blocks
+gregtech.multiblock_mover.error.no_session=No active multiblock move session
+gregtech.multiblock_mover.error.invalid_session=Invalid mover session
+gregtech.multiblock_mover.error.move_failed=Move failed, source structure has been restored
+gregtech.multiblock_mover.error.rollback_failed=Move and rollback failed, please contact an admin and check logs
+gregtech.multiblock_mover.error.journal_failed=Failed to create rollback journal, world has not changed
+gregtech.multiblock_mover.error.adapter_failed=Tile entity move adapter failed, please check server logs
+gregtech.multiblock_mover.error.no_energy=Mover has insufficient energy, requires %s EU
+gregtech.multiblock_mover.error.rotation_disabled=Multiblock rotation is not enabled on this server
+gregtech.multiblock_mover.error.rotation_unsupported=Structure contains tile entities, covers, or directional states that cannot be safely rotated
+gregtech.multiblock_mover.error.rotation_collision=Duplicate block coordinates occurred after rotation
+gregtech.multiblock_mover.error.rotation_unsafe_state=Block directional states or tile entity data cannot be safely round-trip rotated
+
+metaitem.tool.multiblock_tool.name=Multiblock Universal Tool
+gregtech.multiblock_tool.current_mode=Current mode: %s
+gregtech.multiblock_tool.switch_hint=Press 'M' to switch mode; Press 'R'/'Shift+R' to rotate in Move mode
+gregtech.multiblock_tool.mode.project=Preview/Build
+gregtech.multiblock_tool.mode.remove=Remove
+gregtech.multiblock_tool.mode.move=Move
+gregtech.multiblock_tool.mode_changed=Switched to %s mode
+gregtech.multiblock_tool.mover.tooltip.1=Right-click a formed and inactive GT multiblock controller to select the structure
+gregtech.multiblock_tool.mover.tooltip.2=Right-click a block or air again to place; Sneak right-click to cancel
+gregtech.multiblock_tool.mover.tooltip.air_target=When pointing at air, the controller target is %s blocks in front of your line of sight
+gregtech.multiblock_tool.mover.tooltip.energy=Mover battery capacity: %s EU (IV)
+gregtech.multiblock_tool.mover.tooltip.rotation=Rotation: 'R' clockwise, 'Shift+R' counter-clockwise
+
+metaitem.tool.offhand_placer.name=Offhand Placer
+metaitem.tool.offhand_placer.tooltip=Right-click to place the block from your offhand one block in front of the player
+
+metaitem.tool.battery_case.name=Battery Case
+gregtech.tooltip.battery_case.charge=Charge: §e%s §7/ §e%s §7EU
+gregtech.tooltip.battery_case.tier=Voltage: §e%s
+gregtech.tooltip.battery_case.tier_empty=Voltage: §c(No Battery)
+gregtech.tooltip.battery_case.count=Batteries: §e%s §7/ §e%s
+gregtech.tooltip.battery_case.open_ui=Right-click to open the Battery Case
+gregtech.tooltip.battery_case.toggle_mode=Sneak right-click to toggle discharge mode
+gregtech.tooltip.battery_case.same_tier=Only batteries of the same voltage tier can be inserted
+
+metaitem.tool.waterproof_spray_can.name=Waterproof Spray Can
+gregtech.tooltip.waterproof_spray_can.right_click=Right-click a placed machine: set it waterproof
+gregtech.tooltip.waterproof_spray_can.offhand=Hold in offhand while placing a machine: apply waterproofing automatically
+gregtech.tooltip.waterproof_spray_can.uses=Remaining uses: §e%,d
+gregtech.top.waterproof=Waterproof
 
 metaitem.stellar_fuel.name=Stellar Fuel
 metaitem.stellar_fuel.tooltip=§5Condensed stellar ignition catalyst
@@ -3770,6 +3734,7 @@ tile.transparent_casing.tempered_glass.name=Tempered Glass
 tile.transparent_casing.fusion_glass.name=Fusion Glass
 tile.transparent_casing.laminated_glass.name=Laminated Glass
 tile.transparent_casing.cleanroom_glass.name=Cleanroom Glass
+gregtech.glass_tier.tooltip=Glass Tier: %s
 
 # Battery blocks
 tile.battery_block.empty_tier_i.name=Empty Capacitor (Tier I)
@@ -9208,7 +9173,8 @@ gregtech.multiblock.pattern.failure.reason.limited.2=Maximum allowed per layer: 
 gregtech.multiblock.pattern.failure.reason.limited.3=Minimum required per layer: %1$s
 gregtech.multiblock.pattern.failure.no_trace=No failure details recorded yet: wait for the next automatic check, or break and replace any structure block and try again
 gregtech.multiblock.pattern.failure.advice=After fixing this spot, let the controller re-check (breaking or placing any structure block triggers it immediately), then right-click the controller again to see the latest result
-gregtech.multiblock.pattern.failure.advice.build=Shift+right-click the controller to attempt an auto-build; size and hatch limits are adjustable in the projector GUI.
+gregtech.multiblock.pattern.failure.advice.build=Shift+right-click the controller to attempt an auto-build; size and hatch limits are adjustable in the multiblock_builder GUI.
+gregtech.multiblock.pattern.failure.advice.basic_build=Shift+right-click the controller to attempt an auto-build using the default channels.
 gregtech.multiblock.pattern.clear_amount_1=§6Must have a clear 1x1x1 space in front§r
 gregtech.multiblock.pattern.clear_amount_3=§6Must have a clear 3x3x1 space in front§r
 gregtech.multiblock.pattern.single=§6Only this block type can be used§r
@@ -10371,4 +10337,26 @@ commands.gregtech.mover.performance_summary=Mover performance samples %s/128 | s
 commands.gregtech.mover.performance_stages=Average stages: selection capture %s | commit capture %s | validation %s | world snapshot %s | journal %s | commit %s | rollback %s ms
 commands.gregtech.mover.performance_cleared=Cleared %s mover performance samples
 
-gregtech.glass_tier.tooltip=Glass Tier: %s
+# Structure Channels
+gregtech.structure_channel.heating_coil=Heating Coil Tier
+gregtech.structure_channel.wire_coil=Wire Coil Tier
+gregtech.structure_channel.borosilicate_glass=Glass Tier
+gregtech.structure_channel.machine_casing=Machine Casing Tier
+gregtech.structure_channel.solid_casing=Solid Casing Tier
+gregtech.structure_channel.pipe_casing=Pipe Casing Tier
+gregtech.structure_channel.item_pipe_casing=Item Pipe Casing Tier
+gregtech.structure_channel.structure_height=Structure Height
+gregtech.structure_channel.structure_length=Structure Length
+gregtech.structure_channel.structure_width=Structure Width
+gregtech.structure_channel.structure_tier=Structural dimension specifications
+gregtech.structure_channel.hatch_tier=Hatch Tier
+gregtech.structure_channel.energy_casing=Energy Casing Tier
+gregtech.structure_channel.solenoid=Solenoid Tier
+gregtech.structure_channel.battery=Battery Tier
+gregtech.structure_channel.no_hatch=No Hatches
+gregtech.structure_channel.structure_piece=Structure Piece
+
+# Casing Groups
+gregtech.casing_group.heating_coil=Heating Coil
+gregtech.casing_group.machine_casing=Machine Casing
+gregtech.casing_group.borosilicate_glass=Borosilicate Glass

@@ -51,6 +51,11 @@ public class MiscRecipeLoader {
                 'R', new UnificationEntry(stick, Titanium),
                 'B', LAPOTRON_CRYSTAL);
 
+        ModHandler.addShapedRecipe(true, "basic_structure_builder", STRUCTURE_BUILDER.getStackForm(),
+                "PWP", " w ", "PdP",
+                'P', new UnificationEntry(plate, WroughtIron),
+                'W', new UnificationEntry(wireGtSingle, RedAlloy));
+
         // Potin Recipe
         ModHandler.addShapelessRecipe("potin_dust", OreDictUnifier.get(dust, Potin, 8),
                 new UnificationEntry(dust, Copper),

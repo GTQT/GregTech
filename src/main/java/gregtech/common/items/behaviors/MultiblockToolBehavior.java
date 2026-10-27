@@ -2,7 +2,6 @@ package gregtech.common.items.behaviors;
 
 import gregtech.api.items.gui.ItemUIFactory;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
-import gregtech.api.mui.factory.MetaItemGuiFactory;
 import gregtech.api.util.GTUtility;
 import gregtech.common.items.MetaItems;
 import gregtech.common.items.behaviors.multiblock.MultiblockToolMode;
@@ -34,7 +33,8 @@ import java.util.List;
 
 /** One item component dispatching preview/build, removal and transactional movement modes. */
 public final class MultiblockToolBehavior implements IItemBehaviour, ItemUIFactory {
-    private final StructureProjectorBehavior projector = new StructureProjectorBehavior();
+
+    private final MultiblockBuilderBehavior projector = new MultiblockBuilderBehavior();
     private final MultiblockRemovalBehavior remover = new MultiblockRemovalBehavior();
     private final MultiblockMoverBehavior mover = new MultiblockMoverBehavior();
 
@@ -58,10 +58,11 @@ public final class MultiblockToolBehavior implements IItemBehaviour, ItemUIFacto
         switch (MultiblockToolMode.get(stack)) {
             case MOVE:
                 return mover.onItemRightClick(world, player, hand);
+            case REMOVE:
             case PROJECT:
-                return projector.onItemRightClick(world, player, hand);
             default:
-                return pass(stack);
+                // 面板是工具级配置入口（通道/尺寸/比较），在没有其它空气动作的模式下都可打开。
+                return projector.onItemRightClick(world, player, hand);
         }
     }
 
@@ -95,16 +96,22 @@ public final class MultiblockToolBehavior implements IItemBehaviour, ItemUIFacto
         return projector.buildUI(guiData, guiSyncManager, settings);
     }
 
+    /** 参与模式切换与搬运系统的物品：通用工具与独立的移动器。 */
     public static boolean isMultiblockTool(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         return MetaItems.MULTIBLOCK_TOOL != null && MetaItems.MULTIBLOCK_TOOL.isItemEqual(stack)
-                || MetaItems.MULTIBLOCK_BUILDER != null && MetaItems.MULTIBLOCK_BUILDER.isItemEqual(stack)
-                || MetaItems.MULTIBLOCK_REMOVER != null && MetaItems.MULTIBLOCK_REMOVER.isItemEqual(stack);
+                || MetaItems.MULTIBLOCK_MOVER != null && MetaItems.MULTIBLOCK_MOVER.isItemEqual(stack);
+    }
+
+    /** 只有三合一工具带模式系统；独立建造/拆除/移动器不该响应模式切换。 */
+    public static boolean isModeSwitchable(ItemStack stack) {
+        return stack != null && !stack.isEmpty()
+                && MetaItems.MULTIBLOCK_TOOL != null && MetaItems.MULTIBLOCK_TOOL.isItemEqual(stack);
     }
 
     public static void cycleMode(EntityPlayerMP player, EnumHand hand) {
         ItemStack stack = player.getHeldItem(hand);
-        if (!isMultiblockTool(stack)) return;
+        if (!isModeSwitchable(stack)) return;
         MultiblockToolMode oldMode = MultiblockToolMode.get(stack);
         if (oldMode == MultiblockToolMode.MOVE && MoverSessionManager.INSTANCE.hasSession(player)) {
             MoverSessionManager.INSTANCE.cancel(player, stack, true, null);

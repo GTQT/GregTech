@@ -8,9 +8,6 @@ public enum MultiblockToolMode {
     REMOVE(1, "remove"),
     MOVE(2, "move");
 
-    private static final String NBT_MODE = "GTMultiblockToolMode";
-    private static final String NBT_ROOT = "GT.MultiblockTool";
-
     private final int id;
     private final String translationSuffix;
 
@@ -33,10 +30,10 @@ public enum MultiblockToolMode {
 
     public static MultiblockToolMode get(ItemStack stack) {
         NBTTagCompound root = stack.getTagCompound();
-        NBTTagCompound tag = root != null && root.hasKey(NBT_ROOT, 10)
-                ? root.getCompoundTag(NBT_ROOT) : null;
-        if (tag != null && tag.hasKey(NBT_MODE, 99)) {
-            int id = tag.getInteger(NBT_MODE);
+        NBTTagCompound tag = root != null && root.hasKey(MultiblockToolNbt.ROOT, 10)
+                ? root.getCompoundTag(MultiblockToolNbt.ROOT) : null;
+        if (tag != null && tag.hasKey(MultiblockToolNbt.MODE, 99)) {
+            int id = tag.getInteger(MultiblockToolNbt.MODE);
             for (MultiblockToolMode mode : values()) {
                 if (mode.id == id) return mode;
             }
@@ -50,6 +47,6 @@ public enum MultiblockToolMode {
     }
 
     public static void set(ItemStack stack, MultiblockToolMode mode) {
-        stack.getOrCreateSubCompound(NBT_ROOT).setInteger(NBT_MODE, mode.id);
+        stack.getOrCreateSubCompound(MultiblockToolNbt.ROOT).setInteger(MultiblockToolNbt.MODE, mode.id);
     }
 }

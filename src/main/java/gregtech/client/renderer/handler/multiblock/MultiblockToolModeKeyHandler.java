@@ -36,9 +36,9 @@ public final class MultiblockToolModeKeyHandler {
             Minecraft mc = Minecraft.getMinecraft();
             if (mc.player == null || mc.currentScreen != null) continue;
             EnumHand hand;
-            if (MultiblockToolBehavior.isMultiblockTool(mc.player.getHeldItemMainhand())) {
+            if (MultiblockToolBehavior.isModeSwitchable(mc.player.getHeldItemMainhand())) {
                 hand = EnumHand.MAIN_HAND;
-            } else if (MultiblockToolBehavior.isMultiblockTool(mc.player.getHeldItemOffhand())) {
+            } else if (MultiblockToolBehavior.isModeSwitchable(mc.player.getHeldItemOffhand())) {
                 hand = EnumHand.OFF_HAND;
             } else {
                 continue;

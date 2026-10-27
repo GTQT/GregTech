@@ -38,6 +38,7 @@ import gregtech.common.covers.filter.SmartItemFilter;
 import gregtech.common.creativetab.GTCreativeTabs;
 import gregtech.common.entities.GTBoatEntity.GTBoatType;
 import gregtech.common.items.battery.BatteryCaseBehavior;
+import gregtech.common.items.behaviors.BasicMultiblockBuilderBehavior;
 import gregtech.common.items.behaviors.ClipboardBehavior;
 import gregtech.common.items.behaviors.CoverCopyPasteBehavior;
 import gregtech.common.items.behaviors.DataItemBehavior;
@@ -51,6 +52,9 @@ import gregtech.common.items.behaviors.IntCircuitBehaviour;
 import gregtech.common.items.behaviors.ItemMagnetBehavior;
 import gregtech.common.items.behaviors.LighterBehaviour;
 import gregtech.common.items.behaviors.MiningLaserBehavior;
+import gregtech.common.items.behaviors.MultiblockBuilderBehavior;
+import gregtech.common.items.behaviors.MultiblockMoverBehavior;
+import gregtech.common.items.behaviors.MultiblockRemovalBehavior;
 import gregtech.common.items.behaviors.MultiblockToolBehavior;
 import gregtech.common.items.behaviors.NanoSaberBehavior;
 import gregtech.common.items.behaviors.OffhandPlacerBehavior;
@@ -1581,42 +1585,52 @@ public final class GregTechMetaItem extends StandardMetaItem {
         LOGO = addItem(1003, "logo").setInvisible();
         LOGO.getMetaItem().addPropertyOverride(new ResourceLocation("xmas"), (s, w, e) -> GTValues.XMAS.get() ? 1 : 0);
 
-        MULTIBLOCK_BUILDER = addItem(1004, "tool.multiblock_builder")
-                .addComponents(ElectricStats.createElectricItem(64_000_000L, GTValues.IV))
-                .addComponents(new MultiblockToolBehavior())
-                .setMaxStackSize(1).setInvisible();
-
-        MULTIBLOCK_REMOVER = addItem(1005, "tool.multiblock_remover")
-                .addComponents(ElectricStats.createElectricItem(64_000_000L, GTValues.IV))
-                .addComponents(new MultiblockToolBehavior())
-                .setMaxStackSize(1).setInvisible();
-
-        MULTIBLOCK_PREVIEW = addItem(1006, "tool.multiblock_tool")
-                .addComponents(ElectricStats.createElectricItem(64_000_000L, GTValues.IV))
-                .addComponents(new MultiblockToolBehavior())
+        STRUCTURE_BUILDER = addItem(1004, "tool.structure_builder")
                 .setMaxStackSize(1)
-                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
-        MULTIBLOCK_TOOL = MULTIBLOCK_PREVIEW;
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
+                .addComponents(new BasicMultiblockBuilderBehavior());
 
-        OFFHAND_PLACER = addItem(1007, "tool.offhand_placer").addComponents(new OffhandPlacerBehavior())
+        MULTIBLOCK_BUILDER = addItem(1005, "tool.multiblock_builder")
+                .addComponents(new MultiblockBuilderBehavior())
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
 
-        BATTERY_CASE = addItem(1008, "tool.battery_case")
+        MULTIBLOCK_REMOVER = addItem(1006, "tool.multiblock_remover")
+                .addComponents(new MultiblockRemovalBehavior())
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        MULTIBLOCK_MOVER = addItem(1007, "tool.multiblock_mover")
+                .addComponents(new MultiblockMoverBehavior())
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        MULTIBLOCK_TOOL = addItem(1008, "tool.multiblock_tool")
+                .addComponents(new MultiblockToolBehavior())
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        OFFHAND_PLACER = addItem(1009, "tool.offhand_placer")
+                .addComponents(new OffhandPlacerBehavior())
+                .setMaxStackSize(1)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS);
+
+        BATTERY_CASE = addItem(1010, "tool.battery_case")
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
                 .addComponents(new BatteryCaseBehavior());
 
-        WATERPROOF_SPRAY_CAN = addItem(1009, "tool.waterproof_spray_can")
+        WATERPROOF_SPRAY_CAN = addItem(1011, "tool.waterproof_spray_can")
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
                 .addComponents(new WaterproofSprayBehavior());
 
-        TOOL_COVER_COPY_PASTE = addItem(1010, "tool.cover_copy_paste")
+        TOOL_COVER_COPY_PASTE = addItem(1012, "tool.cover_copy_paste")
                 .setMaxStackSize(1)
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
                 .addComponents(new CoverCopyPasteBehavior(),
                         ElectricStats.createElectricItem(400_000L, GTValues.MV));
+
 
         registerWirelessCoverInput(1100);
         registerWirelessCoverOutput(1115);

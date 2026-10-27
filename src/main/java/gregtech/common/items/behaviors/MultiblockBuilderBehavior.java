@@ -10,17 +10,19 @@ import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.StructureBuildResult;
+import gregtech.api.pattern.StructureFailureReport;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.util.GTLog;
-import gregtech.api.util.GTUtility;
+import gregtech.client.renderer.handler.GhostBlockRenderer;
 import gregtech.common.ConfigHolder;
+import gregtech.common.items.behaviors.multiblock.ChannelSettings;
+import gregtech.common.items.behaviors.multiblock.MultiblockToolNbt;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.tileentity.TileEntity;
@@ -29,6 +31,7 @@ import net.minecraft.util.EnumActionResult;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
@@ -57,103 +60,38 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Structure builder behavior that handles auto-building multiblock structures.
+ * 结构投影行为：全息预览、自动建造、比较模式、通道配置。
  *
- * <p>Shift+right-click a multiblock controller to auto-build the structure using
- * resources from the player's inventory or nearby containers.
+ * <p>右键控制器显示预览并报告结构问题；潜行右键控制器按当前通道配置自动建造
+ * （{@code structure_piece} 通道 > 0 时只补该分段）；右键非 GT 方块或右键空气打开配置面板。
  *
- * <p>Right-click in air to open the channel configuration GUI where you can set
- * structure dimensions, channel tiers, and toggle no-hatch mode.
- *
- * <p>All persistent data is stored in the ItemStack's NBT.
+ * <p>本类无状态：所有持久化数据都在 ItemStack 的 NBT 中（见 {@link ChannelSettings}），
+ * 方法内的局部变量只是单次调用的工作副本。
  */
-public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
-
-    // --- State keys in ItemStack NBT ---
-    private static final String NBT_CHANNELS = "BuilderChannels";
-    private static final String NBT_CHANNEL_RANGES = "BuilderChannelRanges";
+public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory {
 
     private static final int MAX_CHANNEL_ROWS = 12;
     private static final int MAX_VISIBLE_ROWS = 6;
     private static final int ROW_HEIGHT = 18;
 
-    // --- Static NBT read/write helpers ---
+    /** Hint appended to a structure failure report, pointing at this tool's auto-build mode. */
+    private static final String AUTO_BUILD_ADVICE = "gregtech.multiblock.pattern.failure.advice.build";
 
-    @NotNull
-    private static Map<String, Integer> readChannelValues(@NotNull ItemStack stack) {
-        Map<String, Integer> result = new HashMap<>();
+    // --- Compare mode (item-scoped, not a structure channel) ---
+
+    private static boolean readCompareMode(@NotNull ItemStack stack) {
         NBTTagCompound tag = stack.getTagCompound();
-        if (tag == null || !tag.hasKey(NBT_CHANNELS)) return result;
-        NBTTagCompound channels = tag.getCompoundTag(NBT_CHANNELS);
-        for (String key : channels.getKeySet()) {
-            result.put(key, channels.getInteger(key));
-        }
-        return result;
+        if (tag == null || !tag.hasKey(MultiblockToolNbt.COMPARE_MODE)) return true;
+        return tag.getBoolean(MultiblockToolNbt.COMPARE_MODE);
     }
 
-    @NotNull
-    private static Map<String, int[]> readChannelRanges(@NotNull ItemStack stack) {
-        Map<String, int[]> result = new HashMap<>();
-        NBTTagCompound tag = stack.getTagCompound();
-        if (tag == null || !tag.hasKey(NBT_CHANNEL_RANGES)) return result;
-        NBTTagCompound ranges = tag.getCompoundTag(NBT_CHANNEL_RANGES);
-        for (String key : ranges.getKeySet()) {
-            int[] range = ranges.getIntArray(key);
-            if (range.length == 2) {
-                result.put(key, range);
-            }
-        }
-        return result;
-    }
-
-    private static void writeChannelValues(@NotNull ItemStack stack, @NotNull Map<String, Integer> channelValues) {
-        NBTTagCompound tag = getOrCreateTag(stack);
-        NBTTagCompound channels = new NBTTagCompound();
-        for (Map.Entry<String, Integer> entry : channelValues.entrySet()) {
-            if (entry.getValue() != 0) {
-                channels.setInteger(entry.getKey(), entry.getValue());
-            }
-        }
-        if (!channels.isEmpty()) {
-            tag.setTag(NBT_CHANNELS, channels);
-        } else {
-            tag.removeTag(NBT_CHANNELS);
-        }
-    }
-
-    private static boolean isNoHatch(@NotNull Map<String, Integer> channelValues) {
-        return StructureOperationRequest.isNoHatch(channelValues);
-    }
-
-    private static void setNoHatch(@NotNull Map<String, Integer> channelValues, boolean enabled) {
-        if (enabled) {
-            channelValues.put(GTStructureChannels.NO_HATCH.getName(), 1);
-        } else {
-            channelValues.remove(GTStructureChannels.NO_HATCH.getName());
-        }
-    }
-
-    private static void writeChannelRanges(@NotNull ItemStack stack, @NotNull Map<String, int[]> ranges) {
-        NBTTagCompound tag = getOrCreateTag(stack);
-        if (ranges.isEmpty()) {
-            tag.removeTag(NBT_CHANNEL_RANGES);
-            return;
-        }
-        NBTTagCompound rangesTag = new NBTTagCompound();
-        for (Map.Entry<String, int[]> entry : ranges.entrySet()) {
-            rangesTag.setIntArray(entry.getKey(), entry.getValue());
-        }
-        tag.setTag(NBT_CHANNEL_RANGES, rangesTag);
-    }
-
-    @NotNull
-    private static NBTTagCompound getOrCreateTag(@NotNull ItemStack stack) {
+    private static void writeCompareMode(@NotNull ItemStack stack, boolean enabled) {
         NBTTagCompound tag = stack.getTagCompound();
         if (tag == null) {
             tag = new NBTTagCompound();
             stack.setTagCompound(tag);
         }
-        return tag;
+        tag.setBoolean(MultiblockToolNbt.COMPARE_MODE, enabled);
     }
 
     // --- Item use actions ---
@@ -177,16 +115,16 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
         MultiblockControllerBase multiblock = (MultiblockControllerBase) mte;
         if (!player.canPlayerEdit(pos, side, player.getHeldItem(hand))) return EnumActionResult.FAIL;
 
-        Map<String, Integer> channelValues = readChannelValues(heldStack);
+        ChannelSettings settings = ChannelSettings.load(heldStack);
 
         if (player.isSneaking()) {
             // Shift+right-click: Auto-build the structure
             if (world.isRemote) return EnumActionResult.SUCCESS;
 
-            Map<String, Integer> channels = channelValues.isEmpty() ? null : channelValues;
+            Map<String, Integer> channels = settings.asRequestChannels();
 
             // Check if a specific piece is requested via STRUCTURE_PIECE channel
-            int pieceIndex = channelValues.getOrDefault(GTStructureChannels.STRUCTURE_PIECE.getName(), 0);
+            int pieceIndex = settings.get(GTStructureChannels.STRUCTURE_PIECE.getName());
             if (pieceIndex > 0) {
                 buildPiece(multiblock, player, pieceIndex, channels, heldStack);
                 return EnumActionResult.SUCCESS;
@@ -204,33 +142,49 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
             }
             return EnumActionResult.PASS;
         } else {
-            // Right-click: Save channel ranges for GUI configuration
-            if (!world.isRemote) {
-                saveControllerChannelRanges(heldStack, multiblock);
-                if (multiblock.isStructureFormed()) {
-                    player.sendMessage(new TextComponentTranslation("gregtech.multiblock.pattern.no_errors")
-                            .setStyle(new net.minecraft.util.text.Style().setColor(TextFormatting.GREEN)));
-                } else {
-                    player.sendMessage(new TextComponentTranslation("gregtech.multiblock.pattern.error_message_header"));
-                }
+            // Right-click: Show hologram preview / error info
+            if (world.isRemote) {
+                GhostBlockRenderer.setCompareMode(readCompareMode(heldStack));
+                GhostBlockRenderer.setChannelValues(settings.values());
+                GhostBlockRenderer.renderGhostPreview(multiblock, 10000);
+                return EnumActionResult.SUCCESS;
             }
+
+            // Server-side: store supported channel ranges into NBT for GUI use
+            saveControllerChannelRanges(settings, multiblock);
+
+            if (multiblock.isStructureFormed()) {
+                spawnStructureHints(multiblock, player, heldStack, settings.asRequestChannels());
+                player.sendMessage(new TextComponentTranslation("gregtech.multiblock.pattern.no_errors")
+                        .setStyle(new Style().setColor(TextFormatting.GREEN)));
+                return EnumActionResult.SUCCESS;
+            }
+
+            // Report the failure before spawning hints: hint generation re-runs pattern
+            // matching, which recycles the shared block-state buffer the live error points at.
+            StructureFailureReport.sendTo(player, multiblock, world, AUTO_BUILD_ADVICE);
+            spawnStructureHints(multiblock, player, heldStack, settings.asRequestChannels());
             return EnumActionResult.SUCCESS;
         }
     }
 
-    private static void saveControllerChannelRanges(@NotNull ItemStack stack,
-                                                     @NotNull MultiblockControllerBase controller) {
+    /**
+     * Save the controller's supported channel names and their valid ranges into the item NBT.
+     * This allows the GUI to show proper min/max ranges for each channel.
+     */
+    private static void saveControllerChannelRanges(@NotNull ChannelSettings settings,
+                                                    @NotNull MultiblockControllerBase controller) {
         List<StructureChannel> supported = controller.getSupportedChannels();
         Map<String, int[]> ranges = new HashMap<>();
         for (StructureChannel ch : supported) {
-            int[] range = controller.getChannelRange(ch);
-            ranges.put(ch.getName(), range);
+            ranges.put(ch.getName(), controller.getChannelRange(ch));
         }
         if (ConfigHolder.machines.debugStructureTrace) {
-            GTLog.logger.debug("[StructureBuilder] saved channel ranges controller={} ranges={}",
+            GTLog.logger.debug("[StructureProjector] saved channel ranges controller={} ranges={}",
                     controller.getMetaName(), ranges.keySet());
         }
-        writeChannelRanges(stack, ranges);
+        settings.setSupportedRanges(ranges);
+        settings.store();
     }
 
     private static void buildStructure(@NotNull MultiblockControllerBase multiblock,
@@ -250,7 +204,7 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
         int compiledPieceIndex = pattern == null ? pieceIndex : pattern.resolveToolingPieceIndex(pieceIndex);
         if (compiledPieceIndex < 1) {
             GTLog.logger.debug(
-                    "[StructureBuilder] skipped invalid structure_piece={} for controller={}",
+                    "[StructureProjector] skipped invalid structure_piece={} for controller={}",
                     pieceIndex, multiblock.getMetaName());
             return;
         }
@@ -264,9 +218,27 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
                                        int pieceIndex,
                                        @Nullable Map<String, Integer> channelValues,
                                        @NotNull StructureBuildResult result) {
-        GTLog.logger.info("[StructureBuilder] build result controller={} pos={} piece={} noHatch={}, {}",
+        GTLog.logger.info("[StructureProjector] build result controller={} pos={} piece={} noHatch={}, {}",
                 multiblock.getMetaName(), multiblock.getPos(), pieceIndex,
-                channelValues != null && isNoHatch(channelValues), result.describeCounts());
+                channelValues != null && StructureOperationRequest.isNoHatch(channelValues),
+                result.describeCounts());
+    }
+
+    private static void spawnStructureHints(@NotNull MultiblockControllerBase multiblock,
+                                            @NotNull EntityPlayer player,
+                                            @NotNull ItemStack triggerStack,
+                                            @Nullable Map<String, Integer> channels) {
+        long start = System.nanoTime();
+        StructureOperationRequest request = StructureOperationRequest.hint(
+                player, multiblock, StructureOrientation.fromController(multiblock),
+                channels, triggerStack);
+        multiblock.spawnStructureHints(request);
+        long elapsedMillis = (System.nanoTime() - start) / 1_000_000L;
+        if (ConfigHolder.machines.debugStructureTrace && elapsedMillis >= 25L) {
+            GTLog.logger.debug(
+                    "[StructureProjector] slow server hints controller={} channels={} totalMs={}",
+                    multiblock.getMetaName(), channels, elapsedMillis);
+        }
     }
 
     @Override
@@ -278,25 +250,20 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
     }
 
     @Override
-    public void addPropertyOverride(@NotNull Item item) {
-        item.addPropertyOverride(GTUtility.gregtechId("auto_mode"),
-                (stack, world, entity) -> (entity != null && entity.isSneaking()) ? 1.0F : 0.0F);
-    }
-
-    @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
-        Map<String, Integer> channelValues = readChannelValues(itemStack);
-
-        lines.add(I18n.format("gregtech.tool.builder.tooltip1"));
-        lines.add(I18n.format("gregtech.tool.builder.tooltip2"));
-        if (isNoHatch(channelValues)) {
-            lines.add(TextFormatting.RED + I18n.format("gregtech.tool.builder.no_hatch_on"));
+        ChannelSettings settings = ChannelSettings.load(itemStack);
+        lines.add(I18n.format("metaitem.tool.multiblock_builder.tooltip"));
+        if (readCompareMode(itemStack)) {
+            lines.add(TextFormatting.GREEN + I18n.format("gregtech.tool.multiblock_builder.compare_on"));
         }
-        if (!channelValues.isEmpty()) {
-            lines.add(TextFormatting.YELLOW + I18n.format("gregtech.tool.builder.channels_set",
-                    channelValues.size()));
+        if (settings.isNoHatch()) {
+            lines.add(TextFormatting.RED + I18n.format("gregtech.tool.multiblock_builder.no_hatch_on"));
         }
-        lines.add(TextFormatting.GRAY + I18n.format("gregtech.tool.builder.channel_config_hint"));
+        if (!settings.values().isEmpty()) {
+            lines.add(TextFormatting.YELLOW + I18n.format("gregtech.tool.multiblock_builder.channels_set",
+                    settings.values().size()));
+        }
+        lines.add(TextFormatting.GRAY + I18n.format("gregtech.tool.multiblock_builder.channel_config_hint"));
     }
 
     // --- GUI ---
@@ -306,57 +273,63 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
         ItemStack stack = guiData.getUsedItemStack();
 
         // Read all state from NBT into local working copies
-        Map<String, Integer> channelValues = readChannelValues(stack);
-        Map<String, int[]> channelRanges = readChannelRanges(stack);
-        List<ChannelEntry> entries = buildChannelEntries(channelValues, channelRanges);
+        boolean[] compareHolder = { readCompareMode(stack) };
+        ChannelSettings channels = ChannelSettings.load(stack);
+        List<ChannelEntry> entries = buildChannelEntries(channels);
         if (ConfigHolder.machines.debugStructureTrace) {
-            GTLog.logger.debug("[StructureBuilder] building channel GUI values={} ranges={} entries={}",
-                    channelValues.keySet(), channelRanges.keySet(), entries.size());
+            GTLog.logger.debug("[StructureProjector] building channel GUI values={} ranges={} entries={}",
+                    channels.values().keySet(), channels.supportedRanges().keySet(), entries.size());
         }
 
-        var panel = GTGuis.createPanel(stack, 176, 220);
+        var panel = GTGuis.createPanel(stack, 176, 240);
+
+        // --- Compare mode sync ---
+        BooleanSyncValue compareModeValue = new BooleanSyncValue(
+                () -> compareHolder[0],
+                v -> {
+                    compareHolder[0] = v;
+                    writeCompareMode(stack, v);
+                });
+        guiSyncManager.syncValue("compare_mode", compareModeValue);
 
         // --- No-hatch mode sync ---
         BooleanSyncValue noHatchValue = new BooleanSyncValue(
-                () -> isNoHatch(channelValues),
+                channels::isNoHatch,
                 v -> {
-                    setNoHatch(channelValues, v);
-                    writeChannelValues(stack, channelValues);
+                    channels.setNoHatch(v);
+                    channels.store();
                 });
         guiSyncManager.syncValue("no_hatch", noHatchValue);
 
         // --- Structure width/height/length sync ---
-        int[] widthRange = channelRanges.getOrDefault(
+        int[] widthRange = channels.supportedRanges().getOrDefault(
                 GTStructureChannels.STRUCTURE_WIDTH.getName(), new int[] { 0, 100 });
-        int[] heightRange = channelRanges.getOrDefault(
+        int[] heightRange = channels.supportedRanges().getOrDefault(
                 GTStructureChannels.STRUCTURE_HEIGHT.getName(), new int[] { 0, 100 });
-        int[] lengthRange = channelRanges.getOrDefault(
+        int[] lengthRange = channels.supportedRanges().getOrDefault(
                 GTStructureChannels.STRUCTURE_LENGTH.getName(), new int[] { 0, 100 });
 
         IntSyncValue widthValue = new IntSyncValue(
-                () -> channelValues.getOrDefault(GTStructureChannels.STRUCTURE_WIDTH.getName(), 0),
+                () -> channels.get(GTStructureChannels.STRUCTURE_WIDTH.getName()),
                 v -> {
-                    if (v <= 0) channelValues.remove(GTStructureChannels.STRUCTURE_WIDTH.getName());
-                    else channelValues.put(GTStructureChannels.STRUCTURE_WIDTH.getName(), v);
-                    writeChannelValues(stack, channelValues);
+                    channels.put(GTStructureChannels.STRUCTURE_WIDTH.getName(), v);
+                    channels.store();
                 });
         guiSyncManager.syncValue("structure_width", widthValue);
 
         IntSyncValue heightValue = new IntSyncValue(
-                () -> channelValues.getOrDefault(GTStructureChannels.STRUCTURE_HEIGHT.getName(), 0),
+                () -> channels.get(GTStructureChannels.STRUCTURE_HEIGHT.getName()),
                 v -> {
-                    if (v <= 0) channelValues.remove(GTStructureChannels.STRUCTURE_HEIGHT.getName());
-                    else channelValues.put(GTStructureChannels.STRUCTURE_HEIGHT.getName(), v);
-                    writeChannelValues(stack, channelValues);
+                    channels.put(GTStructureChannels.STRUCTURE_HEIGHT.getName(), v);
+                    channels.store();
                 });
         guiSyncManager.syncValue("structure_height", heightValue);
 
         IntSyncValue lengthValue = new IntSyncValue(
-                () -> channelValues.getOrDefault(GTStructureChannels.STRUCTURE_LENGTH.getName(), 0),
+                () -> channels.get(GTStructureChannels.STRUCTURE_LENGTH.getName()),
                 v -> {
-                    if (v <= 0) channelValues.remove(GTStructureChannels.STRUCTURE_LENGTH.getName());
-                    else channelValues.put(GTStructureChannels.STRUCTURE_LENGTH.getName(), v);
-                    writeChannelValues(stack, channelValues);
+                    channels.put(GTStructureChannels.STRUCTURE_LENGTH.getName(), v);
+                    channels.store();
                 });
         guiSyncManager.syncValue("structure_length", lengthValue);
 
@@ -368,10 +341,10 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
             final int idx = i;
             nameSyncs[i] = new StringSyncValue(
                     () -> idx < entries.size() ? entries.get(idx).name : "",
-                    n -> updateEntryName(stack, entries, channelValues, idx, n != null ? n : ""));
+                    n -> updateEntryName(channels, entries, idx, n != null ? n : ""));
             valueSyncs[i] = new IntSyncValue(
                     () -> idx < entries.size() ? entries.get(idx).value : 0,
-                    v -> updateEntryValue(stack, entries, channelValues, idx, v));
+                    v -> updateEntryValue(channels, entries, idx, v));
             guiSyncManager.syncValue("ch_name_" + i, nameSyncs[i]);
             guiSyncManager.syncValue("ch_val_" + i, valueSyncs[i]);
         }
@@ -379,9 +352,10 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
         int visibleRows = Math.max(entries.size(), 1);
         int listHeight = Math.min(visibleRows, MAX_VISIBLE_ROWS) * ROW_HEIGHT;
 
+        // Determine valid ranges for channel entry value fields
         var channelList = new ListWidget<>()
                 .children(visibleRows, i -> {
-                    int[] range = getEntryRange(entries, channelRanges, i);
+                    int[] range = getEntryRange(channels, entries, i);
                     return Flow.row()
                             .widthRel(1f)
                             .height(ROW_HEIGHT - 2)
@@ -404,15 +378,16 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
                 .size(162, listHeight)
                 .pos(7, 105);
 
-        // --- Clear button ---
+        // --- Clear button: properly resets all sync values ---
         var clearButton = new ButtonWidget<>()
-                .pos(7, 195)
+                .pos(7, 215)
                 .width(60).height(16)
-                .overlay(IKey.lang("gregtech.tool.builder.clear"))
+                .overlay(IKey.lang("gregtech.tool.multiblock_builder.clear"))
                 .onMousePressed(m -> {
-                    channelValues.clear();
+                    // Clear all channel values and entries
+                    channels.clear();
                     entries.clear();
-                    writeChannelValues(stack, channelValues);
+                    // Reset sync values so GUI and server reflect the cleared state
                     widthValue.setValue(0, true, true);
                     heightValue.setValue(0, true, true);
                     lengthValue.setValue(0, true, true);
@@ -424,16 +399,24 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
                 });
 
         return panel
-                .child(IKey.lang("gregtech.tool.builder.gui_title").asWidget().pos(5, 5))
+                .child(IKey.lang("gregtech.tool.multiblock_builder.gui_title").asWidget().pos(5, 5))
                 .child(new ToggleButton()
                         .pos(15, 20)
                         .width(60).height(18)
+                        .value(compareModeValue)
+                        .tooltip(tooltip -> tooltip.addLine(
+                                IKey.lang("gregtech.tool.multiblock_builder.compare_tooltip")))
+                        .onUpdateListener(w -> w.overlay(IKey.str(
+                                compareModeValue.getValue() ? "CMP:ON" : "CMP:OFF"))))
+                .child(new ToggleButton()
+                        .pos(85, 20)
+                        .width(60).height(18)
                         .value(noHatchValue)
                         .tooltip(tooltip -> tooltip.addLine(
-                                IKey.lang("gregtech.tool.builder.no_hatch_tooltip")))
+                                IKey.lang("gregtech.tool.multiblock_builder.no_hatch_tooltip")))
                         .onUpdateListener(w -> w.overlay(IKey.str(
                                 noHatchValue.getValue() ? "NO HATCH" : "HATCH"))))
-                .child(IKey.lang("gregtech.tool.builder.structure_height").asWidget().pos(7, 42))
+                .child(IKey.lang("gregtech.tool.multiblock_builder.structure_height").asWidget().pos(7, 42))
                 .child(new TextFieldWidget()
                         .pos(80, 42)
                         .width(40).height(12)
@@ -441,7 +424,7 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
                         .setNumbers(heightRange[0], heightRange[1])
                         .value(heightValue)
                         .background(GTGuiTextures.DISPLAY))
-                .child(IKey.lang("gregtech.tool.builder.structure_width").asWidget().pos(7, 62))
+                .child(IKey.lang("gregtech.tool.multiblock_builder.structure_width").asWidget().pos(7, 62))
                 .child(new TextFieldWidget()
                         .pos(80, 62)
                         .width(40).height(12)
@@ -449,7 +432,7 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
                         .setNumbers(widthRange[0], widthRange[1])
                         .value(widthValue)
                         .background(GTGuiTextures.DISPLAY))
-                .child(IKey.lang("gregtech.tool.builder.structure_length").asWidget().pos(7, 82))
+                .child(IKey.lang("gregtech.tool.multiblock_builder.structure_length").asWidget().pos(7, 82))
                 .child(new TextFieldWidget()
                         .pos(80, 82)
                         .width(40).height(12)
@@ -461,21 +444,25 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
                 .child(clearButton);
     }
 
-    // --- Channel entry helpers ---
-
-    private static List<ChannelEntry> buildChannelEntries(@NotNull Map<String, Integer> channelValues,
-                                                          @NotNull Map<String, int[]> channelRanges) {
+    /**
+     * Build the channel entries list for the GUI from persisted channel values.
+     * Excludes height/length which have dedicated controls.
+     * If no values are stored but ranges exist (from a previous controller interaction),
+     * auto-fills entries with default value 0 for each known channel.
+     */
+    private static List<ChannelEntry> buildChannelEntries(@NotNull ChannelSettings channels) {
         List<ChannelEntry> entries = new ArrayList<>();
 
-        for (Map.Entry<String, Integer> e : channelValues.entrySet()) {
+        // Build entries from existing channel values first, preserving configured values.
+        for (Map.Entry<String, Integer> e : channels.values().entrySet()) {
             if (isDedicatedDimensionChannel(e.getKey())) continue;
             entries.add(new ChannelEntry(e.getKey(), e.getValue()));
         }
 
-        for (Map.Entry<String, int[]> rangeEntry : channelRanges.entrySet()) {
-            String name = rangeEntry.getKey();
+        // Then append supported channels discovered from the last clicked controller.
+        for (String name : channels.supportedRanges().keySet()) {
             if (isDedicatedDimensionChannel(name) || containsEntry(entries, name)) continue;
-            entries.add(new ChannelEntry(name, channelValues.getOrDefault(name, 0)));
+            entries.add(new ChannelEntry(name, channels.get(name)));
         }
 
         return entries;
@@ -496,18 +483,29 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
         return false;
     }
 
-    private static int[] getEntryRange(List<ChannelEntry> entries, Map<String, int[]> channelRanges, int idx) {
+    /**
+     * Get the valid value range for a channel entry by looking up stored ranges.
+     * Falls back to [0, 100] if no range is stored for the entry's channel name.
+     */
+    private static int[] getEntryRange(@NotNull ChannelSettings channels,
+                                       List<ChannelEntry> entries,
+                                       int idx) {
         if (idx < entries.size()) {
             String name = entries.get(idx).name;
-            if (name != null && !name.isEmpty() && channelRanges.containsKey(name)) {
-                return channelRanges.get(name);
+            if (name != null && !name.isEmpty() && channels.supportedRanges().containsKey(name)) {
+                return channels.supportedRanges().get(name);
             }
         }
         return new int[] { 0, 100 };
     }
 
-    private static void updateEntryName(@NotNull ItemStack stack, List<ChannelEntry> entries,
-                                        Map<String, Integer> channelValues, int idx, String name) {
+    /**
+     * Update a channel entry name and persist it.
+     */
+    private static void updateEntryName(@NotNull ChannelSettings channels,
+                                        List<ChannelEntry> entries,
+                                        int idx,
+                                        String name) {
         while (entries.size() <= idx) {
             entries.add(new ChannelEntry("", 0));
         }
@@ -515,16 +513,21 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
         entries.get(idx).name = name;
 
         if (oldName != null && !oldName.isEmpty()) {
-            channelValues.remove(oldName);
+            channels.put(oldName, 0);
         }
         if (name != null && !name.isEmpty()) {
-            channelValues.put(name, entries.get(idx).value);
+            channels.put(name, entries.get(idx).value);
         }
-        writeChannelValues(stack, channelValues);
+        channels.store();
     }
 
-    private static void updateEntryValue(@NotNull ItemStack stack, List<ChannelEntry> entries,
-                                         Map<String, Integer> channelValues, int idx, int value) {
+    /**
+     * Update a channel entry value and persist it.
+     */
+    private static void updateEntryValue(@NotNull ChannelSettings channels,
+                                         List<ChannelEntry> entries,
+                                         int idx,
+                                         int value) {
         while (entries.size() <= idx) {
             entries.add(new ChannelEntry("", 0));
         }
@@ -532,9 +535,9 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
 
         String name = entries.get(idx).name;
         if (name != null && !name.isEmpty()) {
-            channelValues.put(name, value);
+            channels.put(name, value);
         }
-        writeChannelValues(stack, channelValues);
+        channels.store();
     }
 
     // --- Inner data class ---
@@ -548,26 +551,5 @@ public class StructureBuilderBehavior implements IItemBehaviour, ItemUIFactory {
             this.name = name;
             this.value = value;
         }
-    }
-
-    // --- Public API ---
-
-    @NotNull
-    public static Map<String, Integer> getChannelValues(@NotNull ItemStack stack) {
-        return readChannelValues(stack);
-    }
-
-    public static void setChannelValue(@NotNull ItemStack stack, String channelName, int value) {
-        Map<String, Integer> values = readChannelValues(stack);
-        if (value == 0) {
-            values.remove(channelName);
-        } else {
-            values.put(channelName, value);
-        }
-        writeChannelValues(stack, values);
-    }
-
-    public static void clearChannelValues(@NotNull ItemStack stack) {
-        writeChannelValues(stack, new HashMap<>());
     }
 }

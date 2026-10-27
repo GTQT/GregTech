@@ -681,13 +681,12 @@ public final class MetaItems {
 
     public static MetaItem<?>.MetaValueItem LOGO;
 
+    public static MetaItem<?>.MetaValueItem STRUCTURE_BUILDER;
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_BUILDER;
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_REMOVER;
-    public static MetaItem<?>.MetaValueItem MULTIBLOCK_PREVIEW;
-    /** Canonical unified preview/build, removal and movement tool (metadata 1006). */
+    public static MetaItem<?>.MetaValueItem MULTIBLOCK_MOVER;
     public static MetaItem<?>.MetaValueItem MULTIBLOCK_TOOL;
     public static MetaItem<?>.MetaValueItem OFFHAND_PLACER;
-
     public static MetaItem<?>.MetaValueItem BATTERY_CASE;
     public static MetaItem<?>.MetaValueItem WATERPROOF_SPRAY_CAN;
     public static MetaItem<?>.MetaValueItem TOOL_COVER_COPY_PASTE;
