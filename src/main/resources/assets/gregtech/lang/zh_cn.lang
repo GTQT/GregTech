@@ -1450,10 +1450,10 @@ metaitem.power_thruster.name=能量推进器
 metaitem.power_thruster_advanced.name=进阶能量推进器
 metaitem.gravitation_engine.name=重力引擎单元
 
-metaitem.tool.structure_builder.name=结构建造器
+metaitem.tool.structure_builder.name=多方块构建器
 metaitem.tool.structure_builder.tooltip=我懒得放方块！
 
-metaitem.tool.multiblock_builder.name=多方块建造器
+metaitem.tool.multiblock_builder.name=多方块高级构建器
 metaitem.tool.multiblock_builder.tooltip=建造你的多方块结构！
 gregtech.tool.multiblock_builder.compare_on=§a对比模式：开启
 gregtech.tool.multiblock_builder.no_hatch_on=§c禁止放置舱室：开启
@@ -1468,9 +1468,10 @@ gregtech.tool.multiblock_builder.structure_width=宽度
 gregtech.tool.multiblock_builder.structure_length=长度
 
 metaitem.tool.multiblock_remover.name=多方块拆除器
-metaitem.tool.multiblock_remover.tooltip=拆除你的多方块结构！
+metaitem.tool.multiblock_remover.tooltip=潜行右键拆除多方块结构；直接右键查看结构诊断报告
 gregtech.multiblock_removal.dismantled=已拆除多方块：%s
 gregtech.multiblock_removal.not_formed=无法拆除多方块：%s
+gregtech.multiblock_removal.failed=拆除多方块 %s 失败：结构已成型，但没有移除任何方块
 
 metaitem.tool.multiblock_mover.name=多方块移动器
 metaitem.tool.multiblock_mover.tooltip=移动你的多方块结构！

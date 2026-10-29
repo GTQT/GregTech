@@ -5,8 +5,9 @@ import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IMultiblockController;
 import gregtech.api.metatileentity.MetaTileEntity;
+import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.pattern.PieceTemplate;
+import gregtech.api.pattern.CommittedStructureGraph;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
@@ -15,12 +16,13 @@ import gregtech.api.pattern.PatternError;
 import gregtech.api.pattern.PieceRuntime;
 import gregtech.api.pattern.PieceRuntimeState;
 import gregtech.api.pattern.PieceRuntimes;
-import gregtech.api.pattern.RepeatGroupPiece;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.StructureExternalDependencies;
 import gregtech.api.pattern.StructureFailureTrace;
 import gregtech.api.pattern.StructureHintResult;
+import gregtech.api.pattern.StructureIterateResult;
 import gregtech.api.pattern.StructureLifecycleState;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
@@ -74,11 +76,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import static gregtech.api.capability.GregtechDataCodes.*;
 
@@ -1246,58 +1248,209 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
         doExplosion(explosionPower);
     }
 
-    public void dismantleStructure(EntityPlayer player) {
-        PieceRuntimeState state = this.runtimeState;
-
-        if (!structureFormed || state == null) {
-            return;
+    /**
+     * Dismantles the formed structure: every structure block (casings, hatches, the controller itself) is removed from
+     * the world and recovered as item drops at the given player.
+     *
+     * <p>Positions come from the published structure state (the committed graph's formed positions, the per-piece
+     * runtime position sets and the attached multiblock parts), so multi-piece and repeatable definitions are
+     * dismantled completely instead of being limited to the primary piece. The controller is invalidated before any
+     * block is touched so the resulting block updates cannot re-run a structure check against a half-removed
+     * structure.
+     *
+     * @param player the player that receives the recovered items
+     * @return {@code true} if at least one structure block was removed
+     */
+    public boolean dismantleStructure(@NotNull EntityPlayer player) {
+        World world = getWorld();
+        if (world == null || world.isRemote || !isStructureFormed()) {
+            return false;
         }
 
-        // First invalidate structure, removing all part associations
+        BlockPos controllerPos = getPos().toImmutable();
+        Set<BlockPos> positions = collectDismantlePositions(world);
+        positions.remove(controllerPos);
+        if (positions.isEmpty()) {
+            // 连结构方块都枚举不出来时不要只拆控制器，否则会留下一个“有外壳没控制器”的残骸
+            GTLog.logger.warn("[Dismantle] Could not enumerate the structure of {} at {}; refusing to remove only the controller",
+                    getMetaName(), controllerPos);
+            return false;
+        }
+
+        // 先解除部件关联并从事件索引注销，避免拆方块触发的方块更新拿半残结构重跑结构检查
         invalidateStructure();
 
-        World world = getWorld();
+        List<ItemStack> drops = new ArrayList<>();
+        int removed = 0;
+        for (BlockPos pos : positions) {
+            removed += removeDismantleBlock(world, pos, player, drops);
+        }
+        // 控制器最后拆，保证上面处理部件时 getWorld()/getPos() 始终有效
+        removed += removeDismantleBlock(world, controllerPos, player, drops);
 
-        // Get all block positions in the structure
-        StructureOrientation orientation = StructureOrientation.fromController(this);
-        Map<BlockPos, BlockInfo> blocks = structureRuntime == null
-                ? state.getAllStructureBlocks(world, getPos(), orientation)
-                : structureRuntime.iterateSingle(
-                        StructureOperationRequest.iterate(world, getPos(), orientation));
+        GTUtility.spawnDropsAtPlayer(mergeDrops(drops), player, world, player.getRNG());
+        if (removed == 0) {
+            GTLog.logger.warn("[Dismantle] {} at {} is formed but no structure block could be removed",
+                    getMetaName(), controllerPos);
+        } else {
+            GTLog.logger.debug("[Dismantle] {} at {} removed {} structure blocks",
+                    getMetaName(), controllerPos, removed);
+        }
+        return removed > 0;
+    }
 
-        ArrayList<ItemStack> drops = new ArrayList<>();
-
-        // 将所有部件转为掉落物
-        for (Map.Entry<BlockPos, BlockInfo> entry : blocks.entrySet()) {
-            BlockPos pos = entry.getKey();
-            TileEntity tileEntity = entry.getValue().getTileEntity();
-
-            world.setBlockToAir(pos); // 先清除方块
-
-            // 如果是MetaTileEntity，尝试获取其物品形式
-            if (tileEntity instanceof IGregTechTileEntity) {
-                MetaTileEntity metaTileEntity = ((IGregTechTileEntity) tileEntity).getMetaTileEntity();
-                ItemStack itemStack = metaTileEntity.getStackForm();
-                drops.add(itemStack);
-
-            } else {
-                // 普通方块掉落
-                IBlockState blockState = entry.getValue().getBlockState();
-                ItemStack stack = new ItemStack(blockState.getBlock(), 1,
-                        blockState.getBlock().getMetaFromState(blockState));
-                drops.add(stack);
+    /**
+     * Collects every world position that currently belongs to the formed structure.
+     *
+     * <p>The committed graph is the canonical source because it carries the formed positions of every active piece,
+     * including repeatable ones. Per-piece runtime positions and the attached multiblock parts are unioned in as well:
+     * the graph may omit some opaque ability cells and can lag one incremental check behind. Only when no canonical
+     * state is available at all is the structure re-traversed from its template.
+     */
+    @NotNull
+    private Set<BlockPos> collectDismantlePositions(@NotNull World world) {
+        Set<BlockPos> positions = new LinkedHashSet<>();
+        StructureRuntime runtime = structureRuntime;
+        if (runtime != null) {
+            CommittedStructureGraph graph = runtime.getCommittedGraph();
+            if (graph != null) {
+                for (Long packed : graph.getPositionIndex().getAllFormedPositions()) {
+                    positions.add(BlockPos.fromLong(packed));
+                }
+            }
+            if (pieceRuntimes != null) {
+                for (PieceRuntime pieceRuntime : pieceRuntimes.getAll()) {
+                    if (!pieceRuntime.isValidated()) continue;
+                    for (Long packed : pieceRuntime.getPositions()) {
+                        positions.add(BlockPos.fromLong(packed));
+                    }
+                }
             }
         }
+        for (IMultiblockPart part : getMultiblockParts()) {
+            if (part instanceof MetaTileEntity metaTileEntity) {
+                positions.add(metaTileEntity.getPos().toImmutable());
+            }
+        }
+        if (positions.isEmpty()) {
+            positions.addAll(iterateDismantlePositions(world));
+        }
+        return positions;
+    }
 
-        ItemStack controllerStack = getStackForm();
-        drops.add(controllerStack);
+    /**
+     * Re-traverses the compiled structure to recover its positions when no published structure state is available.
+     */
+    @NotNull
+    private List<BlockPos> iterateDismantlePositions(@NotNull World world) {
+        StructureRuntime runtime = structureRuntime;
+        if (runtime == null) {
+            return Collections.emptyList();
+        }
+        List<BlockPos> positions = new ArrayList<>();
+        try {
+            StructureOperationRequest request = StructureOperationRequest.iterate(
+                    world, getPos(), StructureOrientation.fromController(this), this);
+            StructureIterateResult result = runtime.getMultiPiecePattern() == null
+                    ? runtime.iterateSingleResult(request)
+                    : runtime.iterateMultiPiece(request);
+            for (Long packed : result.getPositions()) {
+                positions.add(BlockPos.fromLong(packed));
+            }
+            positions.addAll(result.getBlocks().keySet());
+        } catch (RuntimeException iterationFailure) {
+            GTLog.logger.warn("Could not enumerate the structure of {} at {} for dismantling",
+                    getMetaName(), getPos(), iterationFailure);
+        }
+        return positions;
+    }
 
-        GTUtility.spawnDropsAtPlayer(drops, player, world, player.getRNG());
+    /**
+     * Removes a single structure block, recovering its drops into {@code drops}.
+     *
+     * @return {@code 1} if a block was removed, {@code 0} otherwise
+     */
+    private int removeDismantleBlock(@NotNull World world, @NotNull BlockPos pos,
+                                     @NotNull EntityPlayer player, @NotNull List<ItemStack> drops) {
+        BlockPos target = pos.toImmutable();
+        if (!world.isBlockLoaded(target)) {
+            GTLog.logger.warn("[Dismantle] Skipping unloaded structure position {} of {}", target, getMetaName());
+            return 0;
+        }
+        IBlockState blockState = world.getBlockState(target);
+        if (blockState.getBlock().isAir(blockState, world, target)) {
+            return 0;
+        }
 
-        // 最后拆除控制器自身
-        onRemoval();
-        invalidate();
-        getWorld().setBlockToAir(getPos());
+        TileEntity tileEntity = world.getTileEntity(target);
+        MetaTileEntity metaTileEntity = tileEntity instanceof IGregTechTileEntity gregTechTileEntity
+                ? gregTechTileEntity.getMetaTileEntity()
+                : null;
+        if (metaTileEntity != null) {
+            if (metaTileEntity.shouldDropWhenDestroyed()) {
+                drops.add(createMachineDrop(metaTileEntity));
+                metaTileEntity.getDrops(drops, player);
+            }
+        } else {
+            // 普通结构方块（外壳、玻璃等）按方块自身的掉落表回收；失效但仍占位的机器方块也走这里，避免吞物品
+            drops.addAll(blockState.getBlock().getDrops(world, target, blockState, 0));
+        }
+
+        // 服务端的 setBlockState 会调用 Block#breakBlock，机器内部物品、覆盖板与 onRemoval 由它负责
+        world.setBlockToAir(target);
+        return 1;
+    }
+
+    /**
+     * Builds the item form of a multiblock part/controller, matching what breaking the block would drop.
+     */
+    @NotNull
+    private static ItemStack createMachineDrop(@NotNull MetaTileEntity metaTileEntity) {
+        ItemStack drop = metaTileEntity.getStackForm();
+        NBTTagCompound itemData = new NBTTagCompound();
+        metaTileEntity.writeItemStackData(itemData);
+        if (!itemData.isEmpty()) {
+            drop.setTagCompound(itemData);
+        }
+        if (metaTileEntity.getHolder() instanceof MetaTileEntityHolder holder && holder.hasCustomName()) {
+            drop.setStackDisplayName(holder.getName());
+        }
+        return drop;
+    }
+
+    /**
+     * Merges identical drops into full stacks so dismantling a large structure does not spawn thousands of item
+     * entities at once.
+     */
+    @NotNull
+    private static List<ItemStack> mergeDrops(@NotNull List<ItemStack> drops) {
+        List<ItemStack> merged = new ArrayList<>();
+        for (ItemStack drop : drops) {
+            if (drop.isEmpty()) {
+                continue;
+            }
+            ItemStack remaining = drop.copy();
+            for (ItemStack existing : merged) {
+                if (!ItemStack.areItemsEqual(existing, remaining)
+                        || !ItemStack.areItemStackTagsEqual(existing, remaining)) {
+                    continue;
+                }
+                int space = Math.min(existing.getMaxStackSize(), remaining.getMaxStackSize()) - existing.getCount();
+                if (space <= 0) {
+                    continue;
+                }
+                int moved = Math.min(space, remaining.getCount());
+                existing.grow(moved);
+                remaining.shrink(moved);
+                if (remaining.isEmpty()) {
+                    break;
+                }
+            }
+            if (!remaining.isEmpty()) {
+                merged.add(remaining);
+            }
+        }
+        return merged;
     }
 
     public String recipeMapsToString() {

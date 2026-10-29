@@ -252,7 +252,6 @@ public class MultiblockBuilderBehavior implements IItemBehaviour, ItemUIFactory 
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
         ChannelSettings settings = ChannelSettings.load(itemStack);
-        lines.add(I18n.format("metaitem.tool.multiblock_builder.tooltip"));
         if (readCompareMode(itemStack)) {
             lines.add(TextFormatting.GREEN + I18n.format("gregtech.tool.multiblock_builder.compare_on"));
         }

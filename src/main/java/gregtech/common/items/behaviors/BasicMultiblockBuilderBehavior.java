@@ -10,7 +10,6 @@ import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.util.GTLog;
 
-import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -22,8 +21,6 @@ import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
-
-import java.util.List;
 
 /**
  * 基础结构建造器：只提供“结构检查 + 自动建造”。
@@ -73,10 +70,5 @@ public class BasicMultiblockBuilderBehavior implements IItemBehaviour {
         StructureBuildResult result = multiblock.getOrCreateStructureRuntime().buildAllPieces(request);
         GTLog.logger.info("[BasicStructureBuilder] build result controller={} pos={}, {}",
                 multiblock.getMetaName(), multiblock.getPos(), result.describeCounts());
-    }
-
-    @Override
-    public void addInformation(ItemStack itemStack, List<String> lines) {
-        lines.add(I18n.format("metaitem.tool.structure_builder.tooltip"));
     }
 }

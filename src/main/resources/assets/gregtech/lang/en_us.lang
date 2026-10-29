@@ -1473,9 +1473,10 @@ gregtech.tool.multiblock_builder.structure_width=Width
 gregtech.tool.multiblock_builder.structure_length=Length
 
 metaitem.tool.multiblock_remover.name=Multiblock Remover
-metaitem.tool.multiblock_remover.tooltip=Dismantle your multiblock structures!
+metaitem.tool.multiblock_remover.tooltip=Sneak-right-click a multiblock to dismantle it; right-click for a structure report
 gregtech.multiblock_removal.dismantled=Dismantled multiblock: %s
 gregtech.multiblock_removal.not_formed=Cannot dismantle multiblock: %s
+gregtech.multiblock_removal.failed=Failed to dismantle multiblock %s: it is formed but no blocks were removed
 
 metaitem.tool.multiblock_mover.name=Multiblock Mover
 metaitem.tool.multiblock_mover.tooltip=Move your multiblock structures!

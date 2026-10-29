@@ -82,7 +82,6 @@ public final class MultiblockMoverBehavior implements IItemBehaviour {
 
     @Override
     public void addInformation(ItemStack stack, List<String> lines) {
-        lines.add(I18n.format("metaitem.tool.multiblock_mover.tooltip"));
         lines.add(I18n.format("gregtech.multiblock_tool.mover.tooltip.air_target",
                 ConfigHolder.multiblockMover.airTargetDistance));
         lines.add(I18n.format("gregtech.multiblock_tool.mover.tooltip.energy", MoverEnergyService.CAPACITY));
