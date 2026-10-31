@@ -34,10 +34,10 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -82,7 +82,7 @@ public class MetaTileEntityFisher extends TieredMetaTileEntity {
             for (int j = 0; j < rowSize; j++) {
                 int index = i * rowSize + j;
                 widgets.get(i).add(new ItemSlot()
-                        .slot(SyncHandlers.itemSlot(exportItems, index)
+                        .slot(new ModularSlot(exportItems, index)
                                 .slotGroup("item_out")
                                 .accessibility(false, true)));
             }
@@ -91,7 +91,7 @@ public class MetaTileEntityFisher extends TieredMetaTileEntity {
         return GTGuis.createPanel(this, 176, 18 + 18 * rowSize + 94)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
-                .child(new ItemSlot().slot(SyncHandlers.itemSlot(importItems, 0)
+                .child(new ItemSlot().slot(new ModularSlot(importItems, 0)
                                 .slotGroup("item_in"))
                         .background(GTGuiTextures.SLOT, GTGuiTextures.STRING_SLOT_OVERLAY)
                         .pos(7 + 9, 9 * (rowSize + 1)))

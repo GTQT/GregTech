@@ -67,13 +67,13 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -626,7 +626,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         // 电池
         col.child(new ItemSlot()
                 .name("charger.slot")
-                .slot(SyncHandlers.itemSlot(chargerInventory, 0))
+                .slot(new ModularSlot(chargerInventory, 0))
                 .background(GTGuiTextures.SLOT, GTGuiTextures.CHARGER_OVERLAY)
                 .bottom(bottomOffset)
                 .addTooltipLine(IKey.lang("gregtech.gui.charger_slot.tooltip",

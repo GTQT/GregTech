@@ -23,12 +23,12 @@ import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.DoubleSyncValue;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widget.sizer.Area;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.slot.SlotGroup;
 import it.unimi.dsi.fastutil.bytes.Byte2ObjectArrayMap;
 import it.unimi.dsi.fastutil.bytes.Byte2ObjectMap;
@@ -919,9 +919,16 @@ public class RecipeMapUI<R extends RecipeMap<?>> {
 
         protected ItemSlot makeItemSlot(SlotGroup group, int slotIndex, IItemHandlerModifiable itemHandler,
                                         boolean isOutputs) {
-            return new ItemSlot()
-                    .name("item.slot." + slotIndex + ":" + group.getName())
-                    .slot(SyncHandlers.itemSlot(itemHandler, slotIndex)
+            return new ItemSlot().name("item.slot." + slotIndex + ":" + group.getName())
+                    .slot(
+                            new ModularSlot(itemHandler, slotIndex) {
+                                /*
+                                @Override public int getSlotStackLimit() {
+                                return Integer.MAX_VALUE;}
+
+                                 */
+                            }
+                            //.ignoreMaxStackSize(true)
                             .slotGroup(group)
                             .accessibility(!isOutputs, true))
                     .background(getDrawableOverlaysForSlot(isOutputs, false, slotIndex));

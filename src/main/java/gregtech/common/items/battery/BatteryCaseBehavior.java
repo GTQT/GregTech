@@ -35,9 +35,9 @@ import com.cleanroommc.modularui.factory.ItemGuiFactory;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.slot.SlotGroup;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -226,7 +226,7 @@ public class BatteryCaseBehavior implements IItemComponent, IItemCapabilityProvi
                         .top(SLOT_Y)
                         .coverChildren()
                         .mapTo(group.getRowSize(), slots, (index, value) -> value
-                                .slot(SyncHandlers.itemSlot(inventory, index)
+                                .slot(new ModularSlot(inventory, index)
                                         .slotGroup(group)
                                         // The batteries are charged in place, so persist the contents on every change.
                                         .changeListener((newItem, onlyAmountChanged, client, init) -> inventory

@@ -62,9 +62,9 @@ import com.cleanroommc.modularui.factory.HandGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.slot.SlotGroup;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Multimap;
@@ -144,7 +144,7 @@ public class ItemGTToolbelt extends ItemGTTool implements IDyeableItem, IMouseEv
                         .top(7 + 12)
                         .coverChildren()
                         .mapTo(group.getRowSize(), slots, (index, value) -> value
-                                .slot(SyncHandlers.itemSlot(handler, index)
+                                .slot(new ModularSlot(handler, index)
                                         .slotGroup(group)
                                         .changeListener(
                                                 (newItem, onlyAmountChanged, client, init) -> handler

@@ -6,6 +6,7 @@ import gregtech.api.items.metaitem.stats.IItemContainerItemProvider;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.factory.MetaItemGuiFactory;
+import gregtech.common.items.MetaItems;
 
 import net.minecraft.client.resources.I18n;
 import net.minecraft.entity.player.EntityPlayer;
@@ -13,18 +14,15 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.EnumHand;
 import net.minecraft.world.World;
+import net.minecraftforge.items.ItemStackHandler;
 
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.factory.HandGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
-
-import gregtech.common.items.MetaItems;
-
-import net.minecraftforge.items.ItemStackHandler;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -84,7 +82,7 @@ public class ProgrammingToolkit implements ItemUIFactory, IItemBehaviour, IItemC
                 .child(IKey.str(I18n.format("metaitem.programming_toolkit.input"))
                         .asWidget().pos(30, 30))
                 .child(new ItemSlot()
-                        .slot(SyncHandlers.itemSlot(inputHandler, 0)
+                        .slot(new ModularSlot(inputHandler, 0)
                                 .changeListener((newItem, onlyAmountChanged, client, init) ->
                                         updateOutput(inputHandler, outputHandler))
                                 .accessibility(true, true))
@@ -95,7 +93,7 @@ public class ProgrammingToolkit implements ItemUIFactory, IItemBehaviour, IItemC
                 .child(IKey.str(I18n.format("metaitem.programming_toolkit.output"))
                         .asWidget().pos(80, 30))
                 .child(new ItemSlot()
-                        .slot(SyncHandlers.itemSlot(outputHandler, 0)
+                        .slot(new ModularSlot(outputHandler, 0)
                                 .accessibility(false, true))
                         .background(GTGuiTextures.SLOT)
                         .pos(85, 45))

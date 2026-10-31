@@ -43,10 +43,10 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -167,7 +167,7 @@ public class MetaTileEntityBatteryBuffer extends TieredMetaTileEntity implements
         for (int y = 0; y < colSize; y++) {
             widgets.add(new ArrayList<>());
             for (int x = 0; x < rowSize; x++) {
-                widgets.get(y).add(new ItemSlot().slot(SyncHandlers.itemSlot(this.importItems, index++)
+                widgets.get(y).add(new ItemSlot().slot(new ModularSlot(this.importItems, index++)
                                 .slotGroup("item_inv"))
                         .background(GTGuiTextures.SLOT, GTGuiTextures.BATTERY_OVERLAY));
             }

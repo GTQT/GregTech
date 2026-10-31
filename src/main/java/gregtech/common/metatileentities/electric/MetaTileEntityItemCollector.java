@@ -49,6 +49,7 @@ import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -336,7 +337,7 @@ public class MetaTileEntityItemCollector extends TieredMetaTileEntity {
                                         .alignX(0.5f)
                                         .height(rowSize * 18)
                                         .mapTo(rowSize, rowSize * rowSize, index -> new ItemSlot()
-                                                .slot(SyncHandlers.itemSlot(exportItems, index)
+                                                .slot(new ModularSlot(exportItems, index)
                                                         .accessibility(false, true))))
                                 .child(new ToggleButton()
                                         .right(2)

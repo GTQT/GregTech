@@ -11,7 +11,6 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.CycleButtonWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
@@ -92,7 +91,7 @@ public final class AutoWorkbenchUI {
         return SlotGroupWidget.builder()
                 .matrix("SSS", "SSS", "SSS")
                 .key('S', index -> {
-                    ModularSlot slot = SyncHandlers.itemSlot(handler, offset + index).slotGroup(group);
+                    ModularSlot slot = new ModularSlot(handler, offset + index).slotGroup(group);
                     if (phantom) {
                         return new PhantomItemSlot()
                                 .slot(slot)
@@ -110,7 +109,7 @@ public final class AutoWorkbenchUI {
         return SlotGroupWidget.builder()
                 .matrix("SSSSSSSSS")
                 .key('S', index -> new ItemSlot()
-                        .slot(SyncHandlers.itemSlot(machine.getBenchInventory(),
+                        .slot(new ModularSlot(machine.getBenchInventory(),
                                 MetaTileEntityAutoWorkbench.OUTPUT_SLOT_OFFSET + index).slotGroup(GROUP_OUTPUT))
                         .background(GTGuiTextures.SLOT, GTGuiTextures.IN_SLOT_OVERLAY))
                 .build();
@@ -195,7 +194,7 @@ public final class AutoWorkbenchUI {
     /** 配方预览槽, 仅展示当前匹配到的产物 */
     private static ItemSlot createPreviewSlot(@NotNull MetaTileEntityAutoWorkbench machine) {
         return new ItemSlot()
-                .slot(SyncHandlers.itemSlot(machine.getPreviewInventory(), 0).accessibility(false, false))
+                .slot(new ModularSlot(machine.getPreviewInventory(), 0).accessibility(false, false))
                 .background(GTGuiTextures.SLOT, GTGuiTextures.OUT_SLOT_OVERLAY)
                 .tooltipBuilder(t -> t.addLine(IKey.lang("gregtech.machine.auto_workbench.slot.preview")));
     }
@@ -203,7 +202,7 @@ public final class AutoWorkbenchUI {
     /** 结果槽(源实现的 18 号槽位), 自动化可抽取 */
     private static ItemSlot createResultSlot(@NotNull MetaTileEntityAutoWorkbench machine) {
         return new ItemSlot()
-                .slot(SyncHandlers.itemSlot(machine.getBenchInventory(), MetaTileEntityAutoWorkbench.RESULT_SLOT)
+                .slot(new ModularSlot(machine.getBenchInventory(), MetaTileEntityAutoWorkbench.RESULT_SLOT)
                         .accessibility(false, true))
                 .background(GTGuiTextures.SLOT, GTGuiTextures.OUT_SLOT_OVERLAY)
                 .tooltipBuilder(t -> t.addLine(IKey.lang("gregtech.machine.auto_workbench.slot.result")));

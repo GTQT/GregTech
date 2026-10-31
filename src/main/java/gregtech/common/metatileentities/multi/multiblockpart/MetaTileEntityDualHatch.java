@@ -57,7 +57,6 @@ import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
@@ -65,6 +64,7 @@ import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -267,7 +267,7 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
                 int index = i * rowSize + j;
                 IItemHandlerModifiable handler = isExportHatch ? getExportItems() : getImportItems();
                 widgets.get(i).add(new ItemSlot()
-                        .slot(SyncHandlers.itemSlot(handler, index)
+                        .slot(new ModularSlot(handler, index)
                                 .slotGroup("item_inv")
                                 .changeListener((newItem, onlyAmountChanged, client, init) -> {
                                     if (onlyAmountChanged && handler instanceof GTItemStackHandler gtHandler) {

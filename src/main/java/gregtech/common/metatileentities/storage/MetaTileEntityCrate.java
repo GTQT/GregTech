@@ -37,9 +37,9 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -151,7 +151,7 @@ public class MetaTileEntityCrate extends MetaTileEntity {
             widgets.add(new ArrayList<>());
             for (int j = 0; j < this.rowSize; j++) {
                 int index = i * rowSize + j;
-                widgets.get(i).add(new ItemSlot().slot(SyncHandlers.itemSlot(inventory, index)
+                widgets.get(i).add(new ItemSlot().slot(new ModularSlot(inventory, index)
                         .slotGroup("item_inv")
                         .changeListener((newItem, onlyAmountChanged, client, init) -> {
                             if (client || init) return;

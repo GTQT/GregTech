@@ -31,9 +31,9 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.slot.PhantomItemSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -104,7 +104,7 @@ public class MetaTileEntityCreativeInputBus extends MetaTileEntityMultiblockNoti
                         .minColWidth(18).minRowHeight(18)
                         .alignX(0.5f)
                         .mapTo(ROW_SIZE, TEMPLATE_SLOTS, index -> new PhantomItemSlot()
-                                .slot(SyncHandlers.itemSlot(templateItems, index)
+                                .slot(new ModularSlot(templateItems, index)
                                         .ignoreMaxStackSize(true)
                                         .slotGroup("creative_item_templates")
                                         .changeListener((newItem, onlyAmountChanged, client, init) -> {

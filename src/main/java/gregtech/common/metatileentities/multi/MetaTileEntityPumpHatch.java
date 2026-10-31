@@ -40,10 +40,10 @@ import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.utils.Color;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.RichTextWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -160,12 +160,12 @@ public class MetaTileEntityPumpHatch extends MetaTileEntityMultiblockPart
                 .child(new GTFluidSlot().syncHandler(tankSyncHandler)
                         .pos(69, 52)
                         .disableBackground())
-                .child(new ItemSlot().slot(SyncHandlers.itemSlot(this.importItems, 0)
+                .child(new ItemSlot().slot(new ModularSlot(this.importItems, 0)
                                 .slotGroup("item_inv")
                                 .filter(itemStack -> FluidUtil.getFluidHandler(itemStack) != null))
                         .background(GTGuiTextures.SLOT, GTGuiTextures.IN_SLOT_OVERLAY)
                         .pos(90, 16))
-                .child(new ItemSlot().slot(SyncHandlers.itemSlot(this.exportItems, 0)
+                .child(new ItemSlot().slot(new ModularSlot(this.exportItems, 0)
                                 .slotGroup("item_inv")
                                 .accessibility(false, true))
                         .background(GTGuiTextures.SLOT, GTGuiTextures.OUT_SLOT_OVERLAY)

@@ -59,6 +59,7 @@ import com.cleanroommc.modularui.widgets.SliderWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import it.unimi.dsi.fastutil.doubles.DoubleArrayList;
 import it.unimi.dsi.fastutil.doubles.DoubleList;
 import it.unimi.dsi.fastutil.doubles.DoubleLists;
@@ -408,7 +409,7 @@ public class MetaTileEntityMaintenanceHatch extends MetaTileEntityMultiblockPart
                         .widthRel(1.0f)
                         .coverChildrenHeight()
                         .child(new ItemSlot()
-                                .slot(SyncHandlers.itemSlot(tapeHandler, 0)
+                                .slot(new ModularSlot(tapeHandler, 0)
                                         .slotGroup("tape_slot"))
                                 .background(GTGuiTextures.SLOT, GTGuiTextures.DUCT_TAPE_OVERLAY)
                                 .addTooltipLine(IKey.lang("gregtech.machine.maintenance_hatch_tape_slot.tooltip")))

@@ -9,11 +9,11 @@ import com.cleanroommc.modularui.api.drawable.IRichTextBuilder;
 import com.cleanroommc.modularui.drawable.UITexture;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;
@@ -58,7 +58,7 @@ public interface IMiner {
                         .minColWidth(18)
                         .minRowHeight(18)
                         .mapTo(rowSize, inventorySize, index -> new ItemSlot()
-                                .slot(SyncHandlers.itemSlot(inventory, index)
+                                .slot(new ModularSlot(inventory, index)
                                         .slotGroup("export_items")
                                         .accessibility(false, true))));
     }

@@ -38,10 +38,10 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -172,7 +172,7 @@ public class MetaTileEntityProgrammingProvider extends MetaTileEntity implements
                 int index = y * columns + x;
                 if (index < slotCount) {
                     rowWidgets.add(new ItemSlot()
-                            .slot(SyncHandlers.itemSlot(configSlotHandler, index)
+                            .slot(new ModularSlot(configSlotHandler, index)
                                     .slotGroup("config_slots")
                                     .accessibility(true, true))
                             .background(GTGuiTextures.SLOT));

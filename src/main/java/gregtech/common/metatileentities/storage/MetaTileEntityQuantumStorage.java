@@ -43,7 +43,6 @@ import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ScrollingTextWidget;
@@ -51,6 +50,7 @@ import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -223,13 +223,13 @@ public abstract class MetaTileEntityQuantumStorage<T> extends MetaTileEntity imp
                 .coverChildren()
                 .child(new ItemSlot()
                         .background(GTGuiTextures.SLOT, GTGuiTextures.IN_SLOT_OVERLAY)
-                        .slot(SyncHandlers.itemSlot(importHandler, 0)
+                        .slot(new ModularSlot(importHandler, 0)
                                 .accessibility(true, true)
                                 .singletonSlotGroup(200))
                         .marginRight(18))
                 .child(new ItemSlot()
                         .background(GTGuiTextures.SLOT, GTGuiTextures.OUT_SLOT_OVERLAY)
-                        .slot(SyncHandlers.itemSlot(exportHandler, 0)
+                        .slot(new ModularSlot(exportHandler, 0)
                                 .accessibility(false, true)));
     }
 

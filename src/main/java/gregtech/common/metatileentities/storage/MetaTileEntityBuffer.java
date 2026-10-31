@@ -45,12 +45,12 @@ import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
@@ -142,7 +142,7 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
             for (int x = 0; x < invTier; x++) {
                 int index = y * invTier + x;
                 slotWidgets.get(y)
-                        .add(new ItemSlot().slot(SyncHandlers.itemSlot(itemStackHandler, index).slotGroup("item_inv")));
+                        .add(new ItemSlot().slot(new ModularSlot(itemStackHandler, index).slotGroup("item_inv")));
             }
         }
 

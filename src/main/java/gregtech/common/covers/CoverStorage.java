@@ -30,10 +30,10 @@ import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -101,7 +101,7 @@ public class CoverStorage extends CoverBase implements CoverWithUI, CoverWithLei
             widgets.add(new ArrayList<>());
             for (int j = 0; j < 9; j++) {
                 int index = i * 9 + j;
-                widgets.get(i).add(new ItemSlot().slot(SyncHandlers.itemSlot(storageHandler, index)
+                widgets.get(i).add(new ItemSlot().slot(new ModularSlot(storageHandler, index)
                         .slotGroup("item_inv")));
             }
         }
@@ -151,7 +151,7 @@ public class CoverStorage extends CoverBase implements CoverWithUI, CoverWithLei
                 int slotIndex = row * 9 + col;
                 rowSlots.add(
                         new ItemSlot()
-                                .slot(SyncHandlers.itemSlot(storageHandler, slotIndex)
+                                .slot(new ModularSlot(storageHandler, slotIndex)
                                         .slotGroup("storage_slots" + index))
                                 .size(18, 18)
                 );

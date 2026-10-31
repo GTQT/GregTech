@@ -53,13 +53,13 @@ import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.value.sync.StringSyncValue;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Column;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.layout.Row;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -357,7 +357,7 @@ public class CoverEnderItemLink extends CoverBase implements CoverWithUI, CoverW
         int rowSize = this.linkedShim.getSlots();
         List<IWidget> itemSlots = new ArrayList<>();
         for (int i = 0; i < rowSize; i++) {
-            itemSlots.add(new ItemSlot().slot(SyncHandlers.itemSlot(this.linkedShim, i).accessibility(false, false)));
+            itemSlots.add(new ItemSlot().slot(new ModularSlot(this.linkedShim, i).accessibility(false, false)));
         }
 
         return (Column) new Column().coverChildrenHeight().top(24)

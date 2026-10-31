@@ -52,11 +52,11 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.value.sync.FloatSyncValue;
 import com.cleanroommc.modularui.value.sync.IntSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import lombok.Getter;
 import org.jetbrains.annotations.NotNull;
 
@@ -654,7 +654,7 @@ public class MetaTileEntityNuclearReactor extends MetaTileEntityBaseWithControl 
                 .minColWidth(18).minRowHeight(18)
                 .alignX(0.5f)
                 .mapTo(width, slotCount, index -> new ItemSlot()
-                        .slot(SyncHandlers.itemSlot(componentHandler, index)
+                        .slot(new ModularSlot(componentHandler, index)
                                 .slotGroup("reactor_inventory")
                                 .changeListener((newItem, onlyAmountChanged, client, init) -> {
                                     if (onlyAmountChanged &&

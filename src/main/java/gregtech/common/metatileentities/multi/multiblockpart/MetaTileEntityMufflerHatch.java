@@ -45,12 +45,12 @@ import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -254,7 +254,7 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
             widgets.add(new ArrayList<>());
             for (int x = 0; x < rowSize; x++) {
                 int index = y * rowSize + x;
-                widgets.get(y).add(new ItemSlot().slot(SyncHandlers.itemSlot(this.inventory, index)
+                widgets.get(y).add(new ItemSlot().slot(new ModularSlot(this.inventory, index)
                         .slotGroup("item_inv")
                         .accessibility(false, true)));
             }

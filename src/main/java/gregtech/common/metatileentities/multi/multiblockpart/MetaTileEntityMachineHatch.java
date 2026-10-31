@@ -31,9 +31,9 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.RichTooltip;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.value.sync.SyncHandlers;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
+import com.cleanroommc.modularui.widgets.slot.ModularSlot;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -84,7 +84,7 @@ public class MetaTileEntityMachineHatch extends MetaTileEntityMultiblockNotifiab
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
                 .child(new ItemSlot()
-                        .slot(SyncHandlers.itemSlot(machineHandler, 0)
+                        .slot(new ModularSlot(machineHandler, 0)
                                 .slotGroup("item_inv"))
                         .tooltip(t -> t.setAutoUpdate(false))
                         .onUpdateListener(itemSlot -> {
