@@ -691,6 +691,9 @@ public final class MetaItems {
     public static MetaItem<?>.MetaValueItem WATERPROOF_SPRAY_CAN;
     public static MetaItem<?>.MetaValueItem TOOL_COVER_COPY_PASTE;
 
+    public static MetaItem<?>.MetaValueItem UPGRADE_KIT_FUSE;
+    public static MetaItem<?>.MetaValueItem UPGRADE_KIT_BACKUP_CAPACITOR;
+
     // Forge of the Gods
     public static MetaItem<?>.MetaValueItem STELLAR_FUEL;
 

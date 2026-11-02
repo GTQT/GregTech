@@ -14,6 +14,7 @@ import gregtech.api.items.metaitem.StandardMetaItem;
 import gregtech.api.items.metaitem.stats.IItemComponent;
 import gregtech.api.items.metaitem.stats.IItemContainerItemProvider;
 import gregtech.api.items.metaitem.stats.ItemFluidContainer;
+import gregtech.api.items.metaitem.stats.UpgradeKitType;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.MarkerMaterial;
 import gregtech.api.unification.material.MarkerMaterials;
@@ -67,6 +68,7 @@ import gregtech.common.items.behaviors.Terminal2Behavior;
 import gregtech.common.items.behaviors.TooltipBehavior;
 import gregtech.common.items.behaviors.TricorderBehavior;
 import gregtech.common.items.behaviors.TurbineRotorBehavior;
+import gregtech.common.items.behaviors.UpgradeKitBehavior;
 import gregtech.common.items.behaviors.VajraBehavior;
 import gregtech.common.items.behaviors.WaterproofSprayBehavior;
 import gregtech.common.items.behaviors.filter.OreDictFilterUIManager;
@@ -1630,6 +1632,14 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
                 .addComponents(new CoverCopyPasteBehavior(),
                         ElectricStats.createElectricItem(400_000L, GTValues.MV));
+
+        UPGRADE_KIT_FUSE = addItem(1020, "upgrade.fuse")
+                .addComponents(new UpgradeKitBehavior(UpgradeKitType.FUSE))
+                .setMaxStackSize(1);
+
+        UPGRADE_KIT_BACKUP_CAPACITOR = addItem(1021, "upgrade.backup_capacitor")
+                .addComponents(new UpgradeKitBehavior(UpgradeKitType.BACKUP_CAPACITOR))
+                .setMaxStackSize(1);
 
 
         registerWirelessCoverInput(1100);

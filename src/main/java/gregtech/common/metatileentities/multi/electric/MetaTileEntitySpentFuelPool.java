@@ -104,7 +104,7 @@ public class MetaTileEntitySpentFuelPool extends RecipeMapMultiblockController {
     }
 
     @Override
-    protected void formStructure(FormedStructureView formed) {
+    protected void formStructure(@NotNull FormedStructureView formed) {
         super.formStructure(formed);
         this.recipeMapWorkable.setParallelLimit(
                 formed.getChannelValue(GTStructureChannels.STRUCTURE_LENGTH) * PARALLEL_PER_LENGTH);

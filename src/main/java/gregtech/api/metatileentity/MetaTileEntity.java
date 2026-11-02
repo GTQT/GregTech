@@ -27,10 +27,11 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.interfaces.IPollution;
 import gregtech.api.metatileentity.interfaces.ISyncedTileEntity;
 import gregtech.api.metatileentity.registry.MTERegistry;
-import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GregTechGuiScreen;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
+import gregtech.api.mui.widget.SidePanel;
+import gregtech.api.mui.widget.UpgradeSlotsPanel;
 import gregtech.api.mui.widget.WorldPreviewPanel;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.recipes.RecipeMap;
@@ -100,9 +101,7 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -545,46 +544,85 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         return new GregTechGuiScreen(mainPanel, getUITheme());
     }
 
-    public void initCoverLeisureUI(@NotNull PosGuiData guiData, @NotNull PanelSyncManager syncManager,
-                                   @NotNull ModularPanel mainPanel) {
-        Flow column = Flow.col()
-                .name("cover_leisure")
-                .coverChildren()
-                // 贴在主面板左侧外沿
-                .rightRel(1.0f)
-                .reverseLayout(true)
-                .padding(2)
-                .bottom(16)
-                .childPadding(2)
-                .crossAxisAlignment(Alignment.CrossAxis.CENTER)
-                .background(GTGuiTextures.BACKGROUND_POPUP);
+    /**
+     * 侧边栏的入口：由 {@code MetaTileEntityGuiFactory} 在机器主界面构建完成后调用。
+     *
+     * <p>
+     * 这里只负责“建注册器 → 收集按钮 → 挂到主面板”，具体有哪些按钮由
+     * {@link #registerSidePanelButtons} 决定。
+     */
+    public void initSidePanel(@NotNull PosGuiData guiData, @NotNull PanelSyncManager syncManager,
+                              @NotNull ModularPanel mainPanel) {
+        SidePanel sidePanel = new SidePanel(guiData, syncManager);
+        registerSidePanelButtons(sidePanel);
+        sidePanel.attachTo(mainPanel);
+    }
 
-        // 世界预览入口：和覆盖板按钮同一列，排在最上面
-        IWidget previewButton = createWorldPreviewButton(syncManager);
-        if (previewButton != null) {
-            column.child(previewButton);
+    /**
+     * 侧边按钮的<b>唯一注册入口</b>。
+     *
+     * <p>
+     * 每个按钮来源都是一个独立的 {@code createXxxButton} 方法，返回 {@code null} 表示这台机器
+     * 这次不显示该按钮；{@link SidePanel#add} 负责判空，注册顺序就是从上到下的显示顺序。
+     *
+     * <p>
+     * 子类/外部要加按钮就覆写这里、先调 {@code super}，再 {@code sidePanel.add(...)}：
+     *
+     * <pre>{@code
+     * @Override
+     * protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
+     *     super.registerSidePanelButtons(sidePanel);
+     *     sidePanel.add(createMyButton(sidePanel.getSyncManager()));
+     * }
+     * }</pre>
+     *
+     * <p>
+     * 需要改这一列的布局（位置、背景）时用 {@link SidePanel#getColumn()}，不要另建一列。
+     */
+    protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
+        sidePanel.add(createWorldPreviewButton(sidePanel.getSyncManager()));
+        sidePanel.add(createUpgradeSlotsButton(sidePanel.getSyncManager()));
+        sidePanel.addAll(createCoverButtons(sidePanel.getGuiData(), sidePanel.getSyncManager()));
+    }
+
+    /**
+     * 升级插件的入口按钮：只有实现了 {@link IUpgradeSlots} 的机器才有。
+     *
+     * <p>
+     * 返回 {@code null} 表示这台机器没有升级槽位；按钮和面板的细节都在 {@link UpgradeSlotsPanel} 里。
+     */
+    protected @Nullable IWidget createUpgradeSlotsButton(@NotNull PanelSyncManager syncManager) {
+        if (this instanceof IUpgradeSlots upgradeSlots) {
+            return UpgradeSlotsPanel.create(syncManager, upgradeSlots.getUpgradeInventory());
         }
+        return null;
+    }
 
+    /**
+     * 所有覆盖板的入口按钮，按 {@link EnumFacing#VALUES} 的顺序。
+     *
+     * <p>
+     * 单块覆盖板构建失败只跳过那一块、不影响整列，所以这里逐块 try/catch。
+     */
+    protected @NotNull List<IWidget> createCoverButtons(@NotNull PosGuiData guiData,
+                                                        @NotNull PanelSyncManager syncManager) {
+        List<IWidget> buttons = new ArrayList<>();
         for (EnumFacing side : EnumFacing.VALUES) {
             Cover cover = getCoverAtSide(side);
             if (cover == null) continue;
 
-            IWidget button = null;
             try {
-                button = createCoverLeisureButton(guiData, syncManager, cover, side);
+                IWidget button = createCoverLeisureButton(guiData, syncManager, cover, side);
+                if (button != null) {
+                    buttons.add(button);
+                }
             } catch (Throwable t) {
                 if (ConfigHolder.misc.debug)
-                    GTLog.logger.error("[CoverLeisure] 为 {} 面的覆盖板 {} 构建入口按钮失败",
+                    GTLog.logger.error("[SidePanel] 为 {} 面的覆盖板 {} 构建入口按钮失败",
                             side, cover.getClass().getName(), t);
             }
-            if (button != null) {
-                column.child(button);
-            }
         }
-
-        if (!column.getChildren().isEmpty()) {
-            mainPanel.child(column);
-        }
+        return buttons;
     }
 
     /**

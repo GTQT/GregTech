@@ -551,7 +551,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
             // only set hasNotEnoughEnergy if this recipe is consuming recipe
             // generators always have enough energy
             this.hasNotEnoughEnergy = true;
-            decreaseProgress();
+            decreaseProgress(true);
         }
     }
 
@@ -559,8 +559,19 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * Decrease the recipe progress time in the case that some state was not right, like available EU to drain.
      */
     protected void decreaseProgress() {
+        decreaseProgress(false);
+    }
+
+    /**
+     * Decrease the recipe progress time in the case that some state was not right, like available EU to drain.
+     *
+     * @param energyShortage 进度损失是否由"电量不够"造成（而不是热量/算力等其它资源）
+     */
+    protected void decreaseProgress(boolean energyShortage) {
+        // 是否销毁配方
         boolean shouldResetRecipe = ConfigHolder.machines.resetRecipeOnPowerLoss;
-        boolean shouldNotify = lackEnergyWarning && (shouldResetRecipe || metaTileEntity.getOffsetTimer() % 200 == 0);
+        boolean shouldNotify = energyShortage && lackEnergyWarning &&
+                (shouldResetRecipe || metaTileEntity.getOffsetTimer() % 200 == 0);
 
         if (shouldNotify) {
             metaTileEntity.noticePlayer(
@@ -573,6 +584,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
             return;
         }
 
+        this.progressTime = 0;
+
+        /*
         // if current progress value is greater than 2, decrement it by 2
         if (progressTime >= 2) {
             if (ConfigHolder.machines.recipeProgressLowEnergy) {
@@ -581,6 +595,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
                 this.progressTime = Math.max(1, progressTime - 2);
             }
         }
+         */
     }
 
     /**

@@ -3198,13 +3198,18 @@ behavior.cover_copy_paste.stored.type=§7Type: §a%s
 behavior.cover_copy_paste.copy_hint=§7Sneak + Right-click a cover: §fcopy data
 behavior.cover_copy_paste.paste_hint=§7Right-click a cover of the same type: §fpaste data
 
+metaitem.upgrade.fuse.name=保险丝
+metaitem.upgrade.fuse.tooltip.1=可放入机器或能源仓的升级槽
+metaitem.upgrade.fuse.tooltip.2=Blows on over-voltage, protecting for up to 10 seconds; sustained over-voltage still explodes (single use)
+
+metaitem.upgrade.backup_capacitor.name=备用电容
+metaitem.upgrade.backup_capacitor.tooltip.1=可放入能源仓的升级槽
+metaitem.upgrade.backup_capacitor.tooltip.2=多方块运行配方跳电时消耗，保留配方仅进度归零
+
 metaitem.mining_laser.name=Mining Laser
-# Mining Laser Behavior Messages
 behavior.mining_laser.mode_switched=Mining Laser mode: %s (%s EU/use)
 behavior.mining_laser.insufficient_energy=Insufficient energy! Requires %s EU
 behavior.mining_laser.steep_angle=Mining laser aiming angle too steep
-
-# Mining Laser Mode Names
 behavior.mining_laser.mode.mining=Mining Mode
 behavior.mining_laser.mode.low_focus=Low Focus Mode
 behavior.mining_laser.mode.long_range=Long Range Mode
@@ -3214,16 +3219,12 @@ behavior.mining_laser.mode.scatter=Scatter Mode
 behavior.mining_laser.mode.explosive=Explosive Mode
 behavior.mining_laser.mode.3x3=3×3 Mode
 behavior.mining_laser.mode.unknown=Unknown Mode
-
-# Mining Laser Tooltips
 behavior.mining_laser.tooltip.current_mode=Current Mode: %s
 behavior.mining_laser.tooltip.mode_switch=Shift+Right-click to switch mode
 
 metaitem.vajra_hv.name=Vajra (§6HV§r)
 metaitem.vajra_ev.name=Vajra (§5EV§r)
 metaitem.vajra_iv.name=Vajra (§1IV§r)
-
-# Vajra Behavior Messages
 behavior.vajra.mode.normal=Normal Mode
 behavior.vajra.mode.silk_touch=Silk Touch Mode
 behavior.vajra.mode_switched=Vajra mode switched to: %s
@@ -3233,8 +3234,6 @@ behavior.vajra.speed.name.1=Fast
 behavior.vajra.speed.name.2=Medium
 behavior.vajra.speed.name.3=Slow
 behavior.vajra.speed.name.generic=Tier %s
-
-# Vajra Tooltips
 behavior.vajra.tooltip.current_mode=Current Mode: %s
 behavior.vajra.tooltip.mode_switch=Right-click to cycle Mining Speed, sneak+right-click to switch mode
 behavior.vajra.tooltip.speed=Mining Speed: %s (%s s per block)
@@ -7247,6 +7246,14 @@ gregtech.machine.fluid_hatch.export.opv.name=OpV Output Hatch
 gregtech.machine.fluid_hatch.export.max.name=MAX Output Hatch
 
 gregtech.machine.energy_hatch.input.tooltip=Energy Input for Multiblocks
+
+gregtech.machine.energy_hatch.voltage=Voltage
+gregtech.machine.energy_hatch.amperage=Amperage
+gregtech.machine.energy_hatch.throughput=Throughput: %s EU/t
+gregtech.machine.energy_hatch.amperage.decrease=Decrease Amperage
+gregtech.machine.energy_hatch.amperage.increase=Increase Amperage
+gregtech.machine.energy_hatch.adjustable.tooltip=Voltage and amperage can be adjusted in the GUI
+gregtech.machine.energy_hatch.adjustable.tooltip.2=Adjusting only throttles what the multiblock sees; the hatch still tolerates its own tier voltage
 
 gregtech.machine.energy_hatch.input.ulv.name=ULV Energy Hatch
 gregtech.machine.energy_hatch.input.lv.name=LV Energy Hatch

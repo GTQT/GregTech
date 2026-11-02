@@ -11,47 +11,29 @@ import java.util.List;
 public class EnergyContainerList implements IEnergyContainer {
 
     private final List<IEnergyContainer> energyContainerList;
-    private final long inputVoltage;
-    private final long outputVoltage;
-    private final long inputAmperage;
-    private final long outputAmperage;
 
+    /** 对外的电压/电流，由各容器当前的数值汇总得到，见 {@link #refresh()}。 */
+    private long inputVoltage;
+    private long outputVoltage;
+    private long inputAmperage;
+    private long outputAmperage;
     /** The highest single energy container's input voltage in the list. */
-    private final long highestInputVoltage;
+    private long highestInputVoltage;
     /** The number of energy containers at the highest input voltage in the list. */
-    private final int numHighestInputContainers;
+    private int numHighestInputContainers;
+
+    /** 上次汇总时的原始数据，用来判断是否需要重做压缩计算。 */
+    private boolean initialised;
+    private int cachedSize;
+    private long cachedTotalInputVoltage;
+    private long cachedTotalOutputVoltage;
+    private long cachedInputAmperage;
+    private long cachedOutputAmperage;
+    private long cachedHighestInputVoltage;
+    private int cachedNumHighestInputContainers;
 
     public EnergyContainerList(@NotNull List<IEnergyContainer> energyContainerList) {
         this.energyContainerList = energyContainerList;
-        long totalInputVoltage = 0;
-        long totalOutputVoltage = 0;
-        long inputAmperage = 0;
-        long outputAmperage = 0;
-        long highestInputVoltage = 0;
-        int numHighestInputContainers = 0;
-        for (IEnergyContainer container : energyContainerList) {
-            totalInputVoltage += container.getInputVoltage() * container.getInputAmperage();
-            totalOutputVoltage += container.getOutputVoltage() * container.getOutputAmperage();
-            inputAmperage += container.getInputAmperage();
-            outputAmperage += container.getOutputAmperage();
-            if (container.getInputVoltage() > highestInputVoltage) {
-                highestInputVoltage = container.getInputVoltage();
-            }
-        }
-        for (IEnergyContainer container : energyContainerList) {
-            if (container.getInputVoltage() == highestInputVoltage) {
-                numHighestInputContainers++;
-            }
-        }
-
-        long[] voltageAmperage = calculateVoltageAmperage(totalInputVoltage, inputAmperage);
-        this.inputVoltage = voltageAmperage[0];
-        this.inputAmperage = voltageAmperage[1];
-        voltageAmperage = calculateVoltageAmperage(totalOutputVoltage, outputAmperage);
-        this.outputVoltage = voltageAmperage[0];
-        this.outputAmperage = voltageAmperage[1];
-        this.highestInputVoltage = highestInputVoltage;
-        this.numHighestInputContainers = numHighestInputContainers;
     }
 
     /**
@@ -59,7 +41,6 @@ public class EnergyContainerList implements IEnergyContainer {
      *
      * @param voltage  the sum of voltage * amperage for each hatch
      * @param amperage the total amperage of all hatches
-     *
      * @return [newVoltage, newAmperage]
      */
     @NotNull
@@ -115,6 +96,62 @@ public class EnergyContainerList implements IEnergyContainer {
         if (l == 0) return false;
         if ((l & (l - 1)) != 0) return false;
         return (l & 0x55555555) != 0;
+    }
+
+    private void refresh() {
+        List<IEnergyContainer> containers = this.energyContainerList;
+        long totalInputVoltage = 0;
+        long totalOutputVoltage = 0;
+        long totalInputAmperage = 0;
+        long totalOutputAmperage = 0;
+        long highestInputVoltage = 0;
+        for (IEnergyContainer container : containers) {
+            long inputVoltage = container.getInputVoltage();
+            long inputAmperage = container.getInputAmperage();
+            long outputVoltage = container.getOutputVoltage();
+            long outputAmperage = container.getOutputAmperage();
+            totalInputVoltage += inputVoltage * inputAmperage;
+            totalOutputVoltage += outputVoltage * outputAmperage;
+            totalInputAmperage += inputAmperage;
+            totalOutputAmperage += outputAmperage;
+            if (inputVoltage > highestInputVoltage) {
+                highestInputVoltage = inputVoltage;
+            }
+        }
+        int numHighestInputContainers = 0;
+        for (IEnergyContainer container : containers) {
+            if (container.getInputVoltage() == highestInputVoltage) {
+                numHighestInputContainers++;
+            }
+        }
+
+        if (this.initialised && containers.size() == this.cachedSize &&
+                totalInputVoltage == this.cachedTotalInputVoltage &&
+                totalOutputVoltage == this.cachedTotalOutputVoltage &&
+                totalInputAmperage == this.cachedInputAmperage &&
+                totalOutputAmperage == this.cachedOutputAmperage &&
+                highestInputVoltage == this.cachedHighestInputVoltage &&
+                numHighestInputContainers == this.cachedNumHighestInputContainers) {
+            return;
+        }
+
+        this.initialised = true;
+        this.cachedSize = containers.size();
+        this.cachedTotalInputVoltage = totalInputVoltage;
+        this.cachedTotalOutputVoltage = totalOutputVoltage;
+        this.cachedInputAmperage = totalInputAmperage;
+        this.cachedOutputAmperage = totalOutputAmperage;
+        this.cachedHighestInputVoltage = highestInputVoltage;
+        this.cachedNumHighestInputContainers = numHighestInputContainers;
+
+        long[] voltageAmperage = calculateVoltageAmperage(totalInputVoltage, totalInputAmperage);
+        this.inputVoltage = voltageAmperage[0];
+        this.inputAmperage = voltageAmperage[1];
+        voltageAmperage = calculateVoltageAmperage(totalOutputVoltage, totalOutputAmperage);
+        this.outputVoltage = voltageAmperage[0];
+        this.outputAmperage = voltageAmperage[1];
+        this.highestInputVoltage = highestInputVoltage;
+        this.numHighestInputContainers = numHighestInputContainers;
     }
 
     @Override
@@ -184,6 +221,7 @@ public class EnergyContainerList implements IEnergyContainer {
 
     /** The highest single voltage of an energy container in this list. */
     public long getHighestInputVoltage() {
+        refresh();
         return highestInputVoltage;
     }
 
@@ -191,6 +229,7 @@ public class EnergyContainerList implements IEnergyContainer {
      * The number of parts with voltage specified in {@link EnergyContainerList#getHighestInputVoltage()} in this list.
      */
     public int getNumHighestInputContainers() {
+        refresh();
         return numHighestInputContainers;
     }
 
@@ -201,6 +240,7 @@ public class EnergyContainerList implements IEnergyContainer {
      */
     @Override
     public long getInputAmperage() {
+        refresh();
         return this.inputAmperage;
     }
 
@@ -211,16 +251,19 @@ public class EnergyContainerList implements IEnergyContainer {
      */
     @Override
     public long getOutputAmperage() {
+        refresh();
         return this.outputAmperage;
     }
 
     @Override
     public long getInputVoltage() {
+        refresh();
         return this.inputVoltage;
     }
 
     @Override
     public long getOutputVoltage() {
+        refresh();
         return this.outputVoltage;
     }
 
@@ -240,10 +283,10 @@ public class EnergyContainerList implements IEnergyContainer {
                 "energyContainerList=" + energyContainerList +
                 ", energyStored=" + getEnergyStored() +
                 ", energyCapacity=" + getEnergyCapacity() +
-                ", inputVoltage=" + inputVoltage +
-                ", inputAmperage=" + inputAmperage +
-                ", outputVoltage=" + outputVoltage +
-                ", outputAmperage=" + outputAmperage +
+                ", inputVoltage=" + getInputVoltage() +
+                ", inputAmperage=" + getInputAmperage() +
+                ", outputVoltage=" + getOutputVoltage() +
+                ", outputAmperage=" + getOutputAmperage() +
                 '}';
     }
 }

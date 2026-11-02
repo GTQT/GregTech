@@ -85,9 +85,11 @@ import java.util.function.Function;
 import static gregtech.api.capability.GregtechDataCodes.*;
 
 public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
-        implements IActiveOutputSide, IGhostSlotConfigurable {
+        implements IActiveOutputSide, IGhostSlotConfigurable, IUpgradeSlots {
 
     protected final GTItemStackHandler chargerInventory;
+    /** 升级插件槽位；界面入口由 {@link MetaTileEntity#createUpgradeSlotsButton} 挂到侧边栏上。 */
+    protected final GTItemStackHandler upgradeInventory;
     @Nullable // particle run every tick when the machine is active
     protected final IMachineParticleEffect tickingParticle;
     @Nullable // particle run in randomDisplayTick() when the machine is active
@@ -125,6 +127,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         super(metaTileEntityId, recipeMap, renderer, tier, tankScalingFunction);
         this.hasFrontFacing = hasFrontFacing;
         this.chargerInventory = new GTItemStackHandler(this, 1);
+        this.upgradeInventory = new GTItemStackHandler(this, IUpgradeSlots.UPGRADE_SLOT_COUNT);
         this.tickingParticle = tickingParticle;
         this.randomParticle = randomParticle;
     }
@@ -160,6 +163,11 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
                     new ItemHandlerList(Arrays.asList(super.getImportItems(), this.circuitInventory));
         }
         return this.actualImportItems;
+    }
+
+    @Override
+    public @NotNull IItemHandlerModifiable getUpgradeInventory() {
+        return this.upgradeInventory;
     }
 
     @Override
@@ -298,6 +306,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
     public NBTTagCompound writeToNBT(NBTTagCompound data) {
         super.writeToNBT(data);
         data.setTag("ChargerInventory", chargerInventory.serializeNBT());
+        data.setTag("UpgradeInventory", upgradeInventory.serializeNBT());
         if (this.circuitInventory != null) {
             this.circuitInventory.write(data);
         }
@@ -315,6 +324,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
     public void readFromNBT(NBTTagCompound data) {
         super.readFromNBT(data);
         this.chargerInventory.deserializeNBT(data.getCompoundTag("ChargerInventory"));
+        this.upgradeInventory.deserializeNBT(data.getCompoundTag("UpgradeInventory"));
         if (this.circuitInventory != null) {
             if (data.hasKey("CircuitInventory", Constants.NBT.TAG_COMPOUND)) {
                 // legacy save support - move items in circuit inventory to importItems inventory, if possible
@@ -551,6 +561,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
     public void clearMachineInventory(@NotNull List<@NotNull ItemStack> itemBuffer) {
         super.clearMachineInventory(itemBuffer);
         clearInventory(itemBuffer, chargerInventory);
+        clearInventory(itemBuffer, upgradeInventory);
     }
 
     @Override
@@ -558,9 +569,6 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         RecipeMap<?> map = getRecipeMap();
         return map != null && map.getRecipeMapUI().usesMui2();
     }
-
-    // 覆盖板入口按钮逻辑已上移到 MetaTileEntity.initCoverLeisureUI：基类在主面板左侧外沿挂
-    // 一列按钮，只有实现了 CoverWithLeisureUI 的覆盖板才有入口，这里不再内联处理。
 
     @Override
     public ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager, UISettings settings) {

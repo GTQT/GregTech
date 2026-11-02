@@ -3192,13 +3192,18 @@ behavior.cover_copy_paste.stored.type=§7类型：§a%s
 behavior.cover_copy_paste.copy_hint=§7潜行右键覆盖板：§f复制数据
 behavior.cover_copy_paste.paste_hint=§7右键同类覆盖板：§f粘贴数据
 
+metaitem.upgrade.fuse.name=保险丝
+metaitem.upgrade.fuse.tooltip.1=可放入机器或能源仓的升级槽
+metaitem.upgrade.fuse.tooltip.2=输入电压过载时熔断，持续过载超过10秒会爆炸
+
+metaitem.upgrade.backup_capacitor.name=备用电容
+metaitem.upgrade.backup_capacitor.tooltip.1=可放入能源仓的升级槽
+metaitem.upgrade.backup_capacitor.tooltip.2=多方块运行配方跳电时消耗，保留配方仅进度归零
+
 metaitem.mining_laser.name=采矿镭射枪
-# Mining Laser Behavior Messages
 behavior.mining_laser.mode_switched=采矿镭射枪模式: %s (%s EU/次)
 behavior.mining_laser.insufficient_energy=能量不足! 需要 %s EU
 behavior.mining_laser.steep_angle=采矿激光枪瞄准角度过陡
-
-# Mining Laser Mode Names
 behavior.mining_laser.mode.mining=采矿模式
 behavior.mining_laser.mode.low_focus=低聚焦模式
 behavior.mining_laser.mode.long_range=远距模式
@@ -3208,16 +3213,12 @@ behavior.mining_laser.mode.scatter=散射模式
 behavior.mining_laser.mode.explosive=爆破模式
 behavior.mining_laser.mode.3x3=3×3模式
 behavior.mining_laser.mode.unknown=未知模式
-
-# Mining Laser Tooltips
 behavior.mining_laser.tooltip.current_mode=当前模式: %s
 behavior.mining_laser.tooltip.mode_switch=Shift+右键切换模式
 
 metaitem.vajra_hv.name=金刚杵 (§6HV§r)
 metaitem.vajra_ev.name=金刚杵 (§5EV§r)
 metaitem.vajra_iv.name=金刚杵 (§1IV§r)
-
-# Vajra Behavior Messages
 behavior.vajra.mode.normal=普通模式
 behavior.vajra.mode.silk_touch=精准采集模式
 behavior.vajra.mode_switched=金刚杵模式已切换至: %s
@@ -3227,8 +3228,6 @@ behavior.vajra.speed.name.1=快速
 behavior.vajra.speed.name.2=中速
 behavior.vajra.speed.name.3=慢速
 behavior.vajra.speed.name.generic=档位 %s
-
-# Vajra Tooltips
 behavior.vajra.tooltip.current_mode=当前模式: %s
 behavior.vajra.tooltip.mode_switch=右击切换挖掘档位，潜行右击切换精准模式
 behavior.vajra.tooltip.speed=挖掘速度：%s（%s 秒 / 方块）
@@ -7244,6 +7243,14 @@ gregtech.machine.fluid_hatch.export.opv.name=§9OpV§r输出仓
 gregtech.machine.fluid_hatch.export.max.name=§c§lMAX§r输出仓
 
 gregtech.machine.energy_hatch.input.tooltip=为多方块结构输入能量
+
+gregtech.machine.energy_hatch.voltage=电压
+gregtech.machine.energy_hatch.amperage=电流
+gregtech.machine.energy_hatch.throughput=功率：%s EU/t
+gregtech.machine.energy_hatch.amperage.decrease=减小电流
+gregtech.machine.energy_hatch.amperage.increase=增大电流
+gregtech.machine.energy_hatch.adjustable.tooltip=可在界面中调节电压与电流
+gregtech.machine.energy_hatch.adjustable.tooltip.2=调节只改变多方块看到的电压/电流（节流），仓室本身仍按自己的等级耐压
 
 gregtech.machine.energy_hatch.input.ulv.name=§8ULV§r能源仓
 gregtech.machine.energy_hatch.input.lv.name=§7LV§r能源仓

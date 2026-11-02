@@ -6,6 +6,8 @@ import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.IElectricItem;
 import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.items.metaitem.stats.UpgradeKitType;
+import gregtech.api.metatileentity.IUpgradeSlots;
 import gregtech.api.metatileentity.MTETrait;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.util.GTUtility;
@@ -43,6 +45,14 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
     private Predicate<EnumFacing> sideOutputCondition;
 
     protected long amps = 0;
+
+    /** 一段连续过压里保险丝最多保护 10 秒。 */
+    private static final long FUSE_PROTECTION_TICKS = 20L * 10;
+
+    /** 上次看到过压的 tick，用来区分"连续过压"和"新的一段过压"。 */
+    private long lastOverVoltageTick = -2L;
+    /** 本段过压的保护截止 tick；{@code -1} 表示本段还没熔断保险丝。 */
+    private long fuseProtectionEnd = -1L;
 
     public EnergyContainerHandler(MetaTileEntity tileEntity, long maxCapacity, long maxInputVoltage,
                                   long maxInputAmperage, long maxOutputVoltage, long maxOutputAmperage) {
@@ -225,9 +235,8 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
         if (amps >= getInputAmperage()) return 0;
         long canAccept = getEnergyCapacity() - getEnergyStored();
         if (voltage > 0L && (side == null || inputsEnergy(side))) {
-            if (voltage > getInputVoltage()) {
-                metaTileEntity.doExplosion(GTUtility.getExplosionPower(voltage));
-                return Math.min(amperage, getInputAmperage() - amps);
+            if (voltage > getMaxSafeInputVoltage()) {
+                return onOverVoltage(voltage, amperage);
             }
             if (canAccept >= voltage) {
                 long amperesAccepted = Math.min(canAccept / voltage, Math.min(amperage, getInputAmperage() - amps));
@@ -239,6 +248,61 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
             }
         }
         return 0;
+    }
+
+    /**
+     * 该容器硬件上允许接收的最高电压：超过它的网络包会引发爆炸。
+     *
+     * <p>
+     * 默认与 {@link #getInputVoltage()} 相同。可调能源仓会覆写它，让可调电压只作为对外的声明/节流，
+     * 而不改变仓室本身按等级具备的耐压能力。
+     */
+    protected long getMaxSafeInputVoltage() {
+        return getInputVoltage();
+    }
+
+    /**
+     * 输入电压超过硬件耐压时的处理：原本直接爆炸。
+     *
+     * <p>
+     * 现在先看机器升级槽里的保险丝（{@link IUpgradeSlots} + {@link UpgradeKitType#FUSE}）：
+     * 有就熔断一枚、提示玩家过载、拒绝输入 {@link #FUSE_PROTECTION_TICKS}（10 秒）；
+     * 撑满 10 秒还在过压就爆炸。没有保险丝就照旧爆炸并"吞掉"这一包能量。
+     *
+     * @param voltage  超过耐压的输入电压
+     * @param amperage 网络本次想要输入的电流
+     * @return 本次接受的电流量
+     */
+    protected long onOverVoltage(long voltage, long amperage) {
+        long now = metaTileEntity.getOffsetTimer();
+        if (now - lastOverVoltageTick > 1L && now >= fuseProtectionEnd) {
+            fuseProtectionEnd = -1L;
+        }
+        lastOverVoltageTick = now;
+
+        if (fuseProtectionEnd < 0L && !tryBlowFuse(now)) {
+            return explodeForOverVoltage(voltage, amperage);
+        }
+        if (now >= fuseProtectionEnd) {
+            return explodeForOverVoltage(voltage, amperage);
+        }
+        return 0L;
+    }
+
+    private boolean tryBlowFuse(long now) {
+        if (!(metaTileEntity instanceof IUpgradeSlots slots) ||
+                !slots.consumeUpgradeKit(UpgradeKitType.FUSE)) {
+            return false;
+        }
+        fuseProtectionEnd = now + FUSE_PROTECTION_TICKS;
+        metaTileEntity.noticePlayer("[过载]位于" + metaTileEntity.getPos() + "的" +
+                metaTileEntity.getStackForm().getDisplayName() + "输入过压，保险丝保护中");
+        return true;
+    }
+
+    private long explodeForOverVoltage(long voltage, long amperage) {
+        metaTileEntity.doExplosion(GTUtility.getExplosionPower(voltage));
+        return Math.min(amperage, getInputAmperage() - amps);
     }
 
     @Override

@@ -11,6 +11,8 @@ import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.IPatternBufferIsolatedHandler;
 import gregtech.api.capability.IRecipeMapBoundInput;
 import gregtech.api.capability.IRecipeMapHolder;
+import gregtech.api.items.metaitem.stats.UpgradeKitType;
+import gregtech.api.metatileentity.IUpgradeSlots;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
@@ -1875,6 +1877,37 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     protected long getMaxParallelVoltage() {
         return getMaximumOverclockVoltage();
+    }
+
+    @Override
+    protected void decreaseProgress(boolean energyShortage) {
+        // 备用电容：跳电时消耗一枚，保住配方（只把进度归零）
+        if (energyShortage && ConfigHolder.machines.resetRecipeOnPowerLoss && protectRecipeOnPowerLoss()) {
+            return;
+        }
+        super.decreaseProgress(energyShortage);
+    }
+
+    /** 任意一个输入能源仓装了备用电容就从它消耗一枚，并把进度归零；同一次跳电只消耗一枚。 */
+    private boolean protectRecipeOnPowerLoss() {
+        if (this.progressTime == 0) {
+            return true; // 本次跳电已经保过（运行中的配方进度至少为 1）
+        }
+        if (!(metaTileEntity instanceof MultiblockControllerBase controller)) {
+            return false;
+        }
+        List<IEnergyContainer> hatches = new ArrayList<>(controller.getAbilities(MultiblockAbility.INPUT_ENERGY));
+        hatches.addAll(controller.getAbilities(MultiblockAbility.SUBSTATION_INPUT_ENERGY));
+        for (IEnergyContainer container : hatches) {
+            if (container instanceof IUpgradeSlots hatch &&
+                    hatch.consumeUpgradeKit(UpgradeKitType.BACKUP_CAPACITOR)) {
+                this.progressTime = 0;
+                metaTileEntity.noticePlayer("[跳电保护]位于" + metaTileEntity.getPos() + "的" +
+                        metaTileEntity.getStackForm().getDisplayName() + "消耗了备用电容");
+                return true;
+            }
+        }
+        return false;
     }
 
     @Nullable

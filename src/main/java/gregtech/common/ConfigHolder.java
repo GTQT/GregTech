@@ -183,7 +183,7 @@ public class ConfigHolder {
                 "If true, the current recipe will be immediately destroyed upon power loss.",
                 "If false, the recipe progress will be preserved when power is interrupted.",
                 "Default: false" })
-        public boolean resetRecipeOnPowerLoss = false;
+        public boolean resetRecipeOnPowerLoss = true;
 
         @Config.Comment({
                 "Whether to require a Wrench, Wirecutter, or other GregTech tools to break machines, casings, wires, and more.",

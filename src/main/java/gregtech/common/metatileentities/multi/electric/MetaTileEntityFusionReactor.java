@@ -148,15 +148,10 @@ public class MetaTileEntityFusionReactor extends RecipeMapMultiblockController
     }
 
     private static MetaTileEntity[] getAllowedEnergyHatches(IFusionReactorType type) {
-        return Stream
-                .concat(
-                        Arrays.stream(MetaTileEntities.ENERGY_INPUT_HATCH),
-                        MultiblockAbility.REGISTRY
-                                .getOrDefault(MultiblockAbility.INPUT_ENERGY, Collections.emptyList())
-                                .stream()
-                                .filter(MetaTileEntityWirelessEnergyHatch.class::isInstance))
-                .filter(mte -> mte instanceof ITieredMetaTileEntity tiered &&
-                        type.getTier() <= tiered.getTier())
+        return Stream.concat(Arrays.stream(MetaTileEntities.ENERGY_INPUT_HATCH),
+                        MultiblockAbility.REGISTRY.getOrDefault(MultiblockAbility.INPUT_ENERGY, Collections.emptyList())
+                                .stream().filter(MetaTileEntityWirelessEnergyHatch.class::isInstance))
+                .filter(mte -> mte instanceof ITieredMetaTileEntity tiered && type.getTier() <= tiered.getTier())
                 .toArray(MetaTileEntity[]::new);
     }
 

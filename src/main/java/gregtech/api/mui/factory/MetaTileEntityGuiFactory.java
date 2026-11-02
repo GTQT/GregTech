@@ -47,7 +47,7 @@ public class MetaTileEntityGuiFactory extends AbstractUIFactory<PosGuiData> {
         ModularPanel panel = super.createPanel(guiData, syncManager, settings);
         IGuiHolder<PosGuiData> holder = getGuiHolder(guiData);
         if (holder instanceof MetaTileEntity mte && panel != null) {
-            mte.initCoverLeisureUI(guiData, syncManager, panel);
+            mte.initSidePanel(guiData, syncManager, panel);
         }
         return panel;
     }

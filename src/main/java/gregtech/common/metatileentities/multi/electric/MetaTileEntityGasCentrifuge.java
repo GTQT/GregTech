@@ -101,9 +101,8 @@ public class MetaTileEntityGasCentrifuge extends RecipeMapMultiblockController {
         return new MetaTileEntityGasCentrifuge(metaTileEntityId);
     }
 
-    @SuppressWarnings("DataFlowIssue")
     @Override
-    protected void formStructure(FormedStructureView formed) {
+    protected void formStructure(@NotNull FormedStructureView formed) {
         super.formStructure(formed);
         this.recipeMapWorkable.setParallelLimit(formed.getChannelValue(GTStructureChannels.STRUCTURE_LENGTH));
     }

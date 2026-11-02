@@ -1,6 +1,7 @@
 package gregtech.api.mui.widget;
 
 import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
 
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
@@ -45,6 +46,8 @@ public final class WorldPreviewPanel {
 
     /** 面板宽度。 */
     public static final int PANEL_WIDTH = 114;
+    /** 顶部标题/关闭按钮占的高度。 */
+    public static final int HEADER_HEIGHT = 14;
     /** 面板内边距。 */
     public static final int PADDING = 7;
     /** 方向渲染控件的边长。 */
@@ -57,8 +60,8 @@ public final class WorldPreviewPanel {
     /** 并排按钮之间的间距。 */
     public static final int BUTTON_GAP = 2;
 
-    /** 面板高度：上下 padding + 预览 + 间距 + 按钮行。 */
-    public static final int PANEL_HEIGHT = PADDING * 2 + PREVIEW_SIZE + PREVIEW_GAP + BUTTON_HEIGHT;
+    /** 面板高度：标题栏 + 上下 padding + 预览 + 间距 + 按钮行。 */
+    public static final int PANEL_HEIGHT = HEADER_HEIGHT + PADDING * 2 + PREVIEW_SIZE + PREVIEW_GAP + BUTTON_HEIGHT;
 
     /** 浮动面板的 id，一台机器同时只会开一个。 */
     private static final String PANEL_NAME = "world_preview";
@@ -162,18 +165,27 @@ public final class WorldPreviewPanel {
                 });
     }
 
-    /** 浮动面板：上面方向渲染，下面按钮行。 */
+    /**
+     * 浮动面板：标题栏（含关闭按钮）+ 方向渲染 + 按钮行。
+     *
+     * <p>
+     * 必须用 {@link GTGuis#createPopupPanel}：它会加右上角的关闭按钮。直接
+     * {@code ModularPanel.defaultPanel(...)} 是没有关闭按钮的，面板一开就只能再点一次侧边按钮才关得掉。
+     */
     private @NotNull ModularPanel buildPanel() {
-        ModularPanel panel = ModularPanel.defaultPanel(PANEL_NAME, PANEL_WIDTH, PANEL_HEIGHT);
+        ModularPanel panel = GTGuis.createPopupPanel(PANEL_NAME, PANEL_WIDTH, PANEL_HEIGHT);
+        panel.child(IKey.str("方向预览").asWidget().pos(5, 5));
 
+        int contentTop = HEADER_HEIGHT + PADDING;
         SchemaWidget preview = createPreview();
         if (preview != null) {
-            panel.child(preview.name(PREVIEW_NAME).size(PREVIEW_SIZE, PREVIEW_SIZE).top(PADDING).left(PADDING));
+            panel.child(preview.name(PREVIEW_NAME).size(PREVIEW_SIZE, PREVIEW_SIZE).top(contentTop).left(PADDING));
         } else {
-            panel.child(new Widget<>().name(PREVIEW_NAME).size(PREVIEW_SIZE, PREVIEW_SIZE).top(PADDING).left(PADDING));
+            panel.child(
+                    new Widget<>().name(PREVIEW_NAME).size(PREVIEW_SIZE, PREVIEW_SIZE).top(contentTop).left(PADDING));
         }
 
-        panel.child(createButtonRow(PADDING + PREVIEW_SIZE + PREVIEW_GAP));
+        panel.child(createButtonRow(contentTop + PREVIEW_SIZE + PREVIEW_GAP));
         return panel;
     }
 

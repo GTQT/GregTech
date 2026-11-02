@@ -108,7 +108,7 @@ public class ComputationRecipeLogic extends MultiblockRecipeLogic {
             }
         } else if (recipeEUt > 0) {
             this.hasNotEnoughEnergy = true;
-            decreaseProgress();
+            decreaseProgress(true);
         }
     }
 

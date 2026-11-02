@@ -161,7 +161,7 @@ public class MetaTileEntityNaturalDraftCoolingTower extends CachedPatternRecipeM
     }
 
     @Override
-    protected void formStructure(FormedStructureView formed) {
+    protected void formStructure(@NotNull FormedStructureView formed) {
         super.formStructure(formed);
 
         List<BlockPos> positions = formed.getAggregate(FLUID_BLOCK_POSITIONS);
