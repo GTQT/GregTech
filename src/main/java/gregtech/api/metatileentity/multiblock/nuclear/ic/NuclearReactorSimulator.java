@@ -1,4 +1,4 @@
-package gregtech.api.nuclear.ic;
+package gregtech.api.metatileentity.multiblock.nuclear.ic;
 
 import gregtech.api.GTValues;
 import gregtech.api.util.GTLog;

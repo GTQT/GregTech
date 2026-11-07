@@ -1,4 +1,4 @@
-package gregtech.api.nuclear.fission;
+package gregtech.api.metatileentity.multiblock.nuclear.fission;
 
 
 public interface IModeratorStats {

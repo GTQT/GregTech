@@ -1,4 +1,4 @@
-package gregtech.api.nuclear.fission;
+package gregtech.api.metatileentity.multiblock.nuclear.fission;
 
 import net.minecraftforge.fluids.Fluid;
 

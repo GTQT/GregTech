@@ -4,6 +4,7 @@ import gregtech.api.metatileentity.IUpgradeSlots;
 import gregtech.api.mui.GTGuis;
 import gregtech.common.items.MetaItems;
 
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import com.cleanroommc.modularui.api.IPanelHandler;
@@ -25,8 +26,8 @@ import java.util.List;
  * 机器界面左侧那一列里的“升级插件”入口按钮，以及它点开的浮动面板。
  *
  * <p>
- * 面板里是 {@link IUpgradeSlots#UPGRADE_SLOT_COUNT} 个物品槽（2 列），下面接玩家背包，
- * 方便直接把插件从背包拖进槽位。槽位里的物品目前只是“放进去”，没有任何效果。
+ * 面板里是 {@link IUpgradeSlots#UPGRADE_SLOT_COUNT} 个物品槽（每行 4 个）。槽位里的物品目前只是
+ * “放进去”，没有任何效果。
  *
  * <p>
  * <b>和 {@link WorldPreviewPanel} 一样，这个方法两端都会跑</b>（主界面构建时服务端也要注册一遍
@@ -54,12 +55,14 @@ public final class UpgradeSlotsPanel {
      *
      * @param syncManager 机器主面板的同步管理器
      * @param inventory   升级插件库存，槽位数不少于 {@link IUpgradeSlots#UPGRADE_SLOT_COUNT}
+     * @param stack       标题栏里显示的机器图标
      * @return 挂到左侧那一列的按钮
      */
     public static @NotNull IWidget create(@NotNull PanelSyncManager syncManager,
-                                          @NotNull IItemHandlerModifiable inventory) {
+                                          @NotNull IItemHandlerModifiable inventory,
+                                          @NotNull ItemStack stack) {
         IPanelHandler panel = syncManager.syncedPanel(SYNC_KEY, true,
-                (panelSyncManager, $) -> buildPanel(panelSyncManager, inventory));
+                (panelSyncManager, $) -> buildPanel(panelSyncManager, inventory, stack));
 
         return new ButtonWidget<>()
                 .size(18, 18)
@@ -76,9 +79,10 @@ public final class UpgradeSlotsPanel {
                 });
     }
 
-    /** 浮动面板：标题 + 一排槽位 + 玩家背包。 */
+    /** 浮动面板：标题 + 槽位。 */
     private static @NotNull ModularPanel buildPanel(@NotNull PanelSyncManager syncManager,
-                                                    @NotNull IItemHandlerModifiable inventory) {
+                                                    @NotNull IItemHandlerModifiable inventory,
+                                                    @NotNull ItemStack stack) {
         // 槽位组要在子面板自己的同步管理器上注册（和 CoverStorage 的写法一致），一排 4 个
         syncManager.registerSlotGroup(SLOT_GROUP, 4);
 
@@ -95,14 +99,13 @@ public final class UpgradeSlotsPanel {
             rows.add(rowWidgets);
         }
 
-        return GTGuis.createPopupPanel(PANEL_NAME, 176, 18 + rows.size() * 18 + 94)
-                .child(IKey.str("升级插件").asWidget().pos(5, 5))
+        return GTGuis.createPopupPanel(PANEL_NAME, 176, 26 + rows.size() * 18 + 7)
+                .child(GTGuis.popupTitle(stack, "升级插件"))
                 .child(new Grid()
-                        .horizontalCenter().top(18)
+                        .horizontalCenter().top(26)
                         .width(4 * 18).height(rows.size() * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
-                        .matrix(rows))
-                .bindPlayerInventory();
+                        .matrix(rows));
     }
 }

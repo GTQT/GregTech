@@ -10,10 +10,13 @@ import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
 import net.minecraft.item.ItemStack;
 
 import com.cleanroommc.modularui.api.IPanelHandler;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.GuiManager;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -95,6 +98,21 @@ public class GTGuis {
 
     public static PopupPanel blankPopupPanel(String name) {
         return blankPopupPanel(name, DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    }
+
+    /**
+     * 浮动面板统一的标题行：机器图标 + 标题文字。
+     *
+     * <p>
+     * 设备设置、IO 设置、升级插件、方向预览四个弹窗都用它，保证顶部样式一致。
+     */
+    public static @NotNull Flow popupTitle(@NotNull ItemStack stack, @NotNull String title) {
+        return Flow.row()
+                .pos(4, 4)
+                .height(16)
+                .coverChildrenWidth()
+                .child(new ItemDrawable(stack).asWidget().size(16).marginRight(4))
+                .child(IKey.lang(title).asWidget().heightRel(1.0f));
     }
 
     public static PopupPanel defaultPopupPanel(String name, boolean disableBelow,

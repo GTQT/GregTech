@@ -18,7 +18,7 @@ import gregtech.api.metatileentity.multiblock.IFissionReactorHatch;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.SCMultiblockAbility;
-import gregtech.api.nuclear.fission.ICoolantStats;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.ICoolantStats;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.common.blocks.BlockFissionCasing;

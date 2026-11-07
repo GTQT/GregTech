@@ -1,10 +1,11 @@
 package gregtech.api.capability;
 
+import gregtech.api.items.itemhandlers.LockableItemStackHandler;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.components.FuelRod;
 import gregtech.api.unification.material.properties.IFissionFuelStats;
+
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.items.IItemHandlerModifiable;
-import gregtech.api.items.itemhandlers.LockableItemStackHandler;
-import gregtech.api.nuclear.fission.components.FuelRod;
 
 public interface IFuelRodHandler extends ILockableHandler<ItemStack> {
 

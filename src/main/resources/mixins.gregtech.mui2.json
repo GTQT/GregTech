@@ -12,7 +12,8 @@
   ],
   "client": [
     "LangKeyMixin",
-    "MCHelperMixin"
+    "MCHelperMixin",
+    "ModularPanelMixin"
   ],
   "server": []
 }

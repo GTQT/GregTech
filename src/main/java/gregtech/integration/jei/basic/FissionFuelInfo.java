@@ -1,13 +1,15 @@
 package gregtech.integration.jei.basic;
 
+import gregtech.api.metatileentity.multiblock.nuclear.fission.FissionFuelRegistry;
 import gregtech.api.unification.material.properties.IFissionFuelStats;
-import mezz.jei.api.ingredients.IIngredients;
-import mezz.jei.api.ingredients.VanillaTypes;
-import mezz.jei.api.recipe.IRecipeWrapper;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
-import gregtech.api.nuclear.fission.FissionFuelRegistry;
+
+import mezz.jei.api.ingredients.IIngredients;
+import mezz.jei.api.ingredients.VanillaTypes;
+import mezz.jei.api.recipe.IRecipeWrapper;
 
 import java.util.ArrayList;
 import java.util.List;

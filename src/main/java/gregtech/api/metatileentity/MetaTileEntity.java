@@ -27,6 +27,7 @@ import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.interfaces.IPollution;
 import gregtech.api.metatileentity.interfaces.ISyncedTileEntity;
 import gregtech.api.metatileentity.registry.MTERegistry;
+import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.mui.GregTechGuiScreen;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
@@ -102,6 +103,7 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.Widget;
 import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -586,6 +588,21 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
+     * 单方块机器放在玩家背包左上角正上方（也就是配方区左下角）的 LOGO。
+     *
+     * <p>
+     * 玩家背包固定是 4 行 18px 槽位（高 76px）、底边距面板 7px，所以无论食谱区占几行，
+     * LOGO 的底边都固定在同一位置：{@code 7 + 76 + 2 = 85}。
+     */
+    protected @NotNull IWidget createPlayerInventoryLogo(int size) {
+        return new Widget<>()
+                .size(size)
+                .left(7)
+                .bottom(7 + 76 + 2)
+                .background(GTGuiTextures.getLogo(getUITheme()));
+    }
+
+    /**
      * 升级插件的入口按钮：只有实现了 {@link IUpgradeSlots} 的机器才有。
      *
      * <p>
@@ -593,7 +610,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
      */
     protected @Nullable IWidget createUpgradeSlotsButton(@NotNull PanelSyncManager syncManager) {
         if (this instanceof IUpgradeSlots upgradeSlots) {
-            return UpgradeSlotsPanel.create(syncManager, upgradeSlots.getUpgradeInventory());
+            return UpgradeSlotsPanel.create(syncManager, upgradeSlots.getUpgradeInventory(), getStackForm());
         }
         return null;
     }
@@ -641,7 +658,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
         World world = getWorld();
         if (world == null) return null;
 
-        return WorldPreviewPanel.create(syncManager, world, getPos(), hasFrontFacing(),
+        return WorldPreviewPanel.create(syncManager, world, getPos(), getStackForm(), hasFrontFacing(),
                 this instanceof IActiveOutputSide, this::applyFaceAction);
     }
 

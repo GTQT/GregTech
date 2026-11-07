@@ -1,14 +1,13 @@
 package gregtech.api.unification.material.properties;
 
 import gregtech.api.fluids.store.FluidStorageKey;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.ICoolantStats;
 import gregtech.api.unification.material.Material;
-import gregtech.api.unification.material.properties.IMaterialProperty;
-import gregtech.api.unification.material.properties.MaterialProperties;
-import gregtech.api.unification.material.properties.PropertyKey;
+
+import net.minecraftforge.fluids.Fluid;
+
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraftforge.fluids.Fluid;
-import gregtech.api.nuclear.fission.ICoolantStats;
 
 public class CoolantProperty implements IMaterialProperty, ICoolantStats {
 

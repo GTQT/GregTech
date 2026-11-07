@@ -178,10 +178,7 @@ public abstract class SteamMetaTileEntity extends MetaTileEntity {
                                     .asIcon().size(18).marginTop(50));
                         }));
         return panel.child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .child(getUITheme().getLogo().asWidget()
-                        .size(16)
-                        .right(7)
-                        .top(46))
+                .child(createPlayerInventoryLogo(16))
                 .child(new SteamGaugeWidget(steamStored, steamMax, isHighPressure)
                         .left(-48)
                         .top(0))

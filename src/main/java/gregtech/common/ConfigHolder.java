@@ -689,6 +689,11 @@ public class ConfigHolder {
                     "False is incremental like the Minecraft furnace.",
                     "Default: true" })
             public boolean smoothProgressBars = true;
+
+            @Config.Comment({ "If MUI2 screens play a jelly-like pop animation when they are opened.",
+                    "Ignored while NeverEnoughAnimations is installed, since that mod already animates GUI openings.",
+                    "Default: true" })
+            public boolean jellyOpeningAnimation = true;
         }
 
         public static class WirelessHud {

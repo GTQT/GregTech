@@ -7,6 +7,8 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.scroll.VerticalScrollData;
+import com.cleanroommc.modularui.widgets.ListWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.function.Supplier;
 
 /**
- * 机器主界面左沿外那一列按钮（“侧边栏”）的注册器。
+ * 机器主界面右沿外那一列按钮（“侧边栏”）的注册器。
  *
  * <p>
  * 以前这一列是在 {@code MetaTileEntity} 里内联拼出来的：世界预览、升级插件、覆盖板入口各写一段
@@ -28,30 +30,44 @@ import java.util.function.Supplier;
  * </ul>
  *
  * <p>
- * <b>注册顺序 = 从上到下的显示顺序</b>（底层 {@code reverseLayout(true)} 会把先加的子控件排在上面）。
- * 这个方法在服务端也会跑，所以按钮本身必须两端都能构建，只有图标可以是客户端专属。
+ * <b>注册顺序 = 从下到上的显示顺序</b>（底层 {@code reverseLayout(true)} 会把先加的子控件排在下面）。
+ * 高度上限是主面板高度：按钮少时列收缩到内容高度、贴着主面板底边；按钮多到超出主面板时列固定为
+ * 主面板高度并出现滚动条，滚轮可上下查看，而不是顶到屏幕外。这个方法在服务端也会跑，所以按钮本身
+ * 必须两端都能构建，只有图标可以是客户端专属。
  */
 public final class SidePanel {
 
     private final PosGuiData guiData;
     private final PanelSyncManager syncManager;
-    private final Flow column;
+    /** 真正放按钮的列。 */
+    private final Flow content;
+    /** 限高 + 滚动的外层容器。 */
+    private final ButtonList column;
 
     public SidePanel(@NotNull PosGuiData guiData, @NotNull PanelSyncManager syncManager) {
         this.guiData = guiData;
         this.syncManager = syncManager;
-        this.column = Flow.col()
+        this.content = Flow.col()
+                .name("side_panel_content")
+                .width(18)
+                .coverChildrenHeight()
+                .reverseLayout(true)
+                .childPadding(2)
+                .crossAxisAlignment(Alignment.CrossAxis.CENTER);
+        this.column = new ButtonList()
                 .name("side_panel")
-                .coverChildren()
+                .width(22)
+                // 上限 = 主面板高度；wrapTight 让内容更短时收缩到内容高度，避免面板矮时留一条空壳。
+                .maxSizeRel(1.0f)
                 // 右边缘距父容器右边 100% 宽度 == 落在主面板 x=0 处，整列向面板外侧溢出。
                 // 别换成 rightRel(0.5f) 之类：值 < 1 时会被 autoAnchor 当成锚点做居中。
                 .rightRel(1.0f)
-                .reverseLayout(true)
+                // 底边与主面板底边（y=0）齐平
+                .bottom(0)
                 .padding(2)
-                .bottom(16)
-                .childPadding(2)
-                .crossAxisAlignment(Alignment.CrossAxis.CENTER)
-                .background(GTGuiTextures.BACKGROUND_POPUP);
+                .background(GTGuiTextures.BACKGROUND_POPUP)
+                .scrollDirection(new VerticalScrollData())
+                .child(this.content);
     }
 
     /** 打开界面的玩家/坐标信息，覆盖板入口按钮需要。 */
@@ -64,8 +80,8 @@ public final class SidePanel {
         return this.syncManager;
     }
 
-    /** 底层那一列，只有需要改布局（宽度、背景、位置）时才用。 */
-    public @NotNull Flow getColumn() {
+    /** 底层滚动容器，只有需要改布局（宽度、背景、位置）时才用。 */
+    public @NotNull ListWidget<IWidget, ?> getColumn() {
         return this.column;
     }
 
@@ -77,7 +93,7 @@ public final class SidePanel {
      */
     public @NotNull SidePanel add(@Nullable IWidget button) {
         if (button != null) {
-            this.column.child(button);
+            this.content.child(button);
         }
         return this;
     }
@@ -102,7 +118,7 @@ public final class SidePanel {
 
     /** 这一列现在有没有按钮。 */
     public boolean isEmpty() {
-        return this.column.getChildren().isEmpty();
+        return this.content.getChildren().isEmpty();
     }
 
     /** 挂到主面板上；列是空的时候什么也不做。 */
@@ -111,4 +127,7 @@ public final class SidePanel {
             mainPanel.child(this.column);
         }
     }
+
+    /** {@link ListWidget} 的自引用泛型需要一个具体子类，省得在字段上写通配符。 */
+    private static final class ButtonList extends ListWidget<IWidget, ButtonList> {}
 }

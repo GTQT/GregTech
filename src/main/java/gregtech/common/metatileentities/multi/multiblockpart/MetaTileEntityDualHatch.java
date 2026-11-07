@@ -21,6 +21,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
+import gregtech.api.mui.widget.SidePanel;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
@@ -54,14 +55,12 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
-import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
@@ -255,8 +254,8 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(
-                9 * 18 + 18 + 14 + 5,   // Player Inv width
-                rowSize * 18 + 14 + 18); // Bus Inv width
+                9 * 18 + 14,            // Player Inv width
+                rowSize * 18 + 14); // Bus Inv width
         int gridTop = 18;
         int backgroundHeight = gridTop + 18 * rowSize + 94;
 
@@ -283,42 +282,8 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
                             .accessibility(true, !isExportHatch)));
         }
 
-        BooleanSyncValue workingStateValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
-        guiSyncManager.syncValue("working_state", workingStateValue);
-        BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
-        guiSyncManager.syncValue("collapse_state", collapseStateValue);
-
-        boolean hasGhostCircuit = hasGhostCircuitInventory() && circuitInventory != null;
-
-        Flow column = Flow.column()
-                .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 5 - 7 - 4)
-                .width(18).height(18 * 5 + 4)
-                .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 4 + 4))
-                .child(new ToggleButton()
-                        .top(18 * 3)
-                        .value(new BoolValue.Dynamic(workingStateValue::getBoolValue,
-                                workingStateValue::setBoolValue))
-                        .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
-                        .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                .addLine(isExportHatch ?
-                                        (workingStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.dual_auto_output.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.dual_auto_output.tooltip.disabled")) :
-                                        (workingStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.dual_auto_input.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.dual_auto_input.tooltip.disabled")))));
-
-        if (!isExportHatch) {
-            BooleanSyncValue disallowSameItemValue = new BooleanSyncValue(
-                    this::isDisallowSameItemInsert, this::setDisallowSameItemInsert);
-            column.child(new ToggleButton()
-                    .top(18 * 2)
-                    .value(disallowSameItemValue)
-                    .overlay(GTGuiTextures.BUTTON_LOCK)
-                    .addTooltip(true, IKey.lang("gregtech.machine.disallow_same_item.enabled"))
-                    .addTooltip(false, IKey.lang("gregtech.machine.disallow_same_item.disabled")));
-        } else {
-            IPanelHandler filterPopup = guiSyncManager.syncedPanel("dual_filter_popup", true,
+        if (isExportHatch) {
+            guiSyncManager.syncedPanel("dual_filter_popup", true,
                     (psm, handler) -> {
                         Widget<?> itemRow = (Widget<?>) itemFilterContainer.initUI(guiData, psm);
                         itemRow.pos(4, 12).width(168);
@@ -328,48 +293,71 @@ public class MetaTileEntityDualHatch extends MetaTileEntityMultiblockNotifiableP
                                 .child(itemRow)
                                 .child(fluidRow);
                     });
-            column.child(new ButtonWidget<>()
-                    .top(18 * 2)
-                    .size(18)
-                    .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))
-                    .addTooltipLine(IKey.str("过滤覆盖版"))
-                    .onMousePressed(i -> {
-                        if (!filterPopup.isPanelOpen()) filterPopup.openPanel();
-                        else filterPopup.closePanel();
-                        return true;
-                    }));
         }
-
-        column.child(new ToggleButton()
-                        .top(18)
-                        .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
-                                collapseStateValue::setBoolValue))
-                        .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
-                        .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                .addLine(collapseStateValue.getBoolValue() ?
-                                        IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
-                                        IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))))
-                .childIf(hasGhostCircuit, () -> new GhostCircuitSlotWidget()
-                        .slot(circuitInventory, 0)
-                        .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                .childIf(!hasGhostCircuit, () -> new Widget<>()
-                        .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                        .tooltip(t -> t.addLine(
-                                IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))));
 
         ModularPanel panel = GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7));
+                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
+                .child(createPlayerInventoryLogo(17));
 
         panel.child(new Grid()
                         .top(gridTop).height(rowSize * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
                         .alignX(0.5f)
-                        .matrix(widgets))
-                .child(column);
+                        .matrix(widgets));
 
         return panel;
+    }
+
+    @Override
+    protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
+        BooleanSyncValue workingValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
+        sidePanel.add(new ToggleButton()
+                .value(workingValue)
+                .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(isExportHatch ?
+                                (workingValue.getBoolValue() ?
+                                        IKey.lang("gregtech.gui.dual_auto_output.tooltip.enabled") :
+                                        IKey.lang("gregtech.gui.dual_auto_output.tooltip.disabled")) :
+                                (workingValue.getBoolValue() ?
+                                        IKey.lang("gregtech.gui.dual_auto_input.tooltip.enabled") :
+                                        IKey.lang("gregtech.gui.dual_auto_input.tooltip.disabled")))));
+        if (!isExportHatch) {
+            sidePanel.add(new ToggleButton()
+                    .value(new BooleanSyncValue(this::isDisallowSameItemInsert, this::setDisallowSameItemInsert))
+                    .overlay(GTGuiTextures.BUTTON_LOCK)
+                    .addTooltip(true, IKey.lang("gregtech.machine.disallow_same_item.enabled"))
+                    .addTooltip(false, IKey.lang("gregtech.machine.disallow_same_item.disabled")));
+        } else {
+            IPanelHandler filterPopup = sidePanel.getSyncManager().findPanelHandlerNullable("dual_filter_popup");
+            if (filterPopup != null) {
+                sidePanel.add(new ButtonWidget<>()
+                        .size(18)
+                        .overlay(GTGuiTextures.FILTER_SETTINGS_OVERLAY.asIcon().size(16))
+                        .addTooltipLine(IKey.str("过滤覆盖版"))
+                        .onMousePressed(i -> {
+                            if (!filterPopup.isPanelOpen()) filterPopup.openPanel();
+                            else filterPopup.closePanel();
+                            return true;
+                        }));
+            }
+        }
+        BooleanSyncValue collapseValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
+        sidePanel.add(new ToggleButton()
+                .value(collapseValue)
+                .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(collapseValue.getBoolValue() ?
+                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
+                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))));
+        if (hasGhostCircuitInventory() && circuitInventory != null) {
+            sidePanel.add(new GhostCircuitSlotWidget()
+                    .slot(circuitInventory, 0)
+                    .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY));
+        }
+        super.registerSidePanelButtons(sidePanel);
     }
 
     @Override

@@ -55,6 +55,7 @@ import com.cleanroommc.modularui.value.sync.LongSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SliderWidget;
+import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.textfield.TextFieldWidget;
 import org.jetbrains.annotations.NotNull;
@@ -300,7 +301,7 @@ public class MetaTileEntityEnergyHatch extends MetaTileEntityMultiblockPart
         IntSyncValue amperageValue = new IntSyncValue(this::getCurrentAmperage, this::setCurrentAmperage);
         guiSyncManager.syncValue("hatchAmperage", amperageValue);
 
-        return GTGuis.createPanel(this, 176, 140)
+        return GTGuis.createPanel(this, 176, 223)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(Flow.column()
                         .margin(7, 18)
@@ -362,7 +363,8 @@ public class MetaTileEntityEnergyHatch extends MetaTileEntityMultiblockPart
                         .child(IKey.lang("gregtech.machine.energy_hatch.throughput",
                                 () -> new Object[] {
                                         TextFormattingUtil.formatNumbers(getVoltage() * getCurrentAmperage()) })
-                                .asWidget()));
+                                .asWidget()))
+                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7));
     }
 
     @Override

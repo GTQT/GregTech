@@ -280,7 +280,7 @@ public final class CollapsibleItemGroups {
             for (ResourceLocation id : mteRegistry.getKeys()) {
                 MetaTileEntity mte = mteRegistry.getObject(id);
                 if (!(mte instanceof ITieredMetaTileEntity tiered)) continue;
-                String key = tiered.getTierlessTooltipKey();
+                String key = machineGroupKey(tiered);
                 buckets.computeIfAbsent(key, k -> new ArrayList<>()).add(mte.getStackForm());
             }
         }
@@ -288,6 +288,32 @@ public final class CollapsibleItemGroups {
             if (entry.getValue().size() < 2) continue;
             addGroup(registry, "machine." + entry.getKey(), entry.getValue());
         }
+    }
+
+    /**
+     * Group key for a tiered machine. {@link ITieredMetaTileEntity#getTierlessTooltipKey()} only strips a trailing
+     * voltage segment, so ids like {@code huge_item_bus.import.lv.4} (voltage followed by a slot count) keep their
+     * slot count and every tier variant ends up with a unique key, which prevents the family from grouping. Strip the
+     * slot count first, then the voltage.
+     */
+    private static String machineGroupKey(ITieredMetaTileEntity tiered) {
+        String key = tiered.getTierlessTooltipKey();
+        int dot = key.lastIndexOf('.');
+        if (dot <= 0) return key;
+        if (!isAllDigits(key.substring(dot + 1))) return key;
+        String withoutCount = key.substring(0, dot);
+        int voltageDot = withoutCount.lastIndexOf('.');
+        if (voltageDot <= 0) return key;
+        if (!ITieredMetaTileEntity.isVoltageName(withoutCount.substring(voltageDot + 1))) return key;
+        return withoutCount.substring(0, voltageDot);
+    }
+
+    private static boolean isAllDigits(String string) {
+        if (string.isEmpty()) return false;
+        for (int i = 0; i < string.length(); i++) {
+            if (!Character.isDigit(string.charAt(i))) return false;
+        }
+        return true;
     }
 
     /** GT casting molds (empty, saw, hammer, wrench, etc.). */

@@ -12,6 +12,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
+import gregtech.api.mui.widget.SidePanel;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.client.particle.VanillaParticleEffects;
@@ -42,12 +43,10 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
-import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
@@ -259,37 +258,32 @@ public class MetaTileEntityMufflerHatch extends MetaTileEntityMultiblockPart imp
                         .accessibility(false, true)));
             }
         }
-        BooleanSyncValue outputStateValue = new BooleanSyncValue(() -> mufflerDust, val -> mufflerDust = val);
-        guiSyncManager.syncValue("output_state", outputStateValue);
-
-        int backgroundWidth = 176 + xOffset * 2 + 18 + 5;
+        int backgroundWidth = 176 + xOffset * 2 + 5;
         int backgroundHeight = 18 + 18 * rowSize + 94;
         // TODO: Change the position of the name when it's standardized.
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
+                .child(createPlayerInventoryLogo(17))
                 .child(new Grid()
                         .top(18).height(rowSize * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
                         .alignX(0.5f)
-                        .matrix(widgets))
+                        .matrix(widgets));
+    }
 
-                .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 4)
-                        .width(18).height(18 * 4 + 4)
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 4))
-
-                        .child(new ToggleButton()
-                                .top(0)
-                                .value(new BoolValue.Dynamic(outputStateValue::getBoolValue,
-                                        outputStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.OUT_SLOT_OVERLAY)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(outputStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.output_item.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.output_item.tooltip.disabled"))))
-                );
+    @Override
+    protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
+        BooleanSyncValue outputValue = new BooleanSyncValue(() -> mufflerDust, val -> mufflerDust = val);
+        sidePanel.add(new ToggleButton()
+                .value(outputValue)
+                .overlay(GTGuiTextures.OUT_SLOT_OVERLAY)
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(outputValue.getBoolValue() ?
+                                IKey.lang("gregtech.gui.output_item.tooltip.enabled") :
+                                IKey.lang("gregtech.gui.output_item.tooltip.disabled"))));
+        super.registerSidePanelButtons(sidePanel);
     }
 
     @Override

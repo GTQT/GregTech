@@ -19,6 +19,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
+import gregtech.api.mui.widget.SidePanel;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
 import gregtech.common.covers.filter.ItemFilterContainer;
@@ -49,7 +50,6 @@ import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
-import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
@@ -305,39 +305,19 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
         int rowSize = (int) Math.sqrt(getInventorySize());
         panelSyncManager.registerSlotGroup("item_inv", rowSize);
 
-        boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
-
         int backgroundWidth = Math.max(
-                9 * 18 + 18 + 14 + 5,   // Player Inv width
+                9 * 18 + 14,            // Player Inv width
                 rowSize * 18 + 14);      // Bus Inv width
         int gridTop = 18 + (isExportHatch ? 22 : 0);
 
         int backgroundHeight = gridTop + rowSize * 18 + 94;
-        int sidebarTop = backgroundHeight - 18 * 5 - 7 - 4;
-
-        BooleanSyncValue workingValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
-        BooleanSyncValue collapseValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
-
-        String workKey = isExportHatch ?
-                "gregtech.gui.item_auto_output.tooltip" :
-                "gregtech.gui.item_auto_input.tooltip";
 
         IItemHandlerModifiable handler = isExportHatch ? exportItems : importItems;
 
-        Flow sidebar = Flow.column()
-                .pos(backgroundWidth - 7 - 18, sidebarTop)
-                .width(18).height(18 * 5 + 4)
-                .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 4 + 4))
-                .childIf(isExportHatch, () -> empty(18))
-                .childIf(hasGhostCircuit, this::ghostCircuitSlot)
-                .childIf(!hasGhostCircuit, this::unavailableSlot)
-                .child(autoCollapseButton(collapseValue))
-                .childIf(!isExportHatch, this::disallowSameItemButton)
-                .child(autoWorkButton(workingValue, workKey));
-
         ModularPanel panel = GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
-                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7));
+                .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
+                .child(createPlayerInventoryLogo(17));
 
         if (isExportHatch && itemFilterContainer != null) {
             Widget<?> filterRow = (Widget<?>) itemFilterContainer.initUI(guiData, panelSyncManager);
@@ -359,22 +339,31 @@ public class MetaTileEntityItemBus extends MetaTileEntityMultiblockNotifiablePar
                                                 gtHandler.onContentsChanged(index);
                                             }
                                         })
-                                        .accessibility(!isExportHatch, true))))
-                .child(sidebar);
+                                        .accessibility(!isExportHatch, true))));
 
         return panel;
+    }
+
+    @Override
+    protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
+        sidePanel.add(autoWorkButton(new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val),
+                isExportHatch ?
+                        "gregtech.gui.item_auto_output.tooltip" :
+                        "gregtech.gui.item_auto_input.tooltip"));
+        sidePanel.add(autoCollapseButton(new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val)));
+        if (!isExportHatch) {
+            sidePanel.add(disallowSameItemButton());
+        }
+        if (hasGhostCircuitInventory() && this.circuitInventory != null) {
+            sidePanel.add(ghostCircuitSlot());
+        }
+        super.registerSidePanelButtons(sidePanel);
     }
 
     private Widget<?> ghostCircuitSlot() {
         return new GhostCircuitSlotWidget()
                 .slot(circuitInventory, 0)
                 .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY);
-    }
-
-    private Widget<?> unavailableSlot() {
-        return new Widget<>()
-                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                .tooltip(t -> t.addLine(IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")));
     }
 
     private ToggleButton autoCollapseButton(BooleanSyncValue collapseValue) {

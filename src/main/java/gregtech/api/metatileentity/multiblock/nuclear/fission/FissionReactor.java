@@ -1,9 +1,9 @@
-package gregtech.api.nuclear.fission;
+package gregtech.api.metatileentity.multiblock.nuclear.fission;
 
-import gregtech.api.nuclear.fission.components.ControlRod;
-import gregtech.api.nuclear.fission.components.CoolantChannel;
-import gregtech.api.nuclear.fission.components.FuelRod;
-import gregtech.api.nuclear.fission.components.ReactorComponent;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.components.ControlRod;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.components.CoolantChannel;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.components.FuelRod;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.components.ReactorComponent;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.nbt.NBTTagCompound;

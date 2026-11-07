@@ -1,14 +1,16 @@
 package gregtech.integration.jei.basic;
 
-import mezz.jei.api.ingredients.IIngredients;
-import mezz.jei.api.ingredients.VanillaTypes;
-import mezz.jei.api.recipe.IRecipeWrapper;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.CoolantRegistry;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.ICoolantStats;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraftforge.fluids.Fluid;
 import net.minecraftforge.fluids.FluidStack;
-import gregtech.api.nuclear.fission.CoolantRegistry;
-import gregtech.api.nuclear.fission.ICoolantStats;
+
+import mezz.jei.api.ingredients.IIngredients;
+import mezz.jei.api.ingredients.VanillaTypes;
+import mezz.jei.api.recipe.IRecipeWrapper;
 
 public class CoolantInfo implements IRecipeWrapper {
 

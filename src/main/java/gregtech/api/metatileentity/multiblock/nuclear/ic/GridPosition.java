@@ -1,4 +1,4 @@
-package gregtech.api.nuclear.ic;
+package gregtech.api.metatileentity.multiblock.nuclear.ic;
 
 // ==================== 网格位置内部类 ====================\
 public class GridPosition {

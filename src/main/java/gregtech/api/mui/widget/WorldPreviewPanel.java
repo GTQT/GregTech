@@ -3,6 +3,7 @@ package gregtech.api.mui.widget;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
@@ -46,8 +47,8 @@ public final class WorldPreviewPanel {
 
     /** 面板宽度。 */
     public static final int PANEL_WIDTH = 114;
-    /** 顶部标题/关闭按钮占的高度。 */
-    public static final int HEADER_HEIGHT = 14;
+    /** 顶部标题行（图标 + 文字）和关闭按钮占的高度。 */
+    public static final int HEADER_HEIGHT = 20;
     /** 面板内边距。 */
     public static final int PADDING = 7;
     /** 方向渲染控件的边长。 */
@@ -73,6 +74,7 @@ public final class WorldPreviewPanel {
 
     private final World world;
     private final BlockPos pos;
+    private final ItemStack stack;
     private final boolean hasFrontFacing;
     private final boolean hasOutputSides;
     private final FaceActionHandler actionHandler;
@@ -96,10 +98,12 @@ public final class WorldPreviewPanel {
     private final EnumSyncValue<EnumFacing> itemsSync;
     private final EnumSyncValue<EnumFacing> fluidsSync;
 
-    private WorldPreviewPanel(@NotNull World world, @NotNull BlockPos pos, boolean hasFrontFacing,
-                              boolean hasOutputSides, @NotNull FaceActionHandler actionHandler) {
+    private WorldPreviewPanel(@NotNull World world, @NotNull BlockPos pos, @NotNull ItemStack stack,
+                              boolean hasFrontFacing, boolean hasOutputSides,
+                              @NotNull FaceActionHandler actionHandler) {
         this.world = world;
         this.pos = pos;
+        this.stack = stack;
         this.hasFrontFacing = hasFrontFacing;
         this.hasOutputSides = hasOutputSides;
         this.actionHandler = actionHandler;
@@ -130,15 +134,17 @@ public final class WorldPreviewPanel {
      * @param syncManager     机器主面板的同步管理器
      * @param world           机器所在的世界
      * @param pos             机器坐标
+     * @param stack           标题栏里显示的机器图标
      * @param hasFrontFacing  这台机器有没有"正面"这个概念（决定要不要出"设为正面"按钮）
      * @param hasOutputSides  这台机器有没有物品/流体输出面（决定要不要出两个输出口按钮）
      * @param actionHandler   真正执行方向设置的回调，两端都会调用，实现里要判 {@code isRemote}
      * @return 挂到左侧那一列的按钮
      */
     public static @NotNull IWidget create(@NotNull PanelSyncManager syncManager, @NotNull World world,
-                                          @NotNull BlockPos pos, boolean hasFrontFacing, boolean hasOutputSides,
-                                          @NotNull FaceActionHandler actionHandler) {
-        WorldPreviewPanel preview = new WorldPreviewPanel(world, pos, hasFrontFacing, hasOutputSides, actionHandler);
+                                          @NotNull BlockPos pos, @NotNull ItemStack stack, boolean hasFrontFacing,
+                                          boolean hasOutputSides, @NotNull FaceActionHandler actionHandler) {
+        WorldPreviewPanel preview = new WorldPreviewPanel(world, pos, stack, hasFrontFacing, hasOutputSides,
+                actionHandler);
 
         // 三个动作的同步值在这里注册一次（主 PSM 此刻还没 lock）；面板 builder 里不能再注册
         syncManager.syncValue("world_preview_front", preview.frontSync);
@@ -174,7 +180,7 @@ public final class WorldPreviewPanel {
      */
     private @NotNull ModularPanel buildPanel() {
         ModularPanel panel = GTGuis.createPopupPanel(PANEL_NAME, PANEL_WIDTH, PANEL_HEIGHT);
-        panel.child(IKey.str("方向预览").asWidget().pos(5, 5));
+        panel.child(GTGuis.popupTitle(this.stack, "方向预览"));
 
         int contentTop = HEADER_HEIGHT + PADDING;
         SchemaWidget preview = createPreview();

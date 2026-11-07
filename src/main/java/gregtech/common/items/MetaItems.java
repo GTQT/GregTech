@@ -5,7 +5,7 @@ import gregtech.api.items.armor.ArmorMetaItem;
 import gregtech.api.items.materialitem.MetaPrefixItem;
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.MetaItem.MetaValueItem;
-import gregtech.api.nuclear.fission.FissionFuelRegistry;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.FissionFuelRegistry;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.MarkerMaterial;
 import gregtech.api.unification.material.Material;

@@ -1,12 +1,14 @@
 package gregtech.api.capability;
 
-import net.minecraft.util.EnumFacing;
-import net.minecraftforge.fluids.Fluid;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import gregtech.api.capability.impl.LockableFluidTank;
 import gregtech.api.metatileentity.multiblock.IFissionReactorHatch;
-import gregtech.api.nuclear.fission.ICoolantStats;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.ICoolantStats;
+
+import net.minecraft.util.EnumFacing;
+import net.minecraftforge.fluids.Fluid;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 public interface ICoolantHandler extends ILockableHandler<Fluid>, IFissionReactorHatch {
 

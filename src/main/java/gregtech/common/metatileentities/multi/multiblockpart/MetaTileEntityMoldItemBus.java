@@ -20,6 +20,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostMouldSlotWidget;
+import gregtech.api.mui.widget.SidePanel;
 import gregtech.api.util.GTHashMaps;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
@@ -48,10 +49,8 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
-import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
@@ -310,19 +309,16 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
         panelSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(
-                9 * 18 + 18 + 14 + 5,   // Player Inv width
+                9 * 18 + 14,            // Player Inv width
                 rowSize * 18 + 14); // Bus Inv width
         int backgroundHeight = 18 + 18 * rowSize + 94;
 
-        BooleanSyncValue workingStateValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
-        BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
-
         IItemHandlerModifiable handler = importItems;
-        boolean hasGhostMould = hasGhostCircuitInventory() && this.moldInventory != null;
 
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
+                .child(createPlayerInventoryLogo(17))
                 .child(new Grid()
                         .top(18).height(rowSize * 18)
                         .minElementMargin(0, 0)
@@ -337,34 +333,33 @@ public class MetaTileEntityMoldItemBus extends MetaTileEntityMultiblockNotifiabl
                                                 gtHandler.onContentsChanged(index);
                                             }
                                         })
-                                        .accessibility(true, true))))
-                .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 4)
-                        .width(18).height(18 * 4 + 4)
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 4))
-                        .child(new ToggleButton()
-                                .top(18 * 2)
-                                .value(workingStateValue)
-                                .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
-                                .tooltipAutoUpdate(true)
-                                .tooltipBuilder(t -> t.addLine((workingStateValue.getBoolValue() ?
-                                        IKey.lang("gregtech.gui.item_auto_input.tooltip.enabled") :
-                                        IKey.lang("gregtech.gui.item_auto_input.tooltip.disabled")))))
-                        .child(new ToggleButton()
-                                .top(18)
-                                .value(collapseStateValue)
-                                .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
-                                .tooltipAutoUpdate(true)
-                                .tooltipBuilder(t -> t.addLine(collapseStateValue.getBoolValue() ?
-                                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
-                                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))))
-                        .childIf(hasGhostMould, new GhostMouldSlotWidget()
-                                .slot(moldInventory, 0)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.MOLD_OVERLAY))
-                        .childIf(!hasGhostMould, new Widget<>()
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                                .tooltip(t -> t.addLine(
-                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip")))));
+                                        .accessibility(true, true))));
+    }
+
+    @Override
+    protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
+        BooleanSyncValue workingValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
+        sidePanel.add(new ToggleButton()
+                .value(workingValue)
+                .overlay(GTGuiTextures.BUTTON_ITEM_OUTPUT)
+                .tooltipAutoUpdate(true)
+                .tooltipBuilder(t -> t.addLine(workingValue.getBoolValue() ?
+                        IKey.lang("gregtech.gui.item_auto_input.tooltip.enabled") :
+                        IKey.lang("gregtech.gui.item_auto_input.tooltip.disabled"))));
+        BooleanSyncValue collapseValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
+        sidePanel.add(new ToggleButton()
+                .value(collapseValue)
+                .overlay(GTGuiTextures.BUTTON_AUTO_COLLAPSE)
+                .tooltipAutoUpdate(true)
+                .tooltipBuilder(t -> t.addLine(collapseValue.getBoolValue() ?
+                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.enabled") :
+                        IKey.lang("gregtech.gui.item_auto_collapse.tooltip.disabled"))));
+        if (hasGhostCircuitInventory() && this.moldInventory != null) {
+            sidePanel.add(new GhostMouldSlotWidget()
+                    .slot(moldInventory, 0)
+                    .background(GTGuiTextures.SLOT, GTGuiTextures.MOLD_OVERLAY));
+        }
+        super.registerSidePanelButtons(sidePanel);
     }
 
     @Override

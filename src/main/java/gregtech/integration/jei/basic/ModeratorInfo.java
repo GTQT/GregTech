@@ -1,17 +1,18 @@
 package gregtech.integration.jei.basic;
 
+import gregtech.api.metatileentity.multiblock.nuclear.fission.IModeratorStats;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.ModeratorRegistry;
 
-import mezz.jei.api.ingredients.IIngredients;
-import mezz.jei.api.ingredients.VanillaTypes;
-import mezz.jei.api.recipe.IRecipeWrapper;
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.ResourceLocation;
-import gregtech.api.nuclear.fission.IModeratorStats;
-import gregtech.api.nuclear.fission.ModeratorRegistry;
+
+import mezz.jei.api.ingredients.IIngredients;
+import mezz.jei.api.ingredients.VanillaTypes;
+import mezz.jei.api.recipe.IRecipeWrapper;
 
 public class ModeratorInfo implements IRecipeWrapper {
 

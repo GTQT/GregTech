@@ -22,6 +22,7 @@ import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
 import gregtech.api.mui.widget.GhostCircuitSlotWidget;
+import gregtech.api.mui.widget.SidePanel;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.texture.Textures;
 import gregtech.client.renderer.texture.cube.SimpleOverlayRenderer;
@@ -53,13 +54,10 @@ import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.value.BoolValue;
 import com.cleanroommc.modularui.value.sync.BooleanSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
-import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
@@ -259,8 +257,8 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
         guiSyncManager.registerSlotGroup("item_inv", rowSize);
 
         int backgroundWidth = Math.max(
-                9 * 18 + 18 + 14 + 5,   // Player Inv width
-                (rowSize + 1) * 18 + 14); // Bus Inv width
+                9 * 18 + 14,            // Player Inv width
+                rowSize * 18 + 14); // Bus Inv width
         int backgroundHeight = 18 + 18 * rowSize + 94;
 
         List<List<IWidget>> widgets = new ArrayList<>();
@@ -288,55 +286,42 @@ public class MetaTileEntityComplexDualHatch extends MetaTileEntityMultiblockPart
             );
         }
 
-        BooleanSyncValue workingStateValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
-        guiSyncManager.syncValue("working_state", workingStateValue);
-        BooleanSyncValue collapseStateValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
-        guiSyncManager.syncValue("collapse_state", collapseStateValue);
-
-        boolean hasGhostCircuit = hasGhostCircuitInventory() && this.circuitInventory != null;
-
         return GTGuis.createPanel(this, backgroundWidth, backgroundHeight)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(SlotGroupWidget.playerInventory(false).left(7).bottom(7))
+                .child(createPlayerInventoryLogo(17))
                 .child(new Grid()
                         .top(18).height(rowSize * 18)
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
                         .leftRel(0.5f)
-                        .matrix(widgets))
+                        .matrix(widgets));
+    }
 
-                .child(Flow.column()
-                        .pos(backgroundWidth - 7 - 18, backgroundHeight - 18 * 4 - 7 - 4)
-                        .width(18).height(18 * 4 + 4)
-                        .child(GTGuiTextures.getLogo(getUITheme()).asWidget().size(17).top(18 * 3 + 4))
-                        .child(new ToggleButton()
-                                .top(18 * 2)
-                                .value(new BoolValue.Dynamic(workingStateValue::getBoolValue,
-                                        workingStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine((workingStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.complex_dual_auto_io.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.complex_dual_auto_io.tooltip.disabled")))
-                                ))
-
-                        .child(new ToggleButton()
-                                .top(18)
-                                .value(new BoolValue.Dynamic(collapseStateValue::getBoolValue,
-                                        collapseStateValue::setBoolValue))
-                                .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
-                                .tooltipBuilder(t -> t.setAutoUpdate(true)
-                                        .addLine(collapseStateValue.getBoolValue() ?
-                                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
-                                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))))
-                        .childIf(hasGhostCircuit, new GhostCircuitSlotWidget()
-                                .slot(circuitInventory, 0)
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY))
-                        .childIf(!hasGhostCircuit, new Widget<>()
-                                .background(GTGuiTextures.SLOT, GTGuiTextures.BUTTON_X)
-                                .tooltip(t -> t.addLine(
-                                        IKey.lang("gregtech.gui.configurator_slot.unavailable.tooltip"))))
-                );
+    @Override
+    protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
+        BooleanSyncValue workingValue = new BooleanSyncValue(() -> workingEnabled, val -> workingEnabled = val);
+        sidePanel.add(new ToggleButton()
+                .value(workingValue)
+                .overlay(GTGuiTextures.BUTTON_DUAL_OUTPUT)
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(workingValue.getBoolValue() ?
+                                IKey.lang("gregtech.gui.complex_dual_auto_io.tooltip.enabled") :
+                                IKey.lang("gregtech.gui.complex_dual_auto_io.tooltip.disabled"))));
+        BooleanSyncValue collapseValue = new BooleanSyncValue(() -> autoCollapse, val -> autoCollapse = val);
+        sidePanel.add(new ToggleButton()
+                .value(collapseValue)
+                .overlay(GTGuiTextures.BUTTON_DUAL_COLLAPSE)
+                .tooltipBuilder(t -> t.setAutoUpdate(true)
+                        .addLine(collapseValue.getBoolValue() ?
+                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.enabled") :
+                                IKey.lang("gregtech.gui.dual_auto_collapse.tooltip.disabled"))));
+        if (hasGhostCircuitInventory() && circuitInventory != null) {
+            sidePanel.add(new GhostCircuitSlotWidget()
+                    .slot(circuitInventory, 0)
+                    .background(GTGuiTextures.SLOT, GTGuiTextures.INT_CIRCUIT_OVERLAY));
+        }
+        super.registerSidePanelButtons(sidePanel);
     }
 
     @Override

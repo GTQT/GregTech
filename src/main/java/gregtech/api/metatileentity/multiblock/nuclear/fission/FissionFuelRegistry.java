@@ -1,10 +1,12 @@
-package gregtech.api.nuclear.fission;
+package gregtech.api.metatileentity.multiblock.nuclear.fission;
 
 import gregtech.api.unification.material.properties.IFissionFuelStats;
 import gregtech.api.util.ItemStackHashStrategy;
+
+import net.minecraft.item.ItemStack;
+
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenCustomHashMap;
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap;
-import net.minecraft.item.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 

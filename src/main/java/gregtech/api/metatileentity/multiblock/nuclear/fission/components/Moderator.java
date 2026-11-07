@@ -1,7 +1,8 @@
-package gregtech.api.nuclear.fission.components;
+package gregtech.api.metatileentity.multiblock.nuclear.fission.components;
+
+import gregtech.api.metatileentity.multiblock.nuclear.fission.IModeratorStats;
 
 import lombok.Getter;
-import gregtech.api.nuclear.fission.IModeratorStats;
 
 public class Moderator extends ReactorComponent {
     @Getter

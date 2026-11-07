@@ -1,9 +1,10 @@
-package gregtech.api.nuclear.fission.components;
+package gregtech.api.metatileentity.multiblock.nuclear.fission.components;
+
+import gregtech.api.capability.ICoolantHandler;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.ICoolantStats;
 
 import lombok.Getter;
 import lombok.Setter;
-import gregtech.api.capability.ICoolantHandler;
-import gregtech.api.nuclear.fission.ICoolantStats;
 
 public class CoolantChannel extends ReactorComponent {
 

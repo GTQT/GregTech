@@ -4,6 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.nuclear.ic.NuclearReactorSimulator;
 import gregtech.common.items.behaviors.nuclear.NuclearComponentBehavior;
 import gregtech.common.metatileentities.multi.electric.generator.nuclearReactor.MetaTileEntityNuclearReactor;
 
@@ -189,7 +190,7 @@ public class NuclearReactorInfoProvider implements IProbeInfoProvider {
     }
 
     private void addComponentStats(IProbeInfo pane, MetaTileEntityNuclearReactor controller) {
-        gregtech.api.nuclear.ic.NuclearReactorSimulator simulator = controller.getReactorSimulator();
+        NuclearReactorSimulator simulator = controller.getReactorSimulator();
         int fuelRods = simulator.getTotalFuelRods();
         int heatVents = simulator.getTotalHeatVents();
         int coolantCells = simulator.getTotalCoolantCells();

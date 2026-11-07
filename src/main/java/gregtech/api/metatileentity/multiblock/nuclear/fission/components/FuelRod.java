@@ -1,9 +1,11 @@
-package gregtech.api.nuclear.fission.components;
+package gregtech.api.metatileentity.multiblock.nuclear.fission.components;
 
 import gregtech.api.unification.material.properties.IFissionFuelStats;
+
+import net.minecraft.item.ItemStack;
+
 import lombok.Getter;
 import lombok.Setter;
-import net.minecraft.item.ItemStack;
 
 public class FuelRod extends ReactorComponent {
 

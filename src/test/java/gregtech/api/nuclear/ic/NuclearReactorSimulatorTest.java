@@ -1,5 +1,6 @@
 package gregtech.api.nuclear.ic;
 
+import gregtech.api.metatileentity.multiblock.nuclear.ic.NuclearReactorSimulator;
 import gregtech.common.items.behaviors.nuclear.ReactorPlatingBehavior;
 
 import net.minecraft.init.Bootstrap;

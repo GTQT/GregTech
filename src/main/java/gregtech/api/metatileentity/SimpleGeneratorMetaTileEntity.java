@@ -7,7 +7,6 @@ import gregtech.api.capability.impl.FluidTankList;
 import gregtech.api.capability.impl.FuelRecipeLogic;
 import gregtech.api.capability.impl.RecipeLogicEnergy;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
-import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
@@ -31,7 +30,6 @@ import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widget.Widget;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -147,17 +145,9 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
                         .setInputs(importItems, importFluids)
                         .setOutputs(exportItems, exportFluids)
                         .inventorySlotGroups()
-                        .progressWidget(workable::getProgressPercent)
-                        .extraWidgets((panel1, yoffset) -> {
-                            if (exportItems.getSlots() + exportFluids.getTanks() <= 9) {
-                                panel1.child(new Widget<>()
-                                        .size(17)
-                                        .right(7)
-                                        .top(45 + yoffset)
-                                        .background(GTGuiTextures.getLogo(getUITheme())));
-                            }
-                        }))
+                        .progressWidget(workable::getProgressPercent))
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
+                .child(createPlayerInventoryLogo(17))
                 .bindPlayerInventory();
     }
 

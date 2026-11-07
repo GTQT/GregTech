@@ -2,7 +2,7 @@ package gregtech.api.fluids;
 
 import gregtech.api.GTValues;
 import gregtech.api.GregTechAPI;
-import gregtech.api.nuclear.fission.CoolantRegistry;
+import gregtech.api.metatileentity.multiblock.nuclear.fission.CoolantRegistry;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.properties.CoolantProperty;
 import gregtech.api.unification.material.properties.FluidProperty;
