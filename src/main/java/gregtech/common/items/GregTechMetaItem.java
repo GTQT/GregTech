@@ -90,6 +90,7 @@ import gregtech.common.items.behaviors.nuclear.ReactorHeatExchangerBehavior;
 import gregtech.common.items.behaviors.nuclear.ReactorPlatingBehavior;
 import gregtech.common.items.behaviors.spray.CreativeSprayBehavior;
 import gregtech.common.items.behaviors.spray.DurabilitySprayBehavior;
+import gregtech.common.items.behaviors.trolley.TrolleyBehaviour;
 import gregtech.core.sound.GTSoundEvents;
 
 import net.minecraft.block.state.IBlockState;
@@ -1633,6 +1634,12 @@ public final class GregTechMetaItem extends StandardMetaItem {
                 .addComponents(new CoverCopyPasteBehavior(),
                         ElectricStats.createElectricItem(400_000L, GTValues.MV));
 
+        TOOL_TROLLEY = addItem(1013, "tool.trolley")
+                .setMaxStackSize(1)
+                .setModelAmount(2)
+                .setCreativeTabs(GTCreativeTabs.TAB_GREGTECH_TOOLS)
+                .addComponents(new TrolleyBehaviour());
+
         UPGRADE_KIT_FUSE = addItem(1020, "upgrade.fuse")
                 .addComponents(new UpgradeKitBehavior(UpgradeKitType.FUSE))
                 .setMaxStackSize(1);
@@ -1640,6 +1647,8 @@ public final class GregTechMetaItem extends StandardMetaItem {
         UPGRADE_KIT_BACKUP_CAPACITOR = addItem(1021, "upgrade.backup_capacitor")
                 .addComponents(new UpgradeKitBehavior(UpgradeKitType.BACKUP_CAPACITOR))
                 .setMaxStackSize(1);
+
+
 
 
         registerWirelessCoverInput(1100);

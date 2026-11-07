@@ -1538,6 +1538,19 @@ gregtech.tooltip.waterproof_spray_can.offhand=放置机器时手持于副手：�
 gregtech.tooltip.waterproof_spray_can.uses=剩余使用次数：§e%,d
 gregtech.top.waterproof=防水
 
+metaitem.tool.trolley.name=手推车
+metaitem.tool.trolley.empty=§7空
+metaitem.tool.trolley.loaded=§7已装载：§f%s
+metaitem.tool.trolley.tooltip=§7潜行右键 GT 机器可搬起，右键方块可放下
+gregtech.message.trolley.already_loaded=手推车已装载机器
+gregtech.message.trolley.multiblock_denied=多方块控制器与多方块部件无法被搬起
+gregtech.message.trolley.picked_up=已搬起机器
+gregtech.message.trolley.placed=已放下机器
+gregtech.message.trolley.corrupted=手推车里的机器数据已损坏，已清空
+gregtech.message.trolley.unknown_machine=未知机器：%s
+gregtech.message.trolley.no_space=目标位置无法放置机器
+gregtech.message.trolley.failed=机器恢复失败
+
 metaitem.stellar_fuel.name=恒星燃料
 metaitem.stellar_fuel.tooltip=§5浓缩恒星点火催化剂
 metaitem.stellar_fuel.tooltip2=§7用于启动诸神之锻炉

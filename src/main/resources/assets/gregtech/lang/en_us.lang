@@ -1543,6 +1543,19 @@ gregtech.tooltip.waterproof_spray_can.offhand=Hold in offhand while placing a ma
 gregtech.tooltip.waterproof_spray_can.uses=Remaining uses: §e%,d
 gregtech.top.waterproof=Waterproof
 
+metaitem.tool.trolley.name=Trolley
+metaitem.tool.trolley.empty=§7Empty
+metaitem.tool.trolley.loaded=§7Loaded: §f%s
+metaitem.tool.trolley.tooltip=§7Sneak + right-click a GT machine to pick it up, right-click a block to put it back
+gregtech.message.trolley.already_loaded=The trolley already carries a machine
+gregtech.message.trolley.multiblock_denied=Multiblock controllers and multiblock parts cannot be picked up
+gregtech.message.trolley.picked_up=Machine picked up
+gregtech.message.trolley.placed=Machine placed
+gregtech.message.trolley.corrupted=The stored machine data was corrupt and has been cleared
+gregtech.message.trolley.unknown_machine=Unknown machine: %s
+gregtech.message.trolley.no_space=There is no room to place the machine there
+gregtech.message.trolley.failed=Failed to restore the machine
+
 metaitem.stellar_fuel.name=Stellar Fuel
 metaitem.stellar_fuel.tooltip=§5Condensed stellar ignition catalyst
 metaitem.stellar_fuel.tooltip2=§7Used to start the Forge of the Gods
