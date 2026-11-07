@@ -191,6 +191,11 @@ public class OreDepositBuilder extends DepositBuilder<OreDepositBuilder, OreDepo
         return ignoreBedrockFill(FillerEntry.createSimpleFiller(state));
     }
 
+    /** 原版石头球填充：只替换天然石头（对应原版 {@code WorldGenMinable.StonePredicate}），不动空气/水/基岩 */
+    public OreDepositBuilder vanillaStoneSphereFill(IBlockState blockState) {
+        return ignoreBedrockFill(FillerEntry.createNaturalStoneFiller(blockState));
+    }
+
     /** 流体填充（raw_oil_sphere 用） */
     public OreDepositBuilder fluidFill(Fluid fluid) {
         return ignoreBedrockFill(FillerEntry.createSimpleFiller(fluid.getBlock().getDefaultState()));
