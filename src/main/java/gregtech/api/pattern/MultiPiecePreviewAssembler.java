@@ -2,6 +2,7 @@ package gregtech.api.pattern;
 
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.util.BlockInfo;
@@ -75,12 +76,41 @@ public final class MultiPiecePreviewAssembler {
                                   @Nullable MultiblockControllerBase controller,
                                   int forcedToolingPieceIndex,
                                   boolean cumulativeToolingPieceSelection) {
+        return assemble(pattern, runtimes, channelValues, controller, forcedToolingPieceIndex,
+                cumulativeToolingPieceSelection, CANONICAL_PREVIEW_ORIENTATION, true);
+    }
+
+    /**
+     * Assembles the preview in the supplied orientation. World-opened previews pass the controller's real
+     * orientation so that the preview and the eventual build both match the block the player right-clicked.
+     */
+    @NotNull
+    public static Result assemble(@NotNull MultiPiecePattern pattern,
+                                  @NotNull PieceRuntimes runtimes,
+                                  @Nullable Map<String, Integer> channelValues,
+                                  @Nullable MultiblockControllerBase controller,
+                                  int forcedToolingPieceIndex,
+                                  boolean cumulativeToolingPieceSelection,
+                                  @NotNull StructureOrientation orientation) {
+        return assemble(pattern, runtimes, channelValues, controller, forcedToolingPieceIndex,
+                cumulativeToolingPieceSelection, orientation, false);
+    }
+
+    @NotNull
+    private static Result assemble(@NotNull MultiPiecePattern pattern,
+                                   @NotNull PieceRuntimes runtimes,
+                                   @Nullable Map<String, Integer> channelValues,
+                                   @Nullable MultiblockControllerBase controller,
+                                   int forcedToolingPieceIndex,
+                                   boolean cumulativeToolingPieceSelection,
+                                   @NotNull StructureOrientation orientation,
+                                   boolean useControllerPreviewFacing) {
         Map<BlockPos, BlockInfo> allBlocks = new HashMap<>();
         Map<BlockPos, StructureElementPreviewEntry> allPreviewEntries = new HashMap<>();
         Map<String, int[]> pieceRepeats = new HashMap<>();
         Map<String, BlockPos> pieceCenters = new HashMap<>();
         List<PieceResult> pieceResults = new ArrayList<>();
-        AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
+        AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker(channelValues);
         int toolingPieceIndex = 0;
 
         for (StructurePiece piece : pattern.getPieceList()) {
@@ -112,7 +142,7 @@ public final class MultiPiecePreviewAssembler {
                 continue;
             }
             BlockPos pieceCenter = piece.getCenterPos(
-                    BlockPos.ORIGIN, CANONICAL_PREVIEW_ORIENTATION, prior);
+                    BlockPos.ORIGIN, orientation, prior);
             PieceTemplate template = piece.getTemplate();
             int[] internalRepetitions = resolveInternalRepetitions(template, channelValues);
             int[] externalRepetitions = resolveExternalRepetitions(piece, channelValues);
@@ -126,14 +156,14 @@ public final class MultiPiecePreviewAssembler {
             }
 
             PieceRuntimeState.PreviewCells preview = runtime.getState().createPreviewCells(
-                    internalRepetitions, channelValues, CANONICAL_PREVIEW_ORIENTATION, null);
+                    internalRepetitions, channelValues, orientation, null);
             Map<BlockPos, BlockInfo> pieceBlocks = new HashMap<>();
             forEachExternalRepeat(piece, externalRepetitions, localShift -> {
                 BlockPos canonicalShift = RelativeDirection.setActualRelativeOffset(
                         localShift.getX(), localShift.getY(), localShift.getZ(),
-                        CANONICAL_PREVIEW_ORIENTATION.getStructureFront(),
-                        CANONICAL_PREVIEW_ORIENTATION.getUp(),
-                        CANONICAL_PREVIEW_ORIENTATION.isFlipped(),
+                        orientation.getStructureFront(),
+                        orientation.getUp(),
+                        orientation.isFlipped(),
                         template.getStructureDir());
 
                 for (Map.Entry<BlockPos, BlockInfo> entry : preview.getBlocks().entrySet()) {
@@ -181,7 +211,7 @@ public final class MultiPiecePreviewAssembler {
             pieceCenters.put(piece.getName(), pieceCenter);
         }
 
-        orientPreviewMetaTileEntities(allBlocks, controller);
+        orientPreviewMetaTileEntities(allBlocks, controller, orientation, useControllerPreviewFacing);
 
         NormalizedShape combined = normalize(allBlocks);
         Map<BlockPos, StructureElementPreviewEntry> normalizedPreviewEntries = new HashMap<>();
@@ -215,8 +245,34 @@ public final class MultiPiecePreviewAssembler {
                                                               @Nullable MultiblockControllerBase controller,
                                                               int forcedToolingPieceIndex,
                                                               boolean cumulativeToolingPieceSelection) {
+        return beginIncrementalPreview(pattern, runtimes, channelValues, controller, forcedToolingPieceIndex,
+                cumulativeToolingPieceSelection, CANONICAL_PREVIEW_ORIENTATION, true);
+    }
+
+    @NotNull
+    public static IncrementalPreview beginIncrementalPreview(@NotNull MultiPiecePattern pattern,
+                                                              @NotNull PieceRuntimes runtimes,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                              @Nullable MultiblockControllerBase controller,
+                                                              int forcedToolingPieceIndex,
+                                                              boolean cumulativeToolingPieceSelection,
+                                                              @NotNull StructureOrientation orientation) {
+        return beginIncrementalPreview(pattern, runtimes, channelValues, controller, forcedToolingPieceIndex,
+                cumulativeToolingPieceSelection, orientation, false);
+    }
+
+    @NotNull
+    private static IncrementalPreview beginIncrementalPreview(@NotNull MultiPiecePattern pattern,
+                                                              @NotNull PieceRuntimes runtimes,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                              @Nullable MultiblockControllerBase controller,
+                                                              int forcedToolingPieceIndex,
+                                                              boolean cumulativeToolingPieceSelection,
+                                                              @NotNull StructureOrientation orientation,
+                                                              boolean useControllerPreviewFacing) {
         return new IncrementalPreview(pattern, runtimes, channelValues, controller,
-                forcedToolingPieceIndex, cumulativeToolingPieceSelection);
+                forcedToolingPieceIndex, cumulativeToolingPieceSelection, orientation,
+                useControllerPreviewFacing);
     }
 
     /**
@@ -236,6 +292,9 @@ public final class MultiPiecePreviewAssembler {
         private final MultiblockControllerBase controller;
         private final int forcedToolingPieceIndex;
         private final boolean cumulativeToolingPieceSelection;
+        @NotNull
+        private final StructureOrientation orientation;
+        private final boolean useControllerPreviewFacing;
         @NotNull
         private final Map<BlockPos, BlockInfo> blocks = new HashMap<>();
         @NotNull
@@ -259,14 +318,18 @@ public final class MultiPiecePreviewAssembler {
                                    @Nullable Map<String, Integer> channelValues,
                                    @Nullable MultiblockControllerBase controller,
                                    int forcedToolingPieceIndex,
-                                   boolean cumulativeToolingPieceSelection) {
+                                   boolean cumulativeToolingPieceSelection,
+                                   @NotNull StructureOrientation orientation,
+                                   boolean useControllerPreviewFacing) {
             this.pattern = pattern;
             this.runtimes = runtimes;
             this.channelValues = channelValues == null ? null : new HashMap<>(channelValues);
             this.controller = controller;
             this.forcedToolingPieceIndex = forcedToolingPieceIndex;
             this.cumulativeToolingPieceSelection = cumulativeToolingPieceSelection;
-            this.abilityTracker = pattern.createAbilityPlacementTracker();
+            this.orientation = orientation;
+            this.useControllerPreviewFacing = useControllerPreviewFacing;
+            this.abilityTracker = pattern.createAbilityPlacementTracker(this.channelValues);
         }
 
         /**
@@ -345,6 +408,30 @@ public final class MultiPiecePreviewAssembler {
             return Collections.unmodifiableMap(previewEntries);
         }
 
+        /**
+         * @return immutable ability counts captured by the same tracker that chose
+         * the preview hatches; used by the configuration/tally UI.
+         */
+        @NotNull
+        public Map<MultiblockAbility<?>, Integer> getAbilityCounts() {
+            requireComplete();
+            return abilityTracker.getAbilityCounts();
+        }
+
+        /**
+         * @return immutable group counts keyed by each group's display ability; group
+         * limits track counts separately from concrete ability limits.
+         */
+        @NotNull
+        public Map<MultiblockAbility<?>, Integer> getAbilityGroupCounts() {
+            requireComplete();
+            Map<MultiblockAbility<?>, Integer> grouped = new HashMap<>();
+            for (Map.Entry<AbilityGroupLimit, Integer> entry : abilityTracker.getGroupCounts().entrySet()) {
+                grouped.merge(entry.getKey().getDisplayAbility(), entry.getValue(), Integer::sum);
+            }
+            return Collections.unmodifiableMap(grouped);
+        }
+
         private void startNextPiece() {
             List<StructurePiece> pieces = pattern.getPieceList();
             while (nextPieceIndex < pieces.size()) {
@@ -374,7 +461,7 @@ public final class MultiPiecePreviewAssembler {
                 }
 
                 BlockPos pieceCenter = piece.getCenterPos(
-                        BlockPos.ORIGIN, CANONICAL_PREVIEW_ORIENTATION, prior);
+                        BlockPos.ORIGIN, orientation, prior);
                 PieceTemplate template = piece.getTemplate();
                 int[] internalRepetitions = resolveInternalRepetitions(template, channelValues);
                 int[] externalRepetitions = resolveExternalRepetitions(piece, channelValues);
@@ -394,7 +481,7 @@ public final class MultiPiecePreviewAssembler {
                     continue;
                 }
                 PieceRuntimeState.PreviewCellTask cellTask = runtime.getState().createPreviewCellTask(
-                        internalRepetitions, channelValues, CANONICAL_PREVIEW_ORIENTATION);
+                        internalRepetitions, channelValues, orientation);
                 long work = cellTask.getTotalCellCount() * shifts.size();
                 totalKnownWork += work;
                 activePiece = new ActivePiece(piece, pieceCenter, internalRepetitions,
@@ -402,7 +489,7 @@ public final class MultiPiecePreviewAssembler {
                 return;
             }
 
-            orientPreviewMetaTileEntities(blocks, controller);
+            orientPreviewMetaTileEntities(blocks, controller, orientation, useControllerPreviewFacing);
             normalizePreviewCoordinates();
             complete = true;
         }
@@ -454,9 +541,9 @@ public final class MultiPiecePreviewAssembler {
             forEachExternalRepeat(piece, externalRepetitions, localShift -> shifts.add(
                     RelativeDirection.setActualRelativeOffset(
                             localShift.getX(), localShift.getY(), localShift.getZ(),
-                            CANONICAL_PREVIEW_ORIENTATION.getStructureFront(),
-                            CANONICAL_PREVIEW_ORIENTATION.getUp(),
-                            CANONICAL_PREVIEW_ORIENTATION.isFlipped(), template.getStructureDir())));
+                            orientation.getStructureFront(),
+                            orientation.getUp(),
+                            orientation.isFlipped(), template.getStructureDir())));
             return shifts;
         }
 
@@ -533,7 +620,8 @@ public final class MultiPiecePreviewAssembler {
                                 @NotNull PieceRuntimeState.PreviewCellTask cellTask) {
                 this.piece = piece;
                 this.pieceCenter = pieceCenter;
-                this.previewCenter = calculatePreviewCenter(piece.getTemplate(), internalRepetitions);
+                this.previewCenter = calculatePreviewCenter(piece.getTemplate(), internalRepetitions,
+                        orientation);
                 this.internalRepetitions = internalRepetitions;
                 this.externalRepetitions = externalRepetitions;
                 this.canonicalShifts = canonicalShifts;
@@ -610,7 +698,8 @@ public final class MultiPiecePreviewAssembler {
 
     @NotNull
     private static BlockPos calculatePreviewCenter(@NotNull PieceTemplate template,
-                                                   @NotNull int[] repetitions) {
+                                                   @NotNull int[] repetitions,
+                                                   @NotNull StructureOrientation orientation) {
         PieceTemplate.CenterOffset centerOffset = template.getCenterOffset();
         int finger = -centerOffset.maxZ();
         for (int i = 0; i < centerOffset.z() && i < repetitions.length; i++) {
@@ -618,13 +707,15 @@ public final class MultiPiecePreviewAssembler {
         }
         return RelativeDirection.setActualRelativeOffset(
                 0, 0, finger,
-                CANONICAL_PREVIEW_ORIENTATION.getStructureFront(),
-                CANONICAL_PREVIEW_ORIENTATION.getUp(),
-                CANONICAL_PREVIEW_ORIENTATION.isFlipped(), template.getStructureDir());
+                orientation.getStructureFront(),
+                orientation.getUp(),
+                orientation.isFlipped(), template.getStructureDir());
     }
 
     private static void orientPreviewMetaTileEntities(@NotNull Map<BlockPos, BlockInfo> blocks,
-                                                      @Nullable MultiblockControllerBase controller) {
+                                                      @Nullable MultiblockControllerBase controller,
+                                                      @NotNull StructureOrientation orientation,
+                                                      boolean useControllerPreviewFacing) {
         PreviewFacingResolver.orientExteriorFacingMetaTileEntities(blocks);
 
         // Controller facings come from their explicit declaration. Do not infer
@@ -639,9 +730,9 @@ public final class MultiPiecePreviewAssembler {
                     !metaTileEntity.metaTileEntityId.equals(controller.metaTileEntityId)) {
                 return;
             }
-            EnumFacing previewFacing = controller.getWorld() == null
-                    ? controller.getPreviewFrontFacing()
-                    : controller.getFrontFacing();
+            EnumFacing previewFacing = useControllerPreviewFacing
+                    ? (controller.getWorld() == null ? controller.getPreviewFrontFacing() : controller.getFrontFacing())
+                    : orientation.getFront();
             if (metaTileEntity.isValidFrontFacing(previewFacing)) {
                 metaTileEntity.setFrontFacing(previewFacing);
             }

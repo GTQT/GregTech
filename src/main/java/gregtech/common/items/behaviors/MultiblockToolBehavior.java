@@ -1,6 +1,5 @@
 package gregtech.common.items.behaviors;
 
-import gregtech.api.items.gui.ItemUIFactory;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
 import gregtech.api.util.GTUtility;
 import gregtech.common.items.MetaItems;
@@ -23,16 +22,12 @@ import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
-import com.cleanroommc.modularui.factory.HandGuiData;
-import com.cleanroommc.modularui.screen.ModularPanel;
-import com.cleanroommc.modularui.screen.UISettings;
-import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 /** One item component dispatching preview/build, removal and transactional movement modes. */
-public final class MultiblockToolBehavior implements IItemBehaviour, ItemUIFactory {
+public final class MultiblockToolBehavior implements IItemBehaviour {
 
     private final MultiblockBuilderBehavior projector = new MultiblockBuilderBehavior();
     private final MultiblockRemovalBehavior remover = new MultiblockRemovalBehavior();
@@ -88,12 +83,6 @@ public final class MultiblockToolBehavior implements IItemBehaviour, ItemUIFacto
             default:
                 projector.addInformation(stack, lines);
         }
-    }
-
-    @Override
-    public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager,
-                                UISettings settings) {
-        return projector.buildUI(guiData, guiSyncManager, settings);
     }
 
     /** 参与模式切换与搬运系统的物品：通用工具与独立的移动器。 */

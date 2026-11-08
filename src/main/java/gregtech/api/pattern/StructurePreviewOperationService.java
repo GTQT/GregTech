@@ -33,7 +33,7 @@ final class StructurePreviewOperationService {
         }
         AbilityPlacementTracker abilityTracker = request.getAbilityTracker();
         if (abilityTracker == null) {
-            abilityTracker = runtimeView.pattern.createAbilityPlacementTracker();
+            abilityTracker = runtimeView.pattern.createAbilityPlacementTracker(request.getChannelValues());
         }
         return StructurePreviewResult.single(runtime.getState().createPreviewCells(
                 request.requireRepetitions(), request.getChannelValues(), abilityTracker))

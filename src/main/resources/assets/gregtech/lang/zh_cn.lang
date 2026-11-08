@@ -1458,7 +1458,7 @@ metaitem.tool.multiblock_builder.tooltip=建造你的多方块结构！
 gregtech.tool.multiblock_builder.compare_on=§a对比模式：开启
 gregtech.tool.multiblock_builder.no_hatch_on=§c禁止放置舱室：开启
 gregtech.tool.multiblock_builder.channels_set=§e信道配置：%s个
-gregtech.tool.multiblock_builder.channel_config_hint=§8右键控制器自动填入支持的信道，右键空气打开GUI配置
+gregtech.tool.multiblock_builder.channel_config_hint=§8右键多方块控制器：打开结构预览与建造配置
 gregtech.tool.multiblock_builder.gui_title=多方块投影仪配置
 gregtech.tool.multiblock_builder.compare_tooltip=切换对比模式（高亮缺失/错误方块）
 gregtech.tool.multiblock_builder.no_hatch_tooltip=切换禁止放置舱室模式（自动建造时不放置任何舱室）
@@ -1466,6 +1466,10 @@ gregtech.tool.multiblock_builder.clear=清空信道
 gregtech.tool.multiblock_builder.structure_height=高度
 gregtech.tool.multiblock_builder.structure_width=宽度
 gregtech.tool.multiblock_builder.structure_length=长度
+gregtech.tool.multiblock_builder.compare=对比模式
+gregtech.tool.multiblock_builder.no_hatch=禁止舱室
+gregtech.tool.multiblock_builder.channels=信道
+gregtech.tool.multiblock_builder.done=完成
 
 metaitem.tool.multiblock_remover.name=多方块拆除器
 metaitem.tool.multiblock_remover.tooltip=潜行右键拆除多方块结构；直接右键查看结构诊断报告
@@ -9129,6 +9133,9 @@ gregtech.multiblock.preview.fullscreen.size=尺寸 %sx%sx%s
 gregtech.multiblock.preview.fullscreen.parts=部件 %s
 gregtech.multiblock.preview.fullscreen.esc=ESC 折叠
 gregtech.multiblock.preview.fullscreen.loading=正在生成结构预览
+gregtech.multiblock.preview.fullscreen.loading_failed=结构预览生成失败：%s
+gregtech.multiblock.preview.config=结构组合配置
+gregtech.multiblock.preview.config_root=结构与尺寸
 gregtech.multiblock.preview.fullscreen.materials=所需材料
 gregtech.multiblock.preview.fullscreen.alternatives=替代方块
 gregtech.multiblock.preview.fullscreen.no_alternatives=该方块没有可选替代品
@@ -9140,6 +9147,44 @@ gregtech.multiblock.preview.fullscreen.layer_tip=切换显示层（全显 / 单�
 gregtech.multiblock.preview.fullscreen.hint_select=右键点击方块可查看替代品
 gregtech.multiblock.preview.fullscreen.selected=已选中方块 %s, %s, %s
 gregtech.multiblock.preview.fullscreen.hint=左键拖拽旋转 | 右键拖拽平移 | 滚轮缩放 | 右键点击方块查看替代品 | ESC 折叠
+gregtech.multiblock.preview.fullscreen.title=结构预览：%s
+gregtech.multiblock.preview.fullscreen.candidates=此处可放置
+gregtech.multiblock.preview.fullscreen.single_candidate=仅可使用该种方法
+gregtech.multiblock.preview.fullscreen.layer_all=全部
+gregtech.multiblock.preview.fullscreen.layer_n=第 %s 层
+gregtech.multiblock.preview.fullscreen.config=结构组合配置
+gregtech.multiblock.preview.fullscreen.config_root=主体结构
+gregtech.multiblock.preview.fullscreen.config_empty=该结构没有分段构件
+gregtech.multiblock.preview.fullscreen.config_hint=点击行可预览累计分段
+gregtech.multiblock.build_wizard.open=建造配置
+gregtech.multiblock.preview.actions.project=在世界中投影
+gregtech.multiblock.build_wizard.title=结构建造配置：%s
+gregtech.multiblock.build_wizard.blocks=结构方块
+gregtech.multiblock.build_wizard.ability_counts=仓室安装数量
+gregtech.multiblock.build_wizard.no_ability_counts=没有可调整的仓室数量
+gregtech.multiblock.build_wizard.roles=主体结构
+gregtech.multiblock.build_wizard.no_roles=该结构没有主体结构要求
+gregtech.multiblock.build_wizard.role_many=%s等%s种
+gregtech.multiblock.build_wizard.select=数量
+gregtech.multiblock.build_wizard.ability_range=允许 %s 到 %s
+gregtech.multiblock.build_wizard.missing_items=缺少材料
+gregtech.multiblock.build_wizard.structure=结构分段
+gregtech.multiblock.build_wizard.no_parts=无可用方块清单
+gregtech.multiblock.build_wizard.no_pieces=该结构没有分段构件
+gregtech.multiblock.build_wizard.optional=可选
+gregtech.multiblock.build_wizard.required=必需
+gregtech.multiblock.build_wizard.back=上一步
+gregtech.multiblock.build_wizard.build=建造
+gregtech.multiblock.build_wizard.building=建造中...
+gregtech.multiblock.build_wizard.missing=缺少 %s 种材料
+gregtech.multiblock.build_wizard.build_done=已放置 %s 个方块
+gregtech.multiblock.build_wizard.build_handled=控制器已接管建造
+gregtech.multiblock.build_wizard.build_missing=建造完成，缺少 %s 种材料
+gregtech.multiblock.build_wizard.nothing_to_build=没有需要建造的方块
+gregtech.multiblock.preview.fullscreen.summary=尺寸 %s×%s×%s · 共 %s 个方块
+gregtech.multiblock.preview.fullscreen.display_layer=显示层
+gregtech.multiblock.preview.fullscreen.ability_counts=仓室安装数量
+gregtech.multiblock.preview.fullscreen.ability_counts.tooltip=可调整的最大安装数量；该结构允许 %s 到 %s。
 
 gregtech.multiblock.pattern.error_message_header=潜在的结构错误：
 gregtech.multiblock.pattern.no_errors=没有发现结构错误！
@@ -9185,7 +9230,7 @@ gregtech.multiblock.pattern.failure.reason.limited.2=每层最多允许 %1$s 个
 gregtech.multiblock.pattern.failure.reason.limited.3=每层至少需要 %1$s 个
 gregtech.multiblock.pattern.failure.no_trace=控制器尚未记录失败详情：请等待其自动复检，或破坏/放回任意结构方块后重试
 gregtech.multiblock.pattern.failure.advice=修正该位置后等待控制器自动复检（破坏或放置任意结构方块可立即触发），再右键控制器即可查看最新结果
-gregtech.multiblock.pattern.failure.advice.build=Shift+右键控制器可尝试自动建造；结构尺寸与舱室限制可在投影仪GUI中调整。
+gregtech.multiblock.pattern.failure.advice.build=Shift+右键控制器检查结构错误；右键控制器打开结构预览与建造配置。
 gregtech.multiblock.pattern.failure.advice.basic_build=Shift+右键控制器可尝试自动建造（使用结构默认通道）。
 gregtech.multiblock.pattern.clear_amount_1=§6前方必须有1x1x1大小的空间§r
 gregtech.multiblock.pattern.clear_amount_3=§6前方必须有3x3x1大小的空间§r
@@ -10367,3 +10412,42 @@ gregtech.structure_channel.structure_piece=结构片段
 gregtech.casing_group.heating_coil=加热线圈
 gregtech.casing_group.machine_casing=机器外壳
 gregtech.casing_group.borosilicate_glass=硼玻璃
+
+# Multiblock Window Tabs
+gregtech.multiblock.tab.info=信息
+gregtech.multiblock.tab.parts=仓室
+gregtech.multiblock.tab.parts.empty=未连接任何仓室
+gregtech.multiblock.tab.preview=朝向预览
+gregtech.multiblock.tab.preview.unavailable=当前无法显示朝向预览
+
+# Multiblock Part Side Panel
+gregtech.mui.multiblock_part.open_controller=打开控制器
+
+# Machine Window Tabs
+gregtech.mui.mte.tab.machine=机器
+gregtech.mui.mte.tab.covers=覆盖板
+gregtech.mui.mte.tab.preview=朝向预览
+
+# Cover Index
+gregtech.mui.side.down=底面
+gregtech.mui.side.up=顶面
+gregtech.mui.side.north=北面
+gregtech.mui.side.south=南面
+gregtech.mui.side.west=西面
+gregtech.mui.side.east=东面
+gregtech.mui.cover.no_ui=无独立界面
+gregtech.mui.cover.open_host=返回宿主
+
+# Machine Side Preview
+gregtech.mui.machine_side.front=前
+gregtech.mui.machine_side.back=后
+gregtech.mui.machine_side.left=左
+gregtech.mui.machine_side.right=右
+gregtech.mui.machine_side.top=上
+gregtech.mui.machine_side.bottom=下
+gregtech.mui.machine_side.set_front=设为正面
+gregtech.mui.machine_side.set_items=设为物品输出口
+gregtech.mui.machine_side.set_fluids=设为流体输出口
+gregtech.mui.machine_side.is_front=当前正面
+gregtech.mui.machine_side.is_items=当前物品输出面
+gregtech.mui.machine_side.is_fluids=当前流体输出面

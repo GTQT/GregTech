@@ -2,7 +2,6 @@ package gregtech.common.covers;
 
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
-import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.mui.GTGuis;
@@ -22,15 +21,12 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
-import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
-import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.layout.Grid;
 import com.cleanroommc.modularui.widgets.slot.ItemSlot;
 import com.cleanroommc.modularui.widgets.slot.ModularSlot;
@@ -39,7 +35,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CoverStorage extends CoverBase implements CoverWithUI, CoverWithLeisureUI {
+public class CoverStorage extends CoverBase implements CoverWithUI {
 
     private final ItemStackHandler storageHandler;
     int inventorySize;
@@ -113,65 +109,6 @@ public class CoverStorage extends CoverBase implements CoverWithUI, CoverWithLei
                         .minElementMargin(0, 0)
                         .minColWidth(18).minRowHeight(18)
                         .matrix(widgets));
-    }
-
-    @Override
-    public IWidget initUILeisure(GuiData guiData, PanelSyncManager guiSyncManager, int index) {
-        var componentPanel = guiSyncManager.syncedPanel("component_panel" + index, true,
-                (syncManager, syncHandler) -> makeComponentPanel(syncManager, syncHandler, index));
-        // 返回按钮
-        return new ButtonWidget<>()
-                .size(18, 18)
-                .overlay(new com.cleanroommc.modularui.drawable.ItemDrawable(
-                        new net.minecraft.item.ItemStack(net.minecraft.init.Blocks.CHEST)))
-                .addTooltipLine(IKey.str("存储覆盖板") + " 方位：" + EnumFacing.byIndex(index).getName())
-                .onMousePressed(i -> {
-                    if (componentPanel.isPanelOpen()) {
-                        componentPanel.closePanel();
-                    } else {
-                        componentPanel.openPanel();
-                    }
-                    return true;
-                });
-    }
-
-    private ModularPanel makeComponentPanel(PanelSyncManager syncManager, IPanelHandler syncHandler, int index) {
-        // 计算行数（假设每个存储有9列）
-        int rows = inventorySize / 9;
-
-        // 注册槽位组
-        syncManager.registerSlotGroup("storage_slots" + index, 9);
-
-        // 创建槽位网格
-        List<List<IWidget>> slotRows = new ArrayList<>();
-
-        for (int row = 0; row < rows; row++) {
-            List<IWidget> rowSlots = new ArrayList<>();
-            for (int col = 0; col < 9; col++) {
-                int slotIndex = row * 9 + col;
-                rowSlots.add(
-                        new ItemSlot()
-                                .slot(new ModularSlot(storageHandler, slotIndex)
-                                        .slotGroup("storage_slots" + index))
-                                .size(18, 18)
-                );
-            }
-            slotRows.add(rowSlots);
-        }
-
-        // 创建并返回面板
-        return GTGuis.createPopupPanel("leisure_slot" + index, 9 * 18 + 14, rows * 18 + 30)
-                .child(IKey.lang("cover.storage.title").asWidget().pos(5, 5))
-                .child(new Grid()
-                        .top(20)
-                        .left(7)
-                        .right(7)
-                        .height(rows * 18)
-                        .minElementMargin(0, 0)
-                        .minColWidth(18)
-                        .minRowHeight(18)
-                        .matrix(slotRows)
-                );
     }
 
     @Override

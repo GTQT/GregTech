@@ -1,8 +1,8 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.StructureBuildResult;
 import gregtech.api.pattern.StructureCheckResult;
 import gregtech.api.pattern.StructureDirtyPrecheck;
@@ -27,7 +27,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -162,11 +161,13 @@ final class MultiblockStructureOperations {
     @NotNull
     static MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
             @NotNull MultiblockControllerBase controller,
-            @Nullable Map<String, Integer> channelValues) {
+            @Nullable Map<String, Integer> channelValues,
+            @Nullable StructureOrientation orientation) {
         Map<String, Integer> effectiveChannels = emptyToNull(channelValues);
         ensureMultiPiecePatternInitialized(controller);
         return MultiblockStructurePreviews.beginIncrementalMultiPiecePreview(
-                controller, controller.multiPiecePattern, controller.pieceRuntimes, effectiveChannels);
+                controller, controller.multiPiecePattern, controller.pieceRuntimes, effectiveChannels,
+                orientation);
     }
 
     @NotNull

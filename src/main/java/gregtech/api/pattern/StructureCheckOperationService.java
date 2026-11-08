@@ -1,14 +1,14 @@
 package gregtech.api.pattern;
 
-import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureCheckState;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.pattern.element.StructureElementCapability;
 import gregtech.api.util.BlockInfo;
-import gregtech.common.ConfigHolder;
 import gregtech.api.util.GTLog;
+import gregtech.common.ConfigHolder;
 
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.IBlockAccess;
@@ -309,7 +309,7 @@ final class StructureCheckOperationService {
                 continue;
             }
 
-            StructureMatchSession pieceSession = pattern.createMatchSession();
+            StructureMatchSession pieceSession = pattern.createMatchSession(request.getChannelValues());
             pieceSession.setControllerContext(request.getController());
             pieceSession.beginPieceContribution(piece);
             lastActivePieceName = piece.getName();

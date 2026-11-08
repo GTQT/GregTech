@@ -18,7 +18,7 @@ import gregtech.api.cover.CoverHolder;
 import gregtech.api.cover.CoverRayTracer;
 import gregtech.api.cover.CoverSaveHandler;
 import gregtech.api.cover.CoverUtil;
-import gregtech.api.cover.CoverWithLeisureUI;
+import gregtech.api.cover.CoverWithUI;
 import gregtech.api.gui.ModularUI;
 import gregtech.api.items.itemhandlers.GTItemStackHandler;
 import gregtech.api.items.toolitem.ToolClasses;
@@ -26,6 +26,7 @@ import gregtech.api.items.toolitem.ToolHelper;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.interfaces.IPollution;
 import gregtech.api.metatileentity.interfaces.ISyncedTileEntity;
+import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MTERegistry;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
@@ -75,6 +76,7 @@ import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.common.capabilities.ICapabilityProvider;
@@ -97,13 +99,23 @@ import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import com.cleanroommc.modularui.api.IGuiHolder;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.api.widget.ITooltip;
 import com.cleanroommc.modularui.api.widget.IWidget;
+import com.cleanroommc.modularui.drawable.GuiTextures;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.ModularScreen;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.PageButton;
+import com.cleanroommc.modularui.widgets.PagedWidget;
+import com.cleanroommc.modularui.widgets.SlotGroupWidget;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.google.common.base.Preconditions;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
@@ -555,9 +567,31 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
      */
     public void initSidePanel(@NotNull PosGuiData guiData, @NotNull PanelSyncManager syncManager,
                               @NotNull ModularPanel mainPanel) {
+        // 覆盖板入口（侧栏按钮或顶部页签里的索引格子）共用这一个动作。
+        registerCoverOpenAction(syncManager);
         SidePanel sidePanel = new SidePanel(guiData, syncManager);
         registerSidePanelButtons(sidePanel);
         sidePanel.attachTo(mainPanel);
+    }
+
+    /**
+     * 注册“打开覆盖板界面”的同步动作：客户端点格子时只发包，服务端按面索引找回覆盖板并打开它自己的界面。
+     *
+     * <p>
+     * 必须在任何覆盖板入口构建之前注册；{@link #initSidePanel} 每次建界面都会调用一次，两端都会执行。
+     */
+    private void registerCoverOpenAction(@NotNull PanelSyncManager syncManager) {
+        syncManager.registerSyncedAction("open_cover", false, true, buffer -> {
+            int index = buffer.readByte();
+            if (index < 0 || index >= EnumFacing.VALUES.length) return;
+            EntityPlayer player = syncManager.getPlayer();
+            if (!(player instanceof EntityPlayerMP playerMP)) return;
+            Cover cover = getCoverAtSide(EnumFacing.VALUES[index]);
+            if (!(cover instanceof CoverWithUI coverWithUI)) return;
+            if (!cover.getCoverableView().isValid()) return;
+            if (player.world != cover.getWorld()) return;
+            coverWithUI.openUI(playerMP);
+        });
     }
 
     /**
@@ -582,9 +616,217 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
      * 需要改这一列的布局（位置、背景）时用 {@link SidePanel#getColumn()}，不要另建一列。
      */
     protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
-        sidePanel.add(createWorldPreviewButton(sidePanel.getSyncManager()));
+        // 多方块控制器的页签由 MultiblockUIFactory 提供，覆盖板/朝向预览留在侧边栏；
+        // 其它机器（单方块机器、仓）把这两类入口做成窗口顶部的页签，见 attachTabs。
+        if (this instanceof MultiblockControllerBase) {
+            sidePanel.add(createWorldPreviewButton(sidePanel.getSyncManager()));
+            sidePanel.add(createUpgradeSlotsButton(sidePanel.getSyncManager()));
+            sidePanel.addAll(createCoverButtons(sidePanel.getGuiData(), sidePanel.getSyncManager()));
+            return;
+        }
         sidePanel.add(createUpgradeSlotsButton(sidePanel.getSyncManager()));
-        sidePanel.addAll(createCoverButtons(sidePanel.getGuiData(), sidePanel.getSyncManager()));
+    }
+
+    /**
+     * 把覆盖板与朝向预览做成窗口顶部的页签（单方块机器、仓使用）。
+     *
+     * <p>
+     * 页 0 是机器原本的界面，后面依次是覆盖板页、朝向预览页，页签条与多方块控制器外观一致
+     * （悬在面板上沿外）。没有覆盖板、也没有可用的朝向预览时什么都不做，界面保持原样。
+     *
+     * <p>
+     * 必须在 {@link #initSidePanel} <b>之前</b>调用：这里会把面板现有子控件整体搬进页 0，
+     * 而侧边栏是直接挂在面板上的，顺序反了会把侧栏一起搬进去。
+     */
+    public void attachTabs(@NotNull ModularPanel panel, @NotNull PosGuiData guiData,
+                           @NotNull PanelSyncManager syncManager) {
+        // 多方块控制器已有自己的信息/仓室/朝向页签，不能再套一层。
+        if (this instanceof MultiblockControllerBase) return;
+
+        List<IWidget> coverCells = createCoverIndexCells(syncManager);
+
+        List<IWidget> children = new ArrayList<>(panel.getChildren());
+        // 玩家背包槽位是附着在面板上的槽位组，切页时不能跟着页 0 一起消失。
+        List<IWidget> persistentChildren = new ArrayList<>();
+        children.removeIf(child -> {
+            if (child instanceof SlotGroupWidget) {
+                persistentChildren.add(child);
+                return true;
+            }
+            return false;
+        });
+
+        // 背包高 76、底部边距 7；预览页按这个预留高度动态计算正方形边长。
+        int previewReserve = persistentChildren.isEmpty() ? 0 : 76 + 7;
+        IWidget previewPage = createWorldPreviewPage(syncManager, previewReserve);
+        if (coverCells.isEmpty() && previewPage == null) return;
+
+        panel.removeAll();
+
+        PagedWidget.Controller controller = new PagedWidget.Controller();
+        PagedWidget<?> pages = new PagedWidget<>().name("mte_pages").sizeRel(1f).controller(controller);
+
+        ParentWidget<?> machinePage = new ParentWidget<>().name("mte_page_machine").sizeRel(1f);
+        for (IWidget child : children) {
+            machinePage.child(child);
+        }
+        pages.addPage(machinePage);
+
+        Flow tabRow = Flow.row().name("mte_tab_row")
+                .widthRel(1f)
+                .leftRel(0.5f)
+                .margin(3, 0)
+                .coverChildrenHeight()
+                .topRel(0f, 3, 1f)
+                .child(new PageButton(0, controller).tab(GuiTextures.TAB_TOP, 0)
+                        .addTooltipLine(IKey.lang("gregtech.mui.mte.tab.machine"))
+                        .overlay(new ItemDrawable(getStackForm()).asIcon().size(16)));
+
+        int pageIndex = 1;
+        if (!coverCells.isEmpty()) {
+            pages.addPage(createCoverPage(coverCells));
+            tabRow.child(new PageButton(pageIndex++, controller).tab(GuiTextures.TAB_TOP, 0)
+                    .addTooltipLine(IKey.lang("gregtech.mui.mte.tab.covers"))
+                    .overlay(new ItemDrawable(new ItemStack(Blocks.CHEST)).asIcon().size(16)));
+        }
+        if (previewPage != null) {
+            pages.addPage(previewPage);
+            tabRow.child(new PageButton(pageIndex, controller).tab(GuiTextures.TAB_TOP, 0)
+                    .addTooltipLine(IKey.lang("gregtech.mui.mte.tab.preview"))
+                    .overlay(GTGuiTextures.BUTTON_STRUCTURE.asIcon().size(16)));
+        }
+
+        panel.child(pages);
+        for (IWidget child : persistentChildren) {
+            panel.child(child);
+        }
+        panel.child(tabRow);
+    }
+
+    /**
+     * 覆盖板页：与多方块的仓室页一样，是一份覆盖板索引。
+     *
+     * <p>
+     * 每个格子是覆盖板自己的物品图标，鼠标悬停显示名称与所在面；点击格子打开该覆盖板的界面
+     * （没有独立界面的覆盖板也会列出来，只是点击没有反应）。每行 {@value #COVER_INDEX_COLUMNS} 个，
+     * 与仓室索引的网格保持一致。
+     */
+    private @NotNull IWidget createCoverPage(@NotNull List<IWidget> coverCells) {
+        Flow grid = Flow.column().name("cover_grid").pos(6, 6).childPadding(1).coverChildren();
+        for (int start = 0; start < coverCells.size(); start += COVER_INDEX_COLUMNS) {
+            Flow row = Flow.row().name("cover_row:" + (start / COVER_INDEX_COLUMNS))
+                    .childPadding(1)
+                    .coverChildren();
+            int end = Math.min(start + COVER_INDEX_COLUMNS, coverCells.size());
+            for (int i = start; i < end; i++) {
+                row.child(coverCells.get(i));
+            }
+            grid.child(row);
+        }
+        return new ParentWidget<>().name("mte_page_covers").sizeRel(1f).child(grid);
+    }
+
+    /**
+     * 覆盖板索引的格子，按 {@link EnumFacing#VALUES} 的顺序排列。
+     *
+     * <p>
+     * 覆盖板的图标就是它自己的物品，提示里带上所在面；有独立界面的覆盖板点击后打开界面，
+     * 没有界面的只作为索引项列出。
+     */
+    protected @NotNull List<IWidget> createCoverIndexCells(@NotNull PanelSyncManager syncManager) {
+        List<IWidget> cells = new ArrayList<>();
+        for (EnumFacing side : EnumFacing.VALUES) {
+            Cover cover = getCoverAtSide(side);
+            if (cover == null) continue;
+
+            try {
+                ItemStack stack = cover.getDefinition().getDropItemStack();
+                if (stack.isEmpty()) continue;
+
+                IWidget cell = createCoverIndexCell(syncManager, cover, side, stack);
+                if (cell != null) {
+                    cells.add(cell);
+                }
+            } catch (Throwable t) {
+                if (ConfigHolder.misc.debug)
+                    GTLog.logger.error("[Cover Index] 为 {} 面的覆盖板 {} 构建索引格子失败",
+                            side, cover.getClass().getName(), t);
+            }
+        }
+        return cells;
+    }
+
+    /**
+     * 覆盖板索引的一个格子。
+     *
+     * <p>
+     * 实现了 {@link CoverWithUI} 的覆盖板，点击时在服务端调用 {@link CoverWithUI#openUI}，
+     * 也就是和右键覆盖板一样打开它自己的完整界面；没有完整界面的覆盖板只作为索引项显示
+     * （悬停提示里注明没有独立界面）。
+     */
+    private @Nullable IWidget createCoverIndexCell(@NotNull PanelSyncManager syncManager,
+                                                   @NotNull Cover cover, @NotNull EnumFacing side,
+                                                   @NotNull ItemStack stack) {
+        if (cover instanceof CoverWithUI) {
+            if (!cover.getCoverableView().isValid()) return null;
+            return createCoverOpenButton(syncManager, cover, side, stack);
+        }
+
+        ButtonWidget<?> cell = new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(stack).asIcon().size(16));
+        addCoverIndexTooltip(cell, stack, side);
+        cell.addTooltipLine(IKey.lang("gregtech.mui.cover.no_ui").style(TextFormatting.DARK_GRAY));
+        return cell;
+    }
+
+    /**
+     * 打开覆盖板完整界面的按钮：图标是覆盖板物品，点击只在客户端发包，服务端由
+     * {@code open_cover} 同步动作执行 {@link CoverWithUI#openUI}。
+     */
+    protected @NotNull ButtonWidget<?> createCoverOpenButton(@NotNull PanelSyncManager syncManager,
+                                                             @NotNull Cover cover, @NotNull EnumFacing side,
+                                                             @NotNull ItemStack stack) {
+        ButtonWidget<?> button = new ButtonWidget<>()
+                .size(18, 18)
+                .overlay(new ItemDrawable(stack).asIcon().size(16))
+                .onMousePressed(clickedButton -> {
+                    if (clickedButton != 0) return false;
+                    syncManager.callSyncedAction("open_cover", buffer -> buffer.writeByte(side.getIndex()));
+                    return true;
+                });
+        addCoverIndexTooltip(button, stack, side);
+        return button;
+    }
+
+    private void addCoverIndexTooltip(@NotNull ITooltip<?> tooltip, @NotNull ItemStack stack,
+                                      @NotNull EnumFacing side) {
+        tooltip.addTooltipLine(stack.getDisplayName());
+        tooltip.addTooltipLine(IKey.lang("gregtech.mui.side." + side.getName()).style(TextFormatting.GRAY));
+    }
+
+    /** 覆盖板索引每行放几个，与仓室索引一致。 */
+    private static final int COVER_INDEX_COLUMNS = 9;
+
+
+    /**
+     * 朝向预览页；配置关闭或世界为空时返回 {@code null}。
+     *
+     * @param bottomReserve 页面底部要留给玩家背包的高度（没有背包传 0）
+     */
+    protected @Nullable IWidget createWorldPreviewPage(@NotNull PanelSyncManager syncManager, int bottomReserve) {
+        if (!ConfigHolder.client.enableMachineWorldPreview) return null;
+
+        World world = getWorld();
+        if (world == null) return null;
+
+        boolean outputSides = this instanceof IActiveOutputSide;
+        EnumFacing frontFacing = hasFrontFacing() ? getFrontFacing() : null;
+        EnumFacing itemsOutput = outputSides ? ((IActiveOutputSide) this).getOutputFacingItems() : null;
+        EnumFacing fluidsOutput = outputSides ? ((IActiveOutputSide) this).getOutputFacingFluids() : null;
+
+        return WorldPreviewPanel.createPage(syncManager, world, getPos(), getStackForm(), hasFrontFacing(),
+                outputSides, frontFacing, itemsOutput, fluidsOutput, this::applyFaceAction, 0, 0, bottomReserve);
     }
 
     /**
@@ -619,6 +861,7 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
      * 所有覆盖板的入口按钮，按 {@link EnumFacing#VALUES} 的顺序。
      *
      * <p>
+     * 只有实现了 {@link CoverWithUI} 的覆盖板才有可打开的界面；没有界面的覆盖板不生成按钮。
      * 单块覆盖板构建失败只跳过那一块、不影响整列，所以这里逐块 try/catch。
      */
     protected @NotNull List<IWidget> createCoverButtons(@NotNull PosGuiData guiData,
@@ -629,10 +872,13 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
             if (cover == null) continue;
 
             try {
-                IWidget button = createCoverLeisureButton(guiData, syncManager, cover, side);
-                if (button != null) {
-                    buttons.add(button);
-                }
+                if (!(cover instanceof CoverWithUI)) continue;
+                if (!cover.getCoverableView().isValid()) continue;
+
+                ItemStack stack = cover.getDefinition().getDropItemStack();
+                if (stack.isEmpty()) continue;
+
+                buttons.add(createCoverOpenButton(syncManager, cover, side, stack));
             } catch (Throwable t) {
                 if (ConfigHolder.misc.debug)
                     GTLog.logger.error("[SidePanel] 为 {} 面的覆盖板 {} 构建入口按钮失败",
@@ -693,22 +939,6 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
                 }
             }
         }
-    }
-
-    /**
-     * 为单个覆盖板生成挂到主界面外侧的入口按钮；返回 {@code null} 表示这块覆盖板没有可打开的界面。
-     *
-     * <p>
-     * 唯一的判据就是覆盖板实现了 {@link CoverWithLeisureUI} —— 由覆盖板自己决定按钮长什么样、
-     * 浮动子面板里放什么。没有实现的覆盖板就没有入口按钮。
-     */
-    protected @Nullable IWidget createCoverLeisureButton(@NotNull PosGuiData guiData,
-                                                        @NotNull PanelSyncManager syncManager,
-                                                        @NotNull Cover cover, @NotNull EnumFacing side) {
-        if (cover instanceof CoverWithLeisureUI leisureCover) {
-            return leisureCover.initUILeisure(guiData, syncManager, side.getIndex());
-        }
-        return null;
     }
 
     public GTGuiTheme getUITheme() {

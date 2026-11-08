@@ -4,6 +4,7 @@ import gregtech.api.GTValues;
 import gregtech.api.block.VariantActiveBlock;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.GregtechTileCapabilities;
+import gregtech.api.capability.IActiveOutputSide;
 import gregtech.api.capability.IControllable;
 import gregtech.api.capability.IDistinctBusController;
 import gregtech.api.capability.IMaintenanceHatch;
@@ -20,6 +21,7 @@ import gregtech.api.gui.widgets.IndicatorImageWidget;
 import gregtech.api.gui.widgets.ProgressWidget;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIBuilder;
 import gregtech.api.metatileentity.multiblock.ui.MultiblockUIFactory;
+import gregtech.api.mui.widget.WorldPreviewPanel;
 import gregtech.api.pattern.FormedStructureView;
 import gregtech.api.unification.OreDictUnifier;
 import gregtech.api.unification.material.Materials;
@@ -40,17 +42,20 @@ import net.minecraft.util.text.ITextComponent;
 import net.minecraft.util.text.Style;
 import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
+import net.minecraft.world.World;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
+import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.factory.PosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -724,5 +729,26 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     @Override
     public boolean hasSideUI() {
         return false;
+    }
+
+    @Override
+    protected @Nullable IWidget createWorldPreviewButton(@NotNull PanelSyncManager syncManager) {
+        // 朝向预览现在是窗口页签，不再放侧边按钮；两处都建会把同一组同步值注册两遍
+        return null;
+    }
+
+    /**
+     * 朝向预览页签的内容。配置里关掉了世界预览、或者客户端还没拿到世界时返回 {@code null}。
+     */
+    public @Nullable IWidget createWorldPreviewPage(@NotNull PanelSyncManager syncManager, int width, int height) {
+        if (!ConfigHolder.client.enableMachineWorldPreview) return null;
+        World world = getWorld();
+        if (world == null) return null;
+        boolean outputSides = this instanceof IActiveOutputSide;
+        EnumFacing frontFacing = hasFrontFacing() ? getFrontFacing() : null;
+        EnumFacing itemsOutput = outputSides ? ((IActiveOutputSide) this).getOutputFacingItems() : null;
+        EnumFacing fluidsOutput = outputSides ? ((IActiveOutputSide) this).getOutputFacingFluids() : null;
+        return WorldPreviewPanel.createPage(syncManager, world, getPos(), getStackForm(), hasFrontFacing(),
+                outputSides, frontFacing, itemsOutput, fluidsOutput, this::applyFaceAction, width, height, 0);
     }
 }

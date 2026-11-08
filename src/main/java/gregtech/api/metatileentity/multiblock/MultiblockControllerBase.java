@@ -662,8 +662,6 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     /**
      * Get the visual front used by an unplaced structure preview.
      *
-     * <p>Controllers whose canonical template places the front on another side
-     * should override this instead of relying on geometric inference.</p>
      */
     @NotNull
     public EnumFacing getPreviewFrontFacing() {
@@ -1154,13 +1152,25 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     @NotNull
     public MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
             @Nullable Map<String, Integer> channelValues) {
+        return beginIncrementalMultiPiecePreview(channelValues, null);
+    }
+
+    /**
+     * Starts a preview in the supplied orientation. Passing {@code null} keeps the canonical SOUTH-facing
+     * preview used by JEI; world-opened previews pass {@link StructureOrientation#fromController} so the
+     * preview matches the controller the player right-clicked.
+     */
+    @NotNull
+    public MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
+            @Nullable Map<String, Integer> channelValues,
+            @Nullable StructureOrientation orientation) {
         StructureRuntime toolingRuntime = createToolingPreviewRuntime(channelValues);
         if (toolingRuntime != null) {
             return MultiblockStructurePreviews.beginIncrementalMultiPiecePreview(
                     this, toolingRuntime.getMultiPiecePattern(), toolingRuntime.getPieceRuntimes(),
-                    channelValues);
+                    channelValues, orientation);
         }
-        return MultiblockStructureOperations.beginIncrementalMultiPiecePreview(this, channelValues);
+        return MultiblockStructureOperations.beginIncrementalMultiPiecePreview(this, channelValues, orientation);
     }
 
     /**

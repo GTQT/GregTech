@@ -47,6 +47,8 @@ public class MetaTileEntityGuiFactory extends AbstractUIFactory<PosGuiData> {
         ModularPanel panel = super.createPanel(guiData, syncManager, settings);
         IGuiHolder<PosGuiData> holder = getGuiHolder(guiData);
         if (holder instanceof MetaTileEntity mte && panel != null) {
+            // 先把机器原本的界面包进页签，再挂侧边栏，避免侧栏被一起搬进页 0。
+            mte.attachTabs(panel, guiData, syncManager);
             mte.initSidePanel(guiData, syncManager, panel);
         }
         return panel;

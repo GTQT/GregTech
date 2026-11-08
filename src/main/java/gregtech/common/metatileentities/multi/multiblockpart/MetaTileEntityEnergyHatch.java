@@ -301,10 +301,11 @@ public class MetaTileEntityEnergyHatch extends MetaTileEntityMultiblockPart
         IntSyncValue amperageValue = new IntSyncValue(this::getCurrentAmperage, this::setCurrentAmperage);
         guiSyncManager.syncValue("hatchAmperage", amperageValue);
 
-        return GTGuis.createPanel(this, 176, 223)
+        return GTGuis.createPanel(this, 176, 205)
                 .child(IKey.lang(getMetaFullName()).asWidget().pos(5, 5))
                 .child(Flow.column()
                         .margin(7, 18)
+                        .coverChildrenHeight()
                         .crossAxisAlignment(Alignment.CrossAxis.START)
                         .childPadding(4)
                         .child(new SliderWidget()

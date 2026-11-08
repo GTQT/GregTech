@@ -5,10 +5,16 @@ import gregtech.api.gui.GuiTextures;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
+import gregtech.api.pattern.AbilityGroupLimit;
+import gregtech.api.pattern.AbilityPlacementTracker;
+import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.StructureElementPreviewEntry;
+import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.api.pattern.element.StructureElementPreview;
 import gregtech.api.util.BlockInfo;
@@ -117,7 +123,9 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private static final long CANDIDATE_CYCLE_INTERVAL_MS = 1000L;
     // Hard cap for the offscreen preview buffer. The buffer follows the displayed size (see
     // matchBufferAspect); this only stops very high GUI scales from rendering millions of unnecessary pixels.
-    private static final int PREVIEW_MAX_RESOLUTION = 1024;
+    // Keep one resolution for idle and drag frames: resizing the FBO when a drag starts/ends forces a full
+    // reallocation and a visible flash, which is worse than the small extra fill cost.
+    private static final int PREVIEW_MAX_RESOLUTION = 2048;
     private static final long PREVIEW_LOADING_FRAME_BUDGET_NANOS = 6_000_000L;
     private static final int PREVIEW_ASSEMBLY_BATCH_SIZE = 512;
     private static final int PREVIEW_WORLD_BATCH_SIZE = 256;
@@ -142,6 +150,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private int compactControlsHeight = CompactPreviewLayout.CONTROLS_HEIGHT;
     @Nullable
     private MBPattern[] patterns;
+    @NotNull
+    private Map<MultiblockAbility<?>, Integer> previewAbilityCounts = Collections.emptyMap();
+    @NotNull
+    private Map<MultiblockAbility<?>, Integer> previewAbilityGroupCounts = Collections.emptyMap();
     private StructurePreviewRenderer previewRenderer;
     @Nullable
     private PreviewLoadTask previewLoadTask;
@@ -154,6 +166,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private boolean resetViewWhenPreviewReady = true;
     /** True once a default camera framing has been applied to the currently loaded preview. */
     private boolean previewFrameApplied;
+    /** Exact orientation used by the current preview; the camera must agree with it. */
+    @NotNull
     private int pendingMouseWheel;
     private RecipeLayout recipeLayout;
     private int layerIndex = -1;
@@ -228,10 +242,17 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         previewLoadFailure = null;
         previewLayoutInitialized = false;
         rendererContainsFullStructure = false;
+        previewAbilityCounts = Collections.emptyMap();
+        previewAbilityGroupCounts = Collections.emptyMap();
         clearParts();
         initializePreviewMetadata();
         previewFrameApplied = false;
-        previewLoadTask = new PreviewLoadTask(controller.beginIncrementalMultiPiecePreview(channelValues));
+        // JEI previews keep the original canonical loading path. Only world-backed builder previews
+        // pass an explicit orientation, because those must match the real controller in the world.
+        previewLoadTask = new PreviewLoadTask(hasWorldController()
+                ? controller.beginIncrementalMultiPiecePreview(
+                        channelValues, StructureOrientation.fromController(controller))
+                : controller.beginIncrementalMultiPiecePreview(channelValues));
         GTLog.logger.debug("[JEIMultiblockPreview] started incremental loading controller={} channels={} preparationMs={}",
                 controller.metaTileEntityId, new TreeMap<>(channelValues),
                 (System.nanoTime() - preparationStart) / 1_000_000L);
@@ -256,6 +277,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         this.patterns = new MBPattern[] { loaded };
         this.previewRenderer = task.renderer;
         this.rendererContainsFullStructure = true;
+        this.previewAbilityCounts = task.takeAbilityCounts();
+        this.previewAbilityGroupCounts = task.takeAbilityGroupCounts();
         GregTechAPI.addPatterns(controller.metaTileEntityId, patterns);
         previewLoadTask = null;
         GTLog.logger.debug("[JEIMultiblockPreview] incrementally initialized controller={} channels={} blocks={} ms={}",
@@ -1119,15 +1142,100 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      * avoid replacing the current screen in the middle of its own input handling.
      */
     public void openFullscreenPreview() {
+        openPreviewScreen(false);
+    }
+
+    /**
+     * Opens the world-builder variant of the preview. It deliberately uses a different layout from the JEI
+     * viewer: no minimap, and a dedicated hatch-cap card above the structure configuration.
+     */
+    public void openBuilderPreview() {
+        openPreviewScreen(true);
+    }
+
+    private void openPreviewScreen(boolean builderMode) {
         MultiblockInfoFullscreenScreen previous = MultiblockInfoFullscreenScreen.getOpenScreen();
         if (previous != null) {
             previous.close();
         }
         initializePreviewMetadata();
-        MultiblockInfoFullscreenScreen screen = new MultiblockInfoFullscreenScreen(this);
+        ensurePreviewLoadStarted();
+        MultiblockInfoFullscreenScreen screen = new MultiblockInfoFullscreenScreen(this, builderMode);
         screen.initFullscreenView();
-        // Remembers the JEI recipe page so collapsing (ESC) returns to it instead of closing the view.
+        // Remembers the previous screen so collapsing (ESC) returns to it instead of closing the view.
         screen.openFromCurrentScreen();
+    }
+
+    /**
+     * Starts the incremental preview build for wrappers that are opened outside JEI. The recipe page normally
+     * kicks the build off from its own draw pass, which never runs when the preview is opened from a controller
+     * in the world, so the viewer would otherwise wait for a task that is never created.
+     */
+    public void ensurePreviewLoading() {
+        ensurePreviewLoadStarted();
+    }
+
+    /**
+     * Applies the default framing. It keeps the camera on the exact side the scene was assembled from, so a
+     * preview is never shown from behind even if the preview controller has not been populated yet.
+     */
+    public void applyDefaultCameraFraming() {
+        StructurePreviewRenderer renderer = getCurrentRenderer();
+        if (renderer == null || !(renderer.world instanceof TrackedDummyWorld)) {
+            return;
+        }
+        TrackedDummyWorld world = (TrackedDummyWorld) renderer.world;
+        Vector3f size = world.getSize();
+        float largest = Math.max(Math.max(size.x, size.y), size.z);
+        this.zoom = (float) (3.5D * Math.sqrt(Math.max(largest, 1.0F))) * resolutionFactor(renderer);
+        this.rotationPitch = getDefaultHorizontalCameraAngle();
+        this.rotationYaw = 20.0F;
+        this.previewFrameApplied = true;
+        this.previewLayoutInitialized = true;
+        resetCenter(world, renderer);
+    }
+
+    /**
+     * Moves the orbit target to a horizontal position, which is what the minimap drag does.
+     */
+    public void panPreviewTo(float worldX, float worldZ) {
+        StructurePreviewRenderer renderer = getCurrentRenderer();
+        if (renderer == null || center == null) {
+            return;
+        }
+        center.x = worldX;
+        center.z = worldZ;
+        renderer.setCameraLookAt(center, zoom, Math.toRadians(rotationPitch), Math.toRadians(rotationYaw));
+        markRendererDirty();
+    }
+
+    /**
+     * @return the camera position of the current preview, or {@code null} when no preview is loaded.
+     */
+    @Nullable
+    public Vector3f getPreviewCameraEye() {
+        StructurePreviewRenderer renderer = getCurrentRenderer();
+        return renderer == null ? null : renderer.getEyePos();
+    }
+
+    /**
+     * @return the preview world's minimum corner, used to map minimap pixels back to structure space.
+     */
+    @Nullable
+    public Vector3f getPreviewWorldMinPos() {
+        StructurePreviewRenderer renderer = getCurrentRenderer();
+        if (renderer == null || !(renderer.world instanceof TrackedDummyWorld)) {
+            return null;
+        }
+        return ((TrackedDummyWorld) renderer.world).getMinPos();
+    }
+
+    /**
+     * @return the message of the last failed preview build, or an empty string when the last build succeeded.
+     */
+    @NotNull
+    public String getPreviewFailureMessage() {
+        return previewLoadFailure == null ? "" : previewLoadFailure;
     }
 
     /**
@@ -1140,6 +1248,143 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     @NotNull
     public List<ItemStack> getPreviewParts() {
         return hasLivePreview() ? patterns[0].getParts() : Collections.emptyList();
+    }
+
+    /**
+     * Adjustable global ability caps for this structure. Fixed (min == max) and
+     * unlimited (max < 0) limits are omitted because there is nothing to choose.
+     */
+    @NotNull
+    public List<AbilityCountControl> getAbilityCountControls() {
+        MultiPiecePattern pattern = getMultiPiecePattern();
+        if (pattern == null) {
+            return Collections.emptyList();
+        }
+        Map<String, AbilityCountControl> byKey = new HashMap<>();
+        for (Entry<MultiblockAbility<?>, int[]> entry : pattern.getAbilityLimits().entrySet()) {
+            int[] range = entry.getValue();
+            if (range == null || range[1] < 0 || range[1] <= range[0]) {
+                continue;
+            }
+            String key = AbilityPlacementTracker.channelKey(entry.getKey());
+            byKey.put(key, new AbilityCountControl(key, entry.getKey(), range[0], range[1],
+                    getAbilityCountValue(key, range[1])));
+        }
+        for (AbilityGroupLimit group : pattern.getAbilityGroupLimits()) {
+            if (group.getMax() < 0 || group.getMax() <= group.getMin()) {
+                continue;
+            }
+            String key = AbilityPlacementTracker.channelKey(group.getDisplayAbility());
+            if (byKey.containsKey(key)) {
+                continue;
+            }
+            byKey.put(key, new AbilityCountControl(key, group.getDisplayAbility(), group.getMin(), group.getMax(),
+                    getAbilityCountValue(key, group.getMax())));
+        }
+        List<AbilityCountControl> controls = new ArrayList<>(byKey.values());
+        controls.sort((one, two) -> one.translationKey.compareToIgnoreCase(two.translationKey));
+        return controls;
+    }
+
+    /** Reads an ability cap by its reserved channel key, falling back to the pattern maximum. */
+    public int getAbilityCountValue(@NotNull String key, int defaultMax) {
+        Integer configured = channelValues.get(key);
+        return configured == null ? defaultMax : configured;
+    }
+
+    /** Advances one ability cap within its declared [min, max] range. */
+    public void stepAbilityCount(@NotNull String key, int delta) {
+        for (AbilityCountControl control : getAbilityCountControls()) {
+            if (control.key.equals(key)) {
+                setAbilityCount(control, control.value + delta);
+                return;
+            }
+        }
+    }
+
+    public void setAbilityCount(@NotNull AbilityCountControl control, int requested) {
+        int value = Math.max(control.min, Math.min(control.max, requested));
+        int current = getAbilityCountValue(control.key, control.max);
+        if (current == value) {
+            return;
+        }
+        if (value >= control.max) {
+            channelValues.remove(control.key);
+        } else {
+            channelValues.put(control.key, value);
+        }
+        regeneratePatterns();
+    }
+
+    /** Ability counts actually chosen by the latest completed preview build, keyed by ability name. */
+    @NotNull
+    public Map<String, Integer> getPreviewAbilityCounts() {
+        Map<String, Integer> counts = new HashMap<>();
+        for (Entry<MultiblockAbility<?>, Integer> entry : previewAbilityCounts.entrySet()) {
+            counts.put(entry.getKey().toString(), entry.getValue());
+        }
+        return counts;
+    }
+
+    /** Group ability counts chosen by the latest completed preview, keyed by display ability name. */
+    @NotNull
+    public Map<String, Integer> getPreviewAbilityGroupCounts() {
+        Map<String, Integer> counts = new HashMap<>();
+        for (Entry<MultiblockAbility<?>, Integer> entry : previewAbilityGroupCounts.entrySet()) {
+            counts.put(entry.getKey().toString(), entry.getValue());
+        }
+        return counts;
+    }
+
+    /** Immutable view of one adjustable global ability cap. */
+    public static final class AbilityCountControl {
+
+        @NotNull
+        private final String key;
+        @NotNull
+        private final MultiblockAbility<?> ability;
+        @NotNull
+        private final String translationKey;
+        private final int min;
+        private final int max;
+        private final int value;
+
+        private AbilityCountControl(@NotNull String key, @NotNull MultiblockAbility<?> ability,
+                                    int min, int max, int value) {
+            this.key = key;
+            this.ability = ability;
+            this.translationKey = "gregtech.multiblock.ability." + ability;
+            this.min = min;
+            this.max = max;
+            this.value = value;
+        }
+
+        @NotNull
+        public String getKey() {
+            return key;
+        }
+
+        @NotNull
+        public MultiblockAbility<?> getAbility() {
+            return ability;
+        }
+
+        @NotNull
+        public String getTranslationKey() {
+            return translationKey;
+        }
+
+        public int getMin() {
+            return min;
+        }
+
+        public int getMax() {
+            return max;
+        }
+
+        public int getValue() {
+            return value;
+        }
     }
 
     @NotNull
@@ -1174,6 +1419,79 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         int min = channelRanges[index][0], max = channelRanges[index][1];
         return sliderIndexToChannelValue(channelDrag.indexFor(index,
                 channelValueToSliderIndex(committed, min, max)), min, max);
+    }
+
+    /**
+     * @return the pattern backing the configuration tree, or {@code null} when the controller has no multi-piece
+     *         structure.
+     */
+    @Nullable
+    public MultiPiecePattern getMultiPiecePattern() {
+        StructureRuntime runtime = controller.getOrCreateStructureRuntime();
+        return runtime == null ? null : runtime.getMultiPiecePattern();
+    }
+
+    /** Reads a preview channel by name without going through the supported-channel index list. */
+    public int getPreviewChannelValue(@NotNull String name) {
+        return channelValues.getOrDefault(name, 0);
+    }
+
+    /**
+     * Sets a preview channel by name and regenerates the preview. Used by the configuration tree to select the
+     * cumulative piece prefix (structure_piece) without requiring the channel to be in the slider list.
+     */
+    public void setPreviewChannel(@NotNull String name, int value) {
+        if (value <= 0) {
+            if (channelValues.remove(name) == null) return;
+        } else if (channelValues.getOrDefault(name, 0) == value) {
+            return;
+        } else {
+            channelValues.put(name, value);
+        }
+        regeneratePatterns();
+    }
+
+    /**
+     * Advances one preview channel by {@code delta} slider steps. Used by the configuration card's steppers.
+     */
+    public void stepPreviewChannel(int channelIndex, int delta) {
+        updateChannelValue(channelIndex, delta);
+    }
+
+    /** Position of the controller this preview belongs to, or {@code null} for a recipe-only preview. */
+    @Nullable
+    public net.minecraft.util.math.BlockPos getControllerPos() {
+        return controller.getPos();
+    }
+
+    /** The controller backing this preview; may be a template instance for recipe-only previews. */
+    @NotNull
+    public MultiblockControllerBase getPreviewController() {
+        return controller;
+    }
+
+    /** True when this wrapper was created for a controller that exists in a world. */
+    public boolean hasWorldController() {
+        return controller.getWorld() != null && controller.getPos() != null;
+    }
+
+    /** Snapshot of the channel values currently used to build the preview. */
+    @NotNull
+    public java.util.Map<String, Integer> copyPreviewChannels() {
+        return new java.util.TreeMap<>(channelValues);
+    }
+
+    /** Seeds the preview channels before the first preview load starts (used by the builder item path). */
+    public void seedPreviewChannels(@NotNull java.util.Map<String, Integer> values) {
+        if (patterns != null || previewLoadTask != null) return;
+        for (java.util.Map.Entry<String, Integer> entry : values.entrySet()) {
+            if (entry.getValue() == null || entry.getValue() <= 0) continue;
+            channelValues.put(entry.getKey(), entry.getValue());
+        }
+    }
+
+    public int getPreviewChannelCount() {
+        return supportedChannels.size();
     }
 
     public void beginChannelDrag(int channel, int trackX, int trackWidth, int mouseX) {
@@ -1313,6 +1631,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     public void applyCamera() {
         StructurePreviewRenderer renderer = getCurrentRenderer();
         if (renderer == null) {
+            return;
+        }
+        if (center == null) {
+            // Preview opened without the JEI recipe layout (e.g. from a controller in the world), so the
+            // default framing block never ran. Derive the orbit centre from the loaded structure.
+            if (renderer.world instanceof TrackedDummyWorld) {
+                resetCenter((TrackedDummyWorld) renderer.world, renderer);
+                return;
+            }
             return;
         }
         renderer.setCameraLookAt(center, zoom, Math.toRadians(rotationPitch), Math.toRadians(rotationYaw));
@@ -1558,7 +1885,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
      * <p>
      * The buffer is deliberately kept close to the displayed size instead of oversampling: the preview is a
      * full-screen 3D scene, and rendering several times more pixels than the window shows is what made
-     * dragging the camera stutter. A little softness is the accepted trade for a smooth drag.
+     * dragging the camera stutter. The size is stable for the lifetime of a drag; changing it on press/release
+     * would release and rebuild the framebuffer, which reads as a flash.
      */
     private void matchBufferAspect(@NotNull StructurePreviewRenderer renderer, int areaWidth, int areaHeight) {
         int displayedLongest = Math.max(1, Math.max(areaWidth, areaHeight)) * guiScale();
@@ -2186,6 +2514,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         private int collectedParts;
         @Nullable
         private MBPattern pattern;
+        @NotNull
+        private Map<MultiblockAbility<?>, Integer> abilityCounts = Collections.emptyMap();
+        @NotNull
+        private Map<MultiblockAbility<?>, Integer> abilityGroupCounts = Collections.emptyMap();
 
         private PreviewLoadTask(@NotNull MultiPiecePreviewAssembler.IncrementalPreview previewBuild) {
             this.previewBuild = previewBuild;
@@ -2215,6 +2547,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
             blockMap = new HashMap<>(previewBuild.getBlocks());
             previewEntries = new HashMap<>(previewBuild.getPreviewEntries());
+            abilityCounts = previewBuild.getAbilityCounts();
+            abilityGroupCounts = previewBuild.getAbilityGroupCounts();
             previewController = correctPreviewController(blockMap);
             world = new TrackedDummyWorld();
             renderer = createPreviewRenderer(world);
@@ -2339,6 +2673,16 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                 throw new IllegalStateException("Preview loading task has not completed");
             }
             return pattern;
+        }
+
+        @NotNull
+        private Map<MultiblockAbility<?>, Integer> takeAbilityCounts() {
+            return abilityCounts;
+        }
+
+        @NotNull
+        private Map<MultiblockAbility<?>, Integer> takeAbilityGroupCounts() {
+            return abilityGroupCounts;
         }
 
         private int getBlockCount() {

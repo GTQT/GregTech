@@ -359,11 +359,9 @@ public class DeclarativePatternBuilder {
             }
         }
 
-        if (multiPieceMode) {
-            for (CasingSlotInfo slot : casingSlots.values()) {
-                for (HatchInfo hatch : slot.hatches) {
-                    builder.globalAbilityLimit(hatch.ability, hatch.minCount, hatch.maxCount);
-                }
+        for (CasingSlotInfo slot : casingSlots.values()) {
+            for (HatchInfo hatch : slot.hatches) {
+                builder.globalAbilityLimit(hatch.ability, hatch.minCount, hatch.maxCount);
             }
         }
         for (AbilityLimitDef limit : abilityLimits) {

@@ -1,14 +1,15 @@
 package gregtech.api.metatileentity.multiblock;
 
-import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
-import gregtech.api.pattern.PieceRuntimes;
 import gregtech.api.pattern.PieceRuntimeState;
-import gregtech.api.pattern.StructureOperationRequest;
-import gregtech.api.pattern.StructureRuntime;
+import gregtech.api.pattern.PieceRuntimes;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.StructureElementPreviewEntry;
+import gregtech.api.pattern.StructureOperationRequest;
+import gregtech.api.pattern.StructureOrientation;
+import gregtech.api.pattern.StructureRuntime;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
 
@@ -69,7 +70,8 @@ final class MultiblockStructurePreviews {
             @NotNull MultiblockControllerBase controller,
             @Nullable MultiPiecePattern multiPiecePattern,
             @Nullable PieceRuntimes pieceRuntimes,
-            @Nullable Map<String, Integer> channelValues) {
+            @Nullable Map<String, Integer> channelValues,
+            @Nullable StructureOrientation orientation) {
         if (multiPiecePattern == null || pieceRuntimes == null) {
             throw new IllegalStateException("Cannot build a preview before the multi-piece pattern is initialized");
         }
@@ -77,9 +79,13 @@ final class MultiblockStructurePreviews {
         if (pieceIndex > multiPiecePattern.getToolingPieceCount()) {
             throw new IllegalArgumentException("Invalid tooling piece index " + pieceIndex);
         }
-        return MultiPiecePreviewAssembler.beginIncrementalPreview(
-                multiPiecePattern, pieceRuntimes, channelValues, controller,
-                pieceIndex, pieceIndex > 0);
+        return orientation == null
+                ? MultiPiecePreviewAssembler.beginIncrementalPreview(
+                        multiPiecePattern, pieceRuntimes, channelValues, controller,
+                        pieceIndex, pieceIndex > 0)
+                : MultiPiecePreviewAssembler.beginIncrementalPreview(
+                        multiPiecePattern, pieceRuntimes, channelValues, controller,
+                        pieceIndex, pieceIndex > 0, orientation);
     }
 
     @Nullable
@@ -212,7 +218,7 @@ final class MultiblockStructurePreviews {
                             : runtimeState.createPreviewCells(repetition, channelValues,
                                     controller.multiPiecePattern == null
                                             ? null
-                                            : controller.multiPiecePattern.createAbilityPlacementTracker())
+                                            : controller.multiPiecePattern.createAbilityPlacementTracker(channelValues))
                                     .toBlockArray()
                     : structureRuntime.previewSingle(
                             StructureOperationRequest.preview(repetition, channelValues, null));

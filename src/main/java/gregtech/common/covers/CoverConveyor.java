@@ -6,7 +6,6 @@ import gregtech.api.capability.IControllable;
 import gregtech.api.capability.impl.ItemHandlerDelegate;
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
-import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.mui.GTGuiTextures;
@@ -44,12 +43,9 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
-import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
-import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
@@ -74,7 +70,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 
-public class CoverConveyor extends CoverBase implements CoverWithUI, CoverWithLeisureUI, ITickable, IControllable {
+public class CoverConveyor extends CoverBase implements CoverWithUI, ITickable, IControllable {
 
     public final int tier;
     public final int maxItemTransferRate;
@@ -513,30 +509,6 @@ public class CoverConveyor extends CoverBase implements CoverWithUI, CoverWithLe
         return panel.child(CoverWithUI.createTitleRow(getPickItem()))
                 .child(createUI(guiData, guiSyncManager))
                 .bindPlayerInventory();
-    }
-
-    @Override
-    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
-                                          int index) {
-        getItemFilterContainer().setMaxTransferSize(getMaxStackSize());
-
-        IPanelHandler panelHandler = guiSyncManager.syncedPanel("conveyor_leisure_panel" + index, true,
-                (syncManager, panel) -> GTGuis.createPopupPanel("conveyor_leisure" + index, 176, 156)
-                        .child(CoverWithUI.createTitleRow(getPickItem()))
-                        .child(createUI(guiData, syncManager)));
-
-        return new ButtonWidget<>()
-                .size(18, 18)
-                .overlay(new ItemDrawable(getPickItem()).asIcon().size(16))
-                .addTooltipLine(IKey.str("传送带覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
-                .onMousePressed(mouseButton -> {
-                    if (panelHandler.isPanelOpen()) {
-                        panelHandler.closePanel();
-                    } else {
-                        panelHandler.openPanel();
-                    }
-                    return true;
-                });
     }
 
     protected Flow createUI(GuiData data, PanelSyncManager guiSyncManager) {

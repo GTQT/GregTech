@@ -38,7 +38,7 @@ import java.util.function.Consumer;
 @SideOnly(Side.CLIENT)
 public final class WorldPreviewWidget {
 
-    /** 固定抓取以机器为中心的 3x3x3。 */
+    /** 抓机器所在 3x3x3 的世界快照，和 GTM 的侧面总览一致。 */
     public static final int RADIUS = 1;
 
     private WorldPreviewWidget() {}
@@ -265,12 +265,17 @@ final class FacePickerSchemaWidget extends SchemaWidget {
 
     /** 鼠标按下到松开位移不超过这个像素数，才算一次"点击"而不是转视角。 */
     private static final int CLICK_TOLERANCE = 3;
+    /** 闲置这么久之后开始缓慢自转（毫秒）。 */
+    private static final long AUTO_ORBIT_DELAY_MS = 2500L;
+    /** 每 tick 自转的角度（弧度）。 */
+    private static final float AUTO_ORBIT_SPEED = 0.012f;
 
     private final Consumer<RayTraceResult> onFacePicked;
 
     private int pressedX;
     private int pressedY;
     private boolean dragging;
+    private long lastInteraction = System.currentTimeMillis();
 
     FacePickerSchemaWidget(@NotNull WorldPreviewWidget.RefreshableSchema schema,
                            @Nullable WorldPreviewWidget.FaceSupplier selectedFace,
@@ -280,7 +285,16 @@ final class FacePickerSchemaWidget extends SchemaWidget {
     }
 
     @Override
+    public void onUpdate() {
+        super.onUpdate();
+        if (System.currentTimeMillis() - this.lastInteraction > AUTO_ORBIT_DELAY_MS) {
+            yaw(getYaw() + AUTO_ORBIT_SPEED);
+        }
+    }
+
+    @Override
     public @NotNull Result onMousePressed(int mouseButton) {
+        this.lastInteraction = System.currentTimeMillis();
         Result result = super.onMousePressed(mouseButton);
         this.pressedX = getContext().getAbsMouseX();
         this.pressedY = getContext().getAbsMouseY();
@@ -290,12 +304,19 @@ final class FacePickerSchemaWidget extends SchemaWidget {
 
     @Override
     public void onMouseDrag(int mouseButton, long timeSinceClick) {
+        this.lastInteraction = System.currentTimeMillis();
         if (!this.dragging &&
                 (Math.abs(getContext().getAbsMouseX() - this.pressedX) > CLICK_TOLERANCE ||
                         Math.abs(getContext().getAbsMouseY() - this.pressedY) > CLICK_TOLERANCE)) {
             this.dragging = true;
         }
         super.onMouseDrag(mouseButton, timeSinceClick);
+    }
+
+    @Override
+    public boolean onMouseScroll(com.cleanroommc.modularui.api.UpOrDown scrollDirection, int amount) {
+        this.lastInteraction = System.currentTimeMillis();
+        return super.onMouseScroll(scrollDirection, amount);
     }
 
     @Override

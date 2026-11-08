@@ -8,7 +8,6 @@ import gregtech.api.util.ItemStackHashStrategy;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
-import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.MathHelper;
 import net.minecraftforge.items.ItemStackHandler;
 
@@ -16,7 +15,6 @@ import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.GuiTextures;
-import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.utils.Alignment;
@@ -271,38 +269,6 @@ public abstract class BaseFilterContainer extends ItemStackHandler {
                         .shadow(false)
                         .alignment(Alignment.CenterRight).asWidget()
                         .left(36).right(0).height(18));
-    }
-
-    public IWidget initUILeisure(GuiData data, PanelSyncManager manager,int index) {
-        AtomicReference<IPanelHandler> filterPanel = new AtomicReference<>();
-        AtomicInteger counter = new AtomicInteger();
-
-        if (hasFilter()) {
-            filterPanel.set(getFilter().createPanelHandler(manager, counter.getAndIncrement()));
-        }
-
-        manager.registerSyncedAction("update_filter_panel"+index, packet -> {
-            if (hasFilter()) {
-                filterPanel.set(getFilter().createPanelHandler(manager, counter.getAndIncrement()));
-            }
-        });
-
-        return new ButtonWidget<>()
-                .overlay(new ItemDrawable(this.getFilterStack()).asIcon().size(16))
-                .setEnabledIf(w -> hasFilter())
-                .addTooltipLine(getFilterKey() + " 方位：" + EnumFacing.byIndex(index).getName())
-                .onMousePressed(i -> {
-                    IPanelHandler panel = filterPanel.get();
-                    if (panel == null) return false;
-
-                    if (!panel.isPanelOpen()) {
-                        setMaxTransferSize(getMaxTransferSize());
-                        panel.openPanel();
-                    } else {
-                        panel.closePanel();
-                    }
-                    return true;
-                });
     }
 
     public void writeInitialSyncData(PacketBuffer packetBuffer) {

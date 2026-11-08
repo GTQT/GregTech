@@ -115,12 +115,33 @@ public class MultiPiecePattern {
 
     @NotNull
     public AbilityPlacementTracker createAbilityPlacementTracker() {
-        return new AbilityPlacementTracker(abilityLimits, abilityGroupLimits);
+        return createAbilityPlacementTracker(Collections.emptyMap());
+    }
+
+    /**
+     * Creates a tracker that honors per-request ability count caps carried in the
+     * channel-value map under {@link AbilityPlacementTracker#ABILITY_COUNT_PREFIX}.
+     */
+    @NotNull
+    public AbilityPlacementTracker createAbilityPlacementTracker(@Nullable Map<String, Integer> config) {
+        return new AbilityPlacementTracker(abilityLimits, abilityGroupLimits,
+                config == null ? Collections.emptyMap() : config);
     }
 
     @NotNull
     public StructureMatchSession createMatchSession() {
-        return new StructureMatchSession(abilityLimits, abilityGroupLimits);
+        return createMatchSession(Collections.emptyMap());
+    }
+
+    /**
+     * Creates a matching session whose ability ranges honor the per-request caps carried in the
+     * channel-value map. This keeps the post-build check consistent with placement.
+     */
+    @NotNull
+    public StructureMatchSession createMatchSession(@Nullable Map<String, Integer> config) {
+        AbilityPlacementTracker tracker = createAbilityPlacementTracker(config);
+        return new StructureMatchSession(tracker.getEffectiveAbilityLimits(),
+                tracker.getEffectiveGroupLimits());
     }
 
     /**
@@ -810,7 +831,7 @@ public class MultiPiecePattern {
                                    @Nullable Map<String, Integer> channelValues,
                                    @NotNull PieceRuntimes runtimes) {
         return autoBuildPiece(pieceIndex, player, controller, channelValues,
-                runtimes, createAbilityPlacementTracker());
+                runtimes, createAbilityPlacementTracker(channelValues));
     }
 
     public boolean autoBuildPiece(int pieceIndex, EntityPlayer player, MultiblockControllerBase controller,

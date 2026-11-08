@@ -6,6 +6,8 @@ import gregtech.api.metatileentity.multiblock.IColorChannelPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
+import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
+import gregtech.api.mui.widget.SidePanel;
 import gregtech.api.util.GTUtility;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -17,6 +19,7 @@ import gregtech.common.creativetab.GTCreativeTabs;
 
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.PacketBuffer;
 import net.minecraft.util.EnumFacing;
@@ -29,8 +32,13 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.drawable.ItemDrawable;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import static gregtech.api.capability.GregtechDataCodes.SYNC_CONTROLLER;
@@ -112,6 +120,37 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
             this.controllerTile = null;
         }
         return controllerTile;
+    }
+
+    /**
+     * 侧边栏加一颗“打开控制器”的按钮：只要这个仓还挂在某个成型多方块上，就可以一键跳回控制器界面。
+     */
+    @Override
+    protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
+        super.registerSidePanelButtons(sidePanel);
+
+        MultiblockControllerBase controller = getController();
+        if (controller == null) return;
+
+        PanelSyncManager syncManager = sidePanel.getSyncManager();
+        syncManager.registerSyncedAction("open_controller", false, true, buffer -> {
+            EntityPlayer player = syncManager.getPlayer();
+            MultiblockControllerBase current = getController();
+            if (player == null || current == null || !current.isValid()) return;
+            if (player.world != current.getWorld()) return;
+            MetaTileEntityGuiFactory.open(player, current);
+        });
+
+        sidePanel.add(new ButtonWidget<>()
+                .name("open_controller")
+                .size(18)
+                .overlay(new ItemDrawable(controller.getStackForm()).asIcon().size(16))
+                .addTooltipLine(IKey.lang("gregtech.mui.multiblock_part.open_controller"))
+                .onMousePressed(button -> {
+                    if (button != 0) return false;
+                    syncManager.callSyncedAction("open_controller");
+                    return true;
+                }));
     }
 
     private void setController(MultiblockControllerBase controller1) {

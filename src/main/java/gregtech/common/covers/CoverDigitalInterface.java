@@ -13,7 +13,6 @@ import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.capability.impl.ItemHandlerProxy;
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
-import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.api.gui.GuiTextures;
@@ -75,14 +74,10 @@ import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
 import codechicken.lib.vec.Rotation;
-import com.cleanroommc.modularui.api.IPanelHandler;
 import com.cleanroommc.modularui.api.drawable.IDrawable;
 import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.api.widget.Interactable;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
-import com.cleanroommc.modularui.drawable.ItemDrawable;
-import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
@@ -106,8 +101,7 @@ import java.util.List;
 import java.util.UUID;
 
 public class CoverDigitalInterface extends CoverBase
-                                    implements IFastRenderMetaTileEntity, ITickable, CoverWithUI,
-                                    CoverWithLeisureUI {
+                                    implements IFastRenderMetaTileEntity, ITickable, CoverWithUI {
 
     public CoverDigitalInterface(@NotNull CoverDefinition definition, @NotNull CoverableView coverableView,
                                  @NotNull EnumFacing attachedSide) {
@@ -508,35 +502,6 @@ public class CoverDigitalInterface extends CoverBase
                 .child(CoverWithUI.createTitleRow(getPickItem()).pos(5, 5))
                 .child(buildContent(guiSyncManager))
                 .bindPlayerInventory();
-    }
-
-    /**
-     * 机器主界面侧边按钮栏里的按钮：点击后在机器界面内部展开 / 收起数字接口设置子面板。
-     *
-     * <p>
-     * 子面板复用 {@link #buildContent}，和主界面里的控件完全一致；但不调
-     * {@code bindPlayerInventory()}，所以高度比 {@link #buildUI} 少 48（玩家背包那一块）。
-     */
-    @Override
-    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
-                                          int index) {
-        IPanelHandler panelHandler = guiSyncManager.syncedPanel("digital_interface_leisure_panel" + index, true,
-                (syncManager, panel) -> GTGuis.createPopupPanel("digital_interface_leisure" + index, 176, 138)
-                        .child(CoverWithUI.createTitleRow(getPickItem()).pos(5, 5))
-                        .child(buildContent(syncManager)));
-
-        return new ButtonWidget<>()
-                .size(18, 18)
-                .overlay(new ItemDrawable(getPickItem()).asIcon().size(16))
-                .addTooltipLine(IKey.str("数字接口覆盖板" + " 方位：" + EnumFacing.byIndex(index).getName()))
-                .onMousePressed(mouseButton -> {
-                    if (panelHandler.isPanelOpen()) {
-                        panelHandler.closePanel();
-                    } else {
-                        panelHandler.openPanel();
-                    }
-                    return true;
-                });
     }
 
     /**

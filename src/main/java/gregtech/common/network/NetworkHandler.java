@@ -1,7 +1,9 @@
 package gregtech.common.network;
 
+import gregtech.common.network.multiblock.CPacketExecuteStructureBuild;
 import gregtech.common.network.multiblock.ClearMoverPreviewPacket;
 import gregtech.common.network.multiblock.RotateMoverPreviewPacket;
+import gregtech.common.network.multiblock.SPacketStructureBuildResult;
 import gregtech.common.network.multiblock.StartMoverPreviewPacket;
 import gregtech.common.network.multiblock.SwitchMultiblockToolModePacket;
 
@@ -23,5 +25,9 @@ public class NetworkHandler {
         INSTANCE.registerMessage(RotateMoverPreviewPacket.Handler.class, RotateMoverPreviewPacket.class, id++, Side.SERVER);
         INSTANCE.registerMessage(SwitchMultiblockToolModePacket.Handler.class,
                 SwitchMultiblockToolModePacket.class, id++, Side.SERVER);
+        INSTANCE.registerMessage(CPacketExecuteStructureBuild.Handler.class,
+                CPacketExecuteStructureBuild.class, id++, Side.SERVER);
+        INSTANCE.registerMessage(SPacketStructureBuildResult.Handler.class,
+                SPacketStructureBuildResult.class, id++, Side.CLIENT);
     }
 }

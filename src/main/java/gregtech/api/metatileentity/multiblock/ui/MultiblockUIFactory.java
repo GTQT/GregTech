@@ -9,9 +9,13 @@ import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
 import gregtech.api.metatileentity.multiblock.ProgressBarMultiblock;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuis;
+import gregtech.api.mui.sync.MultiblockPartsSyncHandler;
+import gregtech.api.mui.widget.MultiblockPartsWidget;
+import gregtech.api.mui.widget.SidePanel;
 import gregtech.api.util.GTLambdaUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.KeyUtil;
+import gregtech.common.metatileentities.MetaTileEntities;
 import gregtech.common.mui.widget.ScrollableTextWidget;
 
 import net.minecraft.util.math.MathHelper;
@@ -24,6 +28,7 @@ import com.cleanroommc.modularui.api.drawable.IKey;
 import com.cleanroommc.modularui.api.value.IBoolValue;
 import com.cleanroommc.modularui.api.widget.IWidget;
 import com.cleanroommc.modularui.drawable.DynamicDrawable;
+import com.cleanroommc.modularui.drawable.GuiTextures;
 import com.cleanroommc.modularui.drawable.Icon;
 import com.cleanroommc.modularui.drawable.ItemDrawable;
 import com.cleanroommc.modularui.drawable.Rectangle;
@@ -42,6 +47,8 @@ import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.CycleButtonWidget;
+import com.cleanroommc.modularui.widgets.PageButton;
+import com.cleanroommc.modularui.widgets.PagedWidget;
 import com.cleanroommc.modularui.widgets.ProgressWidget;
 import com.cleanroommc.modularui.widgets.SlotGroupWidget;
 import com.cleanroommc.modularui.widgets.ToggleButton;
@@ -81,7 +88,6 @@ public class MultiblockUIFactory {
         configureDisplayText(builder -> builder.title(mte.getMetaFullName())
                 .structureFormed(mte.isStructureFormed())
                 .addMissingStructureAbilities(mte.getMissingStructureAbilities()));
-        if(mte.hasSideUI())height += 18;
     }
 
     private static int calculateRows(int count) {
@@ -303,18 +309,46 @@ public class MultiblockUIFactory {
      * <i>It is not recommended to override this method</i>
      */
     public @NotNull ModularPanel buildUI(PosGuiData guiData, PanelSyncManager panelSyncManager) {
-        var panel = GTGuis.createPanel(mte, width, height)
-                .childIf(!disableDisplay, () -> createScreen(panelSyncManager));
+        ProgressBarMultiblock progressBarMultiblock = null;
+        int barRows = 0;
+        if (mte instanceof ProgressBarMultiblock progressBar && progressBar.hasBars()) {
+            progressBarMultiblock = progressBar;
+            barRows = calculateRows(progressBar.getProgressBarCount());
+        }
+        int totalHeight = height + (progressBarMultiblock != null ? Bars.HEIGHT * barRows - 2 : 0);
+
+        var panel = GTGuis.createPanel(mte, width, totalHeight);
+
+        var pageController = new PagedWidget.Controller();
+        var partsSyncHandler = new MultiblockPartsSyncHandler(mte);
+        panelSyncManager.syncValue("multiblock_parts", 0, partsSyncHandler);
+
+        var pages = new PagedWidget<>()
+                .name("multiblock_pages")
+                .pos(0, 0)
+                .size(width, totalHeight)
+                .controller(pageController);
+
+        var infoPage = new ParentWidget<>()
+                .name("multiblock_info_page")
+                .pos(0, 0)
+                .size(width, totalHeight);
+        if (!disableDisplay) {
+            infoPage.child(createScreen(panelSyncManager));
+        }
+        if (progressBarMultiblock != null) {
+            infoPage.child(createBars(progressBarMultiblock, panelSyncManager));
+        }
 
         // TODO createExtras() hook for overrides?
-        if (mte instanceof ProgressBarMultiblock progressBarMultiblock && progressBarMultiblock.hasBars()) {
-            panel.height(height + (Bars.HEIGHT * calculateRows(progressBarMultiblock.getProgressBarCount())) - 2);
-            panel.child(createBars(progressBarMultiblock, panelSyncManager));
+        if (disableDisplay && screenFunction != null) {
+            this.screenFunction.addWidgets(infoPage, panelSyncManager);
         }
 
-        if (disableDisplay && screenFunction != null) {
-            this.screenFunction.addWidgets(panel, panelSyncManager);
-        }
+        pages.addPage(infoPage);
+        pages.addPage(createPartsPage(partsSyncHandler, totalHeight));
+        pages.addPage(createPreviewPage(panelSyncManager, totalHeight));
+        panel.child(pages);
 
         var playerInv = SlotGroupWidget.playerInventory(false);
         if (disableButtons) {
@@ -323,27 +357,95 @@ public class MultiblockUIFactory {
             playerInv.left(4);
         }
 
-        return panel
-                .childIf(mte.hasSideUI(), () -> Flow.column()
-                        .name("side_row")
-                        .bottom(18 * 4 + 14)
-                        .height(18)
-                        .margin(4, 0)
-                        .crossAxisAlignment(Alignment.CrossAxis.CENTER)
-                        .childIf(!disableButtons, () -> createSideButtons(panel, panelSyncManager, guiData))
-                )
+        // 原来夹在信息区和玩家背包之间的按钮行，改成面板右侧的竖排侧边栏
+        if (mte.hasSideUI()) {
+            SidePanel sidePanel = new SidePanel(guiData, panelSyncManager);
+            if (!disableButtons) {
+                List<IWidget> sideButtons = createSideButtonWidgets(panel, panelSyncManager, guiData);
+                // SidePanel 的列是 reverseLayout，按从下到上注册；这里倒序添加以保持原来从左到右的顺序
+                for (int i = sideButtons.size() - 1; i >= 0; i--) {
+                    sidePanel.add(sideButtons.get(i));
+                }
+            }
+            sidePanel.attachTo(panel);
+        }
 
-                .child(Flow.row()
-                        .name("bottom_row")
-                        .bottom(7)
-                        .coverChildrenHeight()
-                        .margin(4, 0)
-                        .crossAxisAlignment(Alignment.CrossAxis.CENTER)
-                        .child(playerInv)
-                        .childIf(!disableButtons, () -> createButtons(panel, panelSyncManager, guiData))
-                );
+        panel.child(Flow.row()
+                .name("bottom_row")
+                .bottom(7)
+                .coverChildrenHeight()
+                .margin(4, 0)
+                .crossAxisAlignment(Alignment.CrossAxis.CENTER)
+                .child(playerInv)
+                .childIf(!disableButtons, () -> createButtons(panel, panelSyncManager, guiData))
+        );
 
+        // 页签条悬在面板上沿之外：页签 0 是原有的信息页，页签 1 是仓室索引页
+        panel.child(Flow.row()
+                .name("tab_row")
+                .widthRel(1f)
+                .leftRel(0.5f)
+                .margin(3, 0)
+                .coverChildrenHeight()
+                .topRel(0f, 3, 1f)
+                .child(new PageButton(0, pageController)
+                        .tab(GuiTextures.TAB_TOP, 0)
+                        .addTooltipLine(IKey.lang("gregtech.multiblock.tab.info"))
+                        .overlay(new ItemDrawable(mte.getStackForm()).asIcon().size(16)))
+                .child(new PageButton(1, pageController)
+                        .tab(GuiTextures.TAB_TOP, 0)
+                        .addTooltipLine(IKey.lang("gregtech.multiblock.tab.parts"))
+                        .overlay(new ItemDrawable(MetaTileEntities.ITEM_IMPORT_BUS[0].getStackForm())
+                                .asIcon().size(16)))
+                .child(new PageButton(2, pageController)
+                        .tab(GuiTextures.TAB_TOP, 0)
+                        .addTooltipLine(IKey.lang("gregtech.multiblock.tab.preview"))
+                        .overlay(GTGuiTextures.BUTTON_STRUCTURE.asIcon().size(16))));
 
+        return panel;
+    }
+
+    private IWidget createPartsPage(MultiblockPartsSyncHandler partsSyncHandler, int totalHeight) {
+        var root = new ParentWidget<>();
+        // 只有主控页（信息页）需要背景，其余页签保持干净
+        root.name("parts_root")
+                .size(190, screenHeight)
+                .pos(4, 4);
+        root.child(new MultiblockPartsWidget(partsSyncHandler)
+                .pos(2, 2)
+                .size(186, screenHeight - 4));
+
+        var page = new ParentWidget<>();
+        page.name("multiblock_parts_page")
+                .pos(0, 0)
+                .size(width, totalHeight);
+        page.child(root);
+        return page;
+    }
+
+    /**
+     * 朝向预览页：把原来侧边栏里的"机器朝向预览"搬进页签。
+     * <p>
+     * 预览的同步值只能注册一次，所以 {@link MultiblockWithDisplayBase} 那边同时把侧边按钮关掉了。
+     * 预览不可用（配置关闭 / 客户端没有世界）时给一段提示，页签本身仍然存在，避免页签下标错位。
+     */
+    private IWidget createPreviewPage(PanelSyncManager panelSyncManager, int totalHeight) {
+        var page = new ParentWidget<>();
+        page.name("multiblock_preview_page")
+                .pos(0, 0)
+                .size(width, totalHeight);
+
+        IWidget content = mte.createWorldPreviewPage(panelSyncManager, 190, screenHeight);
+        if (content != null) {
+            page.child(new ParentWidget<>()
+                    .name("preview_root")
+                    .size(190, screenHeight)
+                    .pos(4, 4)
+                    .child(content));
+        } else {
+            page.child(IKey.lang("gregtech.multiblock.tab.preview.unavailable").asWidget().pos(8, 8));
+        }
+        return page;
     }
 
     /**
@@ -511,74 +613,48 @@ public class MultiblockUIFactory {
     @NotNull
     protected Flow createSideButtons(@NotNull ModularPanel mainPanel, @NotNull PanelSyncManager panelSyncManager,
                                      PosGuiData guiData) {
-        IWidget gcymButton = this.gcymButton.apply(guiData, panelSyncManager);
-        if (gcymButton == null) {
-            gcymButton = new ToggleButton()
-                    .name("flex_none")
-                    .value(ALWAYS_ON)
-                    .overlay(GTGuiTextures.OVERLAY_NO_FLEX)
-                    .size(18)
-                    .addTooltipLine(IKey.lang("gregtech.multiblock.universal.no_multi_recipemap"));
-        }
-
-        //parallelButton
-        IWidget parallelButton = this.parallelButton.apply(guiData, panelSyncManager);
-        if (parallelButton == null) {
-            parallelButton = new ToggleButton()
-                    .name("parallel_none")
-                    .value(ALWAYS_ON)
-                    .size(18)
-                    .overlay(GTGuiTextures.OVERLAY_NO_FLEX)
-                    .addTooltipLine(IKey.lang("无并行可调"));
-        }
-
-        //threadButton
-        IWidget threadButton = this.threadButton.apply(guiData, panelSyncManager);
-        if (threadButton == null) {
-            threadButton = new ToggleButton()
-                    .name("thread_none")
-                    .value(ALWAYS_ON)
-                    .size(18)
-                    .overlay(GTGuiTextures.OVERLAY_NO_FLEX)
-                    .addTooltipLine(IKey.lang("无线程可调"));
-        }
-
-        //overclockButton
-        IWidget overclockButton = this.overclockButton.apply(guiData, panelSyncManager);
-        if (overclockButton == null) {
-            overclockButton = new ToggleButton()
-                    .name("overclock_none")
-                    .value(ALWAYS_ON)
-                    .size(18)
-                    .overlay(GTGuiTextures.OVERLAY_NO_FLEX)
-                    .addTooltipLine(IKey.lang("无超频可调"));
-        }
-
-        //accelerateButton
-        IWidget accelerateButton = this.accelerateButton.apply(guiData, panelSyncManager);
-        if (accelerateButton == null) {
-            accelerateButton = new ToggleButton()
-                    .name("accelerate_none")
-                    .value(ALWAYS_ON)
-                    .size(18)
-                    .overlay(GTGuiTextures.OVERLAY_NO_FLEX)
-                    .addTooltipLine(IKey.lang("无加速可调"));
-        }
-
         return Flow.row()
                 .name("side_col")
                 .coverChildren()
                 .posRel(Alignment.CenterLeft)
-                .child(createStructureDelayCheckButton(mainPanel, panelSyncManager))
-                .child(createBatchButton(mainPanel, panelSyncManager))
-                .child(lockRecipesButton(mainPanel, panelSyncManager))
-                .child(lackEnergyWarningButton(mainPanel, panelSyncManager))
-                .child(overFlowButton(mainPanel, panelSyncManager))
-                .child(gcymButton)
-                .child(parallelButton)
-                .child(threadButton)
-                .child(overclockButton)
-                .child(accelerateButton);
+                .children(createSideButtonWidgets(mainPanel, panelSyncManager, guiData));
+    }
+
+    /**
+     * 侧边栏里那排按钮的完整列表（原来的横向按钮行，现在挪到面板右侧竖排）。
+     * <p>
+     * 顺序与旧版的从左到右一致；调用方负责按竖排方向摆放。
+     */
+    @NotNull
+    protected List<IWidget> createSideButtonWidgets(@NotNull ModularPanel mainPanel,
+                                                   @NotNull PanelSyncManager panelSyncManager,
+                                                   PosGuiData guiData) {
+        List<IWidget> buttons = new ArrayList<>();
+        // 结构调整按钮对所有多方块都可用
+        buttons.add(createStructureDelayCheckButton(mainPanel, panelSyncManager));
+        if (mte instanceof IBatch batch && batch.isBatchAllowed()) {
+            buttons.add(createBatchButton(mainPanel, panelSyncManager));
+        }
+        if (mte instanceof IRecipeControl recipeControl && recipeControl.enableExtendControl()) {
+            buttons.add(lockRecipesButton(mainPanel, panelSyncManager));
+            buttons.add(lackEnergyWarningButton(mainPanel, panelSyncManager));
+        }
+        if (mte instanceof IGenerator) {
+            buttons.add(overFlowButton(mainPanel, panelSyncManager));
+        }
+        // 这些按钮由具体多方块通过 configure*Button 提供，没提供就不显示（不再放空按钮占位）
+        addIfNotNull(buttons, this.gcymButton.apply(guiData, panelSyncManager));
+        addIfNotNull(buttons, this.parallelButton.apply(guiData, panelSyncManager));
+        addIfNotNull(buttons, this.threadButton.apply(guiData, panelSyncManager));
+        addIfNotNull(buttons, this.overclockButton.apply(guiData, panelSyncManager));
+        addIfNotNull(buttons, this.accelerateButton.apply(guiData, panelSyncManager));
+        return buttons;
+    }
+
+    private static void addIfNotNull(@NotNull List<IWidget> buttons, @Nullable IWidget button) {
+        if (button != null) {
+            buttons.add(button);
+        }
     }
 
 

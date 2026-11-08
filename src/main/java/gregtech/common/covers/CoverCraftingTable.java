@@ -4,7 +4,6 @@ import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.impl.ItemHandlerList;
 import gregtech.api.cover.CoverBase;
 import gregtech.api.cover.CoverDefinition;
-import gregtech.api.cover.CoverWithLeisureUI;
 import gregtech.api.cover.CoverWithUI;
 import gregtech.api.cover.CoverableView;
 import gregtech.client.renderer.texture.Textures;
@@ -36,17 +35,11 @@ import codechicken.lib.render.CCRenderState;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Cuboid6;
 import codechicken.lib.vec.Matrix4;
-import com.cleanroommc.modularui.api.IPanelHandler;
-import com.cleanroommc.modularui.api.drawable.IKey;
-import com.cleanroommc.modularui.api.widget.IWidget;
-import com.cleanroommc.modularui.drawable.ItemDrawable;
-import com.cleanroommc.modularui.factory.GuiData;
 import com.cleanroommc.modularui.factory.SidedPosGuiData;
 import com.cleanroommc.modularui.network.NetworkUtils;
 import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.screen.UISettings;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
-import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.google.common.base.Preconditions;
 import org.jetbrains.annotations.NotNull;
 
@@ -65,7 +58,7 @@ import java.util.Set;
  * 共用同一套逻辑，因此 3x3 合成、库存取料、工具槽、内部库存、配方记忆与合成链功能都与工作台机器保持一致。
  */
 public class CoverCraftingTable extends CoverBase
-                                 implements CoverWithUI, CoverWithLeisureUI, ITickable, IWorkbenchHolder {
+                                 implements CoverWithUI, ITickable, IWorkbenchHolder {
 
     /** BFS 库存扫描的最大搜索方块数量 */
     private static final int MAX_SCAN_RANGE = 24;
@@ -164,31 +157,6 @@ public class CoverCraftingTable extends CoverBase
     @Override
     public ModularPanel buildUI(SidedPosGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
         return WorkbenchUI.build(this, guiSyncManager);
-    }
-
-    /**
-     * 机器主界面侧边按钮栏中的按钮：点击后在机器界面内部展开 / 收起工作台子面板，
-     * 这样单方块机器不必再单独开一个界面就能合成。
-     */
-    @Override
-    public @NotNull IWidget initUILeisure(@NotNull GuiData guiData, @NotNull PanelSyncManager guiSyncManager,
-                                          int index) {
-        IPanelHandler panelHandler = guiSyncManager.syncedPanel("workbench_cover_panel" + index, true,
-                (syncManager, panel) -> WorkbenchUI.buildEmbeddedPanel(this, syncManager, guiSyncManager, index));
-
-        return new ButtonWidget<>()
-                .size(18, 18)
-                .overlay(new ItemDrawable(getWorkbenchIcon()).asIcon().size(16))
-                .addTooltipLine(IKey.lang(getWorkbenchTitleKey()) + " 方位：" +
-                        EnumFacing.byIndex(index).getName())
-                .onMousePressed(mouseButton -> {
-                    if (panelHandler.isPanelOpen()) {
-                        panelHandler.closePanel();
-                    } else {
-                        panelHandler.openPanel();
-                    }
-                    return true;
-                });
     }
 
     // ==================== IWorkbenchHolder ====================

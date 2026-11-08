@@ -1463,7 +1463,7 @@ metaitem.tool.multiblock_builder.tooltip=Build your multiblock structures!
 gregtech.tool.multiblock_builder.compare_on=§aCompare Mode: ON
 gregtech.tool.multiblock_builder.no_hatch_on=§cDisable Hatch Placement: ON
 gregtech.tool.multiblock_builder.channels_set=§eChannels Configured: %s
-gregtech.tool.multiblock_builder.channel_config_hint=§8Right-click controller to auto-fill supported channels, right-click air to open GUI config
+gregtech.tool.multiblock_builder.channel_config_hint=§8Right-click a multiblock controller: structure preview and build setup
 gregtech.tool.multiblock_builder.gui_title=Multiblock Projector Configuration
 gregtech.tool.multiblock_builder.compare_tooltip=Toggle Compare Mode (Highlight missing/incorrect blocks)
 gregtech.tool.multiblock_builder.no_hatch_tooltip=Toggle Disable Hatch Placement mode (No hatches will be placed during auto-build)
@@ -1471,6 +1471,10 @@ gregtech.tool.multiblock_builder.clear=Clear Channels
 gregtech.tool.multiblock_builder.structure_height=Height
 gregtech.tool.multiblock_builder.structure_width=Width
 gregtech.tool.multiblock_builder.structure_length=Length
+gregtech.tool.multiblock_builder.compare=Compare Mode
+gregtech.tool.multiblock_builder.no_hatch=No Hatch
+gregtech.tool.multiblock_builder.channels=Channels
+gregtech.tool.multiblock_builder.done=Done
 
 metaitem.tool.multiblock_remover.name=Multiblock Remover
 metaitem.tool.multiblock_remover.tooltip=Sneak-right-click a multiblock to dismantle it; right-click for a structure report
@@ -9143,6 +9147,9 @@ gregtech.multiblock.preview.fullscreen.size=Size %sx%sx%s
 gregtech.multiblock.preview.fullscreen.parts=Parts %s
 gregtech.multiblock.preview.fullscreen.esc=ESC Collapse
 gregtech.multiblock.preview.fullscreen.loading=Generating structure preview
+gregtech.multiblock.preview.fullscreen.loading_failed=Preview failed: %s
+gregtech.multiblock.preview.config=Structure Configuration
+gregtech.multiblock.preview.config_root=Structure settings
 gregtech.multiblock.preview.fullscreen.materials=Required Components
 gregtech.multiblock.preview.fullscreen.alternatives=Alternatives
 gregtech.multiblock.preview.fullscreen.no_alternatives=No alternatives for this block
@@ -9154,6 +9161,44 @@ gregtech.multiblock.preview.fullscreen.layer_tip=Cycle preview layer (all / sing
 gregtech.multiblock.preview.fullscreen.hint_select=Right click a block to inspect alternatives
 gregtech.multiblock.preview.fullscreen.selected=Selected block %s, %s, %s
 gregtech.multiblock.preview.fullscreen.hint=Left Drag Rotate | Right Drag Pan | Wheel Zoom | Right Click Block: Alternatives | ESC Collapse
+gregtech.multiblock.preview.fullscreen.title=Structure Preview: %s
+gregtech.multiblock.preview.fullscreen.candidates=Placement
+gregtech.multiblock.preview.fullscreen.single_candidate=Only this placement is allowed
+gregtech.multiblock.preview.fullscreen.layer_all=All
+gregtech.multiblock.preview.fullscreen.layer_n=Layer %s
+gregtech.multiblock.preview.fullscreen.config=Structure Configuration
+gregtech.multiblock.preview.fullscreen.config_root=Main Structure
+gregtech.multiblock.preview.fullscreen.config_empty=This structure has no segmented pieces
+gregtech.multiblock.preview.fullscreen.config_hint=Click a row to preview the cumulative piece prefix
+gregtech.multiblock.build_wizard.open=Build Setup
+gregtech.multiblock.preview.actions.project=Project in World
+gregtech.multiblock.build_wizard.title=Structure Build: %s
+gregtech.multiblock.build_wizard.blocks=Structure Blocks
+gregtech.multiblock.build_wizard.ability_counts=Hatch Counts
+gregtech.multiblock.build_wizard.no_ability_counts=No adjustable hatch counts
+gregtech.multiblock.build_wizard.roles=Main Structure
+gregtech.multiblock.build_wizard.no_roles=No main structure requirements
+gregtech.multiblock.build_wizard.role_many=%s (%s types)
+gregtech.multiblock.build_wizard.select=Count
+gregtech.multiblock.build_wizard.ability_range=Allowed %s to %s
+gregtech.multiblock.build_wizard.missing_items=Missing Materials
+gregtech.multiblock.build_wizard.structure=Structure Segments
+gregtech.multiblock.build_wizard.no_parts=No block list available
+gregtech.multiblock.build_wizard.no_pieces=This structure has no pieces
+gregtech.multiblock.build_wizard.optional=Optional
+gregtech.multiblock.build_wizard.required=Required
+gregtech.multiblock.build_wizard.back=Back
+gregtech.multiblock.build_wizard.build=Build
+gregtech.multiblock.build_wizard.building=Building...
+gregtech.multiblock.build_wizard.missing=Missing %s stacks
+gregtech.multiblock.build_wizard.build_done=Placed %s blocks
+gregtech.multiblock.build_wizard.build_handled=Controller handled the build
+gregtech.multiblock.build_wizard.build_missing=Build finished, %s stacks missing
+gregtech.multiblock.build_wizard.nothing_to_build=Nothing to build
+gregtech.multiblock.preview.fullscreen.summary=Size %s×%s×%s - %s blocks
+gregtech.multiblock.preview.fullscreen.display_layer=Display Layer
+gregtech.multiblock.preview.fullscreen.ability_counts=Hatch Installation Caps
+gregtech.multiblock.preview.fullscreen.ability_counts.tooltip=Adjustable installation cap; this structure allows %s to %s.
 
 gregtech.multiblock.pattern.error_message_header=Potential structure error:
 gregtech.multiblock.pattern.no_errors=No errors in structure found!
@@ -9199,7 +9244,7 @@ gregtech.multiblock.pattern.failure.reason.limited.2=Maximum allowed per layer: 
 gregtech.multiblock.pattern.failure.reason.limited.3=Minimum required per layer: %1$s
 gregtech.multiblock.pattern.failure.no_trace=No failure details recorded yet: wait for the next automatic check, or break and replace any structure block and try again
 gregtech.multiblock.pattern.failure.advice=After fixing this spot, let the controller re-check (breaking or placing any structure block triggers it immediately), then right-click the controller again to see the latest result
-gregtech.multiblock.pattern.failure.advice.build=Shift+right-click the controller to attempt an auto-build; size and hatch limits are adjustable in the multiblock_builder GUI.
+gregtech.multiblock.pattern.failure.advice.build=Shift+right-click the controller to diagnose the structure; right-click it to open the structure preview and build configuration.
 gregtech.multiblock.pattern.failure.advice.basic_build=Shift+right-click the controller to attempt an auto-build using the default channels.
 gregtech.multiblock.pattern.clear_amount_1=§6Must have a clear 1x1x1 space in front§r
 gregtech.multiblock.pattern.clear_amount_3=§6Must have a clear 3x3x1 space in front§r
@@ -10386,3 +10431,42 @@ gregtech.structure_channel.structure_piece=Structure Piece
 gregtech.casing_group.heating_coil=Heating Coil
 gregtech.casing_group.machine_casing=Machine Casing
 gregtech.casing_group.borosilicate_glass=Borosilicate Glass
+
+# Multiblock Window Tabs
+gregtech.multiblock.tab.info=Info
+gregtech.multiblock.tab.parts=Hatches
+gregtech.multiblock.tab.parts.empty=No hatches attached
+gregtech.multiblock.tab.preview=Orientation
+gregtech.multiblock.tab.preview.unavailable=Orientation preview is unavailable
+
+# Multiblock Part Side Panel
+gregtech.mui.multiblock_part.open_controller=Open Controller
+
+# Machine Window Tabs
+gregtech.mui.mte.tab.machine=Machine
+gregtech.mui.mte.tab.covers=Covers
+gregtech.mui.mte.tab.preview=Orientation
+
+# Cover Index
+gregtech.mui.side.down=Bottom
+gregtech.mui.side.up=Top
+gregtech.mui.side.north=North
+gregtech.mui.side.south=South
+gregtech.mui.side.west=West
+gregtech.mui.side.east=East
+gregtech.mui.cover.no_ui=No dedicated UI
+gregtech.mui.cover.open_host=Back to Host
+
+# Machine Side Preview
+gregtech.mui.machine_side.front=Front
+gregtech.mui.machine_side.back=Back
+gregtech.mui.machine_side.left=Left
+gregtech.mui.machine_side.right=Right
+gregtech.mui.machine_side.top=Top
+gregtech.mui.machine_side.bottom=Bottom
+gregtech.mui.machine_side.set_front=Set Front
+gregtech.mui.machine_side.set_items=Set Item Output
+gregtech.mui.machine_side.set_fluids=Set Fluid Output
+gregtech.mui.machine_side.is_front=Current front
+gregtech.mui.machine_side.is_items=Current item output
+gregtech.mui.machine_side.is_fluids=Current fluid output

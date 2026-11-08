@@ -113,7 +113,7 @@ final class StructureBuildOperationService {
         request.requireKind(StructureOperationRequest.Kind.CREATIVE_BUILD);
         StructureOperationRuntime runtime = context.runtime();
         MultiPiecePattern pattern = runtime.pattern;
-        AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
+        AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker(request.getChannelValues());
         int pieceCount = pattern.getToolingPieceCount();
         StructureBuildResult.Builder result = StructureBuildResult.builder();
         for (int pieceIndex = 1; pieceIndex <= pieceCount; pieceIndex++) {
@@ -194,7 +194,7 @@ final class StructureBuildOperationService {
                         + ", noHatch=" + request.isNoHatch());
         StructureOperationRuntime runtime = context.runtime();
         MultiPiecePattern pattern = runtime.pattern;
-        AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker();
+        AbilityPlacementTracker abilityTracker = pattern.createAbilityPlacementTracker(request.getChannelValues());
         int pieceCount = pattern.getToolingPieceCount();
         StructureBuildResult.Builder result = StructureBuildResult.builder();
         for (int pieceIndex = 1; pieceIndex <= pieceCount; pieceIndex++) {
@@ -236,7 +236,7 @@ final class StructureBuildOperationService {
         StructureOperationRuntime runtime = context.runtime();
         AbilityPlacementTracker abilityTracker = request.getAbilityTracker();
         if (abilityTracker == null) {
-            abilityTracker = runtime.pattern.createAbilityPlacementTracker();
+            abilityTracker = runtime.pattern.createAbilityPlacementTracker(request.getChannelValues());
         }
         return runtime.pattern.autoBuildPieceWithResult(
                 pieceIndex, request.requirePlayer(), request.requireController(),

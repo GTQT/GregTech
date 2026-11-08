@@ -84,6 +84,26 @@ public final class ChannelSettings {
         put(GTStructureChannels.NO_HATCH.getName(), enabled ? 1 : 0);
     }
 
+    /**
+     * Whether the hologram compares the current structure with the pattern instead of only showing the plan.
+     * Defaults to {@code true} when the item has never stored the flag.
+     */
+    public boolean isCompareMode() {
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null || !tag.hasKey(MultiblockToolNbt.COMPARE_MODE)) return true;
+        return tag.getBoolean(MultiblockToolNbt.COMPARE_MODE);
+    }
+
+    /** Stores the hologram compare flag; unlike channel values this is a plain boolean NBT key. */
+    public void setCompareMode(boolean enabled) {
+        NBTTagCompound tag = stack.getTagCompound();
+        if (tag == null) {
+            tag = new NBTTagCompound();
+            stack.setTagCompound(tag);
+        }
+        tag.setBoolean(MultiblockToolNbt.COMPARE_MODE, enabled);
+    }
+
     public void setSupportedRanges(@NotNull Map<String, int[]> ranges) {
         supportedRanges.clear();
         supportedRanges.putAll(ranges);

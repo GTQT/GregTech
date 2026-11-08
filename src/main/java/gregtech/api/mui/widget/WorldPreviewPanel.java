@@ -7,6 +7,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.RayTraceResult;
+import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
@@ -19,6 +20,7 @@ import com.cleanroommc.modularui.screen.ModularPanel;
 import com.cleanroommc.modularui.utils.Alignment;
 import com.cleanroommc.modularui.value.sync.EnumSyncValue;
 import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widget.ParentWidget;
 import com.cleanroommc.modularui.widget.Widget;
 import com.cleanroommc.modularui.widgets.ButtonWidget;
 import com.cleanroommc.modularui.widgets.SchemaWidget;
@@ -51,7 +53,7 @@ public final class WorldPreviewPanel {
     public static final int HEADER_HEIGHT = 20;
     /** 面板内边距。 */
     public static final int PADDING = 7;
-    /** 方向渲染控件的边长。 */
+    /** 方向渲染控件的边长（浮动面板）。 */
     public static final int PREVIEW_SIZE = 100;
     /** 预览和下面按钮行之间的间距。 */
     public static final int PREVIEW_GAP = 6;
@@ -72,11 +74,24 @@ public final class WorldPreviewPanel {
     /** 面板里那个预览控件的显示名。 */
     private static final String PREVIEW_NAME = "world_preview_render";
 
+    /** 3x3 面十字里单个方向格的边长。 */
+    private static final int FACE_CELL = 18;
+    /** 面十字格子之间的间距。 */
+    private static final int FACE_GAP = 1;
+    /** 3x3 面十字的整体边长。 */
+    private static final int FACE_CROSS = FACE_CELL * 3 + FACE_GAP * 2;
+    /** 右侧方向列（面十字 + 留白）的宽度。 */
+    private static final int RIGHT_COLUMN = FACE_CROSS + 4;
+
     private final World world;
     private final BlockPos pos;
     private final ItemStack stack;
     private final boolean hasFrontFacing;
     private final boolean hasOutputSides;
+    /** 机器当前设置的正面/物品输出面/流体输出面，可为 null（没有该能力）。 */
+    private final @Nullable EnumFacing frontFacing;
+    private final @Nullable EnumFacing itemsOutput;
+    private final @Nullable EnumFacing fluidsOutput;
     private final FaceActionHandler actionHandler;
 
     /** 点选中的那个面；没点任何面时为 {@code null}。纯客户端状态。 */
@@ -100,13 +115,19 @@ public final class WorldPreviewPanel {
 
     private WorldPreviewPanel(@NotNull World world, @NotNull BlockPos pos, @NotNull ItemStack stack,
                               boolean hasFrontFacing, boolean hasOutputSides,
+                              @Nullable EnumFacing frontFacing, @Nullable EnumFacing itemsOutput,
+                              @Nullable EnumFacing fluidsOutput,
                               @NotNull FaceActionHandler actionHandler) {
         this.world = world;
         this.pos = pos;
         this.stack = stack;
         this.hasFrontFacing = hasFrontFacing;
         this.hasOutputSides = hasOutputSides;
+        this.frontFacing = frontFacing;
+        this.itemsOutput = itemsOutput;
+        this.fluidsOutput = fluidsOutput;
         this.actionHandler = actionHandler;
+        this.selectedFace = frontFacing;
         this.frontSync = createFaceSync(FaceAction.FRONT);
         this.itemsSync = createFaceSync(FaceAction.ITEMS);
         this.fluidsSync = createFaceSync(FaceAction.FLUIDS);
@@ -144,7 +165,7 @@ public final class WorldPreviewPanel {
                                           @NotNull BlockPos pos, @NotNull ItemStack stack, boolean hasFrontFacing,
                                           boolean hasOutputSides, @NotNull FaceActionHandler actionHandler) {
         WorldPreviewPanel preview = new WorldPreviewPanel(world, pos, stack, hasFrontFacing, hasOutputSides,
-                actionHandler);
+                null, null, null, actionHandler);
 
         // 三个动作的同步值在这里注册一次（主 PSM 此刻还没 lock）；面板 builder 里不能再注册
         syncManager.syncValue("world_preview_front", preview.frontSync);
@@ -169,6 +190,242 @@ public final class WorldPreviewPanel {
                     }
                     return true;
                 });
+    }
+
+    /**
+     * 作为窗口页签内容构建，不建浮动面板。
+     *
+     * <p>
+     * 与 {@link #create} 一样，这个方法两端都会跑，三个方向同步值在这里注册到主面板的
+     * {@link PanelSyncManager} 上。同一个界面里只能调用其中一个（多方块用页签，其它机器用侧边按钮），
+     * 否则同步 key 会重复。
+     *
+     * @return 页签内容控件，尺寸为 {@code width x height}
+     */
+    public static @NotNull IWidget createPage(@NotNull PanelSyncManager syncManager, @NotNull World world,
+                                              @NotNull BlockPos pos, @NotNull ItemStack stack,
+                                              boolean hasFrontFacing, boolean hasOutputSides,
+                                              @Nullable EnumFacing frontFacing, @Nullable EnumFacing itemsOutput,
+                                              @Nullable EnumFacing fluidsOutput,
+                                              @NotNull FaceActionHandler actionHandler,
+                                              int width, int height, int bottomReserve) {
+        WorldPreviewPanel preview = new WorldPreviewPanel(world, pos, stack, hasFrontFacing, hasOutputSides,
+                frontFacing, itemsOutput, fluidsOutput, actionHandler);
+
+        // 与 create() 相同的三个同步 key；两端都会执行
+        syncManager.syncValue("world_preview_front", preview.frontSync);
+        syncManager.syncValue("world_preview_items", preview.itemsSync);
+        syncManager.syncValue("world_preview_fluids", preview.fluidsSync);
+
+        return preview.buildPageContent(width, height, bottomReserve);
+    }
+
+    /**
+     * 页签内容：左边是方向渲染场景，右边一列方向按钮。
+     *
+     * <p>
+     * 没有标题栏，也没有关闭按钮 —— 这些由窗口页签本身提供。场景由 {@link SquarePreviewBox}
+     * 按页面可用空间动态取正方形，{@code bottomReserve} 是页面底部要留给玩家背包的高度。
+     */
+    private @NotNull IWidget buildPageContent(int width, int height, int bottomReserve) {
+        ParentWidget<?> root = new ParentWidget<>().name("world_preview_page");
+        if (width > 0 && height > 0) {
+            root.size(width, height);
+        } else {
+            root.sizeRel(1f);
+        }
+
+        // 左边是 3D 场景，右边一列是 3x3 面十字 + 面设置按钮。
+        // 场景尺寸由容器在 resize 时按可用空间算出来，保证永远是正方形。
+        SchemaWidget preview = createPreview();
+        Widget<?> previewWidget = preview != null ? preview : new Widget<>();
+        previewWidget.name(PREVIEW_NAME).pos(2, 2);
+
+        SquarePreviewBox previewBox = new SquarePreviewBox(previewWidget, bottomReserve);
+        previewBox.pos(0, 0).sizeRel(1f);
+        root.child(previewBox);
+
+        Flow cross = Flow.column()
+                .name("face_cross")
+                .right(2)
+                .top(2)
+                .coverChildren()
+                .childPadding(FACE_GAP)
+                .crossAxisAlignment(Alignment.CrossAxis.CENTER);
+        cross.child(faceRow(null, MachineFace.TOP, null));
+        cross.child(faceRow(MachineFace.LEFT, MachineFace.FRONT, MachineFace.RIGHT));
+        cross.child(faceRow(null, MachineFace.BOTTOM, MachineFace.BACK));
+        root.child(cross);
+
+        Flow actions = Flow.row()
+                .name("face_actions")
+                .right(2)
+                .top(2 + FACE_CROSS + 4)
+                .coverChildren()
+                .childPadding(FACE_GAP)
+                .crossAxisAlignment(Alignment.CrossAxis.CENTER);
+        if (this.hasFrontFacing) {
+            actions.child(createActionButton(FaceAction.FRONT, GTGuiTextures.BUTTON_EXPORT_FACE));
+        }
+        if (this.hasOutputSides) {
+            actions.child(createActionButton(FaceAction.ITEMS, GTGuiTextures.OVERLAY_ITEM_EXPORT[1]));
+            actions.child(createActionButton(FaceAction.FLUIDS, GTGuiTextures.OVERLAY_FLUID_EXPORT[1]));
+        }
+        root.child(actions);
+        return root;
+    }
+
+    /**
+     * 预览容器：自身撑满页面，在每次布局完成后按可用空间把场景重设成正方形。
+     *
+     * <p>
+     * 宽度上限 = 页面宽 - 左右边距 - 右侧方向列；高度上限 = 页面高 - 上下边距 - 预留的背包高度。
+     * 取两者较小值，保证场景不会压到右侧按钮，也不会压到玩家背包。
+     */
+    private static final class SquarePreviewBox extends ParentWidget<SquarePreviewBox> {
+
+        private final Widget<?> preview;
+        private final int bottomReserve;
+        private int side = -1;
+
+        private SquarePreviewBox(@NotNull Widget<?> preview, int bottomReserve) {
+            this.preview = preview;
+            this.bottomReserve = bottomReserve;
+            name("preview_square_box");
+            child(preview);
+        }
+
+        @Override
+        public void onResized() {
+            updateSide();
+        }
+
+        @Override
+        public void onUpdate() {
+            updateSide();
+        }
+
+        private void updateSide() {
+            int maxWidth = getArea().w() - 4 - RIGHT_COLUMN;
+            int maxHeight = getArea().h() - 4 - this.bottomReserve;
+            int newSide = Math.max(20, Math.min(maxWidth, maxHeight));
+            if (newSide == this.side) return;
+            this.side = newSide;
+            this.preview.size(newSide, newSide);
+            scheduleResize();
+        }
+    }
+
+    /** 面十字里的一行：左/中/右三个格子，空的用等尺寸占位。 */
+    private @NotNull Flow faceRow(@Nullable MachineFace left, @Nullable MachineFace center,
+                                  @Nullable MachineFace right) {
+        return Flow.row()
+                .name("face_row")
+                .coverChildren()
+                .childPadding(FACE_GAP)
+                .crossAxisAlignment(Alignment.CrossAxis.CENTER)
+                .child(createFaceCell(left))
+                .child(createFaceCell(center))
+                .child(createFaceCell(right));
+    }
+
+    /** 面十字里的一格：点一下把这个方向设为当前选中面。 */
+    private @NotNull IWidget createFaceCell(@Nullable MachineFace side) {
+        if (side == null) {
+            return new Widget<>().size(FACE_CELL);
+        }
+
+        EnumFacing direction = sideDirection(side);
+        ButtonWidget<?> cell = new ButtonWidget<>()
+                .name("face:" + side.name())
+                .size(FACE_CELL)
+                .child(IKey.lang(side.translationKey).asWidget().size(FACE_CELL).alignment(Alignment.Center))
+                .addTooltipLine(IKey.lang(side.translationKey))
+                .addTooltipLine(IKey.lang("gregtech.mui.side." + direction.getName()).style(TextFormatting.GRAY))
+                .onMousePressed(mouseButton -> {
+                    if (mouseButton != 0) return false;
+                    this.selectedFace = direction;
+                    return true;
+                });
+
+        if (direction == this.frontFacing) {
+            cell.addTooltipLine(IKey.lang("gregtech.mui.machine_side.is_front").style(TextFormatting.GOLD));
+        } else if (direction == this.itemsOutput) {
+            cell.addTooltipLine(IKey.lang("gregtech.mui.machine_side.is_items").style(TextFormatting.GOLD));
+        } else if (direction == this.fluidsOutput) {
+            cell.addTooltipLine(IKey.lang("gregtech.mui.machine_side.is_fluids").style(TextFormatting.GOLD));
+        }
+        return cell;
+    }
+
+    /** 面设置按钮：把"选中面"设成正面 / 物品输出面 / 流体输出面。 */
+    private @NotNull IWidget createActionButton(@NotNull FaceAction action, @NotNull IDrawable icon) {
+        return new ButtonWidget<>()
+                .name("action:" + action.name())
+                .size(FACE_CELL)
+                .overlay(icon.asIcon().size(16))
+                .addTooltipLine(IKey.lang(action.tooltipKey))
+                .setEnabledIf(widget -> canApply(action))
+                .onMousePressed(mouseButton -> {
+                    if (mouseButton != 0) return false;
+                    applySelected(action);
+                    return true;
+                });
+    }
+
+    /** 当前选中面能不能执行这个动作。 */
+    private boolean canApply(@NotNull FaceAction action) {
+        EnumFacing face = this.selectedFace;
+        if (face == null) return false;
+        if (action == FaceAction.FRONT) {
+            return this.hasFrontFacing && face != this.frontFacing;
+        }
+        return this.hasOutputSides && !(this.hasFrontFacing && face == this.frontFacing);
+    }
+
+    /** 把当前选中面应用到某个动作上（同步值会发包给服务端执行）。 */
+    private void applySelected(@NotNull FaceAction action) {
+        EnumFacing face = this.selectedFace;
+        if (face == null) return;
+        this.syncFace = face;
+        switch (action) {
+            case FRONT -> this.frontSync.setValue(face, true, true);
+            case ITEMS -> this.itemsSync.setValue(face, true, true);
+            case FLUIDS -> this.fluidsSync.setValue(face, true, true);
+        }
+    }
+
+    /**
+     * 机器局部方向 → 世界方向。
+     *
+     * <p>
+     * 正面水平时上方向固定为 UP（和 GTM 的取法一致），这样面十字的"上/下"总是竖直的。
+     */
+    private @NotNull EnumFacing sideDirection(@NotNull MachineFace side) {
+        EnumFacing front = this.frontFacing != null ? this.frontFacing : EnumFacing.NORTH;
+        EnumFacing up = front.getAxis() == EnumFacing.Axis.Y ? EnumFacing.NORTH : EnumFacing.UP;
+        EnumFacing left = cross(front, up);
+        if (left == null) {
+            left = front.getAxis().isHorizontal() ? front.rotateY() : EnumFacing.WEST;
+        }
+        return switch (side) {
+            case FRONT -> front;
+            case BACK -> front.getOpposite();
+            case LEFT -> left;
+            case RIGHT -> left.getOpposite();
+            case TOP -> up;
+            case BOTTOM -> up.getOpposite();
+        };
+    }
+
+    private static @Nullable EnumFacing cross(@NotNull EnumFacing a, @NotNull EnumFacing b) {
+        int x = a.getYOffset() * b.getZOffset() - a.getZOffset() * b.getYOffset();
+        int y = a.getZOffset() * b.getXOffset() - a.getXOffset() * b.getZOffset();
+        int z = a.getXOffset() * b.getYOffset() - a.getYOffset() * b.getXOffset();
+        if (x != 0) return x > 0 ? EnumFacing.EAST : EnumFacing.WEST;
+        if (y != 0) return y > 0 ? EnumFacing.UP : EnumFacing.DOWN;
+        if (z != 0) return z > 0 ? EnumFacing.SOUTH : EnumFacing.NORTH;
+        return null;
     }
 
     /**
@@ -298,9 +555,33 @@ public final class WorldPreviewPanel {
 
     /** 方向按钮各自的用途。 */
     public enum FaceAction {
-        FRONT,
-        ITEMS,
-        FLUIDS
+
+        FRONT("gregtech.mui.machine_side.set_front"),
+        ITEMS("gregtech.mui.machine_side.set_items"),
+        FLUIDS("gregtech.mui.machine_side.set_fluids");
+
+        private final String tooltipKey;
+
+        FaceAction(@NotNull String tooltipKey) {
+            this.tooltipKey = tooltipKey;
+        }
+    }
+
+    /** 面十字里六个格子的位置（机器局部方向）。 */
+    private enum MachineFace {
+
+        FRONT("front"),
+        BACK("back"),
+        LEFT("left"),
+        RIGHT("right"),
+        TOP("top"),
+        BOTTOM("bottom");
+
+        private final String translationKey;
+
+        MachineFace(@NotNull String name) {
+            this.translationKey = "gregtech.mui.machine_side." + name;
+        }
     }
 
     /**
