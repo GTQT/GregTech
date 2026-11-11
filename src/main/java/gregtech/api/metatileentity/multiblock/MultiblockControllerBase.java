@@ -1164,13 +1164,26 @@ public abstract class MultiblockControllerBase extends MetaTileEntity implements
     public MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
             @Nullable Map<String, Integer> channelValues,
             @Nullable StructureOrientation orientation) {
+        return beginIncrementalMultiPiecePreview(channelValues, orientation, null);
+    }
+
+    /**
+     * Starts a preview with per-cell block overrides ({@code BlockPos} is controller-relative). The overrides are
+     * applied before ability placement, so the preview shows the exact hatches the subsequent build will place.
+     */
+    @NotNull
+    public MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
+            @Nullable Map<String, Integer> channelValues,
+            @Nullable StructureOrientation orientation,
+            @Nullable Map<BlockPos, ItemStack> cellOverrides) {
         StructureRuntime toolingRuntime = createToolingPreviewRuntime(channelValues);
         if (toolingRuntime != null) {
             return MultiblockStructurePreviews.beginIncrementalMultiPiecePreview(
                     this, toolingRuntime.getMultiPiecePattern(), toolingRuntime.getPieceRuntimes(),
-                    channelValues, orientation);
+                    channelValues, orientation, cellOverrides);
         }
-        return MultiblockStructureOperations.beginIncrementalMultiPiecePreview(this, channelValues, orientation);
+        return MultiblockStructureOperations.beginIncrementalMultiPiecePreview(
+                this, channelValues, orientation, cellOverrides);
     }
 
     /**

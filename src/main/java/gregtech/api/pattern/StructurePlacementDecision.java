@@ -38,15 +38,18 @@ final class StructurePlacementDecision {
                             @Nullable StructureElementPreview.CandidateGroup matchedGroup,
                             @Nullable Map<String, Integer> channelValues,
                             @Nullable AbilityPlacementTracker abilityTracker,
-                            @NotNull Operation operation) {
+                            @NotNull Operation operation,
+                            boolean allowExternalStock) {
         int preferredCandidateIndex = getPreferredCandidateIndex(matchedGroup, infos, channelValues);
         int requiredAbilityIndex = findRequiredAbilityCandidate(infos, abilityTracker, preferredCandidateIndex);
-        if (operation.isSurvivalBuild() && !player.isCreative()) {
-            Selection required = selectSurvivalCandidate(player, infos, candidates, requiredAbilityIndex);
+        if ((operation.isSurvivalBuild() || operation.isDryRun()) && !player.isCreative()) {
+            Selection required = selectSurvivalCandidate(player, infos, candidates, requiredAbilityIndex,
+                    allowExternalStock);
             if (required != null) {
                 return required;
             }
-            Selection preferred = selectSurvivalCandidate(player, infos, candidates, preferredCandidateIndex);
+            Selection preferred = selectSurvivalCandidate(player, infos, candidates, preferredCandidateIndex,
+                    allowExternalStock);
             if (preferred != null) {
                 return preferred;
             }
@@ -54,7 +57,7 @@ final class StructurePlacementDecision {
             if (inventory != null) {
                 return inventory;
             }
-            return selectExternalCandidate(player, infos, candidates);
+            return allowExternalStock ? selectExternalCandidate(player, infos, candidates) : null;
         }
 
         int preferredIndex = requiredAbilityIndex >= 0 ? requiredAbilityIndex : preferredCandidateIndex;
@@ -260,7 +263,8 @@ final class StructurePlacementDecision {
     private static Selection selectSurvivalCandidate(@NotNull EntityPlayer player,
                                                      @NotNull BlockInfo[] infos,
                                                      @NotNull List<ItemStack> candidates,
-                                                     int candidateIndex) {
+                                                     int candidateIndex,
+                                                     boolean allowExternalStock) {
         if (candidateIndex < 0 || candidateIndex >= candidates.size()) {
             return null;
         }
@@ -271,9 +275,11 @@ final class StructurePlacementDecision {
         if (hasInInventory(player, candidate)) {
             return Selection.inventory(candidate, infos[candidateIndex]);
         }
-        StructureItemSource source = findExternalSource(player, candidate);
-        if (source != null) {
-            return Selection.external(candidate, infos[candidateIndex], source);
+        if (allowExternalStock) {
+            StructureItemSource source = findExternalSource(player, candidate);
+            if (source != null) {
+                return Selection.external(candidate, infos[candidateIndex], source);
+            }
         }
         return null;
     }

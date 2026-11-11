@@ -4,12 +4,13 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.StructureCompiler;
 import gregtech.api.util.BlockInfo;
+
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
 import net.minecraft.util.math.Vec3i;
 import net.minecraft.world.IBlockAccess;
+import net.minecraft.world.World;
 
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
@@ -18,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -761,6 +763,39 @@ public class RepeatGroupPiece extends StructurePiece {
                                                               @NotNull AbilityPlacementTracker abilityTracker,
                                                               @NotNull StructureEvaluationContext.Operation operation,
                                                               @NotNull ItemStack triggerStack) {
+        return autoBuildAtRepeatedWithResult(player, controller, controllerOrigin, orientation, prior,
+                channelValues, runtime, abilityTracker, operation, triggerStack, Collections.emptyMap());
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtRepeatedWithResult(@NotNull EntityPlayer player,
+                                                              @NotNull MultiblockControllerBase controller,
+                                                              @NotNull BlockPos controllerOrigin,
+                                                              @NotNull StructureOrientation orientation,
+                                                              @Nullable FormedStructureMetadata prior,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                              @NotNull PieceRuntime runtime,
+                                                              @NotNull AbilityPlacementTracker abilityTracker,
+                                                              @NotNull StructureEvaluationContext.Operation operation,
+                                                              @NotNull ItemStack triggerStack,
+                                                              @Nullable Map<BlockPos, ItemStack> cellOverrides) {
+        return autoBuildAtRepeatedWithResult(player, controller, controllerOrigin, orientation, prior,
+                channelValues, runtime, abilityTracker, operation, triggerStack, cellOverrides, true);
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtRepeatedWithResult(@NotNull EntityPlayer player,
+                                                              @NotNull MultiblockControllerBase controller,
+                                                              @NotNull BlockPos controllerOrigin,
+                                                              @NotNull StructureOrientation orientation,
+                                                              @Nullable FormedStructureMetadata prior,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                              @NotNull PieceRuntime runtime,
+                                                              @NotNull AbilityPlacementTracker abilityTracker,
+                                                              @NotNull StructureEvaluationContext.Operation operation,
+                                                              @NotNull ItemStack triggerStack,
+                                                              @Nullable Map<BlockPos, ItemStack> cellOverrides,
+                                                              boolean useNetworkStock) {
         int[] reps = resolveRepetitions(channelValues);
         PieceRuntimeState state = runtime.getState();
         // Cache the actual repeat counts on the runtime so subsequent pieces
@@ -776,7 +811,7 @@ public class RepeatGroupPiece extends StructurePiece {
         for (StructureCellTraversal traversal : iteration.getTraversals()) {
             result.merge(state.autoBuildAtWithResult(player, controller,
                     traversal,
-                    channelValues, abilityTracker, operation, triggerStack));
+                    channelValues, abilityTracker, operation, triggerStack, cellOverrides, useNetworkStock));
         }
         return result.build();
     }

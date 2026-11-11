@@ -67,6 +67,17 @@ public final class StructurePreviewRenderer extends FBOWorldSceneRenderer {
         markFBODirty();
     }
 
+    /**
+     * Group hides (part visibility toggles) change the cached mesh the same way {@link #setHiddenBlock(BlockPos)}
+     * does, so the FBO has to be rebuilt.
+     */
+    @Override
+    public void setHiddenBlocks(@Nullable Collection<BlockPos> blocks) {
+        super.setHiddenBlocks(blocks);
+        this.isDirty = true;
+        markFBODirty();
+    }
+
     public RayTraceResult pick(float mouseX, float mouseY, float viewX, float viewY,
                                float viewWidth, float viewHeight) {
         long started = System.nanoTime();

@@ -9,6 +9,7 @@ import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
 
 import net.minecraft.init.Blocks;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.EnumFacing;
 import net.minecraft.util.math.BlockPos;
 
@@ -124,7 +125,10 @@ public final class MultiPiecePreviewAssembler {
             }
             boolean defaultToolingSelection = forcedToolingPieceIndex == DEFAULT_TOOLING_PIECES;
             boolean hasExplicitToolingSelection = forcedToolingPieceIndex > ALL_TOOLING_PIECES;
-            if ((defaultToolingSelection && toolingVisible && toolingPieceIndex > 2) ||
+            boolean excludedToolingPiece = toolingVisible &&
+                    StructureExclusions.isExcluded(channelValues, toolingPieceIndex);
+            if (excludedToolingPiece ||
+                    (defaultToolingSelection && toolingVisible && toolingPieceIndex > 2) ||
                     (cumulativeToolingPieceSelection && hasExplicitToolingSelection && toolingVisible &&
                             toolingPieceIndex > forcedToolingPieceIndex)) {
                 pieceResults.add(PieceResult.empty());
@@ -262,6 +266,31 @@ public final class MultiPiecePreviewAssembler {
     }
 
     @NotNull
+    public static IncrementalPreview beginIncrementalPreview(@NotNull MultiPiecePattern pattern,
+                                                              @NotNull PieceRuntimes runtimes,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                              @Nullable MultiblockControllerBase controller,
+                                                              int forcedToolingPieceIndex,
+                                                              boolean cumulativeToolingPieceSelection,
+                                                              @Nullable Map<BlockPos, ItemStack> cellOverrides) {
+        return beginIncrementalPreview(pattern, runtimes, channelValues, controller, forcedToolingPieceIndex,
+                cumulativeToolingPieceSelection, CANONICAL_PREVIEW_ORIENTATION, true, cellOverrides);
+    }
+
+    @NotNull
+    public static IncrementalPreview beginIncrementalPreview(@NotNull MultiPiecePattern pattern,
+                                                              @NotNull PieceRuntimes runtimes,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                              @Nullable MultiblockControllerBase controller,
+                                                              int forcedToolingPieceIndex,
+                                                              boolean cumulativeToolingPieceSelection,
+                                                              @NotNull StructureOrientation orientation,
+                                                              @Nullable Map<BlockPos, ItemStack> cellOverrides) {
+        return beginIncrementalPreview(pattern, runtimes, channelValues, controller, forcedToolingPieceIndex,
+                cumulativeToolingPieceSelection, orientation, false, cellOverrides);
+    }
+
+    @NotNull
     private static IncrementalPreview beginIncrementalPreview(@NotNull MultiPiecePattern pattern,
                                                               @NotNull PieceRuntimes runtimes,
                                                               @Nullable Map<String, Integer> channelValues,
@@ -270,9 +299,23 @@ public final class MultiPiecePreviewAssembler {
                                                               boolean cumulativeToolingPieceSelection,
                                                               @NotNull StructureOrientation orientation,
                                                               boolean useControllerPreviewFacing) {
+        return beginIncrementalPreview(pattern, runtimes, channelValues, controller, forcedToolingPieceIndex,
+                cumulativeToolingPieceSelection, orientation, useControllerPreviewFacing, null);
+    }
+
+    @NotNull
+    private static IncrementalPreview beginIncrementalPreview(@NotNull MultiPiecePattern pattern,
+                                                              @NotNull PieceRuntimes runtimes,
+                                                              @Nullable Map<String, Integer> channelValues,
+                                                              @Nullable MultiblockControllerBase controller,
+                                                              int forcedToolingPieceIndex,
+                                                              boolean cumulativeToolingPieceSelection,
+                                                              @NotNull StructureOrientation orientation,
+                                                              boolean useControllerPreviewFacing,
+                                                              @Nullable Map<BlockPos, ItemStack> cellOverrides) {
         return new IncrementalPreview(pattern, runtimes, channelValues, controller,
                 forcedToolingPieceIndex, cumulativeToolingPieceSelection, orientation,
-                useControllerPreviewFacing);
+                useControllerPreviewFacing, cellOverrides);
     }
 
     /**
@@ -288,6 +331,8 @@ public final class MultiPiecePreviewAssembler {
         private final PieceRuntimes runtimes;
         @Nullable
         private final Map<String, Integer> channelValues;
+        @NotNull
+        private final Map<BlockPos, ItemStack> cellOverrides;
         @Nullable
         private final MultiblockControllerBase controller;
         private final int forcedToolingPieceIndex;
@@ -312,6 +357,8 @@ public final class MultiPiecePreviewAssembler {
         private long processedWork;
         private long totalKnownWork;
         private boolean complete;
+        @NotNull
+        private BlockPos normalizationOffset = BlockPos.ORIGIN;
 
         private IncrementalPreview(@NotNull MultiPiecePattern pattern,
                                    @NotNull PieceRuntimes runtimes,
@@ -320,10 +367,20 @@ public final class MultiPiecePreviewAssembler {
                                    int forcedToolingPieceIndex,
                                    boolean cumulativeToolingPieceSelection,
                                    @NotNull StructureOrientation orientation,
-                                   boolean useControllerPreviewFacing) {
+                                   boolean useControllerPreviewFacing,
+                                   @Nullable Map<BlockPos, ItemStack> cellOverrides) {
             this.pattern = pattern;
             this.runtimes = runtimes;
             this.channelValues = channelValues == null ? null : new HashMap<>(channelValues);
+            this.cellOverrides = new HashMap<>();
+            if (cellOverrides != null) {
+                for (Map.Entry<BlockPos, ItemStack> entry : cellOverrides.entrySet()) {
+                    if (entry.getKey() != null && StructureCellOverrides.isUsable(entry.getValue())) {
+                        this.cellOverrides.put(entry.getKey(),
+                                StructureCellOverrides.normalize(entry.getValue()));
+                    }
+                }
+            }
             this.controller = controller;
             this.forcedToolingPieceIndex = forcedToolingPieceIndex;
             this.cumulativeToolingPieceSelection = cumulativeToolingPieceSelection;
@@ -406,6 +463,16 @@ public final class MultiPiecePreviewAssembler {
         public Map<BlockPos, StructureElementPreviewEntry> getPreviewEntries() {
             requireComplete();
             return Collections.unmodifiableMap(previewEntries);
+        }
+
+        /**
+         * @return the offset that was subtracted from every structure-relative block position to keep the
+         * preview above Y=0; callers use it to map preview coordinates back to structure coordinates.
+         */
+        @NotNull
+        public BlockPos getNormalizationOffset() {
+            requireComplete();
+            return normalizationOffset;
         }
 
         /**
@@ -511,6 +578,7 @@ public final class MultiPiecePreviewAssembler {
                 minY = Math.min(minY, pos.getY());
                 minZ = Math.min(minZ, pos.getZ());
             }
+            normalizationOffset = new BlockPos(minX, minY, minZ);
             if (minX == 0 && minY == 0 && minZ == 0) {
                 return;
             }
@@ -574,7 +642,17 @@ public final class MultiPiecePreviewAssembler {
                                       @NotNull BlockInfo info,
                                       @NotNull StructureElementPreviewEntry previewEntry) {
             for (BlockPos canonicalShift : active.canonicalShifts) {
+                BlockPos global = active.pieceCenter.add(
+                        previewPos.subtract(active.previewCenter).add(canonicalShift));
                 BlockInfo selected = info;
+                ItemStack override = StructureCellOverrides.find(cellOverrides, global);
+                if (override != null) {
+                    BlockInfo pinned = findOverrideCandidate(previewEntry, override);
+                    if (pinned == null) {
+                        continue;
+                    }
+                    selected = pinned;
+                }
                 if (!abilityTracker.canPlace(selected)) {
                     selected = findFallback(previewEntry, abilityTracker);
                 }
@@ -582,8 +660,6 @@ public final class MultiPiecePreviewAssembler {
                     continue;
                 }
                 abilityTracker.record(selected);
-                BlockPos global = active.pieceCenter.add(
-                        previewPos.subtract(active.previewCenter).add(canonicalShift));
                 blocks.put(global, selected);
                 previewEntries.put(global, previewEntry);
             }
@@ -796,6 +872,42 @@ public final class MultiPiecePreviewAssembler {
                 indices[i] = 0;
             }
         }
+    }
+
+    @Nullable
+    private static BlockInfo findOverrideCandidate(@Nullable StructureElementPreviewEntry previewEntry,
+                                                   @NotNull ItemStack stack) {
+        if (previewEntry == null || previewEntry.getPreview().isEmpty()) {
+            return null;
+        }
+        for (gregtech.api.pattern.element.StructureElementPreview.CandidateGroup group :
+                previewEntry.getPreview().getLimited()) {
+            BlockInfo match = findMatchingCandidate(group, stack);
+            if (match != null) {
+                return match;
+            }
+        }
+        for (gregtech.api.pattern.element.StructureElementPreview.CandidateGroup group :
+                previewEntry.getPreview().getCommon()) {
+            BlockInfo match = findMatchingCandidate(group, stack);
+            if (match != null) {
+                return match;
+            }
+        }
+        return null;
+    }
+
+    @Nullable
+    private static BlockInfo findMatchingCandidate(
+            @NotNull gregtech.api.pattern.element.StructureElementPreview.CandidateGroup group,
+            @NotNull ItemStack stack) {
+        for (BlockInfo candidate : group.getCandidates()) {
+            if (candidate != null && StructureCellOverrides.matches(
+                    StructurePlacementDecision.getStackForBlockInfo(candidate), stack)) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     @Nullable

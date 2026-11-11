@@ -6,7 +6,6 @@ import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.pattern.MultiblockShapeInfo;
 import gregtech.api.util.BlockInfo;
 import gregtech.api.util.RelativeDirection;
-
 import gregtech.client.renderer.godforge.util.FaceVisibility;
 
 import net.minecraft.block.state.IBlockState;
@@ -26,9 +25,8 @@ import net.minecraft.world.biome.Biome;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import org.lwjgl.opengl.GL11;
-
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -48,6 +46,9 @@ public final class PreviewRenderUtils {
     // Tint colors for comparison mode overlay
     public static final float MISSING_R = 0.3F, MISSING_G = 0.6F, MISSING_B = 1.0F, MISSING_A = 0.5F;
     public static final float WRONG_R = 1.0F, WRONG_G = 0.3F, WRONG_B = 0.3F, WRONG_A = 0.6F;
+    public static final float PRESENT_R = 0.6F, PRESENT_G = 0.6F, PRESENT_B = 0.6F, PRESENT_A = 0.15F;
+    /** Cap for the "already present" outline list; huge structures would otherwise flood the buffer. */
+    public static final int MAX_PRESENT_BLOCKS = 4096;
     private static final BufferBuilder COMPARISON_BUFFER = new BufferBuilder(256 * 1024);
     private static final WorldVertexBufferUploader COMPARISON_UPLOADER = new WorldVertexBufferUploader();
 
@@ -195,6 +196,15 @@ public final class PreviewRenderUtils {
      * Should be called within a GL matrix context that has already been translated to camera space.
      */
     public static void renderComparisonOverlay(List<BlockPos> missingPositions, List<BlockPos> wrongPositions) {
+        renderComparisonOverlay(missingPositions, wrongPositions, null);
+    }
+
+    /**
+     * Render colored box overlays for missing (blue), wrong (red) and already present (grey) cells.
+     * The present list may be {@code null} or empty.
+     */
+    public static void renderComparisonOverlay(List<BlockPos> missingPositions, List<BlockPos> wrongPositions,
+                                               @Nullable List<BlockPos> presentPositions) {
         GlStateManager.disableTexture2D();
         GlStateManager.disableLighting();
         GlStateManager.depthMask(false);
@@ -210,6 +220,11 @@ public final class PreviewRenderUtils {
         // Render wrong blocks (red)
         if (!wrongPositions.isEmpty()) {
             renderColoredBoxes(wrongPositions, WRONG_R, WRONG_G, WRONG_B, WRONG_A);
+        }
+
+        // Render already satisfied cells (grey, subtle)
+        if (presentPositions != null && !presentPositions.isEmpty()) {
+            renderColoredBoxes(presentPositions, PRESENT_R, PRESENT_G, PRESENT_B, PRESENT_A);
         }
 
         GlStateManager.depthMask(true);
@@ -304,8 +319,23 @@ public final class PreviewRenderUtils {
      */
     public static void computeComparisonData(Map<BlockPos, IBlockState> expectedBlocks, World world,
                                              List<BlockPos> missingPositions, List<BlockPos> wrongPositions) {
+        computeComparisonData(expectedBlocks, world, missingPositions, wrongPositions, null);
+    }
+
+    /**
+     * Compute missing / wrong / already-present cells in one pass.
+     *
+     * @param presentPositions optional output list for cells whose block already matches; capped at
+     *                         {@link #MAX_PRESENT_BLOCKS} to keep the debug overlay cheap. May be {@code null}.
+     */
+    public static void computeComparisonData(Map<BlockPos, IBlockState> expectedBlocks, World world,
+                                             List<BlockPos> missingPositions, List<BlockPos> wrongPositions,
+                                             @Nullable List<BlockPos> presentPositions) {
         missingPositions.clear();
         wrongPositions.clear();
+        if (presentPositions != null) {
+            presentPositions.clear();
+        }
 
         if (world == null) return;
 
@@ -322,8 +352,10 @@ public final class PreviewRenderUtils {
             } else if (!actual.equals(expected)) {
                 // Position has a block but it's wrong
                 wrongPositions.add(worldPos);
+            } else if (presentPositions != null && presentPositions.size() < MAX_PRESENT_BLOCKS) {
+                // Already satisfied; used for the grey outline overlay
+                presentPositions.add(worldPos);
             }
-            // else: block matches, skip
         }
     }
 

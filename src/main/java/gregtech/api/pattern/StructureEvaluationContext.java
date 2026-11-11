@@ -29,6 +29,7 @@ public final class StructureEvaluationContext<T> {
         HINT(true, false, false, true, false),
         CREATIVE_BUILD(true, false, true, false, false),
         SURVIVAL_BUILD(true, false, true, false, false),
+        DRY_RUN(true, false, false, false, false),
         ITERATE(true, false, false, false, false);
 
         private final boolean readsWorld;
@@ -83,6 +84,14 @@ public final class StructureEvaluationContext<T> {
 
         public boolean isSurvivalBuild() {
             return this == SURVIVAL_BUILD;
+        }
+
+        /**
+         * A dry run resolves the same items a real survival build would need, but never places or consumes
+         * anything. It is the server-authoritative source for the build material bill.
+         */
+        public boolean isDryRun() {
+            return this == DRY_RUN;
         }
 
         public boolean isNonFormationProbe() {

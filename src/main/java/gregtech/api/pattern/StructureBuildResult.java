@@ -6,7 +6,9 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Structured summary for a creative or survival structure build operation.
@@ -40,6 +42,9 @@ public final class StructureBuildResult {
     private final List<ItemAmount> consumedItems;
     @NotNull
     private final List<ItemAmount> missingItems;
+    /** Required items grouped by the ability role that consumed the cell, keyed by {@code AbilityPlacementTracker.channelKey}. */
+    @NotNull
+    private final Map<String, List<ItemAmount>> roleItems;
     @NotNull
     private final StructureOperationDiagnostics diagnostics;
 
@@ -59,6 +64,11 @@ public final class StructureBuildResult {
         this.requiredItems = immutableCopy(builder.requiredItems);
         this.consumedItems = immutableCopy(builder.consumedItems);
         this.missingItems = immutableCopy(builder.missingItems);
+        Map<String, List<ItemAmount>> roles = new HashMap<>();
+        for (Map.Entry<String, List<ItemAmount>> entry : builder.roleItems.entrySet()) {
+            roles.put(entry.getKey(), immutableCopy(entry.getValue()));
+        }
+        this.roleItems = Collections.unmodifiableMap(roles);
         this.diagnostics = builder.diagnostics;
     }
 
@@ -141,6 +151,14 @@ public final class StructureBuildResult {
     @NotNull
     public List<ItemAmount> getMissingItems() {
         return missingItems;
+    }
+
+    /**
+     * @return required items grouped by ability role key; roles without ability blocks are not present.
+     */
+    @NotNull
+    public Map<String, List<ItemAmount>> getRoleItems() {
+        return roleItems;
     }
 
     public boolean isAttempted() {
@@ -277,6 +295,8 @@ public final class StructureBuildResult {
         @NotNull
         private final List<ItemAmount> missingItems = new ArrayList<>();
         @NotNull
+        private final Map<String, List<ItemAmount>> roleItems = new HashMap<>();
+        @NotNull
         private StructureOperationDiagnostics diagnostics = StructureOperationDiagnostics.empty();
 
         private Builder() {}
@@ -387,8 +407,16 @@ public final class StructureBuildResult {
         }
 
         @NotNull
-        public Builder merge(@NotNull StructureBuildResult result) {
-            attemptedTraversals += result.attemptedTraversals;
+        public Builder recordRoleItem(@NotNull String role, @NotNull ItemStack stack) {
+            if (role.isEmpty() || stack.isEmpty()) {
+                return this;
+            }
+            addItem(roleItems.computeIfAbsent(role, key -> new ArrayList<>()), stack, 1);
+            return this;
+        }
+
+        @NotNull
+        public Builder merge(@NotNull StructureBuildResult result) {            attemptedTraversals += result.attemptedTraversals;
             inactivePieces += result.inactivePieces;
             invalidPieceRequests += result.invalidPieceRequests;
             placementBudget += result.placementBudget;
@@ -403,6 +431,9 @@ public final class StructureBuildResult {
             mergeItems(requiredItems, result.requiredItems);
             mergeItems(consumedItems, result.consumedItems);
             mergeItems(missingItems, result.missingItems);
+            for (Map.Entry<String, List<ItemAmount>> entry : result.roleItems.entrySet()) {
+                mergeItems(roleItems.computeIfAbsent(entry.getKey(), key -> new ArrayList<>()), entry.getValue());
+            }
             if (diagnostics == StructureOperationDiagnostics.empty()
                     && result.diagnostics != StructureOperationDiagnostics.empty()) {
                 diagnostics = result.diagnostics;

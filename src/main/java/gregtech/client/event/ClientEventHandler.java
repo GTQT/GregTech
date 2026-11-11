@@ -83,6 +83,7 @@ public class ClientEventHandler {
         TooltipHelper.onClientTick(event);
         if (event.phase == TickEvent.Phase.END) {
             CLIENT_TIME++;
+            GhostBlockRenderer.onClientTick();
         }
     }
 

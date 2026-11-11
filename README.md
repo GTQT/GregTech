@@ -37,4 +37,6 @@ Some material and casing textures are from **[zedtech-ceu](https://github.com/br
 
 Overclock Hatch and Accelerate Hatch textures are from **[GregTech-Odyssey](https://github.com/GregTech-Odyssey/GregTech-Odyssey)** (CC BY-NC-SA 4.0).
 
+The multiblock structure preview and builder UI take inspiration from **[GregTech: Odyssey](https://github.com/GregTech-Odyssey/GregTech-Odyssey)**.
+
 See something we forgot to credit? Reach out to us on Discord, or open an issue and ask for appropriate credit, we will happily mark it here

@@ -1,8 +1,12 @@
 package gregtech.common.network;
 
+import gregtech.common.network.multiblock.CPacketDismantleStructure;
+import gregtech.common.network.multiblock.CPacketEncodeStructure;
+import gregtech.common.network.multiblock.CPacketEvaluateStructureBuild;
 import gregtech.common.network.multiblock.CPacketExecuteStructureBuild;
 import gregtech.common.network.multiblock.ClearMoverPreviewPacket;
 import gregtech.common.network.multiblock.RotateMoverPreviewPacket;
+import gregtech.common.network.multiblock.SPacketStructureBuildBill;
 import gregtech.common.network.multiblock.SPacketStructureBuildResult;
 import gregtech.common.network.multiblock.StartMoverPreviewPacket;
 import gregtech.common.network.multiblock.SwitchMultiblockToolModePacket;
@@ -29,5 +33,13 @@ public class NetworkHandler {
                 CPacketExecuteStructureBuild.class, id++, Side.SERVER);
         INSTANCE.registerMessage(SPacketStructureBuildResult.Handler.class,
                 SPacketStructureBuildResult.class, id++, Side.CLIENT);
+        INSTANCE.registerMessage(CPacketEvaluateStructureBuild.Handler.class,
+                CPacketEvaluateStructureBuild.class, id++, Side.SERVER);
+        INSTANCE.registerMessage(SPacketStructureBuildBill.Handler.class,
+                SPacketStructureBuildBill.class, id++, Side.CLIENT);
+        INSTANCE.registerMessage(CPacketDismantleStructure.Handler.class,
+                CPacketDismantleStructure.class, id++, Side.SERVER);
+        INSTANCE.registerMessage(CPacketEncodeStructure.Handler.class,
+                CPacketEncodeStructure.class, id++, Side.SERVER);
     }
 }

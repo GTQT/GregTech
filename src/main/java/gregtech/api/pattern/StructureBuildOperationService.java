@@ -117,6 +117,9 @@ final class StructureBuildOperationService {
         int pieceCount = pattern.getToolingPieceCount();
         StructureBuildResult.Builder result = StructureBuildResult.builder();
         for (int pieceIndex = 1; pieceIndex <= pieceCount; pieceIndex++) {
+            if (StructureExclusions.isExcluded(request.getChannelValues(), pieceIndex)) {
+                continue;
+            }
             int compiledPieceIndex = pattern.resolveToolingPieceIndex(pieceIndex);
             if (compiledPieceIndex < 1) {
                 result.merge(StructureBuildResult.builder().recordInvalidPieceRequest().build());
@@ -198,6 +201,9 @@ final class StructureBuildOperationService {
         int pieceCount = pattern.getToolingPieceCount();
         StructureBuildResult.Builder result = StructureBuildResult.builder();
         for (int pieceIndex = 1; pieceIndex <= pieceCount; pieceIndex++) {
+            if (StructureExclusions.isExcluded(request.getChannelValues(), pieceIndex)) {
+                continue;
+            }
             int compiledPieceIndex = pattern.resolveToolingPieceIndex(pieceIndex);
             if (compiledPieceIndex < 1) {
                 result.merge(StructureBuildResult.builder().recordInvalidPieceRequest().build());
@@ -242,7 +248,8 @@ final class StructureBuildOperationService {
                 pieceIndex, request.requirePlayer(), request.requireController(),
                 request.requireOrientation(), request.getChannelValues(),
                 runtime.runtimes, abilityTracker,
-                request.getEvaluationOperation(), triggerStack)
+                request.getEvaluationOperation(), triggerStack, request.getCellOverrides(),
+                request.isNetworkStock())
                 .withDiagnostics(runtime.diagnostics(request.getEvaluationOperation()));
     }
 

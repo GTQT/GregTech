@@ -10,8 +10,7 @@ import java.util.function.IntConsumer;
  * Integer stepper: label on the left, {@code [-][value][+]} on the right, 14px high.
  *
  * <p>
- * Holding shift applies the second configured step (GTO's {@code {1,4}} convention) so coarse adjustments stay
- * one click away.
+ * Holding shift applies the second configured step so coarse adjustments stay one click away.
  */
 @SideOnly(Side.CLIENT)
 public class GStepper extends GWidget {

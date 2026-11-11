@@ -884,6 +884,37 @@ public class MultiPiecePattern {
                                                          @NotNull AbilityPlacementTracker abilityTracker,
                                                          @NotNull StructureEvaluationContext.Operation operation,
                                                          @NotNull ItemStack triggerStack) {
+        return autoBuildPieceWithResult(pieceIndex, player, controller, orientation, channelValues,
+                runtimes, abilityTracker, operation, triggerStack, Collections.emptyMap());
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildPieceWithResult(int pieceIndex,
+                                                         EntityPlayer player,
+                                                         MultiblockControllerBase controller,
+                                                         @NotNull StructureOrientation orientation,
+                                                         @Nullable Map<String, Integer> channelValues,
+                                                         @NotNull PieceRuntimes runtimes,
+                                                         @NotNull AbilityPlacementTracker abilityTracker,
+                                                         @NotNull StructureEvaluationContext.Operation operation,
+                                                         @NotNull ItemStack triggerStack,
+                                                         @Nullable Map<BlockPos, ItemStack> cellOverrides) {
+        return autoBuildPieceWithResult(pieceIndex, player, controller, orientation, channelValues,
+                runtimes, abilityTracker, operation, triggerStack, cellOverrides, true);
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildPieceWithResult(int pieceIndex,
+                                                         EntityPlayer player,
+                                                         MultiblockControllerBase controller,
+                                                         @NotNull StructureOrientation orientation,
+                                                         @Nullable Map<String, Integer> channelValues,
+                                                         @NotNull PieceRuntimes runtimes,
+                                                         @NotNull AbilityPlacementTracker abilityTracker,
+                                                         @NotNull StructureEvaluationContext.Operation operation,
+                                                         @NotNull ItemStack triggerStack,
+                                                         @Nullable Map<BlockPos, ItemStack> cellOverrides,
+                                                         boolean useNetworkStock) {
         StructureBuildResult.Builder result = StructureBuildResult.builder();
         if (pieceIndex < 1 || pieceIndex > pieceList.size()) {
             return result.recordInvalidPieceRequest().build();
@@ -913,11 +944,11 @@ public class MultiPiecePattern {
                         repeatPiece.autoBuildAtRepeatedWithResult(
                                 player, controller, controller.getPos(), orientation, piecePrior,
                                 channelValues, pieceRuntime, abilityTracker,
-                                operation, triggerStack),
+                                operation, triggerStack, cellOverrides, useNetworkStock),
                 (fixedPiece, pieceRuntime, piecePrior, traversal) ->
                         pieceRuntime.getState().autoBuildAtWithResult(
                                 player, controller, traversal, channelValues,
-                                abilityTracker, operation, triggerStack)));
+                                abilityTracker, operation, triggerStack, cellOverrides, useNetworkStock)));
         return result.build();
     }
 

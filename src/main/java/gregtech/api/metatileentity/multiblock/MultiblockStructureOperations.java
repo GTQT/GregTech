@@ -20,6 +20,7 @@ import gregtech.api.util.BlockInfo;
 import gregtech.api.util.GTLog;
 import gregtech.common.ConfigHolder;
 
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockPos;
 
 import org.jetbrains.annotations.NotNull;
@@ -163,11 +164,20 @@ final class MultiblockStructureOperations {
             @NotNull MultiblockControllerBase controller,
             @Nullable Map<String, Integer> channelValues,
             @Nullable StructureOrientation orientation) {
+        return beginIncrementalMultiPiecePreview(controller, channelValues, orientation, null);
+    }
+
+    @NotNull
+    static MultiPiecePreviewAssembler.IncrementalPreview beginIncrementalMultiPiecePreview(
+            @NotNull MultiblockControllerBase controller,
+            @Nullable Map<String, Integer> channelValues,
+            @Nullable StructureOrientation orientation,
+            @Nullable Map<BlockPos, ItemStack> cellOverrides) {
         Map<String, Integer> effectiveChannels = emptyToNull(channelValues);
         ensureMultiPiecePatternInitialized(controller);
         return MultiblockStructurePreviews.beginIncrementalMultiPiecePreview(
                 controller, controller.multiPiecePattern, controller.pieceRuntimes, effectiveChannels,
-                orientation);
+                orientation, cellOverrides);
     }
 
     @NotNull

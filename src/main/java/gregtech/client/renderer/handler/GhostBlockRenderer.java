@@ -2,17 +2,17 @@ package gregtech.client.renderer.handler;
 
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
 import gregtech.api.pattern.MultiblockShapeInfo;
+import gregtech.api.pattern.PieceTemplate;
 import gregtech.api.pattern.StructureOperationRequest;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.api.util.BlockInfo;
-import gregtech.api.util.GTUtility;
 import gregtech.api.util.GTLog;
+import gregtech.api.util.GTUtility;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.godforge.util.FaceCulledRenderBlocks;
 import gregtech.client.renderer.godforge.util.FaceVisibility;
@@ -38,13 +38,12 @@ import net.minecraftforge.client.event.RenderWorldLastEvent;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL14;
-
 import codechicken.lib.render.pipeline.ColourMultiplier;
 import codechicken.lib.render.pipeline.IVertexOperation;
 import codechicken.lib.vec.Matrix4;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL14;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -97,6 +96,18 @@ public class GhostBlockRenderer {
     // Comparison mode data
     private static final List<BlockPos> missingPositions = new ArrayList<>();
     private static final List<BlockPos> wrongPositions = new ArrayList<>();
+    private static final List<BlockPos> presentPositions = new ArrayList<>();
+    /** Expected world states captured with the last VBO build; re-validated periodically in {@link #onClientTick()}. */
+    @Nullable
+    private static Map<BlockPos, IBlockState> expectedStates;
+    private static int comparisonTickCounter;
+    private static final int COMPARISON_INTERVAL_TICKS = 10;
+
+    /** Deferred refresh requested by the preview screen; applied on the next client tick, outside GUI rendering. */
+    @Nullable
+    private static MultiblockControllerBase pendingRefreshController;
+    @Nullable
+    private static Map<String, Integer> pendingRefreshChannels;
 
     // ========== Per-frame rendering ==========
 
@@ -108,7 +119,7 @@ public class GhostBlockRenderer {
         Entity entity = mc.getRenderViewEntity();
         if (entity == null) entity = mc.player;
         String resetReason = null;
-        if (time > ghostEndTime) {
+        if (ghostEndTime != Long.MAX_VALUE && time > ghostEndTime) {
             resetReason = "expired";
         } else if (!(mc.world.getTileEntity(ghostPos) instanceof IGregTechTileEntity)) {
             resetReason = "controller-missing";
@@ -151,8 +162,8 @@ public class GhostBlockRenderer {
         renderVBOs();
 
         // Comparison overlay (immediate-mode colored boxes, cheap)
-        if (compareMode && (!missingPositions.isEmpty() || !wrongPositions.isEmpty())) {
-            PreviewRenderUtils.renderComparisonOverlay(missingPositions, wrongPositions);
+        if (compareMode && (!missingPositions.isEmpty() || !wrongPositions.isEmpty() || !presentPositions.isEmpty())) {
+            PreviewRenderUtils.renderComparisonOverlay(missingPositions, wrongPositions, presentPositions);
         }
 
         GlStateManager.disableBlend();
@@ -160,6 +171,49 @@ public class GhostBlockRenderer {
         mc.entityRenderer.enableLightmap();
         GlStateManager.popMatrix();
         GlStateManager.color(1F, 1F, 1F, 1F);
+    }
+
+    /**
+     * Periodic re-validation for the persistent comparison overlay. Once every
+     * {@link #COMPARISON_INTERVAL_TICKS} ticks the captured expected states are re-checked against the
+     * real world, so the blue/red/grey overlay follows block placement and breaking without a VBO rebuild.
+     * Clears the projection entirely if the anchor controller disappears or its chunk unloads.
+     */
+    public static void onClientTick() {
+        applyPendingRefresh();
+        if (ghostPos == null || !vboBuilt || !compareMode || expectedStates == null) return;
+        if (++comparisonTickCounter < comparisonIntervalTicks()) return;
+        comparisonTickCounter = 0;
+
+        Minecraft mc = Minecraft.getMinecraft();
+        World world = mc.world;
+        if (world == null) {
+            resetGhostRender();
+            return;
+        }
+        if (!world.isBlockLoaded(ghostPos, false)) {
+            GTLog.logger.info("[StructureProjector] preview cleared controller={} reason=chunk-unloaded", ghostPos);
+            resetGhostRender();
+            return;
+        }
+        if (!(world.getTileEntity(ghostPos) instanceof IGregTechTileEntity)) {
+            GTLog.logger.info("[StructureProjector] preview cleared controller={} reason=controller-missing", ghostPos);
+            resetGhostRender();
+            return;
+        }
+        PreviewRenderUtils.computeComparisonData(expectedStates, world,
+                missingPositions, wrongPositions, presentPositions);
+    }
+
+    /**
+     * Keeps the periodic scan cheap on very large structures: every 10 ticks for normal multiblocks,
+     * 20 ticks above 30k expected cells and 40 ticks above 100k.
+     */
+    private static int comparisonIntervalTicks() {
+        int size = expectedStates == null ? 0 : expectedStates.size();
+        if (size > 100_000) return COMPARISON_INTERVAL_TICKS * 4;
+        if (size > 30_000) return COMPARISON_INTERVAL_TICKS * 2;
+        return COMPARISON_INTERVAL_TICKS;
     }
 
     private static void renderVBOs() {
@@ -211,7 +265,7 @@ public class GhostBlockRenderer {
         if (controller.getPos().equals(ghostPos)) {
             // Throttle: skip rebuild if last build was too recent (prevents stutter on rapid clicks)
             if (now - lastBuildTime < REBUILD_COOLDOWN_MS) {
-                ghostEndTime = now + durTimeMillis;
+                ghostEndTime = durTimeMillis <= 0 ? Long.MAX_VALUE : now + durTimeMillis;
                 return;
             }
             layer++;
@@ -221,13 +275,66 @@ public class GhostBlockRenderer {
         rebuildGhostPreview(controller, durTimeMillis, layer);
     }
 
+    /**
+     * Starts a persistent projection, or cancels the one already shown for the same controller. Compare mode is
+     * enabled so every projected cell is coloured by its current state (already present / missing / conflicting)
+     * and the projection is refreshed until it is cancelled or the controller disappears.
+     *
+     * @return {@code true} when a projection was started, {@code false} when it was cancelled or could not build
+     */
+    public static boolean toggleGhostPreview(MultiblockControllerBase controller) {
+        if (controller == null) {
+            return false;
+        }
+        if (vboBuilt && controller.getPos().equals(ghostPos)) {
+            resetGhostRender();
+            return false;
+        }
+        compareMode = true;
+        renderGhostPreview(controller, 0L);
+        return vboBuilt && controller.getPos().equals(ghostPos);
+    }
+
     public static void refreshCurrentPreview(MultiblockControllerBase controller) {
-        long remainingTime = ghostEndTime - System.currentTimeMillis();
-        if (controller == null || ghostPos == null || !vboBuilt || remainingTime <= 0 ||
-                !controller.getPos().equals(ghostPos)) {
+        if (controller == null || ghostPos == null || !vboBuilt || !controller.getPos().equals(ghostPos)) {
+            return;
+        }
+        long remainingTime = ghostEndTime == Long.MAX_VALUE
+                ? 0L
+                : ghostEndTime - System.currentTimeMillis();
+        if (ghostEndTime != Long.MAX_VALUE && remainingTime <= 0) {
             return;
         }
         rebuildGhostPreview(controller, remainingTime, layer);
+    }
+
+    /**
+     * Rebuilds an already visible projection from the preview's current channels. Called when an asynchronous
+     * preview rebuild finishes, so a projected structure follows layer/piece/hatch changes without re-clicking
+     * the project action. The actual VBO rebuild is deferred to the next client tick: rebuilding GL buffers
+     * while the GUI is mid-frame is not safe.
+     */
+    public static void refreshFromPreview(@Nullable MultiblockControllerBase controller,
+                                          @Nullable Map<String, Integer> channelValues) {
+        if (controller == null) {
+            return;
+        }
+        pendingRefreshController = controller;
+        pendingRefreshChannels = channelValues == null ? null : new HashMap<>(channelValues);
+    }
+
+    private static void applyPendingRefresh() {
+        MultiblockControllerBase controller = pendingRefreshController;
+        if (controller == null) {
+            return;
+        }
+        Map<String, Integer> channels = pendingRefreshChannels;
+        pendingRefreshController = null;
+        pendingRefreshChannels = null;
+        if (channels != null) {
+            setChannelValues(channels);
+        }
+        refreshCurrentPreview(controller);
     }
 
     private static void rebuildGhostPreview(MultiblockControllerBase controller, long durTimeMillis,
@@ -238,7 +345,7 @@ public class GhostBlockRenderer {
         MultiblockPreviewRenderer.resetMultiblockRender();
 
         ghostPos = controller.getPos();
-        ghostEndTime = System.currentTimeMillis() + durTimeMillis;
+        ghostEndTime = durTimeMillis <= 0 ? Long.MAX_VALUE : System.currentTimeMillis() + durTimeMillis;
         lastBuildTime = System.currentTimeMillis();
         layer = requestedLayer;
 
@@ -567,7 +674,7 @@ public class GhostBlockRenderer {
                 maxWorldX = Math.max(maxWorldX, worldPos.getX());
                 maxWorldY = Math.max(maxWorldY, worldPos.getY());
                 maxWorldZ = Math.max(maxWorldZ, worldPos.getZ());
-                if (expectedBlocks != null) {
+                if (expectedBlocks != null && renderFilter.test(pos)) {
                     expectedBlocks.put(worldPos, state);
                 }
             }
@@ -630,9 +737,13 @@ public class GhostBlockRenderer {
         }
 
         if (expectedBlocks != null) {
+            expectedStates = expectedBlocks;
             World realWorld = Minecraft.getMinecraft().world;
             PreviewRenderUtils.computeComparisonData(expectedBlocks, realWorld,
-                    missingPositions, wrongPositions);
+                    missingPositions, wrongPositions, presentPositions);
+        } else {
+            expectedStates = null;
+            presentPositions.clear();
         }
 
         GTLog.logger.info("[StructureProjector] preview geometry controller={} pieceMode={} nonAirBlocks={} " +
@@ -695,6 +806,9 @@ public class GhostBlockRenderer {
         deleteVBOs();
         missingPositions.clear();
         wrongPositions.clear();
+        presentPositions.clear();
+        expectedStates = null;
+        comparisonTickCounter = 0;
     }
 
     private static void deleteVBOs() {

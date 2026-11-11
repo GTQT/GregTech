@@ -1,6 +1,7 @@
 package gregtech.integration.jei.multiblock;
 
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.StructureExclusions;
 import gregtech.api.pattern.StructurePiece;
 import gregtech.api.pattern.casing.StructureChannel;
 import gregtech.client.renderer.handler.GhostBlockRenderer;
@@ -42,28 +43,21 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Fullscreen structure viewer laid out after GTO's structure preview screen.
+ * Fullscreen structure viewer: a single 8 px-inset window with a 14 px title row, the 3D scene below it and
+ * cards floating on the right edge of the scene.
  *
- * <p>
- * The whole screen is one window panel inset by 8px: a 14px title row runs along the top (title on the left,
- * zoom / settings / close on the right), the 3D scene fills the area below it, and the cards float on the right
- * edge of the scene. JEI mode uses GTO's read-only composition: minimap at the top, structure configuration
- * below it, and no world actions. Builder mode is a separate world-facing variant: it omits the minimap and
- * puts the adjustable hatch-count card above the structure configuration and the project/build footer.
- * Placement alternatives open as a card on the left edge. The cards are absolutely positioned at the same
- * insets GTO uses (8px window margin, 5px padding, 4px gap), so the composition matches the reference
- * screenshots instead of inventing a new chrome.
+ * <p>JEI mode is read-only: minimap at the top, structure configuration below it, no world actions. Builder
+ * mode omits the minimap and adds the hatch-count card plus the project/build footer. Placement alternatives
+ * open as a card on the left edge. Cards are absolutely positioned (8 px window margin, 5 px padding, 4 px
+ * gap).
  *
- * <p>
- * Rendering and camera state stay owned by {@link MultiblockInfoRecipeWrapper}; this screen only draws the
+ * <p>Rendering and camera state stay owned by {@link MultiblockInfoRecipeWrapper}; this screen only draws the
  * chrome and forwards input.
  */
 @SideOnly(Side.CLIENT)
 public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
-    // ---------------------------------------------------------------------------------------------
-    // GTO layout tokens (uipro UISizes / UITheme equivalents).
-    // ---------------------------------------------------------------------------------------------
+    // Layout tokens.
     private static final int MARGIN = 8;
     private static final int PADDING = 5;
     private static final int GAP = 4;
@@ -104,6 +98,9 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     private static final int TEXT_DIM = 0xFF6A6A6A;
     private static final int SLOT_FILL = 0xFF8B8B8B;
     private static final int SELECTION = 0xFFFFC83D;
+    private static final int PARTS_CELL_SIZE = 18;
+    private static final int PARTS_CELL_GAP = 2;
+    private static final int PARTS_HEADER_HEIGHT = 12;
 
     private static final ResourceLocation MINIMAP_TEXTURE = new ResourceLocation("gregtech",
             "structure_preview_minimap");
@@ -138,6 +135,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     private int cfgX, cfgY, cfgWidth, cfgHeight;
     private int candX, candY, candWidth;
     private int closeX, settingsX, zoomPlusX, zoomLabelX, zoomMinusX;
+    private int fitX, highlightToggleX, minimapToggleX, helpButtonX, partHighlightX;
 
     // Configuration card content.
     private int configScroll;
@@ -145,6 +143,9 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     private final List<PieceNode> configNodes = new ArrayList<>();
     private final List<Hit> hits = new ArrayList<>();
     private boolean configVisible = true;
+    private boolean minimapEnabled = true;
+    private boolean minimapUserToggled;
+    private boolean helpVisible;
 
     // Minimap.
     @Nullable
@@ -171,6 +172,20 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     @Nullable
     private List<String> hoveredTooltip;
 
+    private final List<PartCell> partCells = new ArrayList<>();
+    private final List<MultiblockInfoRecipeWrapper.CandidateChoice> candidateChoices = new ArrayList<>();
+    private boolean candidatePopupVisible;
+    private int candidatePopupX;
+    private int candidatePopupY;
+    private final List<ItemStack> cellChoices = new ArrayList<>();
+    @Nullable
+    private BlockPos cellChoicePos;
+    private boolean cellPopupVisible;
+    private int cellPopupX;
+    private int cellPopupY;
+    private int cellScrollRow;
+    private boolean cellScrollbarDragging;
+
     public MultiblockInfoFullscreenScreen(MultiblockInfoRecipeWrapper wrapper) {
         this(wrapper, false);
     }
@@ -188,19 +203,9 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         applyLayout(width, height);
         rebuildConfigTree();
         wrapper.setLayer(-1);
+        wrapper.setPreviewReadyListener(() -> GhostBlockRenderer.refreshFromPreview(
+                wrapper.getPreviewController(), wrapper.copyPreviewChannels()));
         wrapper.ensurePreviewLoading();
-    }
-
-    private void fitCameraToViewport() {
-        StructurePreviewRenderer renderer = wrapper.getCurrentRenderer();
-        if (!(renderer != null && renderer.world instanceof TrackedDummyWorld)) {
-            return;
-        }
-        Vector3f size = ((TrackedDummyWorld) renderer.world).getSize();
-        float largest = Math.max(Math.max(size.x, size.y), size.z);
-        float zoom = Math.max(2.5F, 1.45F * Math.max(largest, 1.5F));
-        fitZoom = zoom;
-        wrapper.setZoom(zoom);
     }
 
     public void openFromCurrentScreen() {
@@ -220,6 +225,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     }
 
     public void close() {
+        wrapper.setPreviewReadyListener(null);
         wrapper.cancelChannelDrag();
         wrapper.resetCameraDrag();
         if (openScreen == this) {
@@ -267,8 +273,13 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         zoomPlusX = settingsX - GAP - BUTTON_SIZE;
         zoomLabelX = zoomPlusX - GAP - ZOOM_LABEL_WIDTH;
         zoomMinusX = zoomLabelX - GAP - BUTTON_SIZE;
+        fitX = zoomMinusX - GAP - BUTTON_SIZE;
+        highlightToggleX = fitX - GAP - BUTTON_SIZE;
+        minimapToggleX = highlightToggleX - GAP - BUTTON_SIZE;
+        helpButtonX = minimapToggleX - GAP - BUTTON_SIZE;
+        partHighlightX = helpButtonX - GAP - BUTTON_SIZE;
 
-        // Scene starts below the title row, inset by the window padding, exactly like GTO's `place()`.
+        // Scene starts below the title row, inset by the window padding.
         sceneX = MARGIN + PADDING;
         sceneY = MARGIN + PADDING + CONTROL_HEIGHT + GAP;
         sceneWidth = width - MARGIN * 2 - PADDING * 2;
@@ -276,11 +287,15 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
         int inset = MARGIN + PADDING + GAP;
         if (builderMode) {
-            // The builder preview is a different screen from the JEI viewer: it has no minimap.
-            // Hatch caps live in their own card at the top of the right column, above the structure config.
-            mapSize = 0;
-            mapX = 0;
-            mapY = 0;
+            // The builder preview keeps the scene overlay layout: hatch caps live in their own card at the
+            // top of the right column, above the structure config. The minimap floats over the scene to the
+            // left of that column instead of consuming a slot inside it.
+            boolean showMap = showsMinimap();
+            mapSize = showMap ?
+                    Math.max(MINIMAP_MIN, Math.min(MINIMAP_MAX, Math.min(width / 5, height / 3))) : 0;
+            mapY = sceneY + GAP;
+            mapX = showMap ? Math.max(sceneX + GAP, width - inset - CARD_WIDTH - GAP - mapSize)
+                    : width - inset;
             hatchX = width - inset - CARD_WIDTH;
             hatchY = sceneY + GAP;
             hatchWidth = CARD_WIDTH;
@@ -289,11 +304,13 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
             cfgY = hatchY + hatchHeight + GAP;
         } else {
             hatchHeight = 0;
-            mapSize = Math.max(MINIMAP_MIN, Math.min(MINIMAP_MAX, Math.min(width / 5, height / 3)));
+            boolean showMap = showsMinimap();
+            mapSize = showMap ?
+                    Math.max(MINIMAP_MIN, Math.min(MINIMAP_MAX, Math.min(width / 5, height / 3))) : 0;
             mapX = width - inset - mapSize;
             mapY = sceneY + GAP;
             cfgX = width - inset - CARD_WIDTH;
-            cfgY = mapY + mapSize + GAP;
+            cfgY = showMap ? mapY + mapSize + GAP : sceneY + GAP;
         }
         cfgWidth = CARD_WIDTH;
         cfgHeight = Math.max(60, height - MARGIN - PADDING - GAP - cfgY);
@@ -301,6 +318,31 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         candX = MARGIN + PADDING + GAP;
         candY = sceneY + GAP;
         candWidth = CARD_WIDTH;
+    }
+
+    /** Widest horizontal extent of the preview world, or -1 while the preview has not loaded yet. */
+    private int previewFootprint() {
+        StructurePreviewRenderer renderer = wrapper.getCurrentRenderer();
+        if (renderer == null || !(renderer.world instanceof TrackedDummyWorld)) {
+            return -1;
+        }
+        Vector3f size = ((TrackedDummyWorld) renderer.world).getSize();
+        return (int) Math.max(size.x, size.z);
+    }
+
+    /**
+     * Shows the minimap for structures wider or deeper than 64 blocks, where the orbit camera can no longer keep
+     * the whole footprint in view. Smaller structures keep the space for the config card.
+     */
+    private boolean showsMinimap() {
+        if (!minimapEnabled) {
+            return false;
+        }
+        if (minimapUserToggled) {
+            return true;
+        }
+        int footprint = previewFootprint();
+        return footprint < 0 || footprint > 64;
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -329,10 +371,12 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         drawMinimapCard();
         drawBuilderHatchCard(mouseX, mouseY);
         drawConfigCard(mouseX, mouseY);
-        drawCandidatesCard();
+        drawCandidatesCard(mouseX, mouseY);
         drawTitleRow(mouseX, mouseY);
         drawSummaryLine();
-        drawHintBar();
+        drawCandidatePopup(mouseX, mouseY);
+        drawCellPopup(mouseX, mouseY);
+        drawHelpCard();
 
         wrapper.updateHoverState(mc, mouseX, mouseY, isSceneHovered(mouseX, mouseY));
         drawTooltips(mouseX, mouseY);
@@ -381,7 +425,9 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
                 !inside(mouseX, mouseY, mapX, mapY, mapSize, mapSize) &&
                 !(builderMode && inside(mouseX, mouseY, hatchX, hatchY, hatchWidth, hatchHeight)) &&
                 !(configVisible && inside(mouseX, mouseY, cfgX, cfgY, cfgWidth, cfgHeight)) &&
-                !inside(mouseX, mouseY, candX, candY, candWidth, CARD_HEADER + 24);
+                !inside(mouseX, mouseY, candX, candY, candWidth, CARD_HEADER + 24) &&
+                !(helpVisible && inside(mouseX, mouseY, helpCardX(), helpCardY(),
+                        helpCardWidth(), helpCardHeight()));
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -406,6 +452,61 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         drawButton(settingsX, y, BUTTON_SIZE, settingsHovered, configVisible);
         drawGear(settingsX, y, settingsHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
         hit(settingsX, y, BUTTON_SIZE, BUTTON_SIZE, () -> configVisible = !configVisible);
+
+        boolean highlightHovered = inside(mouseX, mouseY, highlightToggleX, y, BUTTON_SIZE, BUTTON_SIZE);
+        drawButton(highlightToggleX, y, BUTTON_SIZE, highlightHovered, wrapper.isSelectionHighlightEnabled());
+        drawHighlightIcon(highlightToggleX, y, highlightHovered ? TEXT_PRIMARY : TEXT_SECONDARY,
+                wrapper.isSelectionHighlightEnabled());
+        if (highlightHovered) {
+            hoveredTooltip = Collections.singletonList(
+                    TextFormatting.GRAY + I18n.format("gregtech.multiblock.preview.fullscreen.highlight"));
+        }
+        hit(highlightToggleX, y, BUTTON_SIZE, BUTTON_SIZE,
+                () -> wrapper.setSelectionHighlightEnabled(!wrapper.isSelectionHighlightEnabled()));
+
+        boolean fitHovered = inside(mouseX, mouseY, fitX, y, BUTTON_SIZE, BUTTON_SIZE);
+        drawButton(fitX, y, BUTTON_SIZE, fitHovered, false);
+        drawFitIcon(fitX, y, fitHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+        if (fitHovered) {
+            hoveredTooltip = Collections.singletonList(
+                    TextFormatting.GRAY + I18n.format("gregtech.multiblock.preview.fullscreen.fit"));
+        }
+        hit(fitX, y, BUTTON_SIZE, BUTTON_SIZE, () -> {
+            // Reset rotation and orbit target as well, not just the zoom.
+            wrapper.applyDefaultCameraFraming();
+            fitZoom = Math.max(2.5F, wrapper.getZoom());
+            wrapper.applyCamera();
+        });
+
+        boolean mapHovered = inside(mouseX, mouseY, minimapToggleX, y, BUTTON_SIZE, BUTTON_SIZE);
+        drawButton(minimapToggleX, y, BUTTON_SIZE, mapHovered, showsMinimap());
+        drawMinimapIcon(minimapToggleX, y, mapHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+        if (mapHovered) {
+            hoveredTooltip = Collections.singletonList(
+                    TextFormatting.GRAY + I18n.format("gregtech.multiblock.preview.fullscreen.minimap"));
+        }
+        hit(minimapToggleX, y, BUTTON_SIZE, BUTTON_SIZE, () -> {
+            minimapEnabled = !minimapEnabled;
+            minimapUserToggled = true;
+        });
+
+        boolean helpHovered = inside(mouseX, mouseY, helpButtonX, y, BUTTON_SIZE, BUTTON_SIZE);
+        drawButton(helpButtonX, y, BUTTON_SIZE, helpHovered, helpVisible);
+        fontRenderer.drawString("?", helpButtonX + 5, y + 4, helpHovered ? TEXT_PRIMARY : TEXT_SECONDARY, false);
+        if (helpHovered) {
+            hoveredTooltip = Collections.singletonList(
+                    TextFormatting.GRAY + I18n.format("gregtech.multiblock.preview.fullscreen.help"));
+        }
+        hit(helpButtonX, y, BUTTON_SIZE, BUTTON_SIZE, () -> helpVisible = !helpVisible);
+
+        boolean partHovered = inside(mouseX, mouseY, partHighlightX, y, BUTTON_SIZE, BUTTON_SIZE);
+        drawButton(partHighlightX, y, BUTTON_SIZE, partHovered, wrapper.isPartHighlightMode());
+        drawPartHighlightIcon(partHighlightX, y, partHovered ? TEXT_PRIMARY : TEXT_SECONDARY);
+        if (partHovered) {
+            hoveredTooltip = Collections.singletonList(
+                    TextFormatting.GRAY + I18n.format("gregtech.multiblock.preview.fullscreen.part_highlight"));
+        }
+        hit(partHighlightX, y, BUTTON_SIZE, BUTTON_SIZE, wrapper::togglePartHighlightMode);
 
         boolean minusHovered = inside(mouseX, mouseY, zoomMinusX, y, BUTTON_SIZE, BUTTON_SIZE);
         boolean plusHovered = inside(mouseX, mouseY, zoomPlusX, y, BUTTON_SIZE, BUTTON_SIZE);
@@ -447,7 +548,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     }
 
     private void drawMinimapCard() {
-        if (builderMode) {
+        if (mapSize <= 0) {
             return;
         }
         refreshMinimap();
@@ -480,19 +581,86 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
         Vector3f eye = wrapper.getPreviewCameraEye();
         if (eye != null) {
-            int markerX = minimapOriginX + Math.round((eye.x - minimapMinX) * minimapScale);
-            int markerY = minimapOriginY + Math.round((eye.z - minimapMinZ) * minimapScale);
-            markerX = MathHelper.clamp(markerX, minimapOriginX, minimapOriginX + drawWidth - 1);
-            markerY = MathHelper.clamp(markerY, minimapOriginY, minimapOriginY + drawHeight - 1);
-            drawRect(markerX - 2, markerY - 2, markerX + 3, markerY + 3, 0xFF000000);
-            drawRect(markerX - 1, markerY - 1, markerX + 2, markerY + 2, 0xFFFF3030);
+            int eyeX = MathHelper.clamp(minimapOriginX + Math.round((eye.x - minimapMinX) * minimapScale),
+                    minimapOriginX, minimapOriginX + drawWidth - 1);
+            int eyeY = MathHelper.clamp(minimapOriginY + Math.round((eye.z - minimapMinZ) * minimapScale),
+                    minimapOriginY, minimapOriginY + drawHeight - 1);
+            // View direction: eye -> orbit target.
+            Vector3f target = wrapper.getPreviewCameraTarget();
+            if (target != null) {
+                int targetX = MathHelper.clamp(minimapOriginX + Math.round((target.x - minimapMinX) * minimapScale),
+                        minimapOriginX, minimapOriginX + drawWidth - 1);
+                int targetY = MathHelper.clamp(minimapOriginY + Math.round((target.z - minimapMinZ) * minimapScale),
+                        minimapOriginY, minimapOriginY + drawHeight - 1);
+                drawMinimapLine(eyeX, eyeY, targetX, targetY, 0xFFFF3030);
+                drawMinimapFrustum(eyeX, eyeY, targetX, targetY, minimapOriginX, minimapOriginY,
+                        drawWidth, drawHeight);
+            }
+            drawRect(eyeX - 2, eyeY - 2, eyeX + 3, eyeY + 3, 0xFF000000);
+            drawRect(eyeX - 1, eyeY - 1, eyeX + 2, eyeY + 2, 0xFFFF3030);
         }
         drawBorder(mapX, mapY, mapSize, mapSize, WINDOW_EDGE);
     }
 
     /**
-     * Maps a minimap click to a structure position and moves the orbit target there, which is how GTO's
-     * minimap lets the player pan around a structure larger than the viewport.
+     * Approximate camera footprint on the minimap: a top-down wedge from the eye marker shows where the camera
+     * looks and roughly how much it covers, without another render pass.
+     */
+    private void drawMinimapFrustum(int eyeX, int eyeY, int targetX, int targetY,
+                                    int originX, int originY, int drawWidth, int drawHeight) {
+        float dirX = targetX - eyeX;
+        float dirY = targetY - eyeY;
+        float distance = MathHelper.sqrt(dirX * dirX + dirY * dirY);
+        if (distance < 2.0F) {
+            return;
+        }
+        dirX /= distance;
+        dirY /= distance;
+        float far = Math.min(34.0F, 0.55F * Math.min(drawWidth, drawHeight));
+        float halfWidth = far * (float) Math.tan(Math.toRadians(mc.gameSettings.fovSetting * 0.5F)) * 0.75F;
+        float perpX = -dirY;
+        float perpY = dirX;
+        int edgeX = Math.round(eyeX + dirX * far);
+        int edgeY = Math.round(eyeY + dirY * far);
+        int leftX = MathHelper.clamp(Math.round(edgeX + perpX * halfWidth), originX, originX + drawWidth - 1);
+        int leftY = MathHelper.clamp(Math.round(edgeY + perpY * halfWidth), originY, originY + drawHeight - 1);
+        int rightX = MathHelper.clamp(Math.round(edgeX - perpX * halfWidth), originX, originX + drawWidth - 1);
+        int rightY = MathHelper.clamp(Math.round(edgeY - perpY * halfWidth), originY, originY + drawHeight - 1);
+        int color = 0x66FFFFFF;
+        drawMinimapLine(eyeX, eyeY, leftX, leftY, color);
+        drawMinimapLine(eyeX, eyeY, rightX, rightY, color);
+        drawMinimapLine(leftX, leftY, rightX, rightY, color);
+    }
+
+    /**
+     * 1 px Bresenham line used for the minimap view-direction indicator. Cheap enough for a single
+     * segment of at most ~178 px, and avoids pulling a line primitive into the self-drawn toolkit.
+     */
+    private void drawMinimapLine(int x0, int y0, int x1, int y1, int color) {
+        int dx = Math.abs(x1 - x0);
+        int dy = Math.abs(y1 - y0);
+        int sx = x0 < x1 ? 1 : -1;
+        int sy = y0 < y1 ? 1 : -1;
+        int err = dx - dy;
+        while (true) {
+            drawRect(x0, y0, x0 + 1, y0 + 1, color);
+            if (x0 == x1 && y0 == y1) {
+                return;
+            }
+            int e2 = err * 2;
+            if (e2 > -dy) {
+                err -= dy;
+                x0 += sx;
+            }
+            if (e2 < dx) {
+                err += dx;
+                y0 += sy;
+            }
+        }
+    }
+
+    /**
+     * Maps a minimap click to a structure position and moves the orbit target there.
      */
     private void focusMinimap(int mouseX, int mouseY) {
         if (minimapScale <= 0.0F) {
@@ -507,7 +675,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         wrapper.panPreviewTo(worldX, worldZ);
     }
 
-    private void drawCandidatesCard() {
+    private void drawCandidatesCard(int mouseX, int mouseY) {
         List<PreviewCandidate> candidates = wrapper.getCandidates();
         if (candidates.isEmpty()) {
             return;
@@ -519,13 +687,31 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
             String text = I18n.format("gregtech.multiblock.preview.fullscreen.single_candidate");
             fontRenderer.drawString(fontRenderer.trimStringToWidth(text, candWidth - PADDING * 2 - 22),
                     candX + PADDING, candY + CARD_HEADER + 8, TEXT_SECONDARY, false);
-            drawCandidateSlot(candX + candWidth - PADDING - 18, candY + CARD_HEADER + 3, candidates.get(0));
+            int slotX = candX + candWidth - PADDING - 18;
+            int slotY = candY + CARD_HEADER + 3;
+            final int popupX = slotX + 9;
+            final int popupY = slotY + 20;
+            hit(slotX, slotY, 18, 18, () -> openCellPopupForSelection(popupX, popupY));
+            if (inside(mouseX, mouseY, slotX, slotY, 18, 18)) {
+                hoveredTooltip = Collections.singletonList(TextFormatting.GRAY
+                        + I18n.format("gregtech.multiblock.preview.fullscreen.candidate_pick"));
+            }
+            drawCandidateSlot(slotX, slotY, candidates.get(0));
             return;
         }
-        int slotX = candX + PADDING;
         int slotY = candY + CARD_HEADER + 3;
         for (int i = 0; i < Math.min(7, candidates.size()); i++) {
-            drawCandidateSlot(slotX + i * 20, slotY, candidates.get(i));
+            int slotX = candX + PADDING + i * 20;
+            final int popupX = slotX + 9;
+            final int popupY = slotY + 20;
+            // A slot opens the per-cell picker instead of rewriting a structure-wide channel, which also works
+            // for element groups without a channel name.
+            hit(slotX, slotY, 18, 18, () -> openCellPopupForSelection(popupX, popupY));
+            if (inside(mouseX, mouseY, slotX, slotY, 18, 18)) {
+                hoveredTooltip = Collections.singletonList(TextFormatting.GRAY
+                        + I18n.format("gregtech.multiblock.preview.fullscreen.candidate_pick"));
+            }
+            drawCandidateSlot(slotX, slotY, candidates.get(i));
         }
     }
 
@@ -539,10 +725,292 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     }
 
     /**
-     * Configuration card: a vertically scrolled stack of flow nodes. The root node carries the same rows GTO
-     * generates for the structure root (one label + one stepper per size control, plus the display-layer
-     * stepper); every following node is one tooling piece and clicking it selects the cumulative prefix.
+     * Opens the alternative picker when the clicked scene block has several candidates; the compact card below
+     * the scene only has room for one slot per candidate group.
      */
+    private void openCandidatePopup(int mouseX, int mouseY) {
+        List<MultiblockInfoRecipeWrapper.CandidateChoice> choices = wrapper.getCandidateChoices();
+        if (choices.size() <= 1) {
+            closeCandidatePopup();
+            return;
+        }
+        candidateChoices.clear();
+        candidateChoices.addAll(choices);
+        candidatePopupVisible = true;
+        candidatePopupX = mouseX + 6;
+        candidatePopupY = mouseY + 6;
+    }
+
+    private void closeCandidatePopup() {
+        candidatePopupVisible = false;
+        candidateChoices.clear();
+    }
+
+    private int candidatePopupColumns() {
+        return Math.min(9, Math.max(1, candidateChoices.size()));
+    }
+
+    private int candidatePopupWidth() {
+        return candidatePopupColumns() * 18 + PADDING * 2;
+    }
+
+    private int candidatePopupHeight() {
+        int rows = (candidateChoices.size() + candidatePopupColumns() - 1) / candidatePopupColumns();
+        return CARD_HEADER + rows * 18 + PADDING;
+    }
+
+    private int popupX() {
+        return Math.max(MARGIN, Math.min(candidatePopupX, width - MARGIN - candidatePopupWidth()));
+    }
+
+    private int popupY() {
+        return Math.max(MARGIN, Math.min(candidatePopupY, height - MARGIN - candidatePopupHeight()));
+    }
+
+    private void drawCandidatePopup(int mouseX, int mouseY) {
+        if (!candidatePopupVisible || candidateChoices.isEmpty()) {
+            return;
+        }
+        int x = popupX();
+        int y = popupY();
+        drawCard(x, y, candidatePopupWidth(), candidatePopupHeight(),
+                I18n.format("gregtech.multiblock.preview.fullscreen.candidates"));
+        int columns = candidatePopupColumns();
+        for (int i = 0; i < candidateChoices.size(); i++) {
+            int cellX = x + PADDING + (i % columns) * 18;
+            int cellY = y + CARD_HEADER + 2 + (i / columns) * 18;
+            drawRect(cellX, cellY, cellX + 18, cellY + 18, SLOT_FILL);
+            drawBorder(cellX, cellY, 18, 18, WINDOW_EDGE);
+            drawItemStack(candidateChoices.get(i).getStack(), cellX + 1, cellY + 1);
+            if (inside(mouseX, mouseY, cellX, cellY, 18, 18)) {
+                hoveredTooltip = Collections.singletonList(TextFormatting.GRAY
+                        + I18n.format("gregtech.multiblock.preview.fullscreen.candidate_pick"));
+            }
+        }
+    }
+
+    /**
+     * @return true when the click was consumed by the popup, either by applying a candidate or by dismissing it.
+     */
+    private boolean handleCandidatePopupClick(int mouseX, int mouseY) {
+        if (!candidatePopupVisible) {
+            return false;
+        }
+        int x = popupX();
+        int y = popupY();
+        if (!inside(mouseX, mouseY, x, y, candidatePopupWidth(), candidatePopupHeight())) {
+            closeCandidatePopup();
+            return true;
+        }
+        int columns = candidatePopupColumns();
+        for (int i = 0; i < candidateChoices.size(); i++) {
+            int cellX = x + PADDING + (i % columns) * 18;
+            int cellY = y + CARD_HEADER + 2 + (i / columns) * 18;
+            if (inside(mouseX, mouseY, cellX, cellY, 18, 18)) {
+                wrapper.applyChoice(candidateChoices.get(i));
+                closeCandidatePopup();
+                return true;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Opens the per-cell picker for the block currently selected in the scene. The candidates card is only a
+     * compact summary of that cell, so clicking a slot must keep the substitution scoped to the cell.
+     */
+    private void openCellPopupForSelection(int popupMouseX, int popupMouseY) {
+        BlockPos selected = wrapper.getSelectedBlock();
+        if (selected != null) {
+            openCellPopup(selected, popupMouseX, popupMouseY);
+        }
+    }
+
+    /**
+     * Per-cell alternative picker. The first slot resets the cell to the layout default; the remaining slots pin
+     * one specific block to this cell (controller-relative {@code BlockPos} + serialized {@code ItemStack}).
+     */
+    private void openCellPopup(@NotNull BlockPos pos, int mouseX, int mouseY) {
+        List<ItemStack> candidates = wrapper.getCellCandidates(pos);
+        if (candidates.size() <= 1) {
+            closeCellPopup();
+            return;
+        }
+        cellChoices.clear();
+        cellChoices.add(ItemStack.EMPTY);
+        cellChoices.addAll(candidates);
+        cellChoicePos = pos;
+        cellPopupVisible = true;
+        cellPopupX = mouseX + 6;
+        cellPopupY = mouseY + 6;
+        cellScrollRow = 0;
+        cellScrollbarDragging = false;
+    }
+
+    private void closeCellPopup() {
+        cellPopupVisible = false;
+        cellScrollbarDragging = false;
+        cellChoices.clear();
+        cellChoicePos = null;
+    }
+
+    private int cellPopupColumns() {
+        return Math.min(9, Math.max(1, cellChoices.size()));
+    }
+
+    private int cellPopupTotalRows() {
+        int columns = cellPopupColumns();
+        return (cellChoices.size() + columns - 1) / columns;
+    }
+
+    private int cellPopupVisibleRows() {
+        int maxRows = Math.max(1, (height - MARGIN * 2 - CARD_HEADER - 2 - PADDING) / 18);
+        return Math.min(cellPopupTotalRows(), maxRows);
+    }
+
+    private int cellPopupScrollMax() {
+        return Math.max(0, cellPopupTotalRows() - cellPopupVisibleRows());
+    }
+
+    private boolean cellPopupScrollable() {
+        return cellPopupScrollMax() > 0;
+    }
+
+    private int cellPopupWidth() {
+        return cellPopupColumns() * 18 + PADDING * 2 + (cellPopupScrollable() ? 6 : 0);
+    }
+
+    private int cellPopupHeight() {
+        return CARD_HEADER + cellPopupVisibleRows() * 18 + PADDING + 2;
+    }
+
+    private int cellPopupX() {
+        return Math.max(MARGIN, Math.min(cellPopupX, width - MARGIN - cellPopupWidth()));
+    }
+
+    private int cellPopupY() {
+        return Math.max(MARGIN, Math.min(cellPopupY, height - MARGIN - cellPopupHeight()));
+    }
+
+    private void drawCellPopup(int mouseX, int mouseY) {
+        if (!cellPopupVisible || cellChoices.isEmpty()) {
+            return;
+        }
+        clampCellScroll();
+        int x = cellPopupX();
+        int y = cellPopupY();
+        int columns = cellPopupColumns();
+        int visibleRows = cellPopupVisibleRows();
+        int contentLeft = x + PADDING;
+        int contentTop = y + CARD_HEADER + 2;
+        drawCard(x, y, cellPopupWidth(), cellPopupHeight(),
+                I18n.format("gregtech.multiblock.preview.fullscreen.cell_variants"));
+        pushClip(contentLeft, contentTop, columns * 18, visibleRows * 18);
+        for (int row = 0; row < visibleRows; row++) {
+            for (int column = 0; column < columns; column++) {
+                int index = (cellScrollRow + row) * columns + column;
+                if (index >= cellChoices.size()) {
+                    break;
+                }
+                int px = contentLeft + column * 18;
+                int py = contentTop + row * 18;
+                drawRect(px, py, px + 18, py + 18, SLOT_FILL);
+                drawBorder(px, py, 18, 18, WINDOW_EDGE);
+                ItemStack stack = cellChoices.get(index);
+                if (index == 0) {
+                    drawCenteredString(fontRenderer, "A", px + 9, py + 5, 0xFF404040);
+                } else {
+                    drawItemStack(stack, px + 1, py + 1);
+                }
+                if (inside(mouseX, mouseY, px, py, 18, 18)) {
+                    hoveredTooltip = Collections.singletonList(TextFormatting.GRAY + (index == 0
+                            ? I18n.format("gregtech.multiblock.preview.fullscreen.cell_auto")
+                            : stack.getDisplayName()));
+                }
+            }
+        }
+        popClip();
+        if (cellPopupScrollable()) {
+            drawCellScrollbar(x, y, visibleRows);
+        }
+    }
+
+    private void drawCellScrollbar(int x, int y, int visibleRows) {
+        int trackX = x + cellPopupWidth() - PADDING - 5;
+        int trackY = y + CARD_HEADER + 2;
+        int trackHeight = visibleRows * 18;
+        drawRect(trackX, trackY, trackX + 4, trackY + trackHeight, 0xFFB0B0B0);
+        int thumbHeight = cellPopupThumbHeight(trackHeight);
+        int travel = Math.max(1, trackHeight - thumbHeight);
+        int thumbY = trackY;
+        if (cellPopupScrollMax() > 0) {
+            thumbY += (int) Math.round((double) travel * cellScrollRow / cellPopupScrollMax());
+        }
+        drawRect(trackX, thumbY, trackX + 4, thumbY + thumbHeight, 0xFF6E6E6E);
+    }
+
+    private int cellPopupThumbHeight(int trackHeight) {
+        return Math.max(10, trackHeight * cellPopupVisibleRows() / Math.max(1, cellPopupTotalRows()));
+    }
+
+    private void clampCellScroll() {
+        cellScrollRow = Math.max(0, Math.min(cellPopupScrollMax(), cellScrollRow));
+    }
+
+    private void scrollCellPopup(int rows) {
+        cellScrollRow += rows;
+        clampCellScroll();
+    }
+
+    private void dragCellScrollbar(int mouseY) {
+        int trackY = cellPopupY() + CARD_HEADER + 2;
+        int trackHeight = cellPopupVisibleRows() * 18;
+        int thumbHeight = cellPopupThumbHeight(trackHeight);
+        int travel = Math.max(1, trackHeight - thumbHeight);
+        int relative = Math.max(0, Math.min(travel, mouseY - trackY - thumbHeight / 2));
+        cellScrollRow = cellPopupScrollMax() == 0 ? 0
+                : (int) Math.round((double) relative * cellPopupScrollMax() / travel);
+        clampCellScroll();
+    }
+
+    private boolean handleCellPopupClick(int mouseX, int mouseY) {
+        if (!cellPopupVisible) {
+            return false;
+        }
+        int x = cellPopupX();
+        int y = cellPopupY();
+        if (!inside(mouseX, mouseY, x, y, cellPopupWidth(), cellPopupHeight())) {
+            closeCellPopup();
+            return true;
+        }
+        if (cellPopupScrollable() && mouseX >= x + cellPopupWidth() - PADDING - 6) {
+            cellScrollbarDragging = true;
+            dragCellScrollbar(mouseY);
+            return true;
+        }
+        int columns = cellPopupColumns();
+        int contentLeft = x + PADDING;
+        int contentTop = y + CARD_HEADER + 2;
+        if (!inside(mouseX, mouseY, contentLeft, contentTop, columns * 18, cellPopupVisibleRows() * 18)) {
+            return true;
+        }
+        int column = (mouseX - contentLeft) / 18;
+        int row = cellScrollRow + (mouseY - contentTop) / 18;
+        int index = row * columns + column;
+        if (index < cellChoices.size()) {
+            if (cellChoicePos != null) {
+                if (index == 0) {
+                    wrapper.clearCellOverride(cellChoicePos);
+                } else {
+                    wrapper.setCellOverride(cellChoicePos, cellChoices.get(index));
+                }
+            }
+            closeCellPopup();
+        }
+        return true;
+    }
+
+    /** Height of the builder hatch-count card, one row per adjustable ability. */
     private int builderHatchCardHeight() {
         if (!builderMode) {
             return 0;
@@ -580,6 +1048,11 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         }
     }
 
+    /**
+     * Configuration card: a vertically scrolled stack of flow nodes. The root node shows one stepper per size
+     * control plus the display-layer stepper; every following node is one tooling piece and clicking it selects
+     * the cumulative prefix.
+     */
     private void drawConfigCard(int mouseX, int mouseY) {
         if (!configVisible) {
             return;
@@ -619,7 +1092,19 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
                     : NODE_HEADER + 4;
             if (node.isPiece) {
                 boolean active = selected == node.pieceIndex;
-                drawPieceNode(contentX, y, CARD_CONTENT_WIDTH, nodeHeight, node.label, active, mouseX, mouseY);
+                boolean excluded = node.optional && isPieceExcluded(node.pieceIndex);
+                drawPieceNode(contentX, y, CARD_CONTENT_WIDTH, nodeHeight, node.label, active, node.optional,
+                        excluded, mouseX, mouseY);
+                if (node.optional) {
+                    int boxX = contentX + CARD_CONTENT_WIDTH - 4 - 10;
+                    int boxY = y + (nodeHeight - 10) / 2;
+                    int pieceIndex = node.pieceIndex;
+                    if (inside(mouseX, mouseY, boxX, boxY, 10, 10)) {
+                        hit(boxX, boxY, 10, 10, () -> togglePieceExclusion(pieceIndex));
+                        hoveredTooltip = Collections.singletonList(TextFormatting.GRAY
+                                + I18n.format("gregtech.multiblock.preview.fullscreen.exclude"));
+                    }
+                }
                 if (inside(mouseX, mouseY, contentX, y, CARD_CONTENT_WIDTH, nodeHeight)) {
                     int pieceIndex = node.pieceIndex;
                     hit(contentX, y, CARD_CONTENT_WIDTH, nodeHeight, () -> {
@@ -636,6 +1121,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
                 y += ARROW_HEIGHT;
             }
         }
+        drawPartsGrid(contentX, y + 2, contentTop, clipBottom, mouseX, mouseY);
         popClip();
 
         if (configScrollMax > 0) {
@@ -650,8 +1136,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     }
 
     private void drawConfigActions(int mouseX, int mouseY) {
-        // The JEI preview is read-only (GTO: minimap + structure configuration only). Projection and the
-        // build dialog belong to the terminal/world flow, where a real controller exists.
+        // The JEI preview is read-only: projection and the build dialog need a real controller.
         if (!wrapper.hasWorldController()) {
             return;
         }
@@ -685,8 +1170,9 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
             return;
         }
         GhostBlockRenderer.setChannelValues(wrapper.copyPreviewChannels());
-        GhostBlockRenderer.renderGhostPreview(wrapper.getPreviewController(), 15000L);
-        mc.displayGuiScreen(null);
+        if (GhostBlockRenderer.toggleGhostPreview(wrapper.getPreviewController())) {
+            mc.displayGuiScreen(null);
+        }
     }
 
     private List<StructureChannel> configChannels() {
@@ -775,16 +1261,34 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         wrapper.setLayer(Math.max(-1, Math.min(max, current + delta)));
     }
 
-    private void drawPieceNode(int x, int y, int width, int height, String label, boolean active, int mouseX,
-                               int mouseY) {
+    private void drawPieceNode(int x, int y, int width, int height, String label, boolean active, boolean optional,
+                               boolean excluded, int mouseX, int mouseY) {
         boolean hovered = inside(mouseX, mouseY, x, y, width, height);
         drawRect(x, y, x + width, y + height, active ? NODE_ACTIVE_FILL : (hovered ? 0xFFE2E2E2 : NODE_FILL));
         drawBorder(x, y, width, height, active ? NODE_ACTIVE_EDGE : NODE_EDGE);
         if (active) {
             drawRect(x + 1, y + 1, x + 3, y + height - 1, NODE_ACTIVE_EDGE);
         }
-        fontRenderer.drawString(fontRenderer.trimStringToWidth(label, width - 12), x + 5, y + 2, TEXT_PRIMARY,
-                false);
+        int textWidth = width - 12 - (optional ? 14 : 0);
+        fontRenderer.drawString(fontRenderer.trimStringToWidth(label, textWidth), x + 5, y + 2,
+                excluded ? TEXT_DIM : TEXT_PRIMARY, false);
+        if (optional) {
+            int boxX = x + width - 4 - 10;
+            int boxY = y + (height - 10) / 2;
+            drawRect(boxX, boxY, boxX + 10, boxY + 10, 0xFFFFFFFF);
+            drawBorder(boxX, boxY, 10, 10, NODE_EDGE);
+            if (excluded) {
+                drawRect(boxX + 2, boxY + 2, boxX + 8, boxY + 8, EDGE_SOFT);
+            }
+        }
+    }
+
+    private boolean isPieceExcluded(int pieceIndex) {
+        return wrapper.getPreviewChannelValue(StructureExclusions.key(pieceIndex)) != 0;
+    }
+
+    private void togglePieceExclusion(int pieceIndex) {
+        wrapper.setPreviewChannel(StructureExclusions.key(pieceIndex), isPieceExcluded(pieceIndex) ? 0 : 1);
     }
 
     private void drawArrow(int centerX, int y) {
@@ -794,7 +1298,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
     private int configContentHeight() {
         if (configNodes.isEmpty()) {
-            return NODE_HEADER + 4;
+            return NODE_HEADER + 4 + partsSectionHeight();
         }
         List<StructureChannel> channels = configChannels();
         int total = 0;
@@ -806,18 +1310,75 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
                 total += ARROW_HEIGHT;
             }
         }
-        return total;
+        return total + partsSectionHeight();
+    }
+
+    private int partsColumns() {
+        return Math.max(1, (CARD_CONTENT_WIDTH - 4) / (PARTS_CELL_SIZE + PARTS_CELL_GAP));
+    }
+
+    private int partsRows() {
+        List<ItemStack> parts = wrapper.getPreviewParts();
+        return Math.max(1, (parts.size() + partsColumns() - 1) / partsColumns());
+    }
+
+    private int partsSectionHeight() {
+        return PARTS_HEADER_HEIGHT + partsRows() * (PARTS_CELL_SIZE + PARTS_CELL_GAP) + 2;
+    }
+
+    private void drawPartsGrid(int x, int y, int clipTop, int clipBottom, int mouseX, int mouseY) {
+        partCells.clear();
+        fontRenderer.drawString(I18n.format("gregtech.multiblock.preview.fullscreen.parts"), x + 2, y,
+                TEXT_SECONDARY, false);
+        List<ItemStack> parts = wrapper.getPreviewParts();
+        if (parts.isEmpty()) {
+            fontRenderer.drawString(I18n.format("gregtech.multiblock.preview.fullscreen.parts_none"), x + 2,
+                    y + PARTS_HEADER_HEIGHT, TEXT_DIM, false);
+            return;
+        }
+        int columns = partsColumns();
+        for (int i = 0; i < parts.size(); i++) {
+            int cellX = x + 2 + (i % columns) * (PARTS_CELL_SIZE + PARTS_CELL_GAP);
+            int cellY = y + PARTS_HEADER_HEIGHT + (i / columns) * (PARTS_CELL_SIZE + PARTS_CELL_GAP);
+            if (cellY + PARTS_CELL_SIZE <= clipTop || cellY >= clipBottom) {
+                continue;
+            }
+            ItemStack stack = parts.get(i);
+            partCells.add(new PartCell(cellX, cellY, stack));
+            boolean hidden = wrapper.isPartHidden(stack);
+            drawRect(cellX, cellY, cellX + PARTS_CELL_SIZE, cellY + PARTS_CELL_SIZE, 0xFFEDEDED);
+            drawBorder(cellX, cellY, PARTS_CELL_SIZE, PARTS_CELL_SIZE, NODE_EDGE);
+            ItemStack icon = stack.copy();
+            icon.setCount(1);
+            drawItemStack(icon, cellX + 1, cellY + 1);
+            if (hidden) {
+                drawRect(cellX + 1, cellY + 1, cellX + PARTS_CELL_SIZE - 1, cellY + PARTS_CELL_SIZE - 1,
+                        0x99000000);
+            }
+            String count = String.valueOf(stack.getCount());
+            fontRenderer.drawStringWithShadow(count,
+                    cellX + PARTS_CELL_SIZE - 1 - fontRenderer.getStringWidth(count), cellY + 9, 0xFFFFFF);
+            if (inside(mouseX, mouseY, cellX, cellY, PARTS_CELL_SIZE, PARTS_CELL_SIZE)) {
+                hoveredTooltip = new ArrayList<>();
+                hoveredTooltip.add(stack.getDisplayName());
+                hoveredTooltip.add(TextFormatting.GRAY + I18n.format(
+                        "gregtech.multiblock.preview.fullscreen.parts_count", stack.getCount()));
+                hoveredTooltip.add(TextFormatting.DARK_GRAY + I18n.format(hidden
+                        ? "gregtech.multiblock.preview.fullscreen.parts_hidden"
+                        : "gregtech.multiblock.preview.fullscreen.parts_toggle"));
+            }
+        }
     }
 
     private void rebuildConfigTree() {
         configNodes.clear();
-        configNodes.add(new PieceNode(0, I18n.format("gregtech.multiblock.preview.config_root"), false));
+        configNodes.add(new PieceNode(0, I18n.format("gregtech.multiblock.preview.config_root"), false, false));
         MultiPiecePattern pattern = wrapper.getMultiPiecePattern();
         if (pattern != null) {
             List<StructurePiece> pieces = pattern.getToolingPieceList();
             for (int i = 0; i < pieces.size(); i++) {
                 StructurePiece piece = pieces.get(i);
-                configNodes.add(new PieceNode(i + 1, piece.getName() + (piece.isOptional() ? " *" : ""), true));
+                configNodes.add(new PieceNode(i + 1, piece.getName(), true, piece.isOptional()));
             }
         }
     }
@@ -909,29 +1470,8 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         }
         Vector3f size = ((TrackedDummyWorld) renderer.world).getSize();
         String text = I18n.format("gregtech.multiblock.preview.fullscreen.summary",
-                (int) size.x, (int) size.y, (int) size.z, wrapper.getPreviewParts().size());
+                (int) size.x, (int) size.y, (int) size.z, wrapper.getPreviewBlockCount());
         fontRenderer.drawString(text, sceneX + PADDING, sceneY + sceneHeight - 11, TEXT_SECONDARY, false);
-    }
-
-    private void drawHintBar() {
-        String hint = I18n.format("gregtech.multiblock.preview.fullscreen.hint");
-        // Keep the hint clear of the right-hand config card: in the world flow its footer carries the
-        // project/build buttons, and the centered hint used to run underneath them.
-        int hintLeft = sceneX + 2;
-        int hintRight = Math.min(sceneX + sceneWidth - 2, cfgX - GAP);
-        if (hintRight - hintLeft < 80) {
-            hintRight = sceneX + sceneWidth - 2;
-        }
-        int available = Math.max(40, hintRight - hintLeft);
-        int textWidth = fontRenderer.getStringWidth(hint);
-        if (textWidth > available) {
-            hint = fontRenderer.trimStringToWidth(hint, available);
-            textWidth = fontRenderer.getStringWidth(hint);
-        }
-        int x = hintLeft + (available - textWidth) / 2;
-        int y = sceneY + sceneHeight - (wrapper.hasWorldController() ? 48 : 24);
-        drawRect(x - 5, y - 2, x + textWidth + 5, y + 9, 0x66000000);
-        fontRenderer.drawString(hint, x, y, 0xFFF2F2F2, false);
     }
 
     // ---------------------------------------------------------------------------------------------
@@ -970,6 +1510,30 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     @Override
     protected void mouseClicked(int mouseX, int mouseY, int mouseButton) throws IOException {
         applyLayout(width, height);
+        if (helpVisible) {
+            // Click-through is disabled while the cheatsheet is open; a click outside dismisses it.
+            if (!inside(mouseX, mouseY, helpCardX(), helpCardY(), helpCardWidth(), helpCardHeight())) {
+                helpVisible = false;
+            }
+            return;
+        }
+        if (cellPopupVisible && handleCellPopupClick(mouseX, mouseY)) {
+            return;
+        }
+        if (candidatePopupVisible && handleCandidatePopupClick(mouseX, mouseY)) {
+            return;
+        }
+        if (mouseButton == 2) {
+            if (configVisible) {
+                for (PartCell cell : partCells) {
+                    if (inside(mouseX, mouseY, cell.x, cell.y, PARTS_CELL_SIZE, PARTS_CELL_SIZE)) {
+                        wrapper.togglePartVisibility(cell.stack);
+                        return;
+                    }
+                }
+            }
+            return;
+        }
         if (mouseButton == 0) {
             for (Hit hit : hits) {
                 if (inside(mouseX, mouseY, hit.x, hit.y, hit.w, hit.h)) {
@@ -997,6 +1561,10 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
 
     @Override
     protected void mouseClickMove(int mouseX, int mouseY, int clickedMouseButton, long timeSinceLastClick) {
+        if (clickedMouseButton == 0 && cellScrollbarDragging) {
+            dragCellScrollbar(mouseY);
+            return;
+        }
         if (clickedMouseButton == 0 && minimapDragging) {
             focusMinimap(mouseX, mouseY);
             return;
@@ -1017,6 +1585,7 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         if (state == 0) {
             draggingLeft = false;
             minimapDragging = false;
+            cellScrollbarDragging = false;
             wrapper.cancelChannelDrag();
         }
         if (state == 1) {
@@ -1025,6 +1594,16 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
                 RayTraceResult hit = wrapper.pickPreview(mouseX, mouseY, sceneX, sceneY, sceneWidth, sceneHeight);
                 if (hit != null && hit.typeOfHit == RayTraceResult.Type.BLOCK) {
                     wrapper.selectBlock(hit.getBlockPos());
+                    if (wrapper.isPartHighlightMode()) {
+                        wrapper.setHighlightedPart(wrapper.getDominantPartAt(hit.getBlockPos()));
+                    }
+                    // A click opens the alternative picker right away; with a single choice the popup simply
+                    // stays closed. Cells with several candidates get the per-cell picker first.
+                    if (wrapper.getCellCandidates(hit.getBlockPos()).size() > 1) {
+                        openCellPopup(hit.getBlockPos(), mouseX, mouseY);
+                    } else {
+                        openCandidatePopup(mouseX, mouseY);
+                    }
                 } else {
                     wrapper.clearSelection();
                 }
@@ -1044,6 +1623,15 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         }
         int mouseX = Mouse.getEventX() * width / mc.displayWidth;
         int mouseY = height - Mouse.getEventY() * height / mc.displayHeight - 1;
+        if (cellPopupVisible) {
+            if (inside(mouseX, mouseY, cellPopupX(), cellPopupY(), cellPopupWidth(), cellPopupHeight())) {
+                scrollCellPopup(-wheel / 120);
+            }
+            return;
+        }
+        if (helpVisible || candidatePopupVisible) {
+            return;
+        }
         if (configVisible && inside(mouseX, mouseY, cfgX, cfgY, cfgWidth, cfgHeight)) {
             configScroll = Math.max(0, Math.min(configScrollMax, configScroll - wheel / 120 * 18));
             return;
@@ -1057,6 +1645,18 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
     @Override
     protected void keyTyped(char typedChar, int keyCode) throws IOException {
         if (keyCode == Keyboard.KEY_ESCAPE) {
+            if (cellPopupVisible) {
+                closeCellPopup();
+                return;
+            }
+            if (candidatePopupVisible) {
+                closeCandidatePopup();
+                return;
+            }
+            if (helpVisible) {
+                helpVisible = false;
+                return;
+            }
             collapse();
             return;
         }
@@ -1106,6 +1706,83 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         drawRect(x + 6, y + 6, x + 8, y + 9, color);
     }
 
+    /** Small frame-with-corners glyph for "reset view". */
+    private void drawFitIcon(int x, int y, int color) {
+        drawBorder(x + 4, y + 4, 7, 7, color);
+        drawRect(x + 2, y + 4, x + 3, y + 5, color);
+        drawRect(x + 12, y + 4, x + 13, y + 5, color);
+        drawRect(x + 2, y + 10, x + 3, y + 11, color);
+        drawRect(x + 12, y + 10, x + 13, y + 11, color);
+    }
+
+    /** 2x2 grid glyph for the minimap toggle. */
+    private void drawMinimapIcon(int x, int y, int color) {
+        for (int column = 0; column < 2; column++) {
+            for (int row = 0; row < 2; row++) {
+                drawRect(x + 4 + column * 4, y + 4 + row * 4, x + 7 + column * 4, y + 7 + row * 4, color);
+            }
+        }
+    }
+
+    /** Framed square, green while the hover/selection outline is shown. */
+    private void drawHighlightIcon(int x, int y, int color, boolean enabled) {
+        drawRect(x + 4, y + 4, x + 11, y + 11, enabled ? 0xFF4C9A4C : 0xFF8B8B8B);
+        drawBorder(x + 3, y + 3, 9, 9, color);
+    }
+
+    /** Two vertical bars: green accepts the reference part, red marks the remaining part slots. */
+    private void drawPartHighlightIcon(int x, int y, int color) {
+        boolean active = wrapper.isPartHighlightMode();
+        drawRect(x + 4, y + 3, x + 7, y + 11, active ? 0xFF2E7D32 : 0xFF8B8B8B);
+        drawRect(x + 8, y + 3, x + 11, y + 11, active ? 0xFFC62828 : 0xFF8B8B8B);
+        drawBorder(x + 3, y + 2, 9, 10, color);
+    }
+
+    private int helpCardWidth() {
+        return 210;
+    }
+
+    private int helpCardHeight() {
+        return CARD_HEADER + 6 * 12 + 10;
+    }
+
+    private int helpCardX() {
+        return (width - helpCardWidth()) / 2;
+    }
+
+    private int helpCardY() {
+        return (height - helpCardHeight()) / 2;
+    }
+
+    /** Controls cheatsheet. */
+    private void drawHelpCard() {
+        if (!helpVisible) {
+            return;
+        }
+        int x = helpCardX();
+        int y = helpCardY();
+        int cardWidth = helpCardWidth();
+        int cardHeight = helpCardHeight();
+        drawRect(x, y, x + cardWidth, y + cardHeight, CARD_FILL);
+        drawBorder(x, y, cardWidth, cardHeight, WINDOW_EDGE);
+        drawRect(x + 1, y + 1, x + cardWidth - 1, y + CARD_HEADER, HEADER_FILL);
+        fontRenderer.drawString(I18n.format("gregtech.multiblock.preview.fullscreen.help"),
+                x + PADDING, y + 3, TEXT_PRIMARY, false);
+        String[] lines = {
+                "gregtech.multiblock.preview.fullscreen.help.rotate",
+                "gregtech.multiblock.preview.fullscreen.help.pan",
+                "gregtech.multiblock.preview.fullscreen.help.zoom",
+                "gregtech.multiblock.preview.fullscreen.help.pick",
+                "gregtech.multiblock.preview.fullscreen.help.minimap",
+                "gregtech.multiblock.preview.fullscreen.help.close"
+        };
+        int lineY = y + CARD_HEADER + 5;
+        for (String key : lines) {
+            fontRenderer.drawString(I18n.format(key), x + PADDING, lineY, TEXT_SECONDARY, false);
+            lineY += 12;
+        }
+    }
+
     private void drawBorder(int x, int y, int w, int h, int color) {
         drawRect(x, y, x + w, y + 1, color);
         drawRect(x, y + h - 1, x + w, y + h, color);
@@ -1117,16 +1794,31 @@ public class MultiblockInfoFullscreenScreen extends GuiScreen {
         return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
     }
 
+    private static final class PartCell {
+
+        private final int x;
+        private final int y;
+        private final ItemStack stack;
+
+        private PartCell(int x, int y, @NotNull ItemStack stack) {
+            this.x = x;
+            this.y = y;
+            this.stack = stack;
+        }
+    }
+
     private static final class PieceNode {
 
         private final int pieceIndex;
         private final String label;
         private final boolean isPiece;
+        private final boolean optional;
 
-        private PieceNode(int pieceIndex, String label, boolean isPiece) {
+        private PieceNode(int pieceIndex, String label, boolean isPiece, boolean optional) {
             this.pieceIndex = pieceIndex;
             this.label = label;
             this.isPiece = isPiece;
+            this.optional = optional;
         }
     }
 

@@ -3,9 +3,16 @@ package gregtech.client.gui;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.MultiPiecePattern;
+import gregtech.api.pattern.StructureExclusions;
+import gregtech.api.pattern.StructurePiece;
+import gregtech.api.pattern.casing.GTStructureChannels;
 import gregtech.client.gui.gl.GDraw;
 import gregtech.common.network.NetworkHandler;
+import gregtech.common.network.multiblock.CPacketDismantleStructure;
+import gregtech.common.network.multiblock.CPacketEncodeStructure;
+import gregtech.common.network.multiblock.CPacketEvaluateStructureBuild;
 import gregtech.common.network.multiblock.CPacketExecuteStructureBuild;
+import gregtech.common.network.multiblock.SPacketStructureBuildBill;
 import gregtech.common.network.multiblock.SPacketStructureBuildResult;
 import gregtech.integration.jei.multiblock.MultiblockInfoRecipeWrapper;
 import gregtech.integration.jei.multiblock.MultiblockInfoRecipeWrapper.AbilityCountControl;
@@ -24,16 +31,18 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * Build dialog modelled after GTO's {@code PatternBuilderPanel}: a 178 px popup listing the block palette,
- * the structure role tallies and a {@code Back}/{@code Build} footer.
+ * Build dialog: a 178 px popup with the block palette, role tallies, optional pieces and a
+ * {@code Back}/{@code Demolish}/{@code Build} footer.
  *
- * <p>Layout tokens follow GTO's {@code UISizes}: 18 px rows, 14 px control height, 5 px popup padding and a
- * 168 px content column. The screen is read-only; the server resolves material consumption and reports
- * missing stacks through {@link SPacketStructureBuildResult}.
+ * <p>Layout: 18 px rows, 14 px control height, 5 px popup padding and a 168 px content column. The screen is
+ * read-only; the server resolves material consumption and reports missing stacks through
+ * {@link SPacketStructureBuildResult}.
  */
 @SideOnly(Side.CLIENT)
 public class MultiblockBuildWizardScreen extends GuiScreen {
@@ -44,16 +53,21 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
     private static final int CONTROL_HEIGHT = 14;
     private static final int SECTION_GAP = 4;
     private static final int ROW = 18;
+    private static final int MAX_ROLE_BILL_LINES = 10;
     private static final int BOTTOM_PADDING = 7;
     private static final int BUTTON_WIDTH = 48;
     private static final int CHROME = PADDING + CONTROL_HEIGHT + SECTION_GAP + CONTROL_HEIGHT
             + SECTION_GAP + BOTTOM_PADDING;
+    private static final int ROLE_CARD_HEIGHT = 26;
 
     private final MultiblockInfoRecipeWrapper wrapper;
     private final GuiScreen parent;
 
     private final List<ItemStack> parts = new ArrayList<>();
     private final List<AbilityRow> abilities = new ArrayList<>();
+    private final List<Integer> roleRowTops = new ArrayList<>();
+    private final List<ExtraRow> extras = new ArrayList<>();
+    private final List<Integer> extraRowTops = new ArrayList<>();
     private List<AbilityCountControl> abilityControls = Collections.emptyList();
 
     private int left;
@@ -72,6 +86,12 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
     private String resultText = "";
     private int resultColor = 0xFF404040;
     private String abilityPopupKey;
+    private int billRequestId;
+    @Nullable
+    private SPacketStructureBuildBill.Snapshot bill;
+    private boolean requireComplete;
+    private boolean noHatch;
+    private boolean useNetworkStock = true;
 
     public MultiblockBuildWizardScreen(MultiblockInfoRecipeWrapper wrapper, GuiScreen parent) {
         this.wrapper = wrapper;
@@ -93,6 +113,7 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
 
         parts.clear();
         parts.addAll(wrapper.getPreviewParts());
+        noHatch = wrapper.getPreviewChannelValue(GTStructureChannels.NO_HATCH.getName()) != 0;
         rebuildAbilityRows();
         listsLoaded = wrapper.isPreviewReady();
         if (!listsLoaded) {
@@ -100,14 +121,38 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
         }
         scrollMax = Math.max(0, contentHeight() - scrollHeight);
         scroll = Math.max(0, Math.min(scroll, scrollMax));
+        requestBill();
+    }
+
+    /**
+     * Asks the server for an authoritative, non-mutating material bill. Every ability count change re-requests it so
+     * the band under the block palette always matches the configuration that would be built.
+     */
+    private void requestBill() {
+        bill = null;
+        if (!wrapper.hasWorldController()) {
+            return;
+        }
+        billRequestId++;
+        NetworkHandler.INSTANCE.sendToServer(new CPacketEvaluateStructureBuild(
+                wrapper.getControllerPos(), billRequestId,
+                wrapper.copyPreviewChannels(), wrapper.copyCellOverrides(), useNetworkStock));
     }
 
     private void rebuildAbilityRows() {
         abilities.clear();
+        extras.clear();
         abilityControls = wrapper.getAbilityCountControls();
         MultiPiecePattern pattern = wrapper.getMultiPiecePattern();
         if (pattern == null) {
             return;
+        }
+        List<StructurePiece> tooling = pattern.getToolingPieceList();
+        for (int i = 0; i < tooling.size(); i++) {
+            StructurePiece piece = tooling.get(i);
+            if (piece.isOptional()) {
+                extras.add(new ExtraRow(i + 1, piece.getName()));
+            }
         }
         Map<String, Integer> counts = wrapper.getPreviewAbilityCounts();
         Map<String, Integer> groupCounts = wrapper.getPreviewAbilityGroupCounts();
@@ -116,9 +161,13 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
             controlKeys.put(control.getTranslationKey(), control.getKey());
         }
         Map<String, AbilityRow> byLabel = new HashMap<>();
+        Set<MultiblockAbility<?>> grouped = new HashSet<>();
+        for (AbilityGroupLimit group : pattern.getAbilityGroupLimits()) {
+            grouped.addAll(group.getAbilities());
+        }
         for (Map.Entry<MultiblockAbility<?>, int[]> entry : pattern.getAbilityLimits().entrySet()) {
             int[] range = entry.getValue();
-            if (range == null) {
+            if (range == null || grouped.contains(entry.getKey())) {
                 continue;
             }
             String labelKey = "gregtech.multiblock.ability." + entry.getKey();
@@ -201,20 +250,14 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
     private void drawContent(int mouseX, int mouseY) {
         GDraw.pushScissor(left + PADDING, scrollTop, CONTENT_WIDTH, scrollHeight);
         int y = scrollTop - scroll;
-        // Hatch caps come first: the dialog is also the only adjustment surface on short screens,
-        // where the role list after the block palette would otherwise be below the fold.
-        y = drawSectionHeader(I18n.format("gregtech.multiblock.build_wizard.ability_counts"), y);
-        if (abilityControls.isEmpty()) {
-            GDraw.text(I18n.format("gregtech.multiblock.build_wizard.no_ability_counts"),
-                    left + PADDING + 2, y + 5, 0xFF6A6A6A);
-            y += ROW;
-        } else {
-            for (AbilityCountControl control : abilityControls) {
-                drawAbilityCountRow(control, y, mouseX, mouseY);
-                y += ROW;
-            }
-        }
-        y += SECTION_GAP;
+        drawRequireCompleteRow(y);
+        y += ROW;
+        drawNoHatchRow(y);
+        y += ROW;
+        drawNetworkStockRow(y);
+        y += ROW;
+        drawEncodeRow(y, mouseX, mouseY);
+        y += ROW;
         y = drawSectionHeader(I18n.format("gregtech.multiblock.build_wizard.blocks"), y);
         if (parts.isEmpty()) {
             GDraw.text(I18n.format("gregtech.multiblock.build_wizard.no_parts"), left + PADDING + 2, y + 5,
@@ -222,20 +265,81 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
             y += ROW;
         } else {
             for (ItemStack stack : parts) {
-                drawPartRow(stack, y);
+                drawPartRow(stack, y, true);
+                y += ROW;
+            }
+            int missingKinds = countMissingParts();
+            if (missingKinds > 0) {
+                GDraw.text(I18n.format("gregtech.multiblock.build_wizard.bill_missing", missingKinds),
+                        left + PADDING + 2, y + 5, 0xFFC62828);
+                y += ROW;
+            }
+        }
+        if (bill != null && !bill.getRequiredItems().isEmpty()) {
+            int requiredTotal = 0;
+            for (ItemStack stack : bill.getRequiredItems()) {
+                requiredTotal += stack.getCount();
+            }
+            int billMissing = bill.getMissingItems().size();
+            GDraw.text(I18n.format("gregtech.multiblock.build_wizard.bill_server", requiredTotal, billMissing),
+                    left + PADDING + 2, y + 5, billMissing > 0 ? 0xFFC62828 : 0xFF2E7D32);
+            y += ROW;
+            if (billMissing > 0 && !bill.isNetworkLinked()) {
+                GDraw.textTrimmed(I18n.format("gregtech.multiblock.build_wizard.network_missing_hint"),
+                        left + PADDING + 2, y + 5, CONTENT_WIDTH - 4, 0xFFC62828);
+                y += ROW;
+            }
+        }
+        if (bill != null && !bill.getRoleItems().isEmpty()) {
+            GDraw.text(I18n.format("gregtech.multiblock.build_wizard.role_bill"), left + PADDING + 2, y + 5,
+                    0xFF404040);
+            y += ROW;
+            int lines = 0;
+            for (Map.Entry<String, List<ItemStack>> entry : bill.getRoleItems().entrySet()) {
+                String label = roleBillLabel(entry.getKey());
+                for (ItemStack stack : entry.getValue()) {
+                    if (lines >= MAX_ROLE_BILL_LINES) {
+                        GDraw.text(I18n.format("gregtech.multiblock.build_wizard.role_bill_more"),
+                                left + PADDING + 4, y + 5, 0xFF8A8A8A);
+                        y += ROW;
+                        break;
+                    }
+                    GDraw.textTrimmed(label + ": " + stack.getDisplayName() + " x" + stack.getCount(),
+                            left + PADDING + 4, y + 5, CONTENT_WIDTH - 8, 0xFF505050);
+                    y += ROW;
+                    lines++;
+                }
+                if (lines >= MAX_ROLE_BILL_LINES) {
+                    break;
+                }
+            }
+        }
+        y += SECTION_GAP;
+        y = drawSectionHeader(I18n.format("gregtech.multiblock.build_wizard.extras"), y);
+        extraRowTops.clear();
+        if (extras.isEmpty()) {
+            GDraw.text(I18n.format("gregtech.multiblock.build_wizard.no_extras"), left + PADDING + 2, y + 5,
+                    0xFF6A6A6A);
+            y += ROW;
+        } else {
+            for (ExtraRow extra : extras) {
+                extraRowTops.add(y);
+                drawExtraRow(extra, y, mouseX, mouseY);
                 y += ROW;
             }
         }
         y += SECTION_GAP;
         y = drawSectionHeader(I18n.format("gregtech.multiblock.build_wizard.roles"), y);
+        roleRowTops.clear();
         if (abilities.isEmpty()) {
             GDraw.text(I18n.format("gregtech.multiblock.build_wizard.no_roles"), left + PADDING + 2, y + 5,
                     0xFF6A6A6A);
             y += ROW;
         } else {
             for (AbilityRow row : abilities) {
-                drawAbilityRow(row, y, mouseX, mouseY);
-                y += ROW;
+                roleRowTops.add(y);
+                drawRoleCard(row, y, mouseX, mouseY);
+                y += ROLE_CARD_HEIGHT;
             }
         }
         y += SECTION_GAP;
@@ -255,48 +359,195 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
         return y + ROW;
     }
 
-    private void drawPartRow(ItemStack stack, int y) {
-        GDraw.item(stack, left + PADDING + 1, y + 1);
-        String countText = "x" + stack.getCount();
-        int countWidth = GDraw.textWidth(countText);
-        GDraw.textTrimmed(stack.getDisplayName(), left + PADDING + 22, y + 5,
-                CONTENT_WIDTH - 22 - countWidth - 8, 0xFF202020);
-        GDraw.textRight(countText, left + PADDING + CONTENT_WIDTH - 3, y + 5, 0xFF404040);
+    /** Blocks the build until the server bill reports no missing material. */
+    private void drawRequireCompleteRow(int y) {
+        int boxX = left + PADDING + 2;
+        GDraw.rect(boxX, y + 3, 10, 10, 0xFFFFFFFF);
+        GDraw.outline(boxX, y + 3, 10, 10, 0xFF8A8A8A);
+        if (requireComplete) {
+            GDraw.rect(boxX + 2, y + 5, 6, 6, 0xFF2E7D32);
+        }
+        GDraw.textTrimmed(I18n.format("gregtech.multiblock.build_wizard.require_complete"),
+                boxX + 16, y + 5, CONTENT_WIDTH - 18, 0xFF202020);
     }
 
-    private void drawAbilityCountRow(AbilityCountControl control, int y, int mouseX, int mouseY) {
-        int plusX = left + PADDING + CONTENT_WIDTH - 3 - CONTROL_HEIGHT;
-        int minusX = plusX - 2 - 28 - CONTROL_HEIGHT;
-        int boxX = minusX + CONTROL_HEIGHT + 2;
-        int boxWidth = plusX - 2 - boxX;
-        GDraw.textTrimmed(I18n.format(control.getTranslationKey()), left + PADDING + 2, y + 5,
-                minusX - (left + PADDING + 2) - 4, 0xFF202020);
-
-        boolean minusHovered = inside(mouseX, mouseY, minusX, y + 2, CONTROL_HEIGHT, CONTROL_HEIGHT);
-        GDraw.bevel(minusX, y + 2, CONTROL_HEIGHT, CONTROL_HEIGHT,
-                minusHovered ? 0xFFD2D2D2 : 0xFFC6C6C6, 0xFFFFFFFF, 0xFF8A8A8A);
-        GDraw.textCentered("-", minusX + CONTROL_HEIGHT / 2, y + 5, 0xFF202020);
-
-        GDraw.rect(boxX, y + 2, boxWidth, CONTROL_HEIGHT, 0xFF9A9A9A);
-        GDraw.outline(boxX, y + 2, boxWidth, CONTROL_HEIGHT, 0xFF555555);
-        GDraw.textCentered(String.valueOf(control.getValue()), boxX + boxWidth / 2, y + 5, 0xFFFFFFFF);
-
-        boolean plusHovered = inside(mouseX, mouseY, plusX, y + 2, CONTROL_HEIGHT, CONTROL_HEIGHT);
-        GDraw.bevel(plusX, y + 2, CONTROL_HEIGHT, CONTROL_HEIGHT,
-                plusHovered ? 0xFFD2D2D2 : 0xFFC6C6C6, 0xFFFFFFFF, 0xFF8A8A8A);
-        GDraw.textCentered("+", plusX + CONTROL_HEIGHT / 2, y + 5, 0xFF202020);
+    private boolean handleRequireCompleteClick(int mouseX, int mouseY) {
+        if (mouseY < scrollTop || mouseY >= scrollTop + scrollHeight) {
+            return false;
+        }
+        int y = scrollTop - scroll;
+        if (inside(mouseX, mouseY, left + PADDING + 2, y + 2, 12, 12)) {
+            requireComplete = !requireComplete;
+            return true;
+        }
+        return false;
     }
 
-    private void drawAbilityRow(AbilityRow row, int y, int mouseX, int mouseY) {
-        String label = row.labelText();
-        int selectWidth = row.controlKey != null ? BUTTON_WIDTH : 0;
-        int selectX = left + PADDING + CONTENT_WIDTH - 3 - selectWidth;
-        int tallyRight = selectWidth > 0 ? selectX - 4 : left + PADDING + CONTENT_WIDTH - 3;
-        GDraw.textTrimmed(label, left + PADDING + 2, y + 5, tallyRight - (left + PADDING + 2) - 30,
+    /**
+     * Skips hatch candidates so the structure is previewed with plain casings; the engine honours the same
+     * {@code no_hatch} channel when building.
+     */
+    private void drawNoHatchRow(int y) {
+        int boxX = left + PADDING + 2;
+        GDraw.rect(boxX, y + 3, 10, 10, 0xFFFFFFFF);
+        GDraw.outline(boxX, y + 3, 10, 10, 0xFF8A8A8A);
+        if (noHatch) {
+            GDraw.rect(boxX + 2, y + 5, 6, 6, 0xFFC62828);
+        }
+        GDraw.textTrimmed(I18n.format("gregtech.multiblock.build_wizard.no_hatch"),
+                boxX + 16, y + 5, CONTENT_WIDTH - 18, 0xFF202020);
+    }
+
+    private boolean handleNoHatchClick(int mouseX, int mouseY) {
+        if (mouseY < scrollTop || mouseY >= scrollTop + scrollHeight) {
+            return false;
+        }
+        int y = scrollTop - scroll + ROW;
+        if (inside(mouseX, mouseY, left + PADDING + 2, y + 2, 12, 12)) {
+            noHatch = !noHatch;
+            wrapper.setPreviewChannel(GTStructureChannels.NO_HATCH.getName(), noHatch ? 1 : 0);
+            listsLoaded = false;
+            requestBill();
+            return true;
+        }
+        return false;
+    }
+
+    /** Whether missing blocks may be pulled from an external item source such as an ME network. */
+    private void drawNetworkStockRow(int y) {
+        int boxX = left + PADDING + 2;
+        GDraw.rect(boxX, y + 3, 10, 10, 0xFFFFFFFF);
+        GDraw.outline(boxX, y + 3, 10, 10, 0xFF8A8A8A);
+        if (useNetworkStock) {
+            GDraw.rect(boxX + 2, y + 5, 6, 6, 0xFF2E7D32);
+        }
+        String label = I18n.format("gregtech.multiblock.build_wizard.network_stock");
+        GDraw.textTrimmed(label, boxX + 16, y + 5, CONTENT_WIDTH - 74, 0xFF202020);
+        if (bill == null) {
+            return;
+        }
+        String status = I18n.format(bill.isNetworkLinked()
+                ? "gregtech.multiblock.build_wizard.network_linked"
+                : "gregtech.multiblock.build_wizard.network_unlinked");
+        GDraw.text(status, left + PADDING + CONTENT_WIDTH - 4 - GDraw.textWidth(status), y + 5,
+                bill.isNetworkLinked() ? 0xFF2E7D32 : 0xFF8A8A8A);
+    }
+
+    private boolean handleNetworkStockClick(int mouseX, int mouseY) {
+        if (mouseY < scrollTop || mouseY >= scrollTop + scrollHeight) {
+            return false;
+        }
+        int y = scrollTop - scroll + 2 * ROW;
+        if (inside(mouseX, mouseY, left + PADDING + 2, y + 2, 12, 12)) {
+            useNetworkStock = !useNetworkStock;
+            requestBill();
+            return true;
+        }
+        return false;
+    }
+
+    /** Writes the server bill into a pattern item through a registered handler. */
+    private void drawEncodeRow(int y, int mouseX, int mouseY) {
+        int x = left + PADDING + 2;
+        int width = 72;
+        boolean hovered = inside(mouseX, mouseY, x, y + 2, width, 12);
+        GDraw.rect(x, y + 2, width, 12, hovered ? 0xFFD2D2D2 : 0xFFBEBEBE);
+        GDraw.outline(x, y + 2, width, 12, 0xFF8A8A8A);
+        GDraw.textCentered(I18n.format("gregtech.multiblock.build_wizard.encode"), x + width / 2, y + 4,
                 0xFF202020);
+    }
+
+    private boolean handleEncodeClick(int mouseX, int mouseY) {
+        if (mouseY < scrollTop || mouseY >= scrollTop + scrollHeight) {
+            return false;
+        }
+        int y = scrollTop - scroll + 3 * ROW;
+        if (!inside(mouseX, mouseY, left + PADDING + 2, y + 2, 72, 12)) {
+            return false;
+        }
+        if (wrapper.hasWorldController()) {
+            NetworkHandler.INSTANCE.sendToServer(new CPacketEncodeStructure(wrapper.getControllerPos(),
+                    wrapper.copyPreviewChannels(), wrapper.copyCellOverrides(), useNetworkStock));
+        }
+        return true;
+    }
+
+    private boolean canBuild() {
+        // With "require complete materials" the server bill is the authority: a missing or still-pending bill
+        // must not be treated as "nothing missing".
+        return !requireComplete || (bill != null && bill.getMissingItems().isEmpty());
+    }
+
+    private void drawPartRow(ItemStack stack, int y) {
+        drawPartRow(stack, y, false);
+    }
+
+    /**
+     * One required-block row. The palette shows {@code carried/required} on the right; the missing list keeps the
+     * plain count.
+     */
+    private void drawPartRow(ItemStack stack, int y, boolean showStock) {
+        GDraw.item(stack, left + PADDING + 1, y + 1);
+        if (!showStock) {
+            String countText = "x" + stack.getCount();
+            int countWidth = GDraw.textWidth(countText);
+            GDraw.textTrimmed(stack.getDisplayName(), left + PADDING + 22, y + 5,
+                    CONTENT_WIDTH - 22 - countWidth - 8, 0xFF202020);
+            GDraw.textRight(countText, left + PADDING + CONTENT_WIDTH - 3, y + 5, 0xFF404040);
+            return;
+        }
+        int required = stack.getCount();
+        int carried = countInInventory(stack);
+        String stockText = carried + "/" + required;
+        int stockWidth = GDraw.textWidth(stockText);
+        GDraw.textTrimmed(stack.getDisplayName(), left + PADDING + 22, y + 5,
+                CONTENT_WIDTH - 22 - stockWidth - 8, 0xFF202020);
+        GDraw.textRight(stockText, left + PADDING + CONTENT_WIDTH - 3, y + 5,
+                carried >= required ? 0xFF2E7D32 : 0xFFC62828);
+    }
+
+    private int countMissingParts() {
+        int missingKinds = 0;
+        for (ItemStack stack : parts) {
+            if (countInInventory(stack) < stack.getCount()) {
+                missingKinds++;
+            }
+        }
+        return missingKinds;
+    }
+
+    private int countInInventory(@NotNull ItemStack stack) {        if (mc.player == null || stack.isEmpty()) {
+            return 0;
+        }
+        int total = 0;
+        for (ItemStack carried : mc.player.inventory.mainInventory) {
+            if (!carried.isEmpty() && ItemStack.areItemsEqual(stack, carried)) {
+                total += carried.getCount();
+            }
+        }
+        for (ItemStack carried : mc.player.inventory.offHandInventory) {
+            if (!carried.isEmpty() && ItemStack.areItemsEqual(stack, carried)) {
+                total += carried.getCount();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * One role card: the role name and {@code tally / requirement} on the first line, the inline hatch stepper on
+     * the second.
+     */
+    private void drawRoleCard(AbilityRow row, int y, int mouseX, int mouseY) {
+        int x = left + PADDING;
+        int cardHeight = ROLE_CARD_HEIGHT;
+        GDraw.rect(x, y, CONTENT_WIDTH, cardHeight, 0xFFE7E7E7);
+        GDraw.outline(x, y, CONTENT_WIDTH, cardHeight, 0xFFB4B4B4);
+
         String requirement = row.requirementText();
         String tally = (listsLoaded ? String.valueOf(row.current) : "-")
                 + (requirement.isEmpty() ? "" : " / " + requirement);
+        int tallyWidth = GDraw.textWidth(tally);
+        GDraw.textTrimmed(row.labelText(), x + 4, y + 3, CONTENT_WIDTH - 8 - tallyWidth - 4, 0xFF202020);
         int color;
         if (!listsLoaded) {
             color = 0xFF6A6A6A;
@@ -305,13 +556,27 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
         } else {
             color = row.satisfied() ? 0xFF404040 : 0xFFC62828;
         }
-        GDraw.textRight(tally, tallyRight, y + 5, color);
-        if (selectWidth > 0) {
-            boolean hovered = inside(mouseX, mouseY, selectX, y + 2, selectWidth, CONTROL_HEIGHT);
-            GDraw.bevel(selectX, y + 2, selectWidth, CONTROL_HEIGHT,
-                    hovered ? 0xFFD2D2D2 : 0xFFC6C6C6, 0xFFFFFFFF, 0xFF8A8A8A);
-            GDraw.textCentered(I18n.format("gregtech.multiblock.build_wizard.select"),
-                    selectX + selectWidth / 2, y + 5, 0xFF202020);
+        GDraw.textRight(tally, x + CONTENT_WIDTH - 4, y + 3, color);
+
+        AbilityCountControl control = findAbilityControl(row.controlKey);
+        if (control == null) {
+            return;
+        }
+        int stepY = y + 13;
+        int minusX = x + 4;
+        int plusX = x + 4 + 12 + 2 + 34 + 2;
+        boolean minusHovered = inside(mouseX, mouseY, minusX, stepY, 12, 12);
+        GDraw.bevel(minusX, stepY, 12, 12, minusHovered ? 0xFFD2D2D2 : 0xFFC6C6C6, 0xFFFFFFFF, 0xFF8A8A8A);
+        GDraw.textCentered("-", minusX + 6, stepY + 3, 0xFF202020);
+        int valueX = minusX + 14;
+        GDraw.rect(valueX, stepY, 34, 12, 0xFF9A9A9A);
+        GDraw.outline(valueX, stepY, 34, 12, 0xFF555555);
+        GDraw.textCentered(String.valueOf(control.getValue()), valueX + 17, stepY + 3, 0xFFFFFFFF);
+        boolean plusHovered = inside(mouseX, mouseY, plusX, stepY, 12, 12);
+        GDraw.bevel(plusX, stepY, 12, 12, plusHovered ? 0xFFD2D2D2 : 0xFFC6C6C6, 0xFFFFFFFF, 0xFF8A8A8A);
+        GDraw.textCentered("+", plusX + 6, stepY + 3, 0xFF202020);
+        if (inside(mouseX, mouseY, valueX, stepY, 34, 12)) {
+            GDraw.outline(valueX, stepY, 34, 12, 0xFFFFC83D);
         }
     }
 
@@ -330,6 +595,7 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
         int buttonY = top + panelHeight - BOTTOM_PADDING - CONTROL_HEIGHT;
         int leftX = left + PADDING;
         int rightX = left + PANEL_WIDTH - PADDING - BUTTON_WIDTH;
+        int demolishX = left + (PANEL_WIDTH - BUTTON_WIDTH) / 2;
 
         boolean backHovered = inside(mouseX, mouseY, leftX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT);
         GDraw.bevel(leftX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT, backHovered ? 0xFFD8D8D8 : 0xFFC6C6C6,
@@ -337,9 +603,20 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
         GDraw.textCentered(I18n.format("gregtech.multiblock.build_wizard.back"), leftX + BUTTON_WIDTH / 2,
                 buttonY + 3, 0xFF202020);
 
-        boolean buildHovered = !buildSent && inside(mouseX, mouseY, rightX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT);
+        if (wrapper.hasWorldController()) {
+            boolean demolishHovered = inside(mouseX, mouseY, demolishX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT);
+            GDraw.rect(demolishX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT,
+                    demolishHovered ? 0xFFC05A5A : 0xFF9C3C3C);
+            GDraw.outline(demolishX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT, 0xFF6B2020);
+            GDraw.textCentered(I18n.format("gregtech.multiblock.build_wizard.demolish"),
+                    demolishX + BUTTON_WIDTH / 2, buttonY + 3, 0xFFFFFFFF);
+        }
+
+        boolean buildEnabled = !buildSent && canBuild();
+        boolean buildHovered = buildEnabled
+                && inside(mouseX, mouseY, rightX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT);
         GDraw.rect(rightX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT,
-                buildSent ? 0xFF7F9C83 : (buildHovered ? 0xFF3D8A48 : 0xFF2E7D32));
+                !canBuild() ? 0xFF8E8E8E : (buildSent ? 0xFF7F9C83 : (buildHovered ? 0xFF3D8A48 : 0xFF2E7D32)));
         GDraw.outline(rightX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT, 0xFF1B5E20);
         GDraw.textCentered(I18n.format("gregtech.multiblock.build_wizard.build"),
                 rightX + BUTTON_WIDTH / 2, buttonY + 3, buildSent ? 0xFFE0E0E0 : 0xFFFFFFFF);
@@ -357,8 +634,10 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
             statusColor = resultColor;
         }
         if (status != null) {
-            GDraw.textTrimmed(status, leftX + BUTTON_WIDTH + 4, buttonY + 4,
-                    PANEL_WIDTH - 2 * PADDING - 2 * BUTTON_WIDTH - 8, statusColor);
+            // The footer is fully occupied by the three actions, so transient feedback floats just above it.
+            int statusY = buttonY - 12;
+            GDraw.rect(left + PADDING, statusY - 1, CONTENT_WIDTH, 11, 0xEEC6C6C6);
+            GDraw.textTrimmed(status, left + PADDING + 2, statusY + 1, CONTENT_WIDTH - 4, statusColor);
         }
     }
 
@@ -377,7 +656,19 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
             goBack();
             return;
         }
-        if (handleAbilityCountClick(mouseX, mouseY)) {
+        if (handleRequireCompleteClick(mouseX, mouseY)) {
+            return;
+        }
+        if (handleNoHatchClick(mouseX, mouseY)) {
+            return;
+        }
+        if (handleNetworkStockClick(mouseX, mouseY)) {
+            return;
+        }
+        if (handleEncodeClick(mouseX, mouseY)) {
+            return;
+        }
+        if (handleExtraClick(mouseX, mouseY)) {
             return;
         }
         if (handleAbilityRowClick(mouseX, mouseY)) {
@@ -390,60 +681,64 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
             goBack();
             return;
         }
+        if (wrapper.hasWorldController()
+                && inside(mouseX, mouseY, left + (PANEL_WIDTH - BUTTON_WIDTH) / 2, buttonY,
+                BUTTON_WIDTH, CONTROL_HEIGHT)) {
+            requestDismantle();
+            return;
+        }
         if (inside(mouseX, mouseY, rightX, buttonY, BUTTON_WIDTH, CONTROL_HEIGHT)) {
-            if (!buildSent) {
+            if (!buildSent && canBuild()) {
                 executeBuild();
+            } else if (!canBuild()) {
+                resultText = I18n.format("gregtech.multiblock.build_wizard.incomplete");
+                resultColor = 0xFFC62828;
             }
         }
     }
 
-    private boolean handleAbilityCountClick(int mouseX, int mouseY) {
-        if (mouseY < scrollTop || mouseY >= scrollTop + scrollHeight) {
-            return false;
+    private void requestDismantle() {
+        if (!wrapper.hasWorldController()) {
+            return;
         }
-        int y = abilityControlsTop();
-        for (AbilityCountControl control : abilityControls) {
-            int plusX = left + PADDING + CONTENT_WIDTH - 3 - CONTROL_HEIGHT;
-            int minusX = plusX - 2 - 28 - CONTROL_HEIGHT;
-            if (inside(mouseX, mouseY, plusX, y + 2, CONTROL_HEIGHT, CONTROL_HEIGHT)) {
-                wrapper.stepAbilityCount(control.getKey(), 1);
-                return true;
-            }
-            if (inside(mouseX, mouseY, minusX, y + 2, CONTROL_HEIGHT, CONTROL_HEIGHT)) {
-                wrapper.stepAbilityCount(control.getKey(), -1);
-                return true;
-            }
-            y += ROW;
-        }
-        return false;
-    }
-
-    private int abilityControlsTop() {
-        return scrollTop - scroll + ROW;
+        NetworkHandler.INSTANCE.sendToServer(
+                new CPacketDismantleStructure(wrapper.getControllerPos()));
+        resultText = I18n.format("gregtech.multiblock.build_wizard.demolish_pending");
+        resultColor = 0xFF6A6A6A;
     }
 
     private boolean handleAbilityRowClick(int mouseX, int mouseY) {
         if (mouseY < scrollTop || mouseY >= scrollTop + scrollHeight) {
             return false;
         }
-        int y = rolesTop();
-        for (AbilityRow row : abilities) {
-            if (row.controlKey != null) {
-                int selectX = left + PADDING + CONTENT_WIDTH - 3 - BUTTON_WIDTH;
-                if (inside(mouseX, mouseY, selectX, y + 2, BUTTON_WIDTH, CONTROL_HEIGHT)) {
-                    abilityPopupKey = row.controlKey;
-                    return true;
-                }
+        for (int i = 0; i < abilities.size() && i < roleRowTops.size(); i++) {
+            AbilityRow row = abilities.get(i);
+            AbilityCountControl control = findAbilityControl(row.controlKey);
+            if (control == null) {
+                continue;
             }
-            y += ROW;
+            int y = roleRowTops.get(i) + 13;
+            int minusX = left + PADDING + 4;
+            int valueX = minusX + 14;
+            int plusX = valueX + 34 + 2;
+            if (inside(mouseX, mouseY, minusX, y, 12, 12)) {
+                wrapper.stepAbilityCount(control.getKey(), -abilityStep());
+                listsLoaded = false;
+                requestBill();
+                return true;
+            }
+            if (inside(mouseX, mouseY, plusX, y, 12, 12)) {
+                wrapper.stepAbilityCount(control.getKey(), abilityStep());
+                listsLoaded = false;
+                requestBill();
+                return true;
+            }
+            if (inside(mouseX, mouseY, valueX, y, 34, 12)) {
+                abilityPopupKey = row.controlKey;
+                return true;
+            }
         }
         return false;
-    }
-
-    private int rolesTop() {
-        int y = scrollTop - scroll + ROW + Math.max(1, abilityControls.size()) * ROW + SECTION_GAP;
-        y += ROW + Math.max(1, parts.size()) * ROW + SECTION_GAP;
-        return y + ROW;
     }
 
     private void drawAbilityPopup(int mouseX, int mouseY) {
@@ -481,6 +776,8 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
         GDraw.textCentered(String.valueOf(control.getValue()), boxX + boxWidth / 2, rowY + 3, 0xFF202020);
         GDraw.textCentered(I18n.format("gregtech.multiblock.build_wizard.ability_range",
                 control.getMin(), control.getMax()), x + popupWidth / 2, y + 50, 0xFF505050);
+        GDraw.textCentered(I18n.format("gregtech.multiblock.build_wizard.step_hint"),
+                x + popupWidth / 2, y + 61, 0xFF707070);
     }
 
     private void handleAbilityPopupClick(int mouseX, int mouseY) {
@@ -503,14 +800,21 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
         int plusX = x + popupWidth - 8 - CONTROL_HEIGHT;
         int rowY = y + 28;
         if (inside(mouseX, mouseY, minusX, rowY, CONTROL_HEIGHT, CONTROL_HEIGHT)) {
-            wrapper.stepAbilityCount(control.getKey(), -1);
+            wrapper.stepAbilityCount(control.getKey(), -abilityStep());
+            requestBill();
         } else if (inside(mouseX, mouseY, plusX, rowY, CONTROL_HEIGHT, CONTROL_HEIGHT)) {
-            wrapper.stepAbilityCount(control.getKey(), 1);
+            wrapper.stepAbilityCount(control.getKey(), abilityStep());
+            requestBill();
         }
     }
 
+    /** Plain click steps by one, Shift+click by eight. */
+    private static int abilityStep() {
+        return isShiftKeyDown() ? 8 : 1;
+    }
+
     @NotNull
-    private AbilityCountControl findAbilityControl(@NotNull String key) {
+    private AbilityCountControl findAbilityControl(@Nullable String key) {
         if (key == null) {
             return null;
         }
@@ -523,8 +827,7 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
     }
 
     private void goBack() {
-        // Opened straight from the controller: Back leads to the fullscreen structure preview,
-        // which is the other half of GTO's flow (preview <-> build configuration).
+        // Opened from the controller directly: go back to the structure preview.
         if (parent != null) {
             mc.displayGuiScreen(parent);
         } else {
@@ -545,6 +848,15 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
     @Override
     public void updateScreen() {
         super.updateScreen();
+        SPacketStructureBuildBill.Snapshot polledBill = SPacketStructureBuildBill.takeBill();
+        if (polledBill != null && polledBill.getRequestId() == billRequestId) {
+            bill = polledBill;
+            int previousMax = scrollMax;
+            scrollMax = Math.max(0, contentHeight() - scrollHeight);
+            if (scrollMax != previousMax) {
+                scroll = Math.max(0, Math.min(scroll, scrollMax));
+            }
+        }
         SPacketStructureBuildResult.Snapshot snapshot = SPacketStructureBuildResult.takeSnapshot();
         if (snapshot != null && buildSent) {
             buildSent = false;
@@ -574,7 +886,7 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
     }
 
     private void executeBuild() {
-        if (!wrapper.hasWorldController()) {
+        if (!wrapper.hasWorldController() || !canBuild()) {
             return;
         }
         buildSent = true;
@@ -583,7 +895,7 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
         placedCells = 0;
         handledByController = false;
         NetworkHandler.INSTANCE.sendToServer(new CPacketExecuteStructureBuild(wrapper.getControllerPos(),
-                wrapper.copyPreviewChannels()));
+                wrapper.copyPreviewChannels(), wrapper.copyCellOverrides(), useNetworkStock));
     }
 
     @Override
@@ -591,18 +903,95 @@ public class MultiblockBuildWizardScreen extends GuiScreen {
         return false;
     }
 
+    /**
+     * Optional tooling pieces can be skipped through the same {@code @exclude:} channel the preview config card
+     * writes.
+     */
+    private void drawExtraRow(ExtraRow extra, int y, int mouseX, int mouseY) {
+        boolean excluded = wrapper.getPreviewChannelValue(StructureExclusions.key(extra.index)) != 0;
+        int boxX = left + PADDING + 2;
+        GDraw.rect(boxX, y + 3, 10, 10, 0xFFFFFFFF);
+        GDraw.outline(boxX, y + 3, 10, 10, excluded ? 0xFF8A8A8A : 0xFF2E7D32);
+        if (!excluded) {
+            GDraw.rect(boxX + 2, y + 5, 6, 6, 0xFF2E7D32);
+        }
+        GDraw.textTrimmed(extra.name, boxX + 16, y + 5, CONTENT_WIDTH - 20,
+                excluded ? 0xFF8A8A8A : 0xFF202020);
+    }
+
+    private boolean handleExtraClick(int mouseX, int mouseY) {
+        if (mouseY < scrollTop || mouseY >= scrollTop + scrollHeight) {
+            return false;
+        }
+        for (int i = 0; i < extras.size() && i < extraRowTops.size(); i++) {
+            int y = extraRowTops.get(i);
+            if (inside(mouseX, mouseY, left + PADDING + 2, y + 2, 12, 12)) {
+                ExtraRow extra = extras.get(i);
+                String key = StructureExclusions.key(extra.index);
+                boolean excluded = wrapper.getPreviewChannelValue(key) != 0;
+                wrapper.setPreviewChannel(key, excluded ? 0 : 1);
+                listsLoaded = false;
+                requestBill();
+                return true;
+            }
+        }
+        return false;
+    }
+
     private int contentHeight() {
-        int height = ROW + Math.max(1, abilityControls.size()) * ROW;
+        int height = 4 * ROW;
         height += SECTION_GAP + ROW + Math.max(1, parts.size()) * ROW;
-        height += SECTION_GAP + ROW + Math.max(1, abilities.size()) * ROW;
+        if (bill != null && !bill.getRequiredItems().isEmpty()) {
+            height += ROW;
+            if (!bill.getMissingItems().isEmpty() && !bill.isNetworkLinked()) {
+                height += ROW;
+            }
+        }
+        if (bill != null && !bill.getRoleItems().isEmpty()) {
+            height += ROW + roleBillRowCount() * ROW;
+        }
+        height += SECTION_GAP + ROW + Math.max(1, extras.size()) * ROW;
+        height += SECTION_GAP + ROW + Math.max(1, abilities.size()) * ROLE_CARD_HEIGHT;
         if (!missing.isEmpty()) {
             height += SECTION_GAP + ROW + missing.size() * ROW;
         }
         return height;
     }
 
+    private int roleBillRowCount() {
+        int lines = 0;
+        for (List<ItemStack> items : bill.getRoleItems().values()) {
+            lines += items.size();
+            if (lines >= MAX_ROLE_BILL_LINES) {
+                return MAX_ROLE_BILL_LINES + 1;
+            }
+        }
+        return lines;
+    }
+
+    private String roleBillLabel(String key) {
+        for (AbilityRow row : abilities) {
+            if (key.equals(row.controlKey)) {
+                return row.labelText();
+            }
+        }
+        int idx = key.lastIndexOf(':');
+        return idx >= 0 && idx + 1 < key.length() ? key.substring(idx + 1) : key;
+    }
+
     private static boolean inside(int mouseX, int mouseY, int x, int y, int w, int h) {
         return mouseX >= x && mouseX < x + w && mouseY >= y && mouseY < y + h;
+    }
+
+    private static final class ExtraRow {
+
+        private final int index;
+        private final String name;
+
+        private ExtraRow(int index, String name) {
+            this.index = index;
+            this.name = name;
+        }
     }
 
     private static final class AbilityRow {

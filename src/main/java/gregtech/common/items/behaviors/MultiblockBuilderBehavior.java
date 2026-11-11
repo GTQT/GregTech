@@ -69,7 +69,7 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
 
         TileEntity tileEntity = world.getTileEntity(pos);
         if (!(tileEntity instanceof IGregTechTileEntity)) {
-            // Only multiblock controllers expose the build UI (GTO terminal behaviour).
+            // Only multiblock controllers expose the build UI.
             return EnumActionResult.PASS;
         }
 
@@ -97,8 +97,8 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
             spawnStructureHints(multiblock, player, heldStack, settings.asRequestChannels());
             return EnumActionResult.SUCCESS;
         } else {
-            // Right-click: open the structure preview first, like GTO. The build dialog is reached from the
-            // preview's "build configuration" button, so the player does not have to press Back manually.
+            // Right-click opens the structure preview; the build dialog is reached from its build-configuration
+            // button, so the player does not have to press Back manually.
             if (world.isRemote) {
                 ClientToolScreens.openControllerPreview(multiblock, settings.values());
                 return EnumActionResult.SUCCESS;
@@ -185,8 +185,8 @@ public class MultiblockBuilderBehavior implements IItemBehaviour {
 
     @Override
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, EnumHand hand) {
-        // GTO-style flow: the UI opens from the controller, never from the air. Right-clicking empty
-        // space keeps the vanilla behaviour so the builder cannot shadow normal item use.
+        // The UI only opens from a controller, never from the air. Right-clicking empty space keeps the
+        // vanilla behaviour so the builder cannot shadow normal item use.
         return new ActionResult<>(EnumActionResult.PASS, player.getHeldItem(hand));
     }
 

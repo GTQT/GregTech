@@ -5,6 +5,7 @@ import gregtech.api.gui.GuiTextures;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.registry.MBPattern;
@@ -12,6 +13,7 @@ import gregtech.api.pattern.AbilityGroupLimit;
 import gregtech.api.pattern.AbilityPlacementTracker;
 import gregtech.api.pattern.MultiPiecePattern;
 import gregtech.api.pattern.MultiPiecePreviewAssembler;
+import gregtech.api.pattern.StructureCellOverrides;
 import gregtech.api.pattern.StructureElementPreviewEntry;
 import gregtech.api.pattern.StructureOrientation;
 import gregtech.api.pattern.StructureRuntime;
@@ -143,7 +145,15 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private final List<PreviewCandidate> previewCandidates;
     private final List<PreviewCandidate> cachedCandidateGroups = new ArrayList<>();
     private final List<BlockInfo> cachedCandidateBlocks = new ArrayList<>();
+    private final List<ItemStack> hiddenPreviewParts = new ArrayList<>();
+    /** Preview entries of the loaded structure, keyed by normalized preview position. */
+    private Map<BlockPos, StructureElementPreviewEntry> previewEntries = Collections.emptyMap();
+    /** Offset subtracted during preview normalization; maps preview positions back to structure positions. */
+    @Nullable
+    private BlockPos previewNormalizationOffset;
     private final Map<String, Integer> channelValues = new HashMap<>();
+    /** Per-cell block overrides, keyed by controller-relative position. */
+    private final Map<BlockPos, ItemStack> cellOverrides = new HashMap<>();
     private List<StructureChannel> supportedChannels = Collections.emptyList();
     private int[][] channelRanges = new int[0][]; // [channelIdx][0=min, 1=max]
     /** Height of the compact channel strip, following the channel count instead of always reserving four rows. */
@@ -164,6 +174,16 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     private boolean previewLayoutInitialized;
     private boolean rendererContainsFullStructure;
     private boolean resetViewWhenPreviewReady = true;
+    private boolean selectionHighlight = true;
+    /** Part-slot highlight mode: green for cells that accept the reference part, red for the other part slots. */
+    private boolean partHighlightMode;
+    @Nullable
+    private ItemStack highlightedPart;
+    private final Set<BlockPos> partHighlightGreen = new HashSet<>();
+    private final Set<BlockPos> partHighlightRed = new HashSet<>();
+    /** Invoked after an asynchronous preview rebuild finishes, so an active world projection can refresh. */
+    @Nullable
+    private Runnable previewReadyListener;
     /** True once a default camera framing has been applied to the currently loaded preview. */
     private boolean previewFrameApplied;
     /** Exact orientation used by the current preview; the camera must agree with it. */
@@ -232,6 +252,70 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         this.previewMetadataInitialized = true;
     }
 
+    /**
+     * Pins adjustable ability caps to their declared minimum so the wizard and the build request start from
+     * the smallest valid structure instead of the pattern maximum. Optional abilities (minimum 0) stay
+     * unpinned and follow the assembled preview until the player steps them.
+     */
+    private void applyMinimumAbilityCounts() {
+        // JEI previews stay informational and keep showing every hatch; only the world-backed builder
+        // preview is pinned, because those values are what the build request carries.
+        if (!hasWorldController()) {
+            return;
+        }
+        MultiPiecePattern current = getMultiPiecePattern();
+        if (current == null) {
+            return;
+        }
+        Set<MultiblockAbility<?>> grouped = groupedAbilities(current);
+        for (Map.Entry<MultiblockAbility<?>, int[]> entry : current.getAbilityLimits().entrySet()) {
+            if (grouped.contains(entry.getKey())) {
+                continue;
+            }
+            clampAbilityCount(AbilityPlacementTracker.channelKey(entry.getKey()), entry.getValue());
+        }
+        for (AbilityGroupLimit group : current.getAbilityGroupLimits()) {
+            clampAbilityCount(AbilityPlacementTracker.channelKey(group.getDisplayAbility()),
+                    new int[] { group.getMin(), group.getMax() });
+        }
+    }
+
+    /**
+     * Abilities that share a structure-wide group limit. Their individual limit is redundant for the UI and
+     * seeding both keys would leave a second, hidden cap at the minimum, which then blocks hatches the player
+     * explicitly raised through the group stepper.
+     */
+    @NotNull
+    private static Set<MultiblockAbility<?>> groupedAbilities(@NotNull MultiPiecePattern pattern) {
+        Set<MultiblockAbility<?>> grouped = new HashSet<>();
+        for (AbilityGroupLimit group : pattern.getAbilityGroupLimits()) {
+            grouped.addAll(group.getAbilities());
+        }
+        return grouped;
+    }
+
+    private void clampAbilityCount(@NotNull String key, int[] range) {
+        // Unlimited limits have nothing to clamp. Fixed limits (min == max) must still be written: the wire
+        // value is what caps the tracker, and leaving them absent lets the pattern's larger per-type maximum
+        // place extra hatches even though the structure fixes the count.
+        if (range == null || range.length < 2 || range[1] < 0) {
+            return;
+        }
+        int min = range[0];
+        int max = range[1];
+        Integer configured = channelValues.get(key);
+        if (configured == null) {
+            // Optional roles keep the pattern's own count so the preview and the build still show the
+            // structure's hatch positions. Only required (min > 0) and fixed counts are pinned.
+            if (min <= 0) {
+                return;
+            }
+            channelValues.put(key, min);
+            return;
+        }
+        channelValues.put(key, Math.max(min, Math.min(max, configured)));
+    }
+
     private void startPreviewLoading() {
         long preparationStart = System.nanoTime();
         releasePreviewPatterns();
@@ -246,12 +330,13 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         previewAbilityGroupCounts = Collections.emptyMap();
         clearParts();
         initializePreviewMetadata();
+        applyMinimumAbilityCounts();
         previewFrameApplied = false;
         // JEI previews keep the original canonical loading path. Only world-backed builder previews
         // pass an explicit orientation, because those must match the real controller in the world.
         previewLoadTask = new PreviewLoadTask(hasWorldController()
                 ? controller.beginIncrementalMultiPiecePreview(
-                        channelValues, StructureOrientation.fromController(controller))
+                        channelValues, StructureOrientation.fromController(controller), cellOverrides)
                 : controller.beginIncrementalMultiPiecePreview(channelValues));
         GTLog.logger.debug("[JEIMultiblockPreview] started incremental loading controller={} channels={} preparationMs={}",
                 controller.metaTileEntityId, new TreeMap<>(channelValues),
@@ -284,6 +369,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         GTLog.logger.debug("[JEIMultiblockPreview] incrementally initialized controller={} channels={} blocks={} ms={}",
                 controller.metaTileEntityId, new TreeMap<>(channelValues), task.getBlockCount(),
                 task.getElapsedMillis());
+        Runnable listener = previewReadyListener;
+        if (listener != null) {
+            listener.run();
+        }
     }
 
     /**
@@ -854,6 +943,10 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     private void regeneratePatterns() {
         clearPreviewSelection();
+        clearHiddenParts();
+        clearPartHighlight();
+        previewEntries = Collections.emptyMap();
+        previewNormalizationOffset = null;
         initializePreviewMetadata();
         resetViewWhenPreviewReady = true;
         startPreviewLoading();
@@ -1219,6 +1312,120 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     /**
+     * @return the point the camera orbits around (structure centre), used to draw the view direction
+     *         indicator on the minimap; {@code null} while no preview is loaded.
+     */
+    @Nullable
+    public Vector3f getPreviewCameraTarget() {
+        return center;
+    }
+
+    /**
+     * Whether the scene draws the grey hover outline and the red selected outline. The candidate block overlay is
+     * independent of this toggle.
+     */
+    public boolean isSelectionHighlightEnabled() {
+        return selectionHighlight;
+    }
+
+    public void setSelectionHighlightEnabled(boolean enabled) {
+        this.selectionHighlight = enabled;
+    }
+
+    public boolean isPartHighlightMode() {
+        return partHighlightMode;
+    }
+
+    public void togglePartHighlightMode() {
+        this.partHighlightMode = !this.partHighlightMode;
+        if (!this.partHighlightMode) {
+            clearPartHighlight();
+        }
+    }
+
+    /**
+     * Classifies every preview cell against the reference part. Cells that accept the part turn green; cells
+     * that expose part candidates but do not accept it turn red. Plain casing cells stay uncoloured.
+     */
+    public void setHighlightedPart(@Nullable ItemStack part) {
+        partHighlightGreen.clear();
+        partHighlightRed.clear();
+        if (part == null || part.isEmpty()) {
+            highlightedPart = null;
+            return;
+        }
+        highlightedPart = part.copy();
+        highlightedPart.setCount(1);
+        for (BlockPos pos : previewEntries.keySet()) {
+            StructureElementPreviewEntry entry = previewEntries.get(pos);
+            if (entry == null) {
+                continue;
+            }
+            List<ItemStack> candidates = new ArrayList<>();
+            appendCellCandidates(candidates, entry.getPreview().getLimited());
+            appendCellCandidates(candidates, entry.getPreview().getCommon());
+            if (candidates.isEmpty()) {
+                continue;
+            }
+            boolean accepts = false;
+            for (ItemStack candidate : candidates) {
+                if (ItemStack.areItemsEqual(candidate, highlightedPart)) {
+                    accepts = true;
+                    break;
+                }
+            }
+            if (accepts) {
+                partHighlightGreen.add(pos);
+            } else if (hasAbilityPartCandidate(entry)) {
+                partHighlightRed.add(pos);
+            }
+        }
+    }
+
+    /** True when any candidate of the cell is a hatch/bus (an ability part), i.e. a real part slot. */
+    private static boolean hasAbilityPartCandidate(@NotNull StructureElementPreviewEntry entry) {
+        return hasAbilityPartCandidate(entry.getPreview().getLimited()) ||
+                hasAbilityPartCandidate(entry.getPreview().getCommon());
+    }
+
+    private static boolean hasAbilityPartCandidate(
+            @NotNull List<StructureElementPreview.CandidateGroup> groups) {
+        for (StructureElementPreview.CandidateGroup group : groups) {
+            for (BlockInfo info : group.getCandidates()) {
+                if (info != null && info.getTileEntity() instanceof IGregTechTileEntity gtte &&
+                        gtte.getMetaTileEntity() instanceof IMultiblockAbilityPart) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    public void clearPartHighlight() {
+        highlightedPart = null;
+        partHighlightGreen.clear();
+        partHighlightRed.clear();
+    }
+
+    public boolean isPartHighlightGreen(@NotNull BlockPos pos) {
+        return partHighlightGreen.contains(pos);
+    }
+
+    public boolean isPartHighlightRed(@NotNull BlockPos pos) {
+        return partHighlightRed.contains(pos);
+    }
+
+    @Nullable
+    public ItemStack getDominantPartAt(@NotNull BlockPos pos) {
+        List<ItemStack> candidates = getCellCandidates(pos);
+        return candidates.isEmpty() ? null : candidates.get(0);
+    }
+
+    public void setPreviewReadyListener(@Nullable Runnable listener) {
+        this.previewReadyListener = listener;
+    }
+
+    /**
      * @return the preview world's minimum corner, used to map minimap pixels back to structure space.
      */
     @Nullable
@@ -1251,6 +1458,175 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     }
 
     /**
+     * Total placed cells in the preview; {@link #getPreviewParts()} aggregates by block type, so the stack counts
+     * (not the list size) are the block total shown in the summary line.
+     */
+    public int getPreviewBlockCount() {
+        int total = 0;
+        for (ItemStack stack : getPreviewParts()) {
+            if (stack != null && !stack.isEmpty()) {
+                total += stack.getCount();
+            }
+        }
+        return total;
+    }
+
+    @NotNull
+    public List<ItemStack> getCellCandidates(@NotNull BlockPos pos) {
+        StructureElementPreviewEntry entry = previewEntries.get(pos);
+        if (entry == null) {
+            return Collections.emptyList();
+        }
+        List<ItemStack> result = new ArrayList<>();
+        appendCellCandidates(result, entry.getPreview().getLimited());
+        appendCellCandidates(result, entry.getPreview().getCommon());
+        return result;
+    }
+
+    private static void appendCellCandidates(@NotNull List<ItemStack> out,
+                                             @NotNull List<gregtech.api.pattern.element.StructureElementPreview.CandidateGroup> groups) {
+        for (gregtech.api.pattern.element.StructureElementPreview.CandidateGroup group : groups) {
+            for (BlockInfo info : group.getCandidates()) {
+                ItemStack stack = cellStack(info);
+                if (stack.isEmpty()) {
+                    continue;
+                }
+                boolean duplicate = false;
+                for (ItemStack existing : out) {
+                    if (ItemStack.areItemsEqual(existing, stack)) {
+                        duplicate = true;
+                        break;
+                    }
+                }
+                if (!duplicate) {
+                    out.add(stack);
+                }
+            }
+        }
+    }
+
+    @NotNull
+    private static ItemStack cellStack(@Nullable BlockInfo info) {
+        if (info == null || info.getBlockState() == null) {
+            return ItemStack.EMPTY;
+        }
+        if (info.getTileEntity() instanceof IGregTechTileEntity) {
+            MetaTileEntity metaTileEntity = ((IGregTechTileEntity) info.getTileEntity()).getMetaTileEntity();
+            if (metaTileEntity != null) {
+                return metaTileEntity.getStackForm();
+            }
+        }
+        Item item = Item.getItemFromBlock(info.getBlockState().getBlock());
+        if (item == null) {
+            return ItemStack.EMPTY;
+        }
+        return new ItemStack(item, 1, info.getBlockState().getBlock().damageDropped(info.getBlockState()));
+    }
+
+    /**
+     * The preview assembly normalizes every block to a dummy world above Y=0. The UI therefore works in
+     * normalized coordinates, while overrides are stored in structure-relative coordinates because the
+     * server-side build reads them after subtracting the controller position.
+     */
+    @NotNull
+    private BlockPos toStructurePos(@NotNull BlockPos previewPos) {
+        BlockPos offset = previewNormalizationOffset;
+        return offset == null ? previewPos : previewPos.add(offset);
+    }
+
+    public void setCellOverride(@NotNull BlockPos pos, @NotNull ItemStack stack) {
+        ItemStack normalized = StructureCellOverrides.normalize(stack);
+        if (normalized.isEmpty()) {
+            return;
+        }
+        cellOverrides.put(toStructurePos(pos), normalized);
+        regeneratePatterns();
+    }
+
+    public void clearCellOverride(@NotNull BlockPos pos) {
+        if (cellOverrides.remove(toStructurePos(pos)) != null) {
+            regeneratePatterns();
+        }
+    }
+
+    @NotNull
+    public Map<BlockPos, ItemStack> copyCellOverrides() {
+        return new HashMap<>(cellOverrides);
+    }
+
+    public boolean hasCellOverride(@NotNull BlockPos pos) {
+        return cellOverrides.containsKey(toStructurePos(pos));
+    }
+
+    public boolean isPartHidden(@NotNull ItemStack stack) {
+        for (ItemStack hidden : hiddenPreviewParts) {
+            if (ItemStack.areItemsEqual(hidden, stack)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Middle-click behaviour of the preview parts grid: toggles whether every block of this type is drawn. The
+     * hidden set lives outside the scene renderer so it survives layer changes and window resizes, and is cleared
+     * whenever the pattern is rebuilt.
+     */
+    public void togglePartVisibility(@NotNull ItemStack stack) {
+        for (Iterator<ItemStack> iterator = hiddenPreviewParts.iterator(); iterator.hasNext(); ) {
+            if (ItemStack.areItemsEqual(iterator.next(), stack)) {
+                iterator.remove();
+                applyHiddenParts();
+                return;
+            }
+        }
+        hiddenPreviewParts.add(stack.copy());
+        applyHiddenParts();
+    }
+
+    public void clearHiddenParts() {
+        if (hiddenPreviewParts.isEmpty()) {
+            return;
+        }
+        hiddenPreviewParts.clear();
+        applyHiddenParts();
+    }
+
+    private void applyHiddenParts() {
+        StructurePreviewRenderer renderer = getCurrentRenderer();
+        if (renderer == null) {
+            return;
+        }
+        if (hiddenPreviewParts.isEmpty()) {
+            renderer.setHiddenBlocks(Collections.emptySet());
+            return;
+        }
+        Set<BlockPos> hidden = new HashSet<>();
+        for (BlockPos pos : renderer.renderedBlocks) {
+            ItemStack stack = previewPartStack(renderer.world, pos);
+            if (stack.isEmpty()) {
+                continue;
+            }
+            for (ItemStack part : hiddenPreviewParts) {
+                if (ItemStack.areItemsEqual(part, stack)) {
+                    hidden.add(pos);
+                    break;
+                }
+            }
+        }
+        renderer.setHiddenBlocks(hidden);
+    }
+
+    private static ItemStack previewPartStack(World world, BlockPos pos) {
+        IBlockState state = world.getBlockState(pos);
+        Block block = state.getBlock();
+        if (block == Blocks.AIR) {
+            return ItemStack.EMPTY;
+        }
+        return new ItemStack(Item.getItemFromBlock(block), 1, block.getMetaFromState(state));
+    }
+
+    /**
      * Adjustable global ability caps for this structure. Fixed (min == max) and
      * unlimited (max < 0) limits are omitted because there is nothing to choose.
      */
@@ -1261,14 +1637,17 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             return Collections.emptyList();
         }
         Map<String, AbilityCountControl> byKey = new HashMap<>();
+        Set<MultiblockAbility<?>> grouped = groupedAbilities(pattern);
         for (Entry<MultiblockAbility<?>, int[]> entry : pattern.getAbilityLimits().entrySet()) {
             int[] range = entry.getValue();
-            if (range == null || range[1] < 0 || range[1] <= range[0]) {
+            if (range == null || range[1] < 0 || range[1] <= range[0] || grouped.contains(entry.getKey())) {
                 continue;
             }
             String key = AbilityPlacementTracker.channelKey(entry.getKey());
-            byKey.put(key, new AbilityCountControl(key, entry.getKey(), range[0], range[1],
-                    getAbilityCountValue(key, range[1])));
+            Integer configured = channelValues.get(key);
+            int value = configured != null ? configured
+                    : Math.max(range[0], previewAbilityCounts.getOrDefault(entry.getKey(), range[0]));
+            byKey.put(key, new AbilityCountControl(key, entry.getKey(), range[0], range[1], value));
         }
         for (AbilityGroupLimit group : pattern.getAbilityGroupLimits()) {
             if (group.getMax() < 0 || group.getMax() <= group.getMin()) {
@@ -1278,18 +1657,21 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             if (byKey.containsKey(key)) {
                 continue;
             }
-            byKey.put(key, new AbilityCountControl(key, group.getDisplayAbility(), group.getMin(), group.getMax(),
-                    getAbilityCountValue(key, group.getMax())));
+            Integer configured = channelValues.get(key);
+            int value = configured != null ? configured
+                    : Math.max(group.getMin(),
+                            previewAbilityGroupCounts.getOrDefault(group.getDisplayAbility(), group.getMin()));
+            byKey.put(key, new AbilityCountControl(key, group.getDisplayAbility(), group.getMin(), group.getMax(), value));
         }
         List<AbilityCountControl> controls = new ArrayList<>(byKey.values());
         controls.sort((one, two) -> one.translationKey.compareToIgnoreCase(two.translationKey));
         return controls;
     }
 
-    /** Reads an ability cap by its reserved channel key, falling back to the pattern maximum. */
-    public int getAbilityCountValue(@NotNull String key, int defaultMax) {
+    /** Reads an ability cap by its reserved channel key, falling back to the pattern minimum. */
+    public int getAbilityCountValue(@NotNull String key, int fallback) {
         Integer configured = channelValues.get(key);
-        return configured == null ? defaultMax : configured;
+        return configured == null ? fallback : configured;
     }
 
     /** Advances one ability cap within its declared [min, max] range. */
@@ -1304,15 +1686,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
     public void setAbilityCount(@NotNull AbilityCountControl control, int requested) {
         int value = Math.max(control.min, Math.min(control.max, requested));
-        int current = getAbilityCountValue(control.key, control.max);
-        if (current == value) {
+        // An absent key means "auto"; pin it explicitly even when the requested value matches the count
+        // the preview happened to place, otherwise the structure would keep its own (possibly larger) count.
+        if (channelValues.containsKey(control.key) && getAbilityCountValue(control.key, control.min) == value) {
             return;
         }
-        if (value >= control.max) {
-            channelValues.remove(control.key);
-        } else {
-            channelValues.put(control.key, value);
-        }
+        channelValues.put(control.key, value);
         regeneratePatterns();
     }
 
@@ -1577,6 +1956,69 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
     public int getActiveCandidateIndex() {
         List<PreviewCandidate> candidates = getCandidates();
         return candidates.isEmpty() ? -1 : Math.floorMod(candidateCycleIndex, candidates.size()) + 1;
+    }
+
+    /**
+     * Chooses one alternative of the selected element by writing the group's channel. The channel uses a
+     * one-based candidate index, which is the same value {@code StructurePlacementDecision} resolves when the
+     * preview is assembled and when the structure is built, so the choice survives into the build request.
+     *
+     * @param candidate      the group to apply
+     * @param candidateIndex zero-based index inside the group
+     * @return {@code true} when the candidate carried a channel and the preview refresh was requested
+     */
+    public boolean applyCandidate(@NotNull PreviewCandidate candidate, int candidateIndex) {
+        String channelName = candidate.getChannelName();
+        if (channelName == null || channelName.isEmpty() || candidateIndex < 0) {
+            return false;
+        }
+        setPreviewChannel(channelName, candidateIndex + 1);
+        return true;
+    }
+
+    /**
+     * One selectable candidate of the selected block, flattened across its candidate groups so the preview screen
+     * can render a popup without knowing about groups or channels.
+     */
+    public static final class CandidateChoice {
+
+        private final PreviewCandidate candidate;
+        private final int index;
+        private final ItemStack stack;
+
+        private CandidateChoice(@NotNull PreviewCandidate candidate, int index, @NotNull ItemStack stack) {
+            this.candidate = candidate;
+            this.index = index;
+            this.stack = stack;
+        }
+
+        @NotNull
+        public ItemStack getStack() {
+            return stack;
+        }
+    }
+
+    @NotNull
+    public List<CandidateChoice> getCandidateChoices() {
+        List<CandidateChoice> choices = new ArrayList<>();
+        for (PreviewCandidate candidate : previewCandidates) {
+            String channelName = candidate.getChannelName();
+            if (channelName == null || channelName.isEmpty()) {
+                continue;
+            }
+            List<ItemStack> items = candidate.getItemCandidates();
+            for (int i = 0; i < items.size(); i++) {
+                ItemStack stack = items.get(i);
+                if (stack != null && !stack.isEmpty()) {
+                    choices.add(new CandidateChoice(candidate, i, stack));
+                }
+            }
+        }
+        return choices;
+    }
+
+    public boolean applyChoice(@NotNull CandidateChoice choice) {
+        return applyCandidate(choice.candidate, choice.index);
     }
 
     /**
@@ -2547,6 +2989,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
 
             blockMap = new HashMap<>(previewBuild.getBlocks());
             previewEntries = new HashMap<>(previewBuild.getPreviewEntries());
+            MultiblockInfoRecipeWrapper.this.previewNormalizationOffset = previewBuild.getNormalizationOffset();
             abilityCounts = previewBuild.getAbilityCounts();
             abilityGroupCounts = previewBuild.getAbilityGroupCounts();
             previewController = correctPreviewController(blockMap);
@@ -2591,26 +3034,37 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             }
             renderer.addRenderedBlocks(world.renderedBlocks);
 
-            if (renderer.renderedBlocks.size() > 100) {
-                renderer.setTileEntityFilter(te ->
-                        te instanceof IGregTechTileEntity gtte &&
-                                gtte.getMetaTileEntity() instanceof MultiblockControllerBase);
-            } else if (renderer.renderedBlocks.size() > 50) {
-                renderer.setMaxTileEntityRenderers(8);
-                renderer.setMaxTileEntityRenderDistance(16.0);
-            }
+            // GT machine blocks are invisible base blocks: their look comes entirely from the TESR. Restricting
+            // the TESR pass to the controller therefore drops every hatch/bus (and the fixed parts some
+            // structures ship with). Keep controller and ability parts, and give large previews enough slots
+            // that a hatch near the far corner is not silently skipped either.
+            renderer.setTileEntityFilter(te ->
+                    !(te instanceof IGregTechTileEntity) ||
+                            te instanceof IGregTechTileEntity gtte &&
+                                    (gtte.getMetaTileEntity() instanceof MultiblockControllerBase ||
+                                            gtte.getMetaTileEntity() instanceof IMultiblockAbilityPart));
+            renderer.setMaxTileEntityRenderers(64);
+            renderer.setMaxTileEntityRenderDistance(96.0);
 
             renderer.setAfterWorldRender(ignored -> {
                 BlockPos look = renderer.getLastTraceResult() == null ? null :
                         renderer.getLastTraceResult().getBlockPos();
-                if (look != null && look.equals(selected)) {
-                    renderBlockOverLay(selected, 200, 75, 75);
-                } else {
-                    renderBlockOverLay(look, 150, 150, 150);
-                    renderBlockOverLay(selected, 255, 0, 0);
+                if (selectionHighlight) {
+                    if (look != null && look.equals(selected)) {
+                        renderBlockOverLay(selected, 200, 75, 75);
+                    } else {
+                        renderBlockOverLay(look, 150, 150, 150);
+                        renderBlockOverLay(selected, 255, 0, 0);
+                    }
                 }
                 if (selected != null && !previewCandidates.isEmpty()) {
                     renderCandidateBlockAtPosition(world, selected);
+                }
+                for (BlockPos pos : partHighlightGreen) {
+                    renderBlockOverLay(pos, 0, 200, 80);
+                }
+                for (BlockPos pos : partHighlightRed) {
+                    renderBlockOverLay(pos, 200, 60, 60);
                 }
             });
             world.updateEntities();
@@ -2654,6 +3108,7 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
                     .map(PartInfo::getItemStack)
                     .collect(Collectors.toList());
             pattern = new MBPattern(renderer, sortedParts, previewEntries);
+            MultiblockInfoRecipeWrapper.this.previewEntries = new HashMap<>(previewEntries);
             transitionTo(PreviewLoadStage.COMPLETE);
         }
 
@@ -2733,15 +3188,20 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         private final List<String> tooltip;
         @NotNull
         private final String displayName;
+        /** Channel that selects this group's candidate (one-based value); {@code null} when not selectable. */
+        @Nullable
+        private final String channelName;
 
         private PreviewCandidate(@NotNull BlockInfo[] blockCandidates,
                                  @NotNull List<ItemStack> itemCandidates,
                                  @NotNull List<String> tooltip,
-                                 @NotNull String displayName) {
+                                 @NotNull String displayName,
+                                 @Nullable String channelName) {
             this.blockCandidates = blockCandidates;
             this.itemCandidates = itemCandidates;
             this.tooltip = tooltip;
             this.displayName = displayName;
+            this.channelName = channelName;
         }
 
         @NotNull
@@ -2750,7 +3210,8 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
             BlockInfo[] infos = group.getCandidates();
             List<String> tooltip = new ArrayList<>(localizeTooltip(entry.getTooltip()));
             tooltip.addAll(localizeTooltip(group.getTooltip()));
-            return new PreviewCandidate(infos, itemCandidatesFrom(infos), tooltip, displayNameOf(infos));
+            return new PreviewCandidate(infos, itemCandidatesFrom(infos), tooltip, displayNameOf(infos),
+                    group.getChannelName());
         }
 
         /**
@@ -2806,6 +3267,12 @@ public class MultiblockInfoRecipeWrapper implements IRecipeWrapper {
         @NotNull
         public String getDisplayName() {
             return displayName;
+        }
+
+        /** @return the channel that selects this candidate group, or {@code null} when it is informational. */
+        @Nullable
+        public String getChannelName() {
+            return channelName;
         }
     }
 

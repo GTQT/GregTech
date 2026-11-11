@@ -34,6 +34,7 @@ import net.minecraftforge.fml.relauncher.SideOnly;
 import codechicken.lib.vec.Vector3;
 import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.util.glu.GLU;
@@ -46,8 +47,10 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -85,6 +88,11 @@ public abstract class WorldSceneRenderer {
      */
     @Nullable
     private BlockPos hiddenBlock;
+    /**
+     * Positions hidden as a group (for example a part type toggled off in the preview parts grid). Picking is
+     * unaffected, matching {@link #setHiddenBlock(BlockPos)}.
+     */
+    private final Set<BlockPos> hiddenBlocks = new HashSet<>();
     protected Consumer<WorldSceneRenderer> beforeRender;
     protected Consumer<WorldSceneRenderer> afterRender;
     private Consumer<RayTraceResult> onLookingAt;
@@ -311,6 +319,20 @@ public abstract class WorldSceneRenderer {
         return hiddenBlock;
     }
 
+    /**
+     * Replaces the group of positions skipped during block and tile entity rendering. Empty or null hides nothing.
+     */
+    public void setHiddenBlocks(@Nullable Collection<BlockPos> blocks) {
+        hiddenBlocks.clear();
+        if (blocks != null) {
+            hiddenBlocks.addAll(blocks);
+        }
+    }
+
+    protected boolean isBlockHidden(@NotNull BlockPos pos) {
+        return pos.equals(hiddenBlock) || hiddenBlocks.contains(pos);
+    }
+
     public RayTraceResult getLastTraceResult() {
         return lastTraceResult;
     }
@@ -508,7 +530,7 @@ public abstract class WorldSceneRenderer {
      * several JEI frames while retaining the same rendering path as immediate scenes.
      */
     protected void renderBlock(BlockRenderLayer layer, BlockPos pos, BufferBuilder buffer) {
-        if (pos.equals(hiddenBlock)) {
+        if (isBlockHidden(pos)) {
             return;
         }
         IBlockState state = world.getBlockState(pos);
@@ -539,7 +561,7 @@ public abstract class WorldSceneRenderer {
                 BlockPos pos = entry.getKey();
                 TileEntity tile = entry.getValue();
 
-                if (pos.equals(hiddenBlock)) continue;
+                if (isBlockHidden(pos)) continue;
                 if (!tile.shouldRenderInPass(finalPass)) continue;
 
                 // Distance culling

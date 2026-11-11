@@ -72,6 +72,10 @@ public final class StructureOperationRequest {
     private final boolean doRandomCheck;
     private final int pieceIndex;
     private final boolean cumulativeToolingPieceSelection;
+    @NotNull
+    private final Map<BlockPos, ItemStack> cellOverrides;
+
+    private final boolean networkStock;
 
     private StructureOperationRequest(@NotNull Kind kind,
                                       @Nullable World world,
@@ -120,6 +124,74 @@ public final class StructureOperationRequest {
         this.doRandomCheck = doRandomCheck;
         this.pieceIndex = pieceIndex;
         this.cumulativeToolingPieceSelection = cumulativeToolingPieceSelection;
+        this.cellOverrides = Collections.emptyMap();
+        this.networkStock = true;
+    }
+
+    private StructureOperationRequest(@NotNull StructureOperationRequest source,
+                                      @Nullable Map<BlockPos, ItemStack> cellOverrides) {
+        this(source, cellOverrides, source.networkStock);
+    }
+
+    private StructureOperationRequest(@NotNull StructureOperationRequest source,
+                                      @Nullable Map<BlockPos, ItemStack> cellOverrides,
+                                      boolean networkStock) {
+        this.kind = source.kind;
+        this.world = source.world;
+        this.snapshot = source.snapshot;
+        this.controllerPos = source.controllerPos;
+        this.orientation = source.orientation;
+        this.controller = source.controller;
+        this.player = source.player;
+        this.channelValues = source.channelValues;
+        this.repetitions = source.repetitions;
+        this.abilityTracker = source.abilityTracker;
+        this.triggerStack = source.triggerStack;
+        this.doRandomCheck = source.doRandomCheck;
+        this.pieceIndex = source.pieceIndex;
+        this.cumulativeToolingPieceSelection = source.cumulativeToolingPieceSelection;
+        if (cellOverrides == null || cellOverrides.isEmpty()) {
+            this.cellOverrides = Collections.emptyMap();
+        } else {
+            Map<BlockPos, ItemStack> copy = new HashMap<>();
+            for (Map.Entry<BlockPos, ItemStack> entry : cellOverrides.entrySet()) {
+                ItemStack stack = StructureCellOverrides.normalize(entry.getValue());
+                if (entry.getKey() != null && !stack.isEmpty()) {
+                    copy.put(entry.getKey(), stack);
+                }
+            }
+            this.cellOverrides = Collections.unmodifiableMap(copy);
+        }
+        this.networkStock = networkStock;
+    }
+
+    /**
+     * @return a copy of this request that may (or may not) pull missing blocks from registered external item sources.
+     */
+    @NotNull
+    public StructureOperationRequest withNetworkStock(boolean enabled) {
+        return new StructureOperationRequest(this, this.cellOverrides, enabled);
+    }
+
+    /** @return whether external item sources (ME networks, etc.) may supply blocks for this request. */
+    public boolean isNetworkStock() {
+        return networkStock;
+    }
+
+    /**
+     * @return a copy of this request carrying per-cell {@link ItemStack} overrides (empty by default).
+     */
+    @NotNull
+    public StructureOperationRequest withCellOverrides(@Nullable Map<BlockPos, ItemStack> overrides) {
+        return new StructureOperationRequest(this, overrides);
+    }
+
+    /**
+     * @return the immutable per-cell overrides; never {@code null}.
+     */
+    @NotNull
+    public Map<BlockPos, ItemStack> getCellOverrides() {
+        return cellOverrides;
     }
 
     @NotNull

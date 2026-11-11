@@ -10,6 +10,7 @@ import gregtech.api.metatileentity.multiblock.ui.TemplateBarBuilder;
 import gregtech.api.mui.GTGuiTextures;
 import gregtech.api.mui.GTGuiTheme;
 import gregtech.api.recipes.RecipeMap;
+import gregtech.api.util.HeatHatchUtil;
 import gregtech.api.util.KeyUtil;
 import gregtech.api.util.TextFormattingUtil;
 import gregtech.common.ConfigHolder;
@@ -113,9 +114,9 @@ public abstract class HeatMultiblockController extends RecipeMapMultiblockContro
     }
 
     public void changeHeat(long amount) {
-        if (getHeatHatch() == null) return;
-        long average = amount / getHeatHatch().size();
-        getHeatHatch().forEach(hatch -> hatch.changeHeat(average));
+        // 总量守恒的公平分摊：已满/已空的热仓会被跳过，剩余量继续平摊给其它热仓，
+        // 避免“平均扣但某个热仓只有 0 HU，导致实际扣除量不足”的问题。
+        HeatHatchUtil.distribute(getHeatHatch(), amount);
     }
 
 

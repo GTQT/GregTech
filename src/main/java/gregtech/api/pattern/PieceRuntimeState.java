@@ -3,14 +3,15 @@ package gregtech.api.pattern;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
+import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.util.BlockInfo;
-import gregtech.api.util.ExteriorFacingBlockInfo;
-import gregtech.api.util.ExplicitFrontFacingBlockInfo;
 import gregtech.api.pattern.element.FormedStructureMetadata;
 import gregtech.api.pattern.element.IStructureElement;
 import gregtech.api.pattern.element.StructureElementPreview;
+import gregtech.api.util.BlockInfo;
+import gregtech.api.util.ExplicitFrontFacingBlockInfo;
+import gregtech.api.util.ExteriorFacingBlockInfo;
 import gregtech.api.util.RelativeDirection;
 import gregtech.common.ConfigHolder;
 
@@ -783,6 +784,9 @@ public final class PieceRuntimeState {
         private final Map<BlockPos, EnumFacing> explicitFrontFacings = new HashMap<>();
         @NotNull
         private final StructureBuildResult.Builder result = StructureBuildResult.builder();
+        @NotNull
+        private Map<BlockPos, ItemStack> cellOverrides = Collections.emptyMap();
+        private boolean useNetworkStock = true;
     }
 
     private static final class HintTraversalState {
@@ -1174,14 +1178,31 @@ public final class PieceRuntimeState {
             }
         }
 
+        BlockPos overridePos = controllerBase == null ? pos : pos.subtract(controllerBase.getPos());
+        ItemStack cellOverride = StructureCellOverrides.find(buildState.cellOverrides, overridePos);
+        if (cellOverride != null) {
+            for (BlockInfo info : infos) {
+                if (StructureCellOverrides.matches(
+                        StructurePlacementDecision.getStackForBlockInfo(info), cellOverride)) {
+                    infos = new BlockInfo[] { info };
+                    candidates = Collections.singletonList(cellOverride);
+                    break;
+                }
+            }
+        }
+
         buildState.result.recordPlacementBudget();
-        ItemStack representativeRequired = operation.isSurvivalBuild()
+        ItemStack representativeRequired = operation.isSurvivalBuild() || operation.isDryRun()
                 ? StructurePlacementDecision.representativeRequiredStack(
                         infos, candidates, matchedGroup, channelValues, abilityTracker)
                 : ItemStack.EMPTY;
+        if (representativeRequired == null) {
+            representativeRequired = ItemStack.EMPTY;
+        }
 
         StructurePlacementDecision.Selection buildCandidate = StructurePlacementDecision.select(
-                player, infos, candidates, matchedGroup, channelValues, abilityTracker, operation);
+                player, infos, candidates, matchedGroup, channelValues, abilityTracker, operation,
+                buildState.useNetworkStock);
         if (buildCandidate == null) {
             buildState.result.recordUnavailableItemCell();
             if (!representativeRequired.isEmpty()) {
@@ -1198,8 +1219,14 @@ public final class PieceRuntimeState {
             return;
         }
 
-        if (operation.isSurvivalBuild()) {
+        if (operation.isSurvivalBuild() || operation.isDryRun()) {
             buildState.result.recordRequiredItem(found);
+            recordRoleItems(buildState, matchedInfo, found);
+        }
+        if (operation.isDryRun()) {
+            // Report the cell as a would-be placement; the world and the player inventory stay untouched.
+            buildState.result.recordPlacedCell();
+            return;
         }
         IBlockState previousState = world.getBlockState(pos);
         if (!placeBuildCandidate(matchedInfo, buildState.evaluationContext)) {
@@ -1244,6 +1271,22 @@ public final class PieceRuntimeState {
      * Creative construction can repair a state/variant mismatch on an otherwise identical, stateless block.
      * This deliberately excludes air and tile entities so auto-build never clears or overwrites arbitrary blocks.
      */
+    private void recordRoleItems(@NotNull BuildTraversalState buildState, @NotNull BlockInfo matchedInfo,
+                                 @NotNull ItemStack found) {
+        if (found.isEmpty() || !(matchedInfo.getTileEntity() instanceof IGregTechTileEntity)) {
+            return;
+        }
+        MetaTileEntity metaTileEntity = ((IGregTechTileEntity) matchedInfo.getTileEntity()).getMetaTileEntity();
+        if (!(metaTileEntity instanceof IMultiblockAbilityPart)) {
+            return;
+        }
+        for (MultiblockAbility<?> ability : ((IMultiblockAbilityPart<?>) metaTileEntity).getAbilities()) {
+            if (ability != null) {
+                buildState.result.recordRoleItem(AbilityPlacementTracker.channelKey(ability), found);
+            }
+        }
+    }
+
     private static boolean canReplaceBuildTarget(@NotNull IBlockState existingState,
                                                  @Nullable TileEntity existingTile,
                                                  @NotNull BlockInfo targetInfo,
@@ -1527,8 +1570,37 @@ public final class PieceRuntimeState {
                                                       @Nullable AbilityPlacementTracker abilityTracker,
                                                       @NotNull StructureEvaluationContext.Operation operation,
                                                       @NotNull ItemStack triggerStack) {
+        return autoBuildAtWithResult(player, controllerBase, traversal, channelValues, abilityTracker,
+                operation, triggerStack, Collections.emptyMap());
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtWithResult(EntityPlayer player,
+                                                      MultiblockControllerBase controllerBase,
+                                                      @NotNull StructureCellTraversal traversal,
+                                                      Map<String, Integer> channelValues,
+                                                      @Nullable AbilityPlacementTracker abilityTracker,
+                                                      @NotNull StructureEvaluationContext.Operation operation,
+                                                      @NotNull ItemStack triggerStack,
+                                                      @Nullable Map<BlockPos, ItemStack> cellOverrides) {
+        return autoBuildAtWithResult(player, controllerBase, traversal, channelValues, abilityTracker,
+                operation, triggerStack, cellOverrides, true);
+    }
+
+    @NotNull
+    public StructureBuildResult autoBuildAtWithResult(EntityPlayer player,
+                                                      MultiblockControllerBase controllerBase,
+                                                      @NotNull StructureCellTraversal traversal,
+                                                      Map<String, Integer> channelValues,
+                                                      @Nullable AbilityPlacementTracker abilityTracker,
+                                                      @NotNull StructureEvaluationContext.Operation operation,
+                                                      @NotNull ItemStack triggerStack,
+                                                      @Nullable Map<BlockPos, ItemStack> cellOverrides,
+                                                      boolean useNetworkStock) {
         World world = player.world;
         BuildTraversalState buildState = new BuildTraversalState();
+        buildState.cellOverrides = cellOverrides == null ? Collections.emptyMap() : cellOverrides;
+        buildState.useNetworkStock = useNetworkStock;
         buildState.result.recordAttemptedTraversal();
         buildState.blocks.put(controllerBase.getPos(), controllerBase);
         int[] repetitions = calculateRepetitionsFromChannels(channelValues);
