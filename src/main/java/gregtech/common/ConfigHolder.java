@@ -355,7 +355,7 @@ public class ConfigHolder {
 
         @Config.Comment({ "Should all Stone Types drop unique Ore Item Blocks?",
                 "Default: false (meaning only Stone, Netherrack, and Endstone" })
-        public boolean allUniqueStoneTypes = false;
+        public boolean allUniqueStoneTypes = true;
     }
 
     public static class RecipeOptions {
