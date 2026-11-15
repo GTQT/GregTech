@@ -30,7 +30,7 @@ import java.util.List;
  * “放进去”，没有任何效果。
  *
  * <p>
- * <b>和 {@link WorldPreviewPanel} 一样，这个方法两端都会跑</b>（主界面构建时服务端也要注册一遍
+ * <b>和浮动面板一样，这个方法两端都会跑</b>（主界面构建时服务端也要注册一遍
  * {@code syncedPanel} 和槽位组），所以它不能整体标 {@code @SideOnly(CLIENT)}，也不做
  * “是不是客户端”的早退。槽位本身由 MUI 同步，不需要自己写同步值。
  */

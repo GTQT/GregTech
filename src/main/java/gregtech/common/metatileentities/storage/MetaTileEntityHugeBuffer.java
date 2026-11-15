@@ -219,6 +219,16 @@ public class MetaTileEntityHugeBuffer extends MetaTileEntity implements ITieredM
     }
 
     @Override
+    public boolean supportsAutoOutputItems() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsAutoOutputFluids() {
+        return true;
+    }
+
+    @Override
     public boolean onWrenchClick(EntityPlayer playerIn, EnumHand hand, EnumFacing facing,
                                  CuboidRayTraceResult hitResult) {
         if (!playerIn.isSneaking()) {
@@ -258,8 +268,18 @@ public class MetaTileEntityHugeBuffer extends MetaTileEntity implements ITieredM
         return outputFacingItems == null ? getFrontFacing().getOpposite() : outputFacingItems;
     }
 
+    @Override
+    public @Nullable EnumFacing getConfiguredOutputFacingItems() {
+        return outputFacingItems;
+    }
+
     public EnumFacing getOutputFacingFluids() {
         return outputFacingFluids == null ? getFrontFacing().getOpposite() : outputFacingFluids;
+    }
+
+    @Override
+    public @Nullable EnumFacing getConfiguredOutputFacingFluids() {
+        return outputFacingFluids;
     }
 
     @Override

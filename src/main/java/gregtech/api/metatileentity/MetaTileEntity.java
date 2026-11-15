@@ -34,7 +34,7 @@ import gregtech.api.mui.GregTechGuiScreen;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
 import gregtech.api.mui.widget.SidePanel;
 import gregtech.api.mui.widget.UpgradeSlotsPanel;
-import gregtech.api.mui.widget.WorldPreviewPanel;
+import gregtech.api.mui.widget.side.SideOverviewPage;
 import gregtech.api.pipenet.tile.TileEntityPipeBase;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.util.GTLog;
@@ -137,6 +137,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import static gregtech.api.capability.GregtechDataCodes.*;
+import static gregtech.common.items.MetaItems.ROBOT_ARM_LV;
 
 public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, IVoidable, IPollution, IGuiHolder<PosGuiData> {
 
@@ -616,10 +617,9 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
      * 需要改这一列的布局（位置、背景）时用 {@link SidePanel#getColumn()}，不要另建一列。
      */
     protected void registerSidePanelButtons(@NotNull SidePanel sidePanel) {
-        // 多方块控制器的页签由 MultiblockUIFactory 提供，覆盖板/朝向预览留在侧边栏；
+        // 多方块控制器的页签由 MultiblockUIFactory 提供，覆盖板留在侧边栏；
         // 其它机器（单方块机器、仓）把这两类入口做成窗口顶部的页签，见 attachTabs。
         if (this instanceof MultiblockControllerBase) {
-            sidePanel.add(createWorldPreviewButton(sidePanel.getSyncManager()));
             sidePanel.add(createUpgradeSlotsButton(sidePanel.getSyncManager()));
             sidePanel.addAll(createCoverButtons(sidePanel.getGuiData(), sidePanel.getSyncManager()));
             return;
@@ -658,8 +658,8 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
         // 背包高 76、底部边距 7；预览页按这个预留高度动态计算正方形边长。
         int previewReserve = persistentChildren.isEmpty() ? 0 : 76 + 7;
-        IWidget previewPage = createWorldPreviewPage(syncManager, previewReserve);
-        if (coverCells.isEmpty() && previewPage == null) return;
+        boolean canPreview = ConfigHolder.client.enableMachineWorldPreview && getWorld() != null;
+        if (coverCells.isEmpty() && !canPreview) return;
 
         panel.removeAll();
 
@@ -683,12 +683,18 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
                         .overlay(new ItemDrawable(getStackForm()).asIcon().size(16)));
 
         int pageIndex = 1;
+        final int coversPage;
         if (!coverCells.isEmpty()) {
+            coversPage = pageIndex;
             pages.addPage(createCoverPage(coverCells));
             tabRow.child(new PageButton(pageIndex++, controller).tab(GuiTextures.TAB_TOP, 0)
                     .addTooltipLine(IKey.lang("gregtech.mui.mte.tab.covers"))
-                    .overlay(new ItemDrawable(new ItemStack(Blocks.CHEST)).asIcon().size(16)));
+                    .overlay(new ItemDrawable(ROBOT_ARM_LV.getStackForm()).asIcon().size(16)));
+        } else {
+            coversPage = -1;
         }
+        IWidget previewPage = createWorldPreviewPage(syncManager, previewReserve,
+                coversPage < 0 ? null : () -> controller.setPage(coversPage));
         if (previewPage != null) {
             pages.addPage(previewPage);
             tabRow.child(new PageButton(pageIndex, controller).tab(GuiTextures.TAB_TOP, 0)
@@ -810,23 +816,22 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
 
 
     /**
-     * 朝向预览页；配置关闭或世界为空时返回 {@code null}。
+     * 侧面总览页；配置关闭或世界为空时返回 {@code null}。
      *
      * @param bottomReserve 页面底部要留给玩家背包的高度（没有背包传 0）
      */
     protected @Nullable IWidget createWorldPreviewPage(@NotNull PanelSyncManager syncManager, int bottomReserve) {
+        return createWorldPreviewPage(syncManager, bottomReserve, null);
+    }
+
+    protected @Nullable IWidget createWorldPreviewPage(@NotNull PanelSyncManager syncManager, int bottomReserve,
+                                                       @Nullable Runnable openCovers) {
         if (!ConfigHolder.client.enableMachineWorldPreview) return null;
 
         World world = getWorld();
         if (world == null) return null;
 
-        boolean outputSides = this instanceof IActiveOutputSide;
-        EnumFacing frontFacing = hasFrontFacing() ? getFrontFacing() : null;
-        EnumFacing itemsOutput = outputSides ? ((IActiveOutputSide) this).getOutputFacingItems() : null;
-        EnumFacing fluidsOutput = outputSides ? ((IActiveOutputSide) this).getOutputFacingFluids() : null;
-
-        return WorldPreviewPanel.createPage(syncManager, world, getPos(), getStackForm(), hasFrontFacing(),
-                outputSides, frontFacing, itemsOutput, fluidsOutput, this::applyFaceAction, 0, 0, bottomReserve);
+        return SideOverviewPage.create(syncManager, this, 0, 0, bottomReserve, true, openCovers);
     }
 
     /**
@@ -889,54 +894,47 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     }
 
     /**
-     * 世界预览的入口按钮：点开一个浮动面板，面板里是机器周围的 3x3x3 方向渲染和方向按钮。
-     *
-     * <p>
-     * 面板本体、按钮行、点选状态都在 {@link WorldPreviewPanel} 里；这里只负责把它挂到
-     * 左侧那一列，并把"怎么在这台机器上设置方向"告诉它。
-     *
-     * <p>
-     * 返回 {@code null} 表示这次不显示（配置关闭、世界为空）。
+     * 执行一次侧面总览动作。同步动作已经在服务端执行，这里再校验一次面和机器能力。
      */
-    protected @Nullable IWidget createWorldPreviewButton(@NotNull PanelSyncManager syncManager) {
-        if (!ConfigHolder.client.enableMachineWorldPreview) return null;
-
-        World world = getWorld();
-        if (world == null) return null;
-
-        return WorldPreviewPanel.create(syncManager, world, getPos(), getStackForm(), hasFrontFacing(),
-                this instanceof IActiveOutputSide, this::applyFaceAction);
-    }
-
-    /**
-     * 执行一次方向设置。由 {@link WorldPreviewPanel} 的同步值触发，<b>两端都会被调用</b>，
-     * 所以这里先挡掉客户端那次，真正的修改只发生在服务端。
-     *
-     * <p>
-     * 校验照抄旧终端 {@code MachineConsoleWidget}：正面要过 {@link #isValidFrontFacing}，
-     * 输出面不能和正面是同一个面。
-     */
-    protected void applyFaceAction(@NotNull WorldPreviewPanel.FaceAction action, @NotNull EnumFacing facing) {
+    public void applySideAction(@NotNull SideOverviewPage.SideAction action, @NotNull EnumFacing face,
+                                boolean value) {
         World world = getWorld();
         if (world == null || world.isRemote) return;
 
+        IActiveOutputSide side = this instanceof IActiveOutputSide activeOutputSide ? activeOutputSide : null;
+        boolean front = hasFrontFacing() && getFrontFacing() == face;
+
         switch (action) {
-            case FRONT -> {
-                if (hasFrontFacing() && isValidFrontFacing(facing)) {
-                    setFrontFacing(facing);
+            case SET_FRONT -> {
+                if (hasFrontFacing() && isValidFrontFacing(face)) {
+                    setFrontFacing(face);
                 }
             }
-            case ITEMS -> {
-                if (this instanceof IActiveOutputSide activeOutputSide &&
-                        !(hasFrontFacing() && getFrontFacing() == facing)) {
-                    activeOutputSide.setOutputFacingItems(facing);
+            case SET_ITEM_MODE -> {
+                if (side == null || front || !side.supportsAutoOutputItems()) return;
+                if (side.getConfiguredOutputFacingItems() == face) {
+                    side.setAutoOutputItems(value);
+                } else {
+                    side.setAutoOutputItems(false);
+                    side.setOutputFacingItems(face);
                 }
             }
-            case FLUIDS -> {
-                if (this instanceof IActiveOutputSide activeOutputSide &&
-                        !(hasFrontFacing() && getFrontFacing() == facing)) {
-                    activeOutputSide.setOutputFacingFluids(facing);
+            case SET_FLUID_MODE -> {
+                if (side == null || front || !side.supportsAutoOutputFluids()) return;
+                if (side.getConfiguredOutputFacingFluids() == face) {
+                    side.setAutoOutputFluids(value);
+                } else {
+                    side.setAutoOutputFluids(false);
+                    side.setOutputFacingFluids(face);
                 }
+            }
+            case SET_ITEM_ALLOW_INPUT -> {
+                if (side == null || !side.supportsAllowInputFromOutputSideItems()) return;
+                side.setAllowInputFromOutputSideItems(value);
+            }
+            case SET_FLUID_ALLOW_INPUT -> {
+                if (side == null || !side.supportsAllowInputFromOutputSideFluids()) return;
+                side.setAllowInputFromOutputSideFluids(value);
             }
         }
     }

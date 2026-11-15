@@ -218,6 +218,16 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
     // ---- IActiveOutputSide ----
 
     @Override
+    public boolean supportsAutoOutputItems() {
+        return true;
+    }
+
+    @Override
+    public boolean supportsAutoOutputFluids() {
+        return true;
+    }
+
+    @Override
     public boolean isAllowInputFromOutputSideItems() {
         return false;
     }
@@ -288,8 +298,18 @@ public class MetaTileEntityBuffer extends MetaTileEntity implements ITieredMetaT
         return outputFacingItems == null ? getFrontFacing().getOpposite() : outputFacingItems;
     }
 
+    @Override
+    public @Nullable EnumFacing getConfiguredOutputFacingItems() {
+        return outputFacingItems;
+    }
+
     public EnumFacing getOutputFacingFluids() {
         return outputFacingFluids == null ? getFrontFacing().getOpposite() : outputFacingFluids;
+    }
+
+    @Override
+    public @Nullable EnumFacing getConfiguredOutputFacingFluids() {
+        return outputFacingFluids;
     }
 
     @Override

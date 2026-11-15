@@ -653,6 +653,25 @@ public class GTGuiTextures {
     public static final UITexture[] OVERLAY_FLUID_EXPORT_IMPORT = slice("textures/gui/widget/overlay_fluid_export_import.png",
             18, 36, 18, 18);
 
+    /**
+     * 0 = OFF <br />
+     * 1 = OUTPUT <br />
+     * 2 = AUTO OUTPUT
+     */
+    public static final UITexture[] IO_CONFIG_ITEM_MODES = slice(
+            "textures/gui/icon/io_config/output_config_item_modes.png", 36, 108, 36, 36, ColorType.DEFAULT);
+
+    /**
+     * 0 = OFF <br />
+     * 1 = OUTPUT <br />
+     * 2 = AUTO OUTPUT
+     */
+    public static final UITexture[] IO_CONFIG_FLUID_MODES = slice(
+            "textures/gui/icon/io_config/output_config_fluid_modes.png", 36, 108, 36, 36, ColorType.DEFAULT);
+
+    public static final UITexture IO_CONFIG_COVER_SETTINGS = fullImage(
+            "textures/gui/icon/io_config/cover_settings.png", ColorType.DEFAULT);
+
     public static final UITexture[] OVERLAY_BATCH = slice("textures/gui/widget/button_batch.png",
             18, 36, 18, 18);
     public static final UITexture[] OVERLAY_RECIPE_LOCK = slice("textures/gui/widget/button_recipe_lock.png",
