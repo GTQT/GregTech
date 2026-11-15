@@ -2,15 +2,21 @@ package gregtech.common.items.behaviors;
 
 import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.IElectricItem;
+import gregtech.api.items.gui.ItemUIFactory;
 import gregtech.api.items.metaitem.MetaItem;
 import gregtech.api.items.metaitem.stats.IEnchantabilityHelper;
 import gregtech.api.items.metaitem.stats.IItemBehaviour;
+import gregtech.api.mui.GTGuiTextures;
+import gregtech.api.mui.GTGuis;
+import gregtech.api.mui.factory.MetaItemGuiFactory;
 import gregtech.common.ConfigHolder;
+import gregtech.common.mui.widget.GTTextFieldWidget;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.state.IBlockState;
 import net.minecraft.client.resources.I18n;
 import net.minecraft.enchantment.Enchantment;
+import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
 import net.minecraft.entity.player.EntityPlayer;
@@ -28,27 +34,49 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.SoundCategory;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.text.TextComponentTranslation;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 
+import com.cleanroommc.modularui.api.drawable.IKey;
+import com.cleanroommc.modularui.factory.HandGuiData;
+import com.cleanroommc.modularui.screen.ModularPanel;
+import com.cleanroommc.modularui.screen.UISettings;
+import com.cleanroommc.modularui.utils.Color;
+import com.cleanroommc.modularui.utils.MouseData;
+import com.cleanroommc.modularui.value.BoolValue;
+import com.cleanroommc.modularui.value.sync.IntSyncValue;
+import com.cleanroommc.modularui.value.sync.PanelSyncManager;
+import com.cleanroommc.modularui.widgets.ButtonWidget;
+import com.cleanroommc.modularui.widgets.ToggleButton;
+import com.cleanroommc.modularui.widgets.layout.Flow;
 import com.google.common.collect.HashMultimap;
 import com.google.common.collect.Multimap;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static gregtech.api.GTValues.*;
 
-public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
+public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper, ItemUIFactory {
 
     protected static final UUID ATTACK_DAMAGE_MODIFIER = UUID.fromString("CB3F55D3-645C-4F38-A288-9C13A33DB5CF");
     protected static final UUID ATTACK_SPEED_MODIFIER = UUID.fromString("FA233E1C-4180-4288-B01B-BCCE9785ACA3");
     private static final long NORMAL_ENERGY_COST = VA[ULV];
     private static final long SILKTOUCH_ENERGY_COST = VA[LV];
     private static final String MODE_TAG = "VajraMode"; // 0 = Normal, 1 = SilkTouch
-    private static final String MINING_TIER_TAG = "VajraMiningTier";
+    private static final String MINING_TICKS_TAG = "VajraMiningTicks";
+
+    /** Ticks per block. 0 breaks blocks instantly, 20 is one second per block. */
+    public static final int MIN_MINING_TICKS = 0;
+    public static final int MAX_MINING_TICKS = 200;
+    public static final int DEFAULT_MINING_TICKS = 0;
+
+    private static final int PANEL_WIDTH = 176;
+    private static final int PANEL_HEIGHT = 120;
+
     private final double baseAttackDamage;
     private final double additionalAttackDamage;
 
@@ -84,41 +112,25 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
     }
 
     /**
-     * @return the selected mining speed tier index, saved on the item
+     * @return the mining time in ticks required for the stack, 0 for instant breaking.
+     *         The interval is only configurable through the settings UI; stacks without the tag
+     *         fall back to {@link #DEFAULT_MINING_TICKS}.
      */
-    public static int getMiningTier(@NotNull ItemStack stack) {
-        if (!stack.hasTagCompound()) return 0;
-        return stack.getTagCompound().getInteger(MINING_TIER_TAG);
-    }
-
-    private static void setMiningTier(@NotNull ItemStack stack, int index) {
-        if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
-        stack.getTagCompound().setInteger(MINING_TIER_TAG, index);
+    public static int getMiningTicks(@NotNull ItemStack stack) {
+        if (stack.hasTagCompound() && stack.getTagCompound().hasKey(MINING_TICKS_TAG)) {
+            return MathHelper.clamp(stack.getTagCompound().getInteger(MINING_TICKS_TAG), MIN_MINING_TICKS,
+                    MAX_MINING_TICKS);
+        }
+        return DEFAULT_MINING_TICKS;
     }
 
     /**
-     * @return the mining time in ticks required by the selected tier, 0 for instant breaking
+     * Stores the mining interval set in the settings UI.
      */
-    public static int getMiningTicks(@NotNull ItemStack stack) {
-        int[] tiers = ConfigHolder.tools.vajraMiningTiers;
-        if (tiers.length == 0) return 0;
-        return tiers[Math.max(0, Math.min(getMiningTier(stack), tiers.length - 1))];
-    }
-
-    private static int cycleMiningTier(@NotNull ItemStack stack) {
-        int[] tiers = ConfigHolder.tools.vajraMiningTiers;
-        if (tiers.length == 0) {
-            setMiningTier(stack, 0);
-            return 0;
-        }
-        int next = (getMiningTier(stack) + 1) % tiers.length;
-        setMiningTier(stack, next);
-        return next;
-    }
-
-    private static String speedTierNameKey(int index) {
-        return index >= 0 && index <= 3 ? "behavior.vajra.speed.name." + index
-                : "behavior.vajra.speed.name.generic";
+    public static void setMiningTicks(@NotNull ItemStack stack, int ticks) {
+        int clamped = MathHelper.clamp(ticks, MIN_MINING_TICKS, MAX_MINING_TICKS);
+        if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
+        stack.getTagCompound().setInteger(MINING_TICKS_TAG, clamped);
     }
 
     /**
@@ -221,79 +233,170 @@ public class VajraBehavior implements IItemBehaviour, IEnchantabilityHelper {
 
     private static int getMode(ItemStack stack) {
         if (!stack.hasTagCompound()) return 0;
-        return stack.getTagCompound().getInteger(MODE_TAG);
+        return stack.getTagCompound().getInteger(MODE_TAG) == 1 ? 1 : 0;
     }
 
-    private void setMode(ItemStack stack, int mode) {
-        if (!stack.hasTagCompound()) {
-            stack.setTagCompound(new NBTTagCompound());
+    private static String getModeKey(int mode) {
+        return mode == 1 ? "behavior.vajra.mode.silk_touch" : "behavior.vajra.mode.normal";
+    }
+
+    /**
+     * Writes the mode tag. The silk touch enchantment is mirrored onto the item because
+     * {@code harvestBlock} only honours the real enchantment, and the operation is idempotent
+     * so it can safely be called from both the settings UI and its synchronisation handlers.
+     * Only the silk touch enchantment is added/removed — other enchantments stay untouched.
+     */
+    public static void setMode(@NotNull ItemStack stack, int mode) {
+        int newMode = mode == 1 ? 1 : 0;
+        if (!stack.hasTagCompound()) stack.setTagCompound(new NBTTagCompound());
+        stack.getTagCompound().setInteger(MODE_TAG, newMode);
+        syncSilkTouchEnchantment(stack, newMode == 1);
+    }
+
+    private static void syncSilkTouchEnchantment(@NotNull ItemStack stack, boolean silkTouch) {
+        if (silkTouch) {
+            if (EnchantmentHelper.getEnchantmentLevel(Enchantments.SILK_TOUCH, stack) <= 0) {
+                stack.addEnchantment(Enchantments.SILK_TOUCH, 1);
+            }
+            return;
         }
-        stack.getTagCompound().setInteger(MODE_TAG, mode);
-    }
-
-    private String getModeName(int mode) {
-        return mode == 0 ? "普通模式" : "精准采集模式";
-    }
-
-    private void toggleMode(ItemStack stack, EntityPlayer player) {
-        int currentMode = getMode(stack);
-        int newMode = (currentMode + 1) % 2;
-        setMode(stack, newMode);
-
-        // harvestBlock picks silk touch up from the tool's enchantment, so the mode has to be
-        // mirrored onto the item; leaving a stale SILK_TOUCH enchantment behind would keep
-        // silk-touching while the tool reports normal mode.
-        if (newMode == 1) {
-            stack.addEnchantment(Enchantments.SILK_TOUCH, 1);
-        } else if (stack.getTagCompound() != null) {
-            stack.getTagCompound().removeTag("ench");
-        }
-
-        if (!player.world.isRemote) {
-            String modeName = getModeName(newMode);
-            player.sendMessage(new TextComponentTranslation(
-                    "behavior.vajra.mode_switched",
-                    modeName
-            ));
+        Map<Enchantment, Integer> enchantments = EnchantmentHelper.getEnchantments(stack);
+        if (enchantments.containsKey(Enchantments.SILK_TOUCH)) {
+            enchantments.remove(Enchantments.SILK_TOUCH);
+            EnchantmentHelper.setEnchantments(enchantments, stack);
         }
     }
 
     @Override
     public ActionResult<ItemStack> onItemRightClick(World world, EntityPlayer player, EnumHand hand) {
         ItemStack heldItem = player.getHeldItem(hand);
+        // The mining interval is only adjustable from the settings UI, opened by sneak + right-click
         if (player.isSneaking()) {
-            toggleMode(heldItem, player);
-        } else if (!world.isRemote) {
-            int tierIndex = cycleMiningTier(heldItem);
-            double seconds = getMiningTicks(heldItem) / 20.0;
-            player.sendMessage(new TextComponentTranslation("behavior.vajra.speed.changed",
-                    new TextComponentTranslation(speedTierNameKey(tierIndex), tierIndex + 1),
-                    String.format("%.2f", seconds)));
+            openSettings(world, player, hand, heldItem);
         }
-        return pass(player.getHeldItem(hand));
+        return pass(heldItem);
     }
 
     @Override
     public EnumActionResult onItemUseFirst(EntityPlayer player, World world, BlockPos pos, EnumFacing side,
                                            float hitX, float hitY, float hitZ, EnumHand hand) {
-        ItemStack heldItem = player.getHeldItem(hand);
         if (player.isSneaking()) {
-            toggleMode(heldItem, player);
+            openSettings(world, player, hand, player.getHeldItem(hand));
         }
         return EnumActionResult.SUCCESS;
     }
 
+    private static void openSettings(World world, EntityPlayer player, EnumHand hand, ItemStack stack) {
+        // MetaItemGuiFactory casts to EntityPlayerMP, so opening must only happen server side
+        if (world.isRemote || !isVajra(stack)) return;
+        MetaItemGuiFactory.open(player, hand);
+    }
+
     @Override
     public void addInformation(ItemStack itemStack, List<String> lines) {
-        int mode = getMode(itemStack);
-        String modeName = getModeName(mode);
+        String modeName = I18n.format(getModeKey(getMode(itemStack)));
         lines.add(TextFormatting.GOLD + I18n.format("behavior.vajra.tooltip.current_mode", modeName));
         lines.add(TextFormatting.AQUA + I18n.format("behavior.vajra.tooltip.mode_switch"));
 
-        int tier = getMiningTier(itemStack);
         int ticks = getMiningTicks(itemStack);
-        String seconds = ticks <= 0 ? "0.00" : String.format("%.2f", ticks / 20.0);
-        lines.add(TextFormatting.AQUA + I18n.format("behavior.vajra.tooltip.speed",
-                I18n.format(speedTierNameKey(tier), tier + 1), seconds));
+        String interval = ticks <= 0 ? I18n.format("behavior.vajra.tooltip.instant")
+                : I18n.format("behavior.vajra.tooltip.seconds", String.format("%.2f", ticks / 20.0));
+        lines.add(TextFormatting.AQUA + I18n.format("behavior.vajra.tooltip.speed", interval));
+    }
+
+    private static int getIntervalStep(@NotNull MouseData data) {
+        int step = 1;
+        if (data.shift) step *= 10;
+        if (data.ctrl) step *= 50;
+        return step;
+    }
+
+    @Override
+    public ModularPanel buildUI(HandGuiData guiData, PanelSyncManager guiSyncManager, UISettings settings) {
+        ItemStack stack = guiData.getUsedItemStack();
+
+        IntSyncValue intervalValue = new IntSyncValue(
+                () -> getMiningTicks(stack),
+                ticks -> setMiningTicks(stack, ticks));
+        IntSyncValue modeValue = new IntSyncValue(
+                () -> getMode(stack),
+                mode -> setMode(stack, mode));
+
+        guiSyncManager.syncValue("mining_interval", intervalValue);
+        guiSyncManager.syncValue("mining_mode", modeValue);
+
+        return GTGuis.createPanel(stack, PANEL_WIDTH, PANEL_HEIGHT)
+                .child(GTGuis.popupTitle(stack, stack.getTranslationKey() + ".name"))
+                .child(Flow.column()
+                        .top(26)
+                        .margin(7, 0)
+                        .widthRel(1f)
+                        .coverChildrenHeight()
+                        .child(IKey.lang("behavior.vajra.gui.interval")
+                                .asWidget()
+                                .marginBottom(3)
+                                .color(Color.WHITE.darker(1)))
+                        .child(Flow.row()
+                                .widthRel(1f)
+                                .coverChildrenHeight()
+                                .marginBottom(4)
+                                .child(new ButtonWidget<>()
+                                        .left(0)
+                                        .width(18)
+                                        .background(GTGuiTextures.MC_BUTTON)
+                                        .overlay(GTGuiTextures.MINUS)
+                                        .disableHoverBackground()
+                                        .tooltip(tooltip -> tooltip
+                                                .addLine(IKey.lang("behavior.vajra.gui.decrease")))
+                                        .onMousePressed(mouseButton -> {
+                                            int step = getIntervalStep(MouseData.create(mouseButton));
+                                            intervalValue.setIntValue(MathHelper.clamp(
+                                                    intervalValue.getIntValue() - step,
+                                                    MIN_MINING_TICKS, MAX_MINING_TICKS), true, true);
+                                            return true;
+                                        }))
+                                .child(new GTTextFieldWidget()
+                                        .left(18)
+                                        .right(18)
+                                        .setPostFix(IKey.lang("behavior.vajra.gui.unit"))
+                                        .setTextColor(Color.WHITE.darker(1))
+                                        .setNumbers(MIN_MINING_TICKS, MAX_MINING_TICKS)
+                                        .setMaxLength(3)
+                                        .value(intervalValue)
+                                        .background(GTGuiTextures.DISPLAY))
+                                .child(new ButtonWidget<>()
+                                        .right(0)
+                                        .width(18)
+                                        .background(GTGuiTextures.MC_BUTTON)
+                                        .overlay(GTGuiTextures.PLUS)
+                                        .disableHoverBackground()
+                                        .tooltip(tooltip -> tooltip
+                                                .addLine(IKey.lang("behavior.vajra.gui.increase")))
+                                        .onMousePressed(mouseButton -> {
+                                            int step = getIntervalStep(MouseData.create(mouseButton));
+                                            intervalValue.setIntValue(MathHelper.clamp(
+                                                    intervalValue.getIntValue() + step,
+                                                    MIN_MINING_TICKS, MAX_MINING_TICKS), true, true);
+                                            return true;
+                                        })))
+                        .child(IKey.lang("behavior.vajra.gui.seconds",
+                                () -> new Object[] { String.format("%.2f", intervalValue.getIntValue() / 20.0) })
+                                .asWidget()
+                                .marginBottom(6)
+                                .color(Color.WHITE.darker(1)))
+                        .child(new ToggleButton()
+                                .widthRel(1f)
+                                .height(20)
+                                .marginBottom(4)
+                                .background(GTGuiTextures.MC_BUTTON)
+                                .selectedBackground(GTGuiTextures.MC_BUTTON_DISABLED)
+                                .disableHoverBackground()
+                                .value(new BoolValue.Dynamic(
+                                        () -> modeValue.getIntValue() == 1,
+                                        selected -> modeValue.setIntValue(selected ? 1 : 0, true, true)))
+                                .overlay(IKey.lang(() -> getModeKey(modeValue.getIntValue()))))
+                        .child(IKey.lang("behavior.vajra.gui.hint")
+                                .asWidget()
+                                .color(Color.WHITE.darker(1))));
     }
 }
