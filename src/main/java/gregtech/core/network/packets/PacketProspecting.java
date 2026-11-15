@@ -20,7 +20,7 @@ public class PacketProspecting {
     public int posX;
     public int posZ;
     public ProspectorMode mode;
-    public HashMap<Byte, String>[][] map;
+    public HashMap<Integer, String>[][] map;
     public Set<String> ores;
 
     @SuppressWarnings("unused")
@@ -57,11 +57,11 @@ public class PacketProspecting {
         int checkOut = 0;
         for (int i = 0; i < aSize; i++)
             for (int j = 0; j < aSize; j++) {
-                byte kSize = buffer.readByte();
+                int kSize = buffer.readByte() & 0xFF;
                 if (kSize == 0) continue;
                 packet.map[i][j] = new HashMap<>();
                 for (int k = 0; k < kSize; k++) {
-                    byte y = buffer.readByte();
+                    int y = buffer.readShort();
                     String name = buffer.readString(1000);
                     packet.map[i][j].put(y, name);
                     if (packet.mode == ProspectorMode.ORE || y == 1)
@@ -113,8 +113,8 @@ public class PacketProspecting {
                     buffer.writeByte(0);
                 else {
                     buffer.writeByte(map[i][j].keySet().size());
-                    for (byte key : map[i][j].keySet()) {
-                        buffer.writeByte(key);
+                    for (int key : map[i][j].keySet()) {
+                        buffer.writeShort(key);
                         buffer.writeString(map[i][j].get(key));
                         checkOut++;
                     }
@@ -127,12 +127,12 @@ public class PacketProspecting {
         if (this.mode == ProspectorMode.ORE) {
             if (map[x][z] == null)
                 map[x][z] = new HashMap<>();
-            map[x][z].put((byte) y, orePrefix);
+            map[x][z].put(y, orePrefix);
             ores.add(orePrefix);
         } else if (this.mode == ProspectorMode.BEDROCK_FLUID || this.mode == ProspectorMode.BEDROCK_ORE) {
             if (map[x][z] == null)
                 map[x][z] = new HashMap<>();
-            map[x][z].put((byte) y, orePrefix);
+            map[x][z].put(y, orePrefix);
             if (y == 1) {
                 ores.add(orePrefix);
             }

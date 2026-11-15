@@ -189,7 +189,12 @@ public class SecondDegreeMaterials {
                 .components(Aluminium, 2, PotassiumFeldspar, 1, Oxygen, 3)
                 .build();
 
-        // Free ID 2021
+        Deepslate = Material.builder(2021, gregtechId("deepslate"))
+                .dust()
+                .color(0x797979).iconSet(ROUGH)
+                .flags(NO_SMASHING, DECOMPOSITION_BY_CENTRIFUGING)
+                .components(SiliconDioxide, 4, Biotite, 1)
+                .build();
 
         VanadiumMagnetite = Material.builder(2022, gregtechId("vanadium_magnetite"))
                 .dust().ore()
@@ -211,7 +216,12 @@ public class SecondDegreeMaterials {
                 .components(Caesium, 2, Aluminium, 2, Silicon, 4, Water, 2, Oxygen, 12)
                 .build();
 
-        // Free ID 2025
+        Tuff = Material.builder(2025, gregtechId("tuff"))
+                .dust()
+                .color(0x75756A).iconSet(ROUGH)
+                .flags(NO_SMASHING)
+                .components(Ash, 2, PotassiumFeldspar, 1)
+                .build();
 
         Bentonite = Material.builder(2026, gregtechId("bentonite"))
                 .dust().ore(3, 1)

@@ -43,6 +43,7 @@ public enum Mods {
     ExtraBees(Names.EXTRA_BEES),
     ExtraTrees(Names.EXTRA_TREES),
     ExtraUtilities2(Names.EXTRA_UTILITIES2),
+    FarmersFutureDelight(Names.FARMERS_FUTURE_DELIGHT),
     Forestry(Names.FORESTRY),
     ForestryApiculture(Names.FORESTRY, forestryModule(Names.FORESTRY_APICULTURE)),
     ForestryArboriculture(Names.FORESTRY, forestryModule(Names.FORESTRY_ARBORICULTURE)),
@@ -129,6 +130,7 @@ public enum Mods {
         public static final String EXTRA_BEES = "extrabees";
         public static final String EXTRA_TREES = "extratrees";
         public static final String EXTRA_UTILITIES2 = "extrautils2";
+        public static final String FARMERS_FUTURE_DELIGHT = "farmers_future_delight";
         public static final String FORESTRY = "forestry";
         public static final String FORESTRY_APICULTURE = "apiculture";
         public static final String FORESTRY_ARBORICULTURE = "arboriculture";

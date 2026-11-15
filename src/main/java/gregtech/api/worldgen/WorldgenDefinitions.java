@@ -2,12 +2,15 @@ package gregtech.api.worldgen;
 
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
+import gregtech.api.util.Mods;
 import gregtech.api.worldgen.config.BedrockFluidDepositBuilder;
 import gregtech.api.worldgen.config.OreDepositBuilder;
 import gregtech.api.worldgen.config.OreDepositDefinition;
 import gregtech.api.worldgen.config.WorldGenRegistry;
-import gregtech.common.ConfigHolder;
+import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.StoneVariantBlock.StoneType;
+import gregtech.common.blocks.StoneVariantBlock.StoneVariant;
+import gregtech.integration.ffd.FFDDeepslateCompat;
 
 import net.minecraft.block.BlockStone;
 import net.minecraft.block.state.IBlockState;
@@ -140,7 +143,7 @@ public final class WorldgenDefinitions {
                 60, 0.25f, 10, 40, Materials.Sapphire,
                 Materials.Almandine, Materials.Pyrope, Materials.Sapphire, Materials.GreenSapphire, 14, 16).build());
 
-        // 石材 sphere（装饰性，不占用矿脉位）
+        // 石材 sphere
         registerVein(registry, stoneSphere("overworld/basalt_sphere", "gregtech.veins.ore.basalt_sphere",
                 120, StoneType.BASALT));
 
@@ -153,21 +156,21 @@ public final class WorldgenDefinitions {
         registerVein(registry, stoneSphere("overworld/red_granite_sphere", "gregtech.veins.ore.red_granite_sphere",
                 90, StoneType.RED_GRANITE));
 
-        if (ConfigHolder.worldgen.disableVanillaOres) {
-            registerVein(registry, vanillaStoneSphere("overworld/dirt_sphere", "gregtech.veins.ore.dirt_sphere",
-                    120, Blocks.DIRT.getDefaultState(), 10, 200));
+        registerVein(registry, stoneSphere("overworld/granite_sphere", "gregtech.veins.ore.granite_sphere",
+                90, stoneVariant(BlockStone.EnumType.GRANITE), 10, Integer.MAX_VALUE));
 
-            registerVein(registry, vanillaStoneSphere("overworld/gravel_sphere", "gregtech.veins.ore.gravel_sphere",
-                    120, Blocks.GRAVEL.getDefaultState(), 10, 200));
+        registerVein(registry, stoneSphere("overworld/diorite_sphere", "gregtech.veins.ore.diorite_sphere",
+                90, stoneVariant(BlockStone.EnumType.DIORITE), 10, Integer.MAX_VALUE));
 
-            registerVein(registry, vanillaStoneSphere("overworld/granite_sphere", "gregtech.veins.ore.granite_sphere",
-                    90, stoneVariant(BlockStone.EnumType.GRANITE), 10, 70));
+        registerVein(registry, stoneSphere("overworld/andesite_sphere", "gregtech.veins.ore.andesite_sphere",
+                90, stoneVariant(BlockStone.EnumType.ANDESITE), 10, Integer.MAX_VALUE));
 
-            registerVein(registry, vanillaStoneSphere("overworld/diorite_sphere", "gregtech.veins.ore.diorite_sphere",
-                    90, stoneVariant(BlockStone.EnumType.DIORITE), 10, 70));
-
-            registerVein(registry, vanillaStoneSphere("overworld/andesite_sphere", "gregtech.veins.ore.andesite_sphere",
-                    90, stoneVariant(BlockStone.EnumType.ANDESITE), 10, 70));
+        if(Mods.FarmersFutureDelight.isModLoaded()) {
+            IBlockState tuffState = FFDDeepslateCompat.tuffState();
+            if (tuffState != null) {
+                registerVein(registry, stoneSphere("overworld/tuff_sphere", "gregtech.veins.ore.tuff_sphere",
+                        90, tuffState, 0, 30));
+            }
         }
 
         // 原油球：流体 sphere + fluid_spring populator
@@ -177,6 +180,7 @@ public final class WorldgenDefinitions {
                 .density(1.0f)
                 .minHeight(10)
                 .maxHeight(40)
+                .deepYields(-30,0)
                 .priority(-100)
                 .countAsVein(false)
                 .dimensionId(0)
@@ -349,22 +353,7 @@ public final class WorldgenDefinitions {
 
     /** 石材 sphere：sphere generator + ignore_bedrock + weight_random(stone_smooth 变体)，不占用矿脉位 */
     private static OreDepositDefinition stoneSphere(String name, String translationKey, int weight,
-                                                    StoneType stoneType) {
-        return OreDepositBuilder.definitionBuilder(name)
-                .translationKey(translationKey)
-                .weight(weight)
-                .priority(100)
-                .density(1.0f)
-                .minHeight(10)
-                .countAsVein(false)
-                .dimensionId(0)
-                .sphereGeneration(10, 20)
-                .stoneSmoothSphereFill(stoneType)
-                .build();
-    }
-
-    private static OreDepositDefinition vanillaStoneSphere(String name, String translationKey, int weight,
-                                                          IBlockState state, int minHeight, int maxHeight) {
+                                                    IBlockState fillState, int minHeight, int maxHeight) {
         return OreDepositBuilder.definitionBuilder(name)
                 .translationKey(translationKey)
                 .weight(weight)
@@ -375,8 +364,14 @@ public final class WorldgenDefinitions {
                 .countAsVein(false)
                 .dimensionId(0)
                 .sphereGeneration(10, 20)
-                .vanillaStoneSphereFill(state)
+                .sphereFill(fillState)
                 .build();
+    }
+
+    private static OreDepositDefinition stoneSphere(String name, String translationKey, int weight,
+                                                    StoneType stoneType) {
+        return stoneSphere(name, translationKey, weight,
+                MetaBlocks.STONE_BLOCKS.get(StoneVariant.SMOOTH).getState(stoneType), 10, Integer.MAX_VALUE);
     }
 
     private static IBlockState stoneVariant(BlockStone.EnumType type) {

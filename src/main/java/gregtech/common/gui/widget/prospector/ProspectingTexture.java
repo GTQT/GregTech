@@ -30,8 +30,8 @@ public class ProspectingTexture extends AbstractTexture {
     private boolean darkMode;
     private int imageWidth = -1;
     private int imageHeight = -1;
-    public final Map<Byte, String>[][] map;
-    public static Map<Byte, String> emptyTag = new HashMap<>();
+    public final Map<Integer, String>[][] map;
+    public static Map<Integer, String> emptyTag = new HashMap<>();
     private int playerXGui;
     private int playerYGui;
     private final ProspectorMode mode;
@@ -104,7 +104,7 @@ public class ProspectingTexture extends AbstractTexture {
         for (int i = 0; i < wh; i++) {
             for (int j = 0; j < wh; j++) {
                 boolean isChunkMode = this.mode == ProspectorMode.BEDROCK_FLUID || this.mode == ProspectorMode.BEDROCK_ORE;
-                Map<Byte, String> data = this.map[isChunkMode ? i / 16 : i][isChunkMode ? j / 16 : j];
+                Map<Integer, String> data = this.map[isChunkMode ? i / 16 : i][isChunkMode ? j / 16 : j];
                 // draw bg
                 image.setRGB(i, j, ((data == null) ^ darkMode) ? Color.darkGray.getRGB() : Color.WHITE.getRGB());
                 // draw ore
@@ -160,7 +160,7 @@ public class ProspectingTexture extends AbstractTexture {
             for (int cx = 0; cx < this.radius * 2 - 1; cx++) {
                 for (int cz = 0; cz < this.radius * 2 - 1; cz++) {
                     if (this.map[cx][cz] != null && !this.map[cx][cz].isEmpty()) {
-                        Fluid fluid = FluidRegistry.getFluid(this.map[cx][cz].get((byte) 1));
+                        Fluid fluid = FluidRegistry.getFluid(this.map[cx][cz].get(1));
                         if (selected.equals(SELECTED_ALL) || selected.equals(fluid.getName())) {
                             RenderUtil.drawFluidForGui(new FluidStack(fluid, 1), 1, x + cx * 16 + 1, y + cz * 16 + 1,
                                     16, 16);
@@ -173,7 +173,7 @@ public class ProspectingTexture extends AbstractTexture {
             for (int cx = 0; cx < this.radius * 2 - 1; cx++) {
                 for (int cz = 0; cz < this.radius * 2 - 1; cz++) {
                     if (this.map[cx][cz] != null && !this.map[cx][cz].isEmpty()) {
-                        String oreNames = this.map[cx][cz].get((byte) 1);
+                        String oreNames = this.map[cx][cz].get(1);
                         if (selected.equals(SELECTED_ALL) || oreNames.contains(selected)) {
                             int colorHash = oreNames.hashCode();
                             Color c = new Color(colorHash | 0xFF000000);

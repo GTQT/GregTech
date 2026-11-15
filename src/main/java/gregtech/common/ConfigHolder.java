@@ -331,7 +331,9 @@ public class ConfigHolder {
         @Config.Comment({ "Whether veins should be generated in the center of chunks.", "Default: true" })
         public boolean generateVeinsInCenterOfChunk = true;
 
-        @Config.Comment({ "Whether to disable Vanilla ore generation in world.", "Default: true" })
+        @Config.Comment({ "Whether to disable Vanilla ore generation in world.",
+                "Also disables the Vanilla underground blobs of dirt, gravel and stone variants (diorite/granite/andesite).",
+                "Default: true" })
         public boolean disableVanillaOres = true;
 
         @Config.Comment({ "Whether to disable Rubber Tree world generation.", "Default: false" })

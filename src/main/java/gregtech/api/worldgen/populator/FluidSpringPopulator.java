@@ -1,6 +1,7 @@
 package gregtech.api.worldgen.populator;
 
 import gregtech.api.worldgen.config.OreDepositDefinition;
+import gregtech.api.worldgen.filler.FillerEntry;
 import gregtech.api.worldgen.generator.GridEntryInfo;
 
 import net.minecraft.block.state.IBlockState;
@@ -16,7 +17,7 @@ public class FluidSpringPopulator implements VeinBufferPopulator {
     private final float springGenerationChance;
 
     public FluidSpringPopulator(IBlockState fluidState, float springGenerationChance) {
-        this.fluidState = fluidState;
+        this.fluidState = FillerEntry.toFluidSourceState(fluidState);
         this.springGenerationChance = springGenerationChance;
     }
 

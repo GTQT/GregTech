@@ -19,6 +19,7 @@ import gregtech.api.worldgen.bedrockOres.VeinHelper;
 import gregtech.api.worldgen.config.OreDepositDefinition;
 import gregtech.api.worldgen.config.WorldGenRegistry;
 import gregtech.api.worldgen.filler.FillerEntry;
+import gregtech.api.worldgen.generator.WorldHeightCompat;
 import gregtech.common.gui.widget.prospector.ProspectingTexture;
 import gregtech.common.gui.widget.prospector.ProspectorMode;
 import gregtech.core.network.packets.PacketProspecting;
@@ -137,10 +138,13 @@ public class WidgetProspectingMap extends Widget {
             switch (mode) {
                 case ORE:
                     BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
+                    // 拓展高度世界（FFD 洞穴与山崖）的矿物可以一直分布到 Y=-64；高度图也跟着世界高度走，
+                    // 所以从世界底部开始扫，而不是固定从 Y=1 开始。
+                    int minY = WorldHeightCompat.minY(world);
                     for (int x = 0; x < 16; x++) {
                         for (int z = 0; z < 16; z++) {
                             int ySize = chunk.getHeightValue(x, z);
-                            for (int y = 1; y < ySize; y++) {
+                            for (int y = minY; y < ySize; y++) {
                                 pos.setPos(x, y, z);
                                 IBlockState state = chunk.getBlockState(pos);
                                 ItemStack itemBlock = GTUtility.toItem(state);
@@ -302,7 +306,7 @@ public class WidgetProspectingMap extends Widget {
                                 if (ProspectingTexture.SELECTED_ALL.equals(texture.getSelected()) ||
                                         texture.getSelected().equals(dict)) {
                                     oreInfo.put(name, oreInfo.getOrDefault(name, 0) + 1);
-                                    oreHeight.put(name, oreHeight.getOrDefault(name, 0) + Byte.toUnsignedInt(height));
+                                    oreHeight.put(name, oreHeight.getOrDefault(name, 0) + height);
                                     if (oreInfo.get(name) > maxAmount[0]) {
                                         maxAmount[0] = oreInfo.get(name);
                                         MaterialStack m = OreDictUnifier.getMaterial(OreDictUnifier.get(dict));
@@ -334,15 +338,15 @@ public class WidgetProspectingMap extends Widget {
                 tooltips.add(I18n.format("terminal.prospector.fluid"));
                 if (texture.map[cX][cZ] != null && !texture.map[cX][cZ].isEmpty()) {
                     if (ProspectingTexture.SELECTED_ALL.equals(texture.getSelected()) ||
-                            texture.getSelected().equals(texture.map[cX][cZ].get((byte) 1))) {
-                        FluidStack fluidStack = FluidRegistry.getFluidStack(texture.map[cX][cZ].get((byte) 1), 1);
+                            texture.getSelected().equals(texture.map[cX][cZ].get(1))) {
+                        FluidStack fluidStack = FluidRegistry.getFluidStack(texture.map[cX][cZ].get(1), 1);
                         if (fluidStack != null) {
                             tooltips.add(I18n.format("terminal.prospector.fluid.info",
                                     fluidStack.getLocalizedName(),
-                                    texture.map[cX][cZ].get((byte) 2),
-                                    texture.map[cX][cZ].get((byte) 3)));
+                                    texture.map[cX][cZ].get(2),
+                                    texture.map[cX][cZ].get(3)));
                             hoveredNames.add(fluidStack.getLocalizedName());
-                            int amount = Integer.parseInt(texture.map[cX][cZ].get((byte) 2));
+                            int amount = Integer.parseInt(texture.map[cX][cZ].get(2));
                             if (amount > maxAmount[0]) {
                                 maxAmount[0] = amount;
                                 color = fluidStack.getFluid().getColor(fluidStack);
@@ -353,14 +357,14 @@ public class WidgetProspectingMap extends Widget {
             } else if (this.mode == ProspectorMode.BEDROCK_ORE) {
                 tooltips.add(I18n.format("terminal.prospector.bedrock_ore"));
                 if (texture.map[cX][cZ] != null && !texture.map[cX][cZ].isEmpty()) {
-                    String oreNames = texture.map[cX][cZ].get((byte) 1);
+                    String oreNames = texture.map[cX][cZ].get(1);
                     if (ProspectingTexture.SELECTED_ALL.equals(texture.getSelected()) ||
                             oreNames.contains(texture.getSelected())) {
                         String displayNames = resolveOreDisplayNames(oreNames);
                         tooltips.add(I18n.format("terminal.prospector.bedrock_ore.info",
                                 displayNames,
-                                texture.map[cX][cZ].get((byte) 2),
-                                texture.map[cX][cZ].get((byte) 3)));
+                                texture.map[cX][cZ].get(2),
+                                texture.map[cX][cZ].get(3)));
                         hoveredNames.add(oreNames);
                     }
                 }

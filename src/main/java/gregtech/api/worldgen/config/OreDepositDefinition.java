@@ -28,6 +28,8 @@ public class OreDepositDefinition implements IWorldgenDefinition {
     private String assignedName;
     private String description;
     private final int[] heightLimit = new int[] { Integer.MIN_VALUE, Integer.MAX_VALUE };
+    /** Height range used in worlds with an extended vertical span (see {@link #getHeightLimit(boolean)}). */
+    private final int[] deepHeightLimit = new int[] { Integer.MIN_VALUE, Integer.MAX_VALUE };
     private boolean countAsVein = true;
 
     private Function<Biome, Integer> biomeWeightModifier = NO_BIOME_INFLUENCE;
@@ -73,6 +75,21 @@ public class OreDepositDefinition implements IWorldgenDefinition {
 
     public boolean checkInHeightLimit(int yLevel) {
         return yLevel >= heightLimit[0] && yLevel <= heightLimit[1];
+    }
+
+    /**
+     * @param extended {@code true} for worlds with an extended vertical span (Y=-64..319)
+     * @return the height range that applies to the given world kind
+     */
+    public int[] getHeightLimit(boolean extended) {
+        return extended ? deepHeightLimit : heightLimit;
+    }
+
+    /**
+     * @return the height range used in extended height worlds (Farmer's Future Delight's Caves &amp; Cliffs)
+     */
+    public int[] getDeepHeightLimit() {
+        return deepHeightLimit;
     }
 
     public int[] getHeightLimit() {
@@ -138,6 +155,11 @@ public class OreDepositDefinition implements IWorldgenDefinition {
         this.heightLimit[1] = maxHeight;
     }
 
+    void setDeepHeightLimit(int minHeight, int maxHeight) {
+        this.deepHeightLimit[0] = minHeight;
+        this.deepHeightLimit[1] = maxHeight;
+    }
+
     void setCountAsVein(boolean countAsVein) {
         this.countAsVein = countAsVein;
     }
@@ -183,6 +205,10 @@ public class OreDepositDefinition implements IWorldgenDefinition {
         if (this.getMinimumHeight() != objDeposit.getMinimumHeight())
             return false;
         if (this.getMaximumHeight() != objDeposit.getMaximumHeight())
+            return false;
+        if (this.getDeepHeightLimit()[0] != objDeposit.getDeepHeightLimit()[0])
+            return false;
+        if (this.getDeepHeightLimit()[1] != objDeposit.getDeepHeightLimit()[1])
             return false;
         if (!Objects.equals(this.assignedName, objDeposit.getAssignedName()))
             return false;

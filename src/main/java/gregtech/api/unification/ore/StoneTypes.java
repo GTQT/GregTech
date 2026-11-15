@@ -1,9 +1,11 @@
 package gregtech.api.unification.ore;
 
 import gregtech.api.unification.material.Materials;
+import gregtech.api.util.Mods;
 import gregtech.common.blocks.MetaBlocks;
 import gregtech.common.blocks.StoneVariantBlock;
 import gregtech.common.blocks.StoneVariantBlock.StoneVariant;
+import gregtech.integration.ffd.FFDDeepslateCompat;
 
 import net.minecraft.block.BlockRedSandstone;
 import net.minecraft.block.BlockSandStone;
@@ -14,6 +16,12 @@ import net.minecraft.block.state.IBlockState;
 import net.minecraft.init.Blocks;
 
 public class StoneTypes {
+
+    /**
+     * Number of stone types declared below (ids 0..11). These ids are reserved for GregTech itself, so
+     * {@link StoneType#getStoneTypeID()} starts handing out ids after them.
+     */
+    public static final int BUILTIN_STONE_TYPE_COUNT = 12;
 
     // Real Types that drop custom Ores
     public static final StoneType STONE = StoneType.Builder.create(0, "stone")
@@ -133,6 +141,28 @@ public class StoneTypes {
             .predicate(state -> gtStonePredicate(state, StoneVariantBlock.StoneType.BASALT))
             .shouldBeDroppedAsItem(false)
             .build();
+
+    public static final StoneType DEEPSLATE = Mods.FarmersFutureDelight.isModLoaded() ?
+            StoneType.Builder.create("deepslate")
+                    .soundType(SoundType.STONE)
+                    .processingPrefix(OrePrefix.oreDeepslate)
+                    .stoneMaterial(Materials.Deepslate)
+                    .stone(FFDDeepslateCompat::deepslateState)
+                    .predicate(FFDDeepslateCompat::isDeepslate)
+                    .shouldBeDroppedAsItem(true)
+                    .build() :
+            null;
+
+    public static final StoneType TUFF = Mods.FarmersFutureDelight.isModLoaded() ?
+            StoneType.Builder.create("tuff")
+                    .soundType(SoundType.STONE)
+                    .processingPrefix(OrePrefix.oreTuff)
+                    .stoneMaterial(Materials.Tuff)
+                    .stone(FFDDeepslateCompat::tuffState)
+                    .predicate(FFDDeepslateCompat::isTuff)
+                    .shouldBeDroppedAsItem(true)
+                    .build() :
+            null;
 
     private static IBlockState gtStoneState(StoneVariantBlock.StoneType stoneType) {
         return MetaBlocks.STONE_BLOCKS.get(StoneVariant.SMOOTH).getState(stoneType);

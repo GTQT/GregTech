@@ -774,6 +774,8 @@ public class Materials {
     public static Material Marble;
     public static Material GraniteBlack;
     public static Material GraniteRed;
+    public static Material Deepslate;
+    public static Material Tuff;
     public static Material VanadiumMagnetite;
     public static Material QuartzSand;
     public static Material Pollucite;

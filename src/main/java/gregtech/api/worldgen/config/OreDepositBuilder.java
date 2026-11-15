@@ -6,6 +6,7 @@ import gregtech.api.worldgen.filler.BlockFiller;
 import gregtech.api.worldgen.filler.FillerEntry;
 import gregtech.api.worldgen.filler.LayeredBlockFiller;
 import gregtech.api.worldgen.filler.SimpleBlockFiller;
+import gregtech.api.worldgen.generator.WorldHeightCompat;
 import gregtech.api.worldgen.populator.FluidBallPopulator;
 import gregtech.api.worldgen.populator.FluidSpringPopulator;
 import gregtech.api.worldgen.populator.IVeinPopulator;
@@ -38,6 +39,9 @@ public class OreDepositBuilder extends DepositBuilder<OreDepositBuilder, OreDepo
 
     private int minHeight = Integer.MIN_VALUE;
     private int maxHeight = Integer.MAX_VALUE;
+    private int deepMinHeight = Integer.MIN_VALUE;
+    private int deepMaxHeight = Integer.MAX_VALUE;
+    private boolean deepYieldsSet = false;
     private float density;
     private WorldBlockPredicate generationPredicate = OreDepositDefinition.PREDICATE_STONE_TYPE;
     private IVeinPopulator veinPopulator;
@@ -72,6 +76,21 @@ public class OreDepositBuilder extends DepositBuilder<OreDepositBuilder, OreDepo
         return getThis();
     }
 
+    /**
+     * Height range used in worlds with an extended vertical span (Farmer's Future Delight's Caves &amp; Cliffs world
+     * type, Y=-64..319). When this is not specified, the vanilla {@link #minHeight(int)}/{@link #maxHeight(int)}
+     * range is scaled into the extended world automatically.
+     *
+     * @param minHeight lowest vein center Y in the extended world
+     * @param maxHeight highest vein center Y in the extended world
+     */
+    public OreDepositBuilder deepYields(int minHeight, int maxHeight) {
+        this.deepMinHeight = minHeight;
+        this.deepMaxHeight = maxHeight;
+        this.deepYieldsSet = true;
+        return getThis();
+    }
+
     public OreDepositBuilder generationPredicate(WorldBlockPredicate predicate) {
         this.generationPredicate = predicate;
         return getThis();
@@ -94,12 +113,12 @@ public class OreDepositBuilder extends DepositBuilder<OreDepositBuilder, OreDepo
     }
 
     public OreDepositBuilder fluidSpring(IBlockState fluidState, float chance) {
-        this.veinPopulator = new FluidSpringPopulator(fluidState, chance);
+        this.veinPopulator = new FluidSpringPopulator(FillerEntry.toFluidSourceState(fluidState), chance);
         return getThis();
     }
 
     public OreDepositBuilder fluidBall(IBlockState fluidState, float chance) {
-        this.veinPopulator = new FluidBallPopulator(fluidState, chance);
+        this.veinPopulator = new FluidBallPopulator(FillerEntry.toFluidSourceState(fluidState), chance);
         return getThis();
     }
 
@@ -185,20 +204,25 @@ public class OreDepositBuilder extends DepositBuilder<OreDepositBuilder, OreDepo
         return getThis();
     }
 
-    /** 石材 sphere 填充（stone_smooth 变体） */
-    public OreDepositBuilder stoneSmoothSphereFill(StoneVariantBlock.StoneType stoneType) {
-        IBlockState state = MetaBlocks.STONE_BLOCKS.get(StoneVariant.SMOOTH).getState(stoneType);
-        return ignoreBedrockFill(FillerEntry.createSimpleFiller(state));
-    }
-
-    /** 原版石头球填充：只替换天然石头（对应原版 {@code WorldGenMinable.StonePredicate}），不动空气/水/基岩 */
-    public OreDepositBuilder vanillaStoneSphereFill(IBlockState blockState) {
+    /** 石头球填充：只替换天然石头与深板岩（GT 平滑石 / 原版方块都走这一条路径） */
+    public OreDepositBuilder sphereFill(IBlockState blockState) {
         return ignoreBedrockFill(FillerEntry.createNaturalStoneFiller(blockState));
     }
 
-    /** 流体填充（raw_oil_sphere 用） */
+    /** 石材 sphere 填充（stone_smooth 变体） */
+    public OreDepositBuilder stoneSmoothSphereFill(StoneVariantBlock.StoneType stoneType) {
+        return sphereFill(MetaBlocks.STONE_BLOCKS.get(StoneVariant.SMOOTH).getState(stoneType));
+    }
+
+    /** 原版石头球填充：只替换天然石头与深板岩，不动空气/水/基岩 */
+    public OreDepositBuilder vanillaStoneSphereFill(IBlockState blockState) {
+        return sphereFill(blockState);
+    }
+
+    /** 流体填充（raw_oil_sphere 用）：统一写成源方块 */
     public OreDepositBuilder fluidFill(Fluid fluid) {
-        return ignoreBedrockFill(FillerEntry.createSimpleFiller(fluid.getBlock().getDefaultState()));
+        return ignoreBedrockFill(FillerEntry.createSimpleFiller(
+                FillerEntry.toFluidSourceState(fluid.getBlock().getDefaultState())));
     }
 
     /** 构建并注册到 WorldGenRegistry（addon 推荐入口） */
@@ -232,6 +256,12 @@ public class OreDepositBuilder extends DepositBuilder<OreDepositBuilder, OreDepo
         OreDepositDefinition definition = super.build();
         definition.setDensity(density);
         definition.setHeightLimit(minHeight, maxHeight);
+        if (deepYieldsSet) {
+            definition.setDeepHeightLimit(deepMinHeight, deepMaxHeight);
+        } else {
+            definition.setDeepHeightLimit(WorldHeightCompat.scaleToExtendedHeight(minHeight),
+                    WorldHeightCompat.scaleToExtendedHeight(maxHeight));
+        }
         definition.setGenerationPredicate(generationPredicate);
         definition.setVeinPopulator(veinPopulator);
         definition.setBlockFiller(blockFiller);

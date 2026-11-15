@@ -93,17 +93,21 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
     };
 
     private final Random gridRandom;
+    private final World world;
     private final int gridX;
     private final int gridZ;
     private final List<Entry<Integer, OreDepositDefinition>> cachedDepositMap;
     private GTWorldGenCapability masterEntry;
     private final int worldSeaLevel;
+    /** Lowest block Y of the world: 0 normally, -64 in Farmer's Future Delight's extended height worlds. */
+    private final int minY;
     private Map<OreDepositDefinition, BlockPos> veinGeneratedMap;
 
     private int veinCenterX, veinCenterY, veinCenterZ;
     private OreDepositDefinition currentOreVein;
 
     public CachedGridEntry(World world, int gridX, int gridZ, int primerChunkX, int primerChunkZ) {
+        this.world = world;
         this.gridX = gridX;
         this.gridZ = gridZ;
         long worldSeed = world.getSeed();
@@ -118,6 +122,7 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
                 WorldGenRegistry.INSTANCE.getCachedBiomeVeins(world.provider, currentBiome));
 
         this.worldSeaLevel = world.getSeaLevel();
+        this.minY = WorldHeightCompat.minY(world);
         this.masterEntry = searchMasterOrNull(world);
         if (masterEntry == null) {
             Chunk primerChunk = world.getChunk(primerChunkX, primerChunkZ);
@@ -197,11 +202,31 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
     }
 
     public boolean populateChunk(World world, int chunkX, int chunkZ, Random random) {
+        populateStoneLayers(world, chunkX, chunkZ);
+        populateOreLayers(world, chunkX, chunkZ, random);
+        return dataByChunkPos.containsKey((long) chunkX << 32 | chunkZ & 0xFFFFFFFFL);
+    }
+
+    /**
+     * Writes the non-vein definitions of this chunk (stone spheres and other blob-style deposits). It is called for
+     * every grid entry of the chunk before any vein is written, so that veins always pick their base block from the
+     * final stone layout, no matter which of the 3x3 grid cells the sphere or the vein belongs to.
+     */
+    public void populateStoneLayers(World world, int chunkX, int chunkZ) {
+        ChunkDataEntry chunkDataEntry = dataByChunkPos.get((long) chunkX << 32 | chunkZ & 0xFFFFFFFFL);
+        if (chunkDataEntry != null) {
+            chunkDataEntry.populateChunk(world, false);
+        }
+    }
+
+    /** Writes veins, their chunk populators and the lean ore shells after all stone layers of the chunk were placed. */
+    public void populateOreLayers(World world, int chunkX, int chunkZ, Random random) {
         long chunkId = (long) chunkX << 32 | chunkZ & 0xFFFFFFFFL;
         ChunkDataEntry chunkDataEntry = dataByChunkPos.get(chunkId);
         GTWorldGenCapability capability = retrieveCapability(world, chunkX, chunkZ);
         capability.setFrom(masterEntry);
-        if (chunkDataEntry != null && chunkDataEntry.populateChunk(world)) {
+        if (chunkDataEntry != null) {
+            chunkDataEntry.populateChunk(world, true);
             for (OreDepositDefinition definition : chunkDataEntry.generatedOres) {
                 IVeinPopulator veinPopulator = definition.getVeinPopulator();
                 if (veinPopulator instanceof VeinChunkPopulator) {
@@ -210,7 +235,6 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
             }
         }
         scatterLeanOres(world, chunkX, chunkZ);
-        return chunkDataEntry != null;
     }
 
     @Override
@@ -264,9 +288,12 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
         this.currentOreVein = definition;
 
         int topHeightOffset = currentOreVein.getShapeGenerator().getMaxSize().getY() / 2 + 4;
-        int maximumHeight = Math.min(masterEntry.getMaxBottomHeight(),
-                currentOreVein.getHeightLimit()[1] - topHeightOffset);
-        int minimumHeight = Math.max(3, currentOreVein.getHeightLimit()[0]);
+        // Extended height worlds use the vein's deepYields range (explicit, or scaled from the vanilla range).
+        int[] heightLimit = currentOreVein.getHeightLimit(WorldHeightCompat.isExtended(world));
+        int maximumHeight = Math.min(masterEntry.getMaxBottomHeight(), heightLimit[1] - topHeightOffset);
+        // The registered height limit is used as-is; the only adjustment is the world's own bottom, so veins can
+        // also generate in the negative Y range of extended height worlds.
+        int minimumHeight = Math.max(minY + 3, heightLimit[0]);
         if (minimumHeight >= maximumHeight) {
             return;
         }
@@ -328,11 +355,11 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
         int chunkZ = worldZ >> 4;
         int localX = worldX - chunkX * 16;
         int localZ = worldZ - chunkZ * 16;
-        if (worldY > 0) {
+        if (worldY > minY) {
             long chunkKey = (long) chunkX << 32 | chunkZ & 0xFFFFFFFFL;
             ChunkDataEntry dataEntry = dataByChunkPos.get(chunkKey);
             if (dataEntry == null) {
-                dataEntry = new ChunkDataEntry(chunkX, chunkZ, gridRandom);
+                dataEntry = new ChunkDataEntry(chunkX, chunkZ, gridRandom, minY);
                 dataByChunkPos.put(chunkKey, dataEntry);
             }
             dataEntry.setBlock(localX, worldY, localZ, definition, index);
@@ -359,6 +386,7 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
         // 散落循环中的全部读写都发生在本区块内，可直接访问区块存储而无需走 World API
         Chunk chunk = world.getChunk(chunkX, chunkZ);
         ExtendedBlockStorage[] storage = chunk.getBlockStorageArray();
+        boolean extended = WorldHeightCompat.isExtended(world);
         boolean wroteAnything = false;
 
         int chunkBaseX = chunkX * 16;
@@ -416,7 +444,7 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
 
                     for (int dy = 0; dy <= yRange; dy++) {
                         int y = yMin + dy;
-                        if (y <= 0) continue;
+                        if (y <= minY) continue;
 
                         int ddy = Math.abs(y - veinCenter.getY());
                         // 小盒子内是正常矿区域，跳过
@@ -431,13 +459,13 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
 
                         // 盒内读写全部直通区块存储，绕开 World#getBlockState/setBlockState 的完整路径
                         pos.setPos(worldX, y, worldZ);
-                        IBlockState currentState = getBlockStateFast(storage, pos);
+                        IBlockState currentState = getBlockStateFast(world, storage, pos, extended);
                         StoneType stoneType = StoneType.computeStoneType(currentState, world, pos);
                         if (stoneType == null) continue;
 
                         IBlockState leanState = leanBlock.getOreBlock(stoneType);
                         // 不满足快速写入条件（光照/方块实体）时内部自动回退 World API
-                        setBlockStateDirect(world, storage, pos, leanState);
+                        setBlockStateDirect(world, storage, pos, leanState, extended);
                         wroteAnything = true;
                     }
                 }
@@ -490,7 +518,13 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
      * always the case during chunk generation. Mirrors {@link World#getBlockState} semantics,
      * including returning air for positions outside the build height.
      */
-    private static IBlockState getBlockStateFast(ExtendedBlockStorage[] storage, BlockPos pos) {
+    private static IBlockState getBlockStateFast(World world, ExtendedBlockStorage[] storage, BlockPos pos,
+                                                 boolean extended) {
+        if (extended) {
+            // Farmer's Future Delight remaps section indices for Y=-64..319, so its patched world API is the only
+            // safe way to read blocks there.
+            return world.getBlockState(pos);
+        }
         int y = pos.getY();
         if (y < 0 || y >= 256) {
             return Blocks.AIR.getDefaultState();
@@ -511,7 +545,11 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
      * Callers are responsible for marking the chunk modified when they performed direct writes.
      */
     private static void setBlockStateDirect(World world, ExtendedBlockStorage[] storage, BlockPos pos,
-                                            IBlockState newState) {
+                                            IBlockState newState, boolean extended) {
+        if (extended) {
+            world.setBlockState(pos, newState, 16);
+            return;
+        }
         int y = pos.getY();
         if (y >= 0 && y < 256) {
             ExtendedBlockStorage section = storage[y >> 4];
@@ -542,15 +580,18 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
         private final int chunkX;
         private final int chunkZ;
         private final Random gridRandom;
+        /** Lowest block Y of the world, used to pack block Y values into the 16-bit field below. */
+        private final int minY;
 
-        public ChunkDataEntry(int chunkX, int chunkZ, Random gridRandom) {
+        public ChunkDataEntry(int chunkX, int chunkZ, Random gridRandom, int minY) {
             this.chunkX = chunkX;
             this.chunkZ = chunkZ;
             this.gridRandom = gridRandom;
+            this.minY = minY;
         }
 
         public void setBlock(int x, int y, int z, OreDepositDefinition definition, int index) {
-            int xzValue = (x & 0xFF) | ((z & 0xFF) << 8) | ((y & 0xFF) << 16);
+            int xzValue = (x & 0xFF) | ((z & 0xFF) << 8) | (((y - minY) & 0xFFFF) << 16);
             long blockIndex = (long) xzValue << 32 | index & 0xFFFFFFFFL;
             MutablePair<LongList, Integer> pair = oreBlocks.get(definition);
             LongList longList;
@@ -566,13 +607,23 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
             longList.add(blockIndex);
         }
 
-        public boolean populateChunk(World world) {
+        public boolean populateChunk(World world, boolean veins) {
             // 生成期本区块必然已加载，直接抓取存储数组供后续快速读写复用
             Chunk chunk = world.getChunk(chunkX, chunkZ);
             ExtendedBlockStorage[] storage = chunk.getBlockStorageArray();
+            boolean extended = WorldHeightCompat.isExtended(world);
             MutableBlockPos blockPos = new MutableBlockPos();
             boolean generatedAnything = false;
-            for (Map.Entry<OreDepositDefinition, MutablePair<LongList, Integer>> entry : oreBlocks.entrySet()) {
+            // Ore blocks are buffered per definition in a hash map, so iteration order is unrelated to the order in
+            // which the definitions were generated. Writing stone spheres after the veins that intersect them would
+            // leave the ore blocks on the wrong base block (the filler picks the base from the block it finds), so
+            // non-vein definitions are written in a separate, earlier pass and veins keep priority order here.
+            List<Map.Entry<OreDepositDefinition, MutablePair<LongList, Integer>>> entries =
+                    new ArrayList<>(oreBlocks.entrySet());
+            entries.removeIf(entry -> entry.getKey().isVein() != veins);
+            entries.sort(Comparator.comparingInt((Map.Entry<OreDepositDefinition, MutablePair<LongList, Integer>> e) ->
+                    -e.getKey().getPriority()).thenComparing(e -> e.getKey().getDepositName()));
+            for (Map.Entry<OreDepositDefinition, MutablePair<LongList, Integer>> entry : entries) {
                 OreDepositDefinition definition = entry.getKey();
                 LongList blockIndexList = entry.getValue().getLeft();
                 int lowestY = entry.getValue().getRight();
@@ -585,10 +636,10 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
                     int xyzValue = (int) (blockIndex >> 32);
                     int blockX = (byte) xyzValue;
                     int blockZ = (byte) (xyzValue >> 8);
-                    int blockY = (short) (xyzValue >> 16);
+                    int blockY = ((xyzValue >>> 16) & 0xFFFF) + minY;
                     int index = (int) blockIndex;
                     blockPos.setPos(chunkX * 16 + blockX, blockY, chunkZ * 16 + blockZ);
-                    IBlockState currentState = getBlockStateFast(storage, blockPos);
+                    IBlockState currentState = getBlockStateFast(world, storage, blockPos, extended);
                     IBlockState newState;
                     if (index == 0) {
                         // it's primary ore block
@@ -603,7 +654,7 @@ public class CachedGridEntry implements GridEntryInfo, IBlockGeneratorAccess, IB
                     }
                     // set flags as 16 to avoid observer updates loading neighbour chunks;
                     // direct write path skips the world API entirely and falls back to it when unsafe
-                    setBlockStateDirect(world, storage, blockPos, newState);
+                    setBlockStateDirect(world, storage, blockPos, newState, extended);
                     generatedBlocks.add(Block.getStateId(newState));
                     generatedOreVein = true;
                     generatedAnything = true;

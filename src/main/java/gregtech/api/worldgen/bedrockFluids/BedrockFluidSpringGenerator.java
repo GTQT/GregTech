@@ -2,6 +2,7 @@ package gregtech.api.worldgen.bedrockFluids;
 
 import gregtech.api.util.random.XoShiRo256PlusPlusRandom;
 import gregtech.api.worldgen.config.BedrockFluidDepositDefinition;
+import gregtech.api.worldgen.generator.WorldHeightCompat;
 import gregtech.common.blocks.MetaBlocks;
 
 import net.minecraft.init.Blocks;
@@ -72,7 +73,8 @@ public class BedrockFluidSpringGenerator implements IWorldGenerator {
                 continue;
             }
 
-            mpos.setPos(centerBlockX + dx, 0, centerBlockZ + dz);
+            // 基岩层位于世界最低 Y：普通世界为 0，Farmer's Future Delight 的拓展高度世界为 -64
+            mpos.setPos(centerBlockX + dx, WorldHeightCompat.minY(world), centerBlockZ + dz);
             // 只替换基岩（超平坦等无基岩的世界天然跳过）
             if (world.getBlockState(mpos).getBlock() != Blocks.BEDROCK) continue;
 

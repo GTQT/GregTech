@@ -19,20 +19,25 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
 
+/**
+ * 防止 {@link BlockFluidBase#getFogColor} 无限递归：Forge 的实现里，眼睛不在流体内部时会委托给
+ * {@code pos.down(densityDir)} 的方块——正密度液体向上委托、负密度气体向下委托，于是"气体紧贴液体上方"时
+ * 两个方块会互相委托（液体找上面的气体，气体找下面的液体）。只要眼睛不在其中任一方块内部，递归就不会自行终止，
+ * 最终 StackOverflowError，表现为客户端崩溃/卡死。
+ * <p>
+ * 这里只加一层"雾色计算链"重入保护：重入时直接返回调用方给的 {@code originalColor}。不再 Overwrite
+ * {@code getFilledPercentage}——它是 Forge 公共 API（浸没判定、流体 capability 填充量、其它 mod 的渲染高度都
+ * 会调用），全局替换成"计算雾色期间返回 ±1"的伪造值会污染这些调用方，而它本身并不会调用 {@code getFogColor}，
+ * 根本不在递归环上。
+ */
 @Mixin(BlockFluidBase.class)
 public abstract class BlockFluidBaseMixin extends Block implements IFluidBlock {
 
-    // 防止递归的标记
+    // 雾色计算的递归标记：仅在当前线程的 getFogColor 调用链上为 true
     private static final ThreadLocal<Boolean> isCalculatingFogColor = ThreadLocal.withInitial(() -> false);
 
     @Shadow(remap = false)
     protected int densityDir;
-
-    @Shadow(remap = false)
-    protected int density;
-
-    @Shadow(remap = false)
-    protected float quantaPerBlockFloat;
 
     protected BlockFluidBaseMixin(Material materialIn, MapColor color) {
         super(materialIn, color);
@@ -41,17 +46,15 @@ public abstract class BlockFluidBaseMixin extends Block implements IFluidBlock {
     @Shadow(remap = false)
     protected abstract boolean isWithinFluid(IBlockAccess world, BlockPos pos, Vec3d vec);
 
-    @Shadow(remap = false)
-    protected abstract int getEffectiveQuanta(IBlockAccess world, BlockPos pos);
-
     /**
-     * @reason 修复 getFogColor 和 getFilledPercentage 之间的递归调用问题
+     * @reason 液体/气体相邻时 Forge 的雾色委托会形成无终止递归，重入时返回调用方原值即可终止
      * @author MeowmelMuku
      */
     @Overwrite(remap = false)
     @SideOnly(Side.CLIENT)
-    public Vec3d getFogColor(World world, BlockPos pos, IBlockState state, Entity entity, Vec3d originalColor, float partialTicks){
-        // 检查是否已经在计算雾效颜色，防止递归
+    public Vec3d getFogColor(World world, BlockPos pos, IBlockState state, Entity entity, Vec3d originalColor,
+                             float partialTicks) {
+        // 已经在计算雾色：说明是递归进来的，直接交还给调用方
         if (isCalculatingFogColor.get()) {
             return originalColor;
         }
@@ -78,22 +81,5 @@ public abstract class BlockFluidBaseMixin extends Block implements IFluidBlock {
         } finally {
             isCalculatingFogColor.set(false);
         }
-    }
-
-    /**
-     * @reason 修复 getFogColor 和 getFilledPercentage 之间的递归调用问题
-     * @author MeowmelMuku
-     */
-    @Overwrite(remap = false)
-    public float getFilledPercentage(IBlockAccess world, BlockPos pos)
-    {
-        // 如果正在计算雾效颜色，则返回默认值
-        if (isCalculatingFogColor.get()) {
-            return density > 0 ? 1 : -1; // 返回最大/最小值避免进一步计算
-        }
-
-        int quantaRemaining = getEffectiveQuanta(world, pos);
-        float remaining = (quantaRemaining + 1f) / (quantaPerBlockFloat + 1f);
-        return remaining * (density > 0 ? 1 : -1);
     }
 }

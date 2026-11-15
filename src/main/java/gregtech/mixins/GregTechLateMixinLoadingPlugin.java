@@ -24,6 +24,7 @@ public class GregTechLateMixinLoadingPlugin implements ILateMixinLoader {
         configs.add("mixins.gregtech.betterbuilderswands.json");
         configs.add("mixins.gregtech.chisel.json");
         configs.add("mixins.gregtech.tconstruct.json");
+        configs.add("mixins.gregtech.ffd.json");
         return configs;
     }
 
@@ -39,6 +40,7 @@ public class GregTechLateMixinLoadingPlugin implements ILateMixinLoader {
             case "mixins.gregtech.betterbuilderswands.json" -> Mods.BetterBuildersWands.isModLoaded();
             case "mixins.gregtech.chisel.json" -> Mods.Chisel.isModLoaded();
             case "mixins.gregtech.tconstruct.json" -> Mods.TinkersConstruct.isModLoaded();
+            case "mixins.gregtech.ffd.json" -> Mods.FarmersFutureDelight.isModLoaded();
             default -> true;
         };
     }

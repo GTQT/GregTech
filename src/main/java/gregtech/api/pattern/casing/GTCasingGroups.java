@@ -5,6 +5,8 @@ import gregtech.api.block.IHeatingCoilBlockStats;
 import gregtech.api.util.CasingTier;
 import gregtech.api.util.GlassTier;
 
+import net.minecraft.util.IStringSerializable;
+
 /**
  * Centralized registration of commonly-used ICasingGroup instances.
  * Each registration auto-creates a {@link StructureChannel} with the same name as the group.
@@ -33,7 +35,12 @@ public final class GTCasingGroups {
             heatingCoils = CasingDefinition.fromMap("heating_coil", true,
                     GregTechAPI.HEATING_COILS,
                     IHeatingCoilBlockStats::getTier,
-                    IHeatingCoilBlockStats::getName);
+                    // NOTE: do NOT use IHeatingCoilBlockStats::getName here. In production jars the
+                    // coil implementations have their getName renamed to func_176610_l by reobf,
+                    // while this mod interface keeps declaring "getName", so that method reference
+                    // resolves to an abstract method and throws AbstractMethodError at load time.
+                    // Calling through IStringSerializable keeps the reference remappable.
+                    stats -> ((IStringSerializable) stats).getName());
         }
         return heatingCoils;
     }

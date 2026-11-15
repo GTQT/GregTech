@@ -40,8 +40,16 @@ public class WorldgenModule extends BaseGregTechModule {
 
     public static final Logger LOGGER = LogManager.getLogger("GregTech Worldgen");
 
+    /**
+     * Vanilla generators that are disabled by {@link ConfigHolder.WorldGenOptions#disableVanillaOres}.
+     * <p>
+     * Besides real ores, this also covers the vanilla underground blobs of dirt, gravel and the stone
+     * variants (diorite/granite/andesite): they are registered as ore generators in {@code BiomeDecorator}
+     * as well, so leaving them enabled would keep scattering vanilla blobs through GT (and FFD) worlds.
+     */
     private static final Set<OreGenEvent.GenerateMinable.EventType> VANILLA_ORE_GEN_EVENT_TYPES = EnumSet.of(
-            COAL, DIAMOND, GOLD, IRON, LAPIS, REDSTONE, QUARTZ, EMERALD);
+            COAL, DIAMOND, GOLD, IRON, LAPIS, REDSTONE, QUARTZ, EMERALD,
+            DIRT, GRAVEL, DIORITE, GRANITE, ANDESITE);
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     public static void onGenerateMineable(@NotNull OreGenEvent.GenerateMinable event) {

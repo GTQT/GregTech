@@ -24,6 +24,20 @@ import java.util.function.Supplier;
 public class StoneType implements Comparable<StoneType> {
 
     public static final GTControlledRegistry<String, StoneType> STONE_TYPE_REGISTRY = new GTControlledRegistry<>(128);
+    /**
+     * Ids that were handed out by {@link #getStoneTypeID()} but whose StoneType has not been created yet, so two
+     * claims in the same initialization pass cannot return the same id.
+     */
+    private static final java.util.Set<Integer> claimedIds = new java.util.HashSet<>();
+
+    static {
+        // ids 0..11 are reserved for the built-in stone types declared in StoneTypes, so a mod that
+        // claims an id early can never take one of them.
+        for (int id = 0; id < StoneTypes.BUILTIN_STONE_TYPE_COUNT; id++) {
+            claimedIds.add(id);
+        }
+    }
+
     private static final ThreadLocal<Boolean> hasDummyPredicateRan = ThreadLocal.withInitial(() -> false);
     private static final com.google.common.base.Predicate<IBlockState> dummyPredicate = state -> {
         hasDummyPredicateRan.set(true);
@@ -57,6 +71,7 @@ public class StoneType implements Comparable<StoneType> {
         this.predicate = predicate::test;
         this.shouldBeDroppedAsItem = shouldBeDroppedAsItem || ConfigHolder.worldgen.allUniqueStoneTypes;
         STONE_TYPE_REGISTRY.register(id, name, this);
+        claimedIds.add(id);
         if (Mods.JustEnoughItems.isModLoaded() && this.shouldBeDroppedAsItem) {
             OreByProduct.addOreByProductPrefix(this.processingPrefix);
         }
@@ -65,6 +80,16 @@ public class StoneType implements Comparable<StoneType> {
     public static void init() {
         // noinspection ResultOfMethodCallIgnored
         StoneTypes.STONE.name.getBytes();
+    }
+
+    public static int getStoneTypeID() {
+        for (int id = 0; id < 128; id++) {
+            if (STONE_TYPE_REGISTRY.getObjectById(id) == null && !claimedIds.contains(id)) {
+                claimedIds.add(id);
+                return id;
+            }
+        }
+        throw new IllegalStateException("No free StoneType id left; the stone type registry is full (128 ids)");
     }
 
     public static StoneType computeStoneType(IBlockState state, IBlockAccess world, BlockPos pos) {
@@ -164,6 +189,16 @@ public class StoneType implements Comparable<StoneType> {
 
         public static Builder create(int id, String name) {
             return new Builder(id, name);
+        }
+
+        /**
+         * Creates a builder that claims the next free id via {@link StoneType#getStoneTypeID()}.
+         *
+         * <p>Equivalent to {@code create(StoneType.getStoneTypeID(), name)}; use this so addon stone
+         * types never collide with ids already used by other mods.</p>
+         */
+        public static Builder create(@NotNull String name) {
+            return new Builder(StoneType.getStoneTypeID(), name);
         }
 
         public Builder soundType(SoundType soundType) {

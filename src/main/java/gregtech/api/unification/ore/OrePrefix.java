@@ -101,6 +101,14 @@ public class OrePrefix {
             ENABLE_UNIFICATION, hasOreProperty);
     public static final OrePrefix oreBasaltLean = new OrePrefix("oreBasaltLean", -1, null, MaterialIconType.oreLean,
             ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreDeepslate = new OrePrefix("oreDeepslate", -1, null, MaterialIconType.ore,
+            ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreDeepslateLean = new OrePrefix("oreDeepslateLean", -1, null,
+            MaterialIconType.oreLean, ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreTuff = new OrePrefix("oreTuff", -1, null, MaterialIconType.ore,
+            ENABLE_UNIFICATION, hasOreProperty);
+    public static final OrePrefix oreTuffLean = new OrePrefix("oreTuffLean", -1, null,
+            MaterialIconType.oreLean, ENABLE_UNIFICATION, hasOreProperty);
 
     // In case of an Sand-Ores Mod. Ore -> Material is a Oneway Operation!
     public static final OrePrefix oreSand = new OrePrefix("oreSand", -1, null, MaterialIconType.ore, ENABLE_UNIFICATION,
@@ -146,6 +154,8 @@ public class OrePrefix {
         leanCounterparts.put(OrePrefix.oreRedgranite, OrePrefix.oreRedgraniteLean);
         leanCounterparts.put(OrePrefix.oreMarble, OrePrefix.oreMarbleLean);
         leanCounterparts.put(OrePrefix.oreBasalt, OrePrefix.oreBasaltLean);
+        leanCounterparts.put(OrePrefix.oreDeepslate, OrePrefix.oreDeepslateLean);
+        leanCounterparts.put(OrePrefix.oreTuff, OrePrefix.oreTuffLean);
         leanCounterparts.put(OrePrefix.oreSand, OrePrefix.oreSandLean);
         leanCounterparts.put(OrePrefix.oreRedSand, OrePrefix.oreRedSandLean);
         leanCounterparts.put(OrePrefix.oreNetherrack, OrePrefix.oreNetherrackLean);

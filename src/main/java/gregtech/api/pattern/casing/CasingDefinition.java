@@ -31,7 +31,11 @@ import java.util.function.Function;
  *     GTCasingGroups.heatingCoils().channel(),
  *     GregTechAPI.HEATING_COILS,
  *     IHeatingCoilBlockStats::getTier,
- *     IHeatingCoilBlockStats::getName);
+ *     stats -> ((IStringSerializable) stats).getName());
+ *
+ * // Note: prefer casting to IStringSerializable for name extractors of blocks that implement it.
+ * // A method reference such as IHeatingCoilBlockStats::getName is not remapped by reobf and
+ * // throws AbstractMethodError in production jars.
  *
  * // Tiered casing group from manually constructed list
  * ICasingGroup myGroup = CasingDefinition.fromEntries("my_group", true,

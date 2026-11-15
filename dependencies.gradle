@@ -47,8 +47,13 @@ dependencies {
     api("com.cleanroommc:modularui:3.1.5") { transitive = false }
     api("com.cleanroommc:groovyscript:1.2.0-hotfix1") { transitive = false }
     api rfg.deobf("curse.maven:ctm-267602:2915363") // CTM 1.0.2.31
+
     // Non-published dependencies
     // Change any to devOnlyNonPublishable to test them in-game.
+
+    // Farmer's Future Delight compatibility: compile-time only, used by the FFD mixins and the
+    // extended-height deepslate stone type. Never shipped inside the GregTech jar.
+    compileOnly rfg.deobf("curse.maven:farmers-future-delight-1637097:9594118")
 
     compileOnly("curse.maven:xaeros-263420:5394758") // Xaero's Minimap 24.2.0
 
