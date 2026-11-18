@@ -6,6 +6,7 @@ import gregtech.api.capability.GregtechCapabilities;
 import gregtech.api.capability.GregtechDataCodes;
 import gregtech.api.capability.IElectricItem;
 import gregtech.api.capability.IEnergyContainer;
+import gregtech.api.items.metaitem.stats.IUpgradeKit;
 import gregtech.api.items.metaitem.stats.UpgradeKitType;
 import gregtech.api.metatileentity.IUpgradeSlots;
 import gregtech.api.metatileentity.MTETrait;
@@ -20,6 +21,7 @@ import net.minecraft.util.EnumFacing;
 import net.minecraftforge.common.capabilities.Capability;
 import net.minecraftforge.energy.CapabilityEnergy;
 import net.minecraftforge.energy.IEnergyStorage;
+import net.minecraftforge.items.IItemHandlerModifiable;
 
 import org.jetbrains.annotations.NotNull;
 
@@ -46,13 +48,12 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
 
     protected long amps = 0;
 
-    /** 一段连续过压里保险丝最多保护 10 秒。 */
-    private static final long FUSE_PROTECTION_TICKS = 20L * 10;
-
-    /** 上次看到过压的 tick，用来区分"连续过压"和"新的一段过压"。 */
-    private long lastOverVoltageTick = -2L;
-    /** 本段过压的保护截止 tick；{@code -1} 表示本段还没熔断保险丝。 */
-    private long fuseProtectionEnd = -1L;
+    /** 保险丝熔断后断开电网输入，直到重新装入一枚保险丝。 */
+    private boolean gridDisconnected = false;
+    /** 熔断瞬间各升级槽里剩余的保险丝数量；某槽数量变多说明玩家装入了新保险丝。 */
+    private int[] fuseBaseline;
+    /** 熔断/恢复后需要让相邻管道重算连接，推迟到 update() 执行，避免在能量传输循环里改网络。 */
+    private boolean gridUpdatePending = false;
 
     public EnergyContainerHandler(MetaTileEntity tileEntity, long maxCapacity, long maxInputVoltage,
                                   long maxInputAmperage, long maxOutputVoltage, long maxOutputAmperage) {
@@ -111,12 +112,18 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
     public NBTTagCompound serializeNBT() {
         NBTTagCompound compound = new NBTTagCompound();
         compound.setLong("EnergyStored", energyStored);
+        compound.setBoolean("GridDisconnected", gridDisconnected);
+        if (fuseBaseline != null) {
+            compound.setIntArray("FuseBaseline", fuseBaseline);
+        }
         return compound;
     }
 
     @Override
     public void deserializeNBT(@NotNull NBTTagCompound compound) {
         this.energyStored = compound.getLong("EnergyStored");
+        this.gridDisconnected = compound.getBoolean("GridDisconnected");
+        this.fuseBaseline = compound.hasKey("FuseBaseline") ? compound.getIntArray("FuseBaseline") : null;
         notifyEnergyListener(true);
     }
 
@@ -199,6 +206,18 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
         amps = 0;
         if (getMetaTileEntity().getWorld().isRemote)
             return;
+        if (gridUpdatePending) {
+            gridUpdatePending = false;
+            notifyGridNeighbors();
+        }
+        if (gridDisconnected && hasNewFuse()) {
+            gridDisconnected = false;
+            fuseBaseline = null;
+            // 断开期间能力已从电网路径里被剔除，恢复时用 observers=true 让相邻管道清掉路径缓存并重连
+            notifyGridNeighbors();
+            metaTileEntity.noticePlayer("[过载]位于" + metaTileEntity.getPos() + "的" +
+                    metaTileEntity.getStackForm().getDisplayName() + "保险丝已更换，恢复电网连接");
+        }
         if (metaTileEntity.getOffsetTimer() % 20 == 0) {
             lastEnergyOutputPerSec = energyOutputPerSec;
             lastEnergyInputPerSec = energyInputPerSec;
@@ -232,6 +251,7 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
 
     @Override
     public long acceptEnergyFromNetwork(EnumFacing side, long voltage, long amperage) {
+        if (gridDisconnected) return 0;
         if (amps >= getInputAmperage()) return 0;
         long canAccept = getEnergyCapacity() - getEnergyStored();
         if (voltage > 0L && (side == null || inputsEnergy(side))) {
@@ -266,38 +286,76 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
      *
      * <p>
      * 现在先看机器升级槽里的保险丝（{@link IUpgradeSlots} + {@link UpgradeKitType#FUSE}）：
-     * 有就熔断一枚、提示玩家过载、拒绝输入 {@link #FUSE_PROTECTION_TICKS}（10 秒）；
-     * 撑满 10 秒还在过压就爆炸。没有保险丝就照旧爆炸并"吞掉"这一包能量。
+     * 有就熔断一枚、断开电网输入并提示玩家；没有保险丝就照旧爆炸并"吞掉"这一包能量。
+     * 断开后不再接收任何电能，直到重新装入一枚保险丝（见 {@link #update()}）。
      *
      * @param voltage  超过耐压的输入电压
      * @param amperage 网络本次想要输入的电流
      * @return 本次接受的电流量
      */
     protected long onOverVoltage(long voltage, long amperage) {
-        long now = metaTileEntity.getOffsetTimer();
-        if (now - lastOverVoltageTick > 1L && now >= fuseProtectionEnd) {
-            fuseProtectionEnd = -1L;
-        }
-        lastOverVoltageTick = now;
-
-        if (fuseProtectionEnd < 0L && !tryBlowFuse(now)) {
-            return explodeForOverVoltage(voltage, amperage);
-        }
-        if (now >= fuseProtectionEnd) {
+        if (!tryBlowFuse()) {
             return explodeForOverVoltage(voltage, amperage);
         }
         return 0L;
     }
 
-    private boolean tryBlowFuse(long now) {
+    private boolean tryBlowFuse() {
         if (!(metaTileEntity instanceof IUpgradeSlots slots) ||
                 !slots.consumeUpgradeKit(UpgradeKitType.FUSE)) {
             return false;
         }
-        fuseProtectionEnd = now + FUSE_PROTECTION_TICKS;
+        gridDisconnected = true;
+        fuseBaseline = captureFuseCounts();
+        gridUpdatePending = true;
         metaTileEntity.noticePlayer("[过载]位于" + metaTileEntity.getPos() + "的" +
-                metaTileEntity.getStackForm().getDisplayName() + "输入过压，保险丝保护中");
+                metaTileEntity.getStackForm().getDisplayName() + "输入过压，保险丝熔断并断开电网连接");
         return true;
+    }
+
+    /** 让相邻管道重新检查这一侧的能力并清掉电网路径缓存。 */
+    private void notifyGridNeighbors() {
+        metaTileEntity.getWorld().notifyNeighborsOfStateChange(metaTileEntity.getPos(),
+                metaTileEntity.getWorld().getBlockState(metaTileEntity.getPos()).getBlock(), true);
+    }
+
+    /** 记录当前每个升级槽里的保险丝数量，作为"熔断之后"的基准。 */
+    private int[] captureFuseCounts() {
+        if (!(metaTileEntity instanceof IUpgradeSlots slots)) {
+            return null;
+        }
+        IItemHandlerModifiable inventory = slots.getUpgradeInventory();
+        int[] counts = new int[inventory.getSlots()];
+        for (int slot = 0; slot < counts.length; slot++) {
+            counts[slot] = countFuses(inventory.getStackInSlot(slot));
+        }
+        return counts;
+    }
+
+    /**
+     * 熔断后是否有某个槽里的保险丝数量超过了熔断时的基准，也就是玩家装入了新的保险丝。
+     * 只在"变多"时恢复，避免升级槽里剩下的备用保险丝让机器立刻自行重连。
+     */
+    private boolean hasNewFuse() {
+        if (!(metaTileEntity instanceof IUpgradeSlots slots)) {
+            return false;
+        }
+        IItemHandlerModifiable inventory = slots.getUpgradeInventory();
+        if (fuseBaseline == null) {
+            fuseBaseline = captureFuseCounts();
+            return false;
+        }
+        int slotsToCheck = Math.min(inventory.getSlots(), fuseBaseline.length);
+        for (int slot = 0; slot < slotsToCheck; slot++) {
+            if (countFuses(inventory.getStackInSlot(slot)) > fuseBaseline[slot]) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int countFuses(ItemStack stack) {
+        return IUpgradeKit.getTypeOf(stack) == UpgradeKitType.FUSE ? stack.getCount() : 0;
     }
 
     private long explodeForOverVoltage(long voltage, long amperage) {
@@ -312,7 +370,7 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
 
     @Override
     public boolean inputsEnergy(EnumFacing side) {
-        return !outputsEnergy(side) && getInputVoltage() > 0 &&
+        return !gridDisconnected && !outputsEnergy(side) && getInputVoltage() > 0 &&
                 (sideInputCondition == null || sideInputCondition.test(side));
     }
 

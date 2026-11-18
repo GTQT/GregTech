@@ -3217,7 +3217,7 @@ behavior.cover_copy_paste.paste_hint=§7右键同类覆盖板：§f粘贴数据
 
 metaitem.upgrade.fuse.name=保险丝
 metaitem.upgrade.fuse.tooltip.1=可放入机器或能源仓的升级槽
-metaitem.upgrade.fuse.tooltip.2=输入电压过载时熔断，持续过载超过10秒会爆炸
+metaitem.upgrade.fuse.tooltip.2=输入电压过载时熔断，断开电网连接，重新装入保险丝后恢复
 
 metaitem.upgrade.backup_capacitor.name=备用电容
 metaitem.upgrade.backup_capacitor.tooltip.1=可放入能源仓的升级槽

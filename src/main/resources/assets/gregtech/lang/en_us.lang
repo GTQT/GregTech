@@ -3223,7 +3223,7 @@ behavior.cover_copy_paste.paste_hint=§7Right-click a cover of the same type: §
 
 metaitem.upgrade.fuse.name=保险丝
 metaitem.upgrade.fuse.tooltip.1=可放入机器或能源仓的升级槽
-metaitem.upgrade.fuse.tooltip.2=Blows on over-voltage, protecting for up to 10 seconds; sustained over-voltage still explodes (single use)
+metaitem.upgrade.fuse.tooltip.2=Blows on over-voltage, disconnecting the machine from the power grid; insert a new fuse to reconnect (single use)
 
 metaitem.upgrade.backup_capacitor.name=备用电容
 metaitem.upgrade.backup_capacitor.tooltip.1=可放入能源仓的升级槽

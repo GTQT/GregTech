@@ -4,8 +4,6 @@ import gregtech.api.cover.CoverRayTracer;
 import gregtech.api.pipenet.tile.IPipeTile;
 import gregtech.api.util.input.KeyBind;
 
-import net.minecraft.client.resources.I18n;
-import net.minecraft.client.settings.GameSettings;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -14,13 +12,10 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.EnumHand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraftforge.fml.relauncher.Side;
-import net.minecraftforge.fml.relauncher.SideOnly;
 
 import codechicken.lib.raytracer.CuboidRayTraceResult;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.List;
 /**
  * Logic from Susy-Core:
  * <a href=
@@ -84,12 +79,5 @@ public class PipeNetPainterBehavior extends AbstractUsableBehaviour {
             }
         }
         return EnumActionResult.PASS;
-    }
-
-    @Override
-    @SideOnly(Side.CLIENT)
-    public void addInformation(ItemStack itemStack, List<String> lines) {
-        lines.add(I18n.format("item.susy.tool.tooltip.pipeliner",
-                GameSettings.getKeyDisplayString(KeyBind.TOOL_AOE_CHANGE.toMinecraft().getKeyCode())));
     }
 }

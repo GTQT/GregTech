@@ -11,7 +11,6 @@ import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.RecipeMaps;
 import gregtech.api.unification.material.Materials;
-import gregtech.api.util.TextComponentUtil;
 import gregtech.api.util.tooltips.TooltipBuilder;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -27,8 +26,6 @@ import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3i;
-import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.TextFormatting;
 import net.minecraft.world.World;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fml.relauncher.Side;
@@ -195,17 +192,6 @@ public class MetaTileEntityNaturalDraftCoolingTower extends CachedPatternRecipeM
     @Override
     protected @NotNull StructureDefinition<?> createStructureDefinition() {
         return STRUCTURE_DEFINITION;
-    }
-
-    @Override
-    protected void addErrorText(List<ITextComponent> textList) {
-        super.addErrorText(textList);
-        if (isStructureFormed() && !waterFilled) {
-            textList.add(TextComponentUtil.translationWithColor(TextFormatting.RED,
-                    "susy.multiblock.natural_draft_cooling_tower.obstructed"));
-            textList.add(TextComponentUtil.translationWithColor(TextFormatting.GRAY,
-                    "susy.multiblock.natural_draft_cooling_tower.obstructed.desc"));
-        }
     }
 
     @Override
