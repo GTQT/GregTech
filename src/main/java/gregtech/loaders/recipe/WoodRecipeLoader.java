@@ -470,9 +470,8 @@ public class WoodRecipeLoader {
                 .duration(100).EUt(VA[ULV])
                 .buildAndRegister();
     }
-    public static void registerWoodTypeRecipe(boolean randomRecipeID, @NotNull WoodTypeEntry entry) {
+    public static void registerWoodTypeRecipe(@NotNull String prefix, @NotNull WoodTypeEntry entry) {
         final String name = entry.woodName;
-        final String prefix = randomRecipeID ? entry.modid + "_pf" + GTUtility.generateRandomString(6) : entry.modid;
 
         if (entry.planks.isEmpty()) {
             throw new IllegalStateException("Could not find planks form of WoodTypeEntry '" + name + "'.");
@@ -522,7 +521,7 @@ public class WoodRecipeLoader {
                 if (hasDoorRecipe) {
                     ModHandler.removeRecipeByName(new ResourceLocation(entry.modid, entry.doorRecipeName));
                 }
-                ModHandler.addShapedRecipe(hasDoorRecipe ? prefix + entry.doorRecipeName : prefix + name + "_door",
+                ModHandler.addShapedRecipe(hasDoorRecipe ? prefix + "_" + entry.doorRecipeName : prefix + "_" + name + "_door",
                         entry.door.copy(),
                         "PTd", "PRS", "PPs",
                         'P', entry.planks.copy(),
@@ -539,7 +538,7 @@ public class WoodRecipeLoader {
                         .duration(400).EUt(4).buildAndRegister();
             } else {
                 if (!hasDoorRecipe) {
-                    ModHandler.addShapedRecipe(prefix + name + "_door", GTUtility.copy(3, entry.door),
+                    ModHandler.addShapedRecipe(prefix + "_" + name + "_door", GTUtility.copy(3, entry.door),
                             "PP", "PP", "PP",
                             'P', entry.planks.copy());
                 }
@@ -558,7 +557,7 @@ public class WoodRecipeLoader {
             if (entry.stairsRecipeName != null) {
                 ModHandler.removeRecipeByName(new ResourceLocation(entry.modid, entry.stairsRecipeName));
             }
-            ModHandler.addShapedRecipe(prefix + name + "_stairs", GTUtility.copy(4, entry.stairs),
+            ModHandler.addShapedRecipe(prefix + "_" + name + "_stairs", GTUtility.copy(4, entry.stairs),
                     "P  ", "PP ", "PPP",
                     'P', entry.planks.copy());
 
@@ -573,12 +572,12 @@ public class WoodRecipeLoader {
         // slab
         if (!entry.slab.isEmpty()) {
             if (entry.addSlabCraftingRecipe && !ConfigHolder.recipes.hardWoodRecipes) {
-                ModHandler.addShapedRecipe(prefix + name + "_slab", GTUtility.copy(6, entry.slab),
+                ModHandler.addShapedRecipe(prefix + "_" + name + "_slab", GTUtility.copy(6, entry.slab),
                         "PPP", 'P', entry.planks.copy());
             }
 
             // plank -> slab crafting
-            ModHandler.addShapedRecipe(prefix + name + "_slab_saw", GTUtility.copy(2, entry.slab),
+            ModHandler.addShapedRecipe(prefix + "_" + name + "_slab_saw", GTUtility.copy(2, entry.slab),
                     "sS", 'S', entry.planks.copy());
 
             if (ConfigHolder.recipes.hardWoodRecipes && entry.slabRecipeName != null) {
@@ -595,14 +594,14 @@ public class WoodRecipeLoader {
                     ModHandler.removeRecipeByName(new ResourceLocation(entry.modid, entry.fenceRecipeName));
                 }
 
-                ModHandler.addShapedRecipe(hasFenceRecipe ? prefix + entry.fenceRecipeName : prefix + name + "_fence",
+                ModHandler.addShapedRecipe(hasFenceRecipe ? prefix + "_" + entry.fenceRecipeName : prefix + "_" + name + "_fence",
                         entry.fence.copy(),
                         "PSP", "PSP", "PSP",
                         'P', entry.planks.copy(),
                         'S', entry.getStick());
             } else {
                 if (!hasFenceRecipe) {
-                    ModHandler.addShapedRecipe(prefix + name + "_fence", GTUtility.copy(3, entry.fence),
+                    ModHandler.addShapedRecipe(prefix + "_" + name + "_fence", GTUtility.copy(3, entry.fence),
                             "PSP", "PSP",
                             'P', entry.planks.copy(),
                             'S', entry.getStick());
@@ -628,21 +627,21 @@ public class WoodRecipeLoader {
                 }
 
                 ModHandler.addShapedRecipe(
-                        hasFenceGateRecipe ? prefix + entry.fenceGateRecipeName : prefix + name + "_fence_gate",
+                        hasFenceGateRecipe ? prefix + "_" + entry.fenceGateRecipeName : prefix + "_" + name + "_fence_gate",
                         entry.fenceGate.copy(),
                         "F F", "SPS", "SPS",
                         'P', entry.planks.copy(),
                         'S', entry.getStick(),
                         'F', new ItemStack(Items.FLINT));
 
-                ModHandler.addShapedRecipe(prefix + name + "_fence_gate_screws", GTUtility.copy(2, entry.fenceGate),
+                ModHandler.addShapedRecipe(prefix + "_" + name + "_fence_gate_screws", GTUtility.copy(2, entry.fenceGate),
                         "IdI", "SPS", "SPS",
                         'P', entry.planks,
                         'S', entry.getStick(),
                         'I', new UnificationEntry(screw, Materials.Iron));
             } else {
                 if (!hasFenceGateRecipe) {
-                    ModHandler.addShapedRecipe(prefix + name + "_fence_gate", entry.fenceGate.copy(),
+                    ModHandler.addShapedRecipe(prefix + "_" + name + "_fence_gate", entry.fenceGate.copy(),
                             "SPS", "SPS",
                             'P', entry.planks.copy(),
                             'S', entry.getStick());
@@ -668,7 +667,7 @@ public class WoodRecipeLoader {
                         ModHandler.removeRecipeByName(new ResourceLocation(entry.modid, entry.boatRecipeName));
                     }
 
-                    ModHandler.addShapedRecipe(hasBoatRecipe ? prefix + entry.boatRecipeName : prefix + name + "_boat",
+                    ModHandler.addShapedRecipe(hasBoatRecipe ? prefix + "_" + entry.boatRecipeName : prefix + "_" + name + "_boat",
                             entry.boat.copy(),
                             "PHP", "PkP", "SSS",
                             'P', entry.planks.copy(),
@@ -677,7 +676,7 @@ public class WoodRecipeLoader {
                 }
             } else {
                 if (!hasBoatRecipe) {
-                    ModHandler.addShapedRecipe(name + "_boat", entry.boat.copy(),
+                    ModHandler.addShapedRecipe(prefix + "_" + name + "_boat", entry.boat.copy(),
                             "P P", "PPP",
                             'P', entry.planks.copy());
                 }
