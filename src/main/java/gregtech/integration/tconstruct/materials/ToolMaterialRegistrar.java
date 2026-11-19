@@ -174,6 +174,18 @@ public final class ToolMaterialRegistrar {
         integratedFluids.add(fluid);
     }
 
+    /**
+     * Replaces an already registered TiC stat.
+     *
+     * <p>{@code TinkerRegistry.addMaterialStats} rejects duplicate stat types because it is intended for first-time
+     * registration. During a merge the stat already exists, so the merged value must be written through
+     * {@link slimeknights.tconstruct.library.materials.Material#addStats} instead.
+     */
+    private static void replaceStats(slimeknights.tconstruct.library.materials.Material ticMaterial,
+                                     slimeknights.tconstruct.library.materials.IMaterialStats stats) {
+        ticMaterial.addStats(stats);
+    }
+
     /** Merges GT stats into an existing TiC material, keeping the max of each stat. */
     private static void mergeMaterial(slimeknights.tconstruct.library.materials.Material ticMaterial,
                                       Material gtMaterial) {
@@ -183,7 +195,7 @@ public final class ToolMaterialRegistrar {
         HeadMaterialStats existingHead = ticMaterial.getStats("head");
         int ticHL = MaterialStatCalc.mapHarvestLevel(toolProp.getToolHarvestLevel());
         if (existingHead != null) {
-            TinkerRegistry.addMaterialStats(ticMaterial, new HeadMaterialStats(
+            replaceStats(ticMaterial, new HeadMaterialStats(
                     Math.max(existingHead.durability, toolProp.getToolDurability()),
                     Math.max(existingHead.miningspeed, toolProp.getToolSpeed()),
                     Math.max(existingHead.attack, toolProp.getToolAttackDamage()),
@@ -199,7 +211,7 @@ public final class ToolMaterialRegistrar {
         float gtHandleMod = MaterialStatCalc.calcHandleModifier(toolProp);
         int gtHandleDur = MaterialStatCalc.calcHandleDurability(toolProp);
         if (existingHandle != null) {
-            TinkerRegistry.addMaterialStats(ticMaterial, new HandleMaterialStats(
+            replaceStats(ticMaterial, new HandleMaterialStats(
                     Math.max(existingHandle.modifier, gtHandleMod),
                     Math.max(existingHandle.durability, gtHandleDur)));
         } else {
@@ -211,7 +223,7 @@ public final class ToolMaterialRegistrar {
         ExtraMaterialStats existingExtra = ticMaterial.getStats("extra");
         int gtExtra = MaterialStatCalc.calcExtraDurability(toolProp.getToolDurability());
         if (existingExtra != null) {
-            TinkerRegistry.addMaterialStats(ticMaterial,
+            replaceStats(ticMaterial,
                     new ExtraMaterialStats(Math.max(existingExtra.extraDurability, gtExtra)));
         } else {
             TinkerRegistry.addMaterialStats(ticMaterial, new ExtraMaterialStats(gtExtra));
@@ -221,7 +233,7 @@ public final class ToolMaterialRegistrar {
         var existingBow = (slimeknights.tconstruct.library.materials.BowMaterialStats) ticMaterial.getStats("bow");
         var gtBow = MaterialStatCalc.calcBowStats(toolProp);
         if (existingBow != null) {
-            TinkerRegistry.addMaterialStats(ticMaterial,
+            replaceStats(ticMaterial,
                     new slimeknights.tconstruct.library.materials.BowMaterialStats(
                             Math.min(existingBow.drawspeed, gtBow.drawspeed),
                             Math.max(existingBow.range, gtBow.range),
@@ -235,7 +247,7 @@ public final class ToolMaterialRegistrar {
                 .getStats("shaft");
         var gtShaft = MaterialStatCalc.calcShaftStats(toolProp);
         if (existingShaft != null) {
-            TinkerRegistry.addMaterialStats(ticMaterial,
+            replaceStats(ticMaterial,
                     new slimeknights.tconstruct.library.materials.ArrowShaftMaterialStats(
                             Math.max(existingShaft.modifier, gtShaft.modifier),
                             Math.max(existingShaft.bonusAmmo, gtShaft.bonusAmmo)));
