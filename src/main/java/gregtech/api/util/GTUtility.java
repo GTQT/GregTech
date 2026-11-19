@@ -1386,17 +1386,6 @@ public class GTUtility {
         return (double) (maxDurability - remainingDurability) / maxDurability;
     }
 
-    public static String generateRandomString(int length) {
-        Random random = new Random();
-        StringBuilder stringBuilder = new StringBuilder(length);
-
-        for (int i = 0; i < length; i++) {
-            stringBuilder.append(random.nextInt(10));
-        }
-
-        return stringBuilder.toString();
-    }
-
     public static int getIncrementValue(MouseData data) {
         int adjust = 1;
         if (data.shift) adjust *= 4;

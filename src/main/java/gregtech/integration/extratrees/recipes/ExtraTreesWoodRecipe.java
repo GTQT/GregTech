@@ -93,7 +93,7 @@ public class ExtraTreesWoodRecipe {
             // only for normal woods
             ModHandler.removeRecipeByName(Mods.ExtraTrees.getResource(entry.woodName + "_doors"));
 
-            registerWoodTypeRecipe(true,entry);
+            registerWoodTypeRecipe("extratrees", entry);
             registerWoodUnificationInfo(entry);
         }
 
@@ -102,7 +102,7 @@ public class ExtraTreesWoodRecipe {
                 ModHandler.removeRecipeByName(Mods.ExtraTrees.getResource(entry.woodName + "_fireproof" + type));
             }
 
-            registerWoodTypeRecipe(true,entry);
+            registerWoodTypeRecipe("extratrees_fireproof", entry);
             registerWoodUnificationInfo(entry);
 
             ModHandler.removeRecipeByName(new ResourceLocation(MODID, entry.woodName + "_saw"));
