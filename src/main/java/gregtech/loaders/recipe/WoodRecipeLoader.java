@@ -470,21 +470,13 @@ public class WoodRecipeLoader {
                 .duration(100).EUt(VA[ULV])
                 .buildAndRegister();
     }
-    private static String stableRecipePrefix(@NotNull WoodTypeEntry entry) {
-        String identity = entry.modid + ':' + entry.woodName + ':' + entry.planks;
-        return entry.modid + "_pf" + String.format("%08x", identity.hashCode());
-    }
-
     public static void registerWoodTypeRecipe(boolean randomRecipeID, @NotNull WoodTypeEntry entry) {
         final String name = entry.woodName;
+        final String prefix = randomRecipeID ? entry.modid + "_pf" + GTUtility.generateRandomString(6) : entry.modid;
 
         if (entry.planks.isEmpty()) {
             throw new IllegalStateException("Could not find planks form of WoodTypeEntry '" + name + "'.");
         }
-
-        // Recipe ids are persisted in world registry data. Never derive them from a random value:
-        // client and server would generate different ids for the same recipe.
-        final String prefix = randomRecipeID ? stableRecipePrefix(entry) : entry.modid;
 
         // log-associated recipes
         if (!entry.log.isEmpty()) {
