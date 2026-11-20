@@ -25,10 +25,12 @@ public class ForestryWoodRecipe {
     private static final String mcModId = Mods.Names.FORESTRY;
     private static List<WoodTypeEntry> DEFAULT_ENTRIES;
     private static List<WoodTypeEntry> FIREPROOF_ENTRIES;
+    private static List<WoodTypeEntry> VANILLA_FIREPROOF_ENTRIES;
 
     private static void initEntries() {
         DEFAULT_ENTRIES = new ArrayList<>();
         FIREPROOF_ENTRIES = new ArrayList<>();
+        VANILLA_FIREPROOF_ENTRIES = new ArrayList<>();
 
         int plankId = -1, logId = -1, slabId = -1;
         List<String> woodNames = Arrays.stream(EnumForestryWoodType.values()).map(Enum::name)
@@ -58,8 +60,8 @@ public class ForestryWoodRecipe {
             if (plankMeta == 0) plankId++;
             if (logMeta == 0) logId++;
             if (slabMeta == 0) slabId++;
-            FIREPROOF_ENTRIES.add(getEntry(vanillaWoodNames.get(i).toLowerCase(), plankMeta, logMeta, slabMeta, plankId,
-                    logId, slabId, "vanilla.fireproof."));
+            VANILLA_FIREPROOF_ENTRIES.add(getEntry(vanillaWoodNames.get(i).toLowerCase(), plankMeta, logMeta,
+                    slabMeta, plankId, logId, slabId, "vanilla.fireproof."));
         }
     }
 
@@ -88,7 +90,7 @@ public class ForestryWoodRecipe {
             // only for normal woods
             ModHandler.removeRecipeByName(Mods.Forestry.getResource("doors_" + entry.woodName));
 
-            registerWoodTypeRecipe(true,entry);
+            registerWoodTypeRecipe("forestry", entry);
             registerWoodUnificationInfo(entry);
         }
 
@@ -97,7 +99,16 @@ public class ForestryWoodRecipe {
                 ModHandler.removeRecipeByName(Mods.Forestry.getResource("fireproof_" + type + entry.woodName));
             }
 
-            registerWoodTypeRecipe(true,entry);
+            registerWoodTypeRecipe("forestry_fireproof", entry);
+            registerWoodUnificationInfo(entry);
+        }
+
+        for (WoodTypeEntry entry : VANILLA_FIREPROOF_ENTRIES) {
+            for (String type : types) {
+                ModHandler.removeRecipeByName(Mods.Forestry.getResource("fireproof_" + type + entry.woodName));
+            }
+
+            registerWoodTypeRecipe("forestry_vanilla_fireproof", entry);
             registerWoodUnificationInfo(entry);
         }
 
