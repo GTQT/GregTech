@@ -49,7 +49,7 @@ public final class UpgradeSlotsPanel {
      * 构建入口按钮，并把浮动面板注册进主面板的同步管理器。
      *
      * <p>
-     * <b>这个方法两端都会跑</b>（由 {@code MetaTileEntity#createUpgradeSlotsButton} 调用），
+     * <b>这个方法两端都会跑</b>（由 {@code MetaTileEntityUIBuilder} 构建侧边栏按钮时调用），
      * {@code syncedPanel} 必须在服务端也注册一遍，否则客户端点开时发来的同步包在服务端找不到
      * 处理器，按钮点不开。
      *

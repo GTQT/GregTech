@@ -72,7 +72,7 @@ public class MetaTileEntityEnergyHatch extends MetaTileEntityMultiblockPart
     protected final boolean isExportHatch;
     /** 仓室额定电流，同时也是可调电流的上限。 */
     protected final int amperage;
-    /** 升级插件槽位；界面入口由 {@link MetaTileEntity#createUpgradeSlotsButton} 挂到侧边栏上。 */
+    /** 升级插件槽位；界面入口由 {@link MetaTileEntity#registerSidePanelButtons} 挂到侧边栏上。 */
     protected final GTItemStackHandler upgradeInventory;
 
     /** 可调电压，范围 1 ~ {@link #getMaxVoltage()}。 */

@@ -87,7 +87,7 @@ public class SimpleMachineMetaTileEntity extends WorkableTieredMetaTileEntity
         implements IActiveOutputSide, IGhostSlotConfigurable, IUpgradeSlots {
 
     protected final GTItemStackHandler chargerInventory;
-    /** 升级插件槽位；界面入口由 {@link MetaTileEntity#createUpgradeSlotsButton} 挂到侧边栏上。 */
+    /** 升级插件槽位；界面入口由 {@link MetaTileEntity#registerSidePanelButtons} 挂到侧边栏上。 */
     protected final GTItemStackHandler upgradeInventory;
     @Nullable // particle run every tick when the machine is active
     protected final IMachineParticleEffect tickingParticle;
