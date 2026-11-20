@@ -337,6 +337,8 @@ public class OreRecipeHandler {
 
         if (material.hasProperty(PropertyKey.GEM)) {
             ItemStack legendaryStack = OreDictUnifier.get(OrePrefix.gemLegendary, material);
+            //                        .chancedOutput(legendaryStack, 100, 100)
+
             ItemStack exquisiteStack = OreDictUnifier.get(OrePrefix.gemExquisite, material);
             ItemStack flawlessStack = OreDictUnifier.get(OrePrefix.gemFlawless, material);
             ItemStack gemStack = OreDictUnifier.get(OrePrefix.gem, material);
@@ -346,7 +348,6 @@ public class OreRecipeHandler {
             if (material.hasFlag(HIGH_SIFTER_OUTPUT)) {
                 RecipeBuilder<SimpleRecipeBuilder> builder = RecipeMaps.SIFTER_RECIPES.recipeBuilder()
                         .input(purifiedPrefix, material)
-                        .chancedOutput(legendaryStack, 100, 100)
                         .chancedOutput(exquisiteStack, 500, 150)
                         .chancedOutput(flawlessStack, 1500, 200)
                         .chancedOutput(gemStack, 5000, 1000)
