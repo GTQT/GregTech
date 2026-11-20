@@ -50,20 +50,18 @@ public final class SideOverviewPage {
     private final World world;
     private final int bottomReserve;
     private final boolean showOutputControls;
-    private final @Nullable Runnable openCovers;
     private final IntSyncValue itemSync;
     private final IntSyncValue fluidSync;
 
     private @Nullable EnumFacing selectedFace;
 
     private SideOverviewPage(@NotNull PanelSyncManager syncManager, @NotNull MetaTileEntity machine,
-                             int bottomReserve, boolean showOutputControls, @Nullable Runnable openCovers) {
+                             int bottomReserve, boolean showOutputControls) {
         this.syncManager = syncManager;
         this.machine = machine;
         this.world = machine.getWorld();
         this.bottomReserve = bottomReserve;
         this.showOutputControls = showOutputControls;
-        this.openCovers = openCovers;
         this.selectedFace = null;
 
         IntSyncValue itemSync = new IntSyncValue(() -> SideState.encode(stateFromMachine().itemFace,
@@ -77,21 +75,12 @@ public final class SideOverviewPage {
         syncManager.registerSyncedAction(ACTION_KEY, false, true, this::handleAction);
     }
 
-    /**
-     * 构建页签内容。{@code width/height <= 0} 时撑满父容器。
-     */
     public static @NotNull IWidget create(@NotNull PanelSyncManager syncManager, @NotNull MetaTileEntity machine,
                                           int width, int height, int bottomReserve, boolean showOutputControls) {
-        return create(syncManager, machine, width, height, bottomReserve, showOutputControls, null);
-    }
-
-    public static @NotNull IWidget create(@NotNull PanelSyncManager syncManager, @NotNull MetaTileEntity machine,
-                                          int width, int height, int bottomReserve, boolean showOutputControls,
-                                          @Nullable Runnable openCovers) {
-        SideOverviewPage page = new SideOverviewPage(syncManager, machine, bottomReserve, showOutputControls,
-                openCovers);
+        SideOverviewPage page = new SideOverviewPage(syncManager, machine, bottomReserve, showOutputControls);
         return page.build(width, height);
     }
+
 
     private @NotNull IWidget build(int width, int height) {
         ParentWidget<?> root = new ParentWidget<>().name("side_overview_page");
@@ -146,21 +135,6 @@ public final class SideOverviewPage {
             root.child(autoLabel(false));
             root.child(autoLabel(true));
         }
-        if (this.openCovers != null) {
-            int coverRight = allowCount > 0 ? EDGE + CONTROL_SIZE + CONTROL_GAP : EDGE;
-            int coverBottom = this.showOutputControls ? this.bottomReserve + EDGE + 4 : EDGE;
-            root.child(new ButtonWidget<>()
-                    .name("side_cover_settings")
-                    .size(CONTROL_SIZE)
-                    .right(coverRight)
-                    .bottom(coverBottom)
-                    .overlay(GTGuiTextures.IO_CONFIG_COVER_SETTINGS)
-                    .addTooltipLine(IKey.lang("gregtech.mui.side.covers"))
-                    .onMousePressed(button -> {
-                        if (button == 0) this.openCovers.run();
-                        return true;
-                    }));
-        }
         return root;
     }
 
@@ -177,7 +151,6 @@ public final class SideOverviewPage {
         }
         SideState state = state();
         if (mouseButton == 0) {
-            // 和 GTM 一样：没有物品输出时，左键退化为流体；没有流体时右键退化为物品。
             if (state.hasItems) {
                 sendMode(false);
             } else if (state.hasFluids) {

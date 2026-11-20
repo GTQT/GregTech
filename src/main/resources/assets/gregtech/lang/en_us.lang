@@ -10499,7 +10499,6 @@ gregtech.mui.side.mode.fluid=Fluid output mode (none / output / auto)
 gregtech.mui.side.allow_item=Allow input from item output side
 gregtech.mui.side.allow_fluid=Allow input from fluid output side
 gregtech.mui.side.set_front=Set as front
-gregtech.mui.side.covers=Cover settings
 
 # Cover Index
 gregtech.mui.side.down=Bottom

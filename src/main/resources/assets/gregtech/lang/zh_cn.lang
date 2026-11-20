@@ -10480,7 +10480,6 @@ gregtech.mui.side.mode.fluid=流体输出模式（无 / 输出 / 自动）
 gregtech.mui.side.allow_item=允许从物品输出面输入
 gregtech.mui.side.allow_fluid=允许从流体输出面输入
 gregtech.mui.side.set_front=设为正面
-gregtech.mui.side.covers=覆盖板设置
 
 # Cover Index
 gregtech.mui.side.down=底面

@@ -48,11 +48,8 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
 
     protected long amps = 0;
 
-    /** 保险丝熔断后断开电网输入，直到重新装入一枚保险丝。 */
     private boolean gridDisconnected = false;
-    /** 熔断瞬间各升级槽里剩余的保险丝数量；某槽数量变多说明玩家装入了新保险丝。 */
     private int[] fuseBaseline;
-    /** 熔断/恢复后需要让相邻管道重算连接，推迟到 update() 执行，避免在能量传输循环里改网络。 */
     private boolean gridUpdatePending = false;
 
     public EnergyContainerHandler(MetaTileEntity tileEntity, long maxCapacity, long maxInputVoltage,
@@ -213,10 +210,7 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
         if (gridDisconnected && hasNewFuse()) {
             gridDisconnected = false;
             fuseBaseline = null;
-            // 断开期间能力已从电网路径里被剔除，恢复时用 observers=true 让相邻管道清掉路径缓存并重连
             notifyGridNeighbors();
-            metaTileEntity.noticePlayer("[过载]位于" + metaTileEntity.getPos() + "的" +
-                    metaTileEntity.getStackForm().getDisplayName() + "保险丝已更换，恢复电网连接");
         }
         if (metaTileEntity.getOffsetTimer() % 20 == 0) {
             lastEnergyOutputPerSec = energyOutputPerSec;
@@ -308,18 +302,16 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
         gridDisconnected = true;
         fuseBaseline = captureFuseCounts();
         gridUpdatePending = true;
-        metaTileEntity.noticePlayer("[过载]位于" + metaTileEntity.getPos() + "的" +
+        metaTileEntity.noticePlayer("[电压过载]位于" + metaTileEntity.getPos() + "的" +
                 metaTileEntity.getStackForm().getDisplayName() + "输入过压，保险丝熔断并断开电网连接");
         return true;
     }
 
-    /** 让相邻管道重新检查这一侧的能力并清掉电网路径缓存。 */
     private void notifyGridNeighbors() {
         metaTileEntity.getWorld().notifyNeighborsOfStateChange(metaTileEntity.getPos(),
                 metaTileEntity.getWorld().getBlockState(metaTileEntity.getPos()).getBlock(), true);
     }
 
-    /** 记录当前每个升级槽里的保险丝数量，作为"熔断之后"的基准。 */
     private int[] captureFuseCounts() {
         if (!(metaTileEntity instanceof IUpgradeSlots slots)) {
             return null;
@@ -332,10 +324,6 @@ public class EnergyContainerHandler extends MTETrait implements IEnergyContainer
         return counts;
     }
 
-    /**
-     * 熔断后是否有某个槽里的保险丝数量超过了熔断时的基准，也就是玩家装入了新的保险丝。
-     * 只在"变多"时恢复，避免升级槽里剩下的备用保险丝让机器立刻自行重连。
-     */
     private boolean hasNewFuse() {
         if (!(metaTileEntity instanceof IUpgradeSlots slots)) {
             return false;
