@@ -133,7 +133,6 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     public static final int TOOLTIP_DELAY = 0;
     public final ResourceLocation metaTileEntityId;
     private final MTERegistry registry;
-    /** 界面装配（侧边栏、页签、覆盖板索引）都委托给它，见 {@link MetaTileEntityUIBuilder}。 */
     private final MetaTileEntityUIBuilder uiBuilder = new MetaTileEntityUIBuilder(this);
     private final Map<String, MTETrait> mteTraits = new Object2ObjectOpenHashMap<>();
     private final Int2ObjectMap<MTETrait> mteTraitByNetworkId = new Int2ObjectOpenHashMap<>();
