@@ -422,9 +422,6 @@ public class Textures {
     public static final OrientedOverlayRenderer STEAM_ENGINE_OVERLAY =
             new OrientedOverlayRenderer("multiblock/steam_engine");
 
-    //teleporter
-    public static final OrientedOverlayRenderer TELEPORTER_OVERLAY = new OrientedOverlayRenderer("machines/teleporter");
-
     public static final OrientedOverlayRenderer LAMINATOR_OVERLAY = new OrientedOverlayRenderer("machines/laminator");
     public static final OrientedOverlayRenderer POLISHER_OVERLAY = new OrientedOverlayRenderer("machines/polisher");
     public static final OrientedOverlayRenderer POLYMERIZATION_TANK_OVERLAY = new OrientedOverlayRenderer(
@@ -484,7 +481,6 @@ public class Textures {
             "cover/overlay_ender_item_link");
     public static final SimpleOverlayRenderer STORAGE = new SimpleOverlayRenderer("cover/overlay_storage");
     public static final SimpleOverlayRenderer CRAFTING = new SimpleOverlayRenderer("cover/overlay_crafting");
-    /** 自动工作台的合成台面板纹理, 移植自 GT5-Unofficial 的 machine_top_crafting */
     public static final SimpleOverlayRenderer AUTO_WORKBENCH_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_auto_workbench");
     public static final SimpleOverlayRenderer PIPE_ITEM_OVERLAY = new SimpleOverlayRenderer(
@@ -523,6 +519,8 @@ public class Textures {
             "overlay/machine/overlay_complex_dual_hatch");
     public static final SimpleOverlayRenderer DUST_COLLECTOR_OVERLAY = new SimpleOverlayRenderer(
             "overlay/machine/overlay_dust_collector");
+    public static final SimpleOverlayRenderer TELEPORTER_OVERLAY = new SimpleOverlayRenderer(
+            "overlay/machine/overlay_teleporter");
 
     // Hatches
     public static final OrientedOverlayRenderer PARALLEL_HATCH_MK1_OVERLAY =
