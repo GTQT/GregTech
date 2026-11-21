@@ -1,6 +1,7 @@
 package gregtech.api.recipes.logic;
 
 import gregtech.api.recipes.Recipe;
+import gregtech.common.ConfigHolder;
 
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
@@ -67,6 +68,10 @@ public class RecipeSlot {
     // Not used for scheduler budget — that's tracked by parallelCount alone.
     private int totalOperations = 1;
 
+    // --- Arbitrary per-slot condition / execution data (serialized for reloads) ---
+    @NotNull
+    private NBTTagCompound extraData = new NBTTagCompound();
+
     public RecipeSlot(int slotIndex) {
         this.slotIndex = slotIndex;
     }
@@ -125,6 +130,7 @@ public class RecipeSlot {
         this.parallelCount = parallelCount;
         this.totalOperations = totalOperations;
         this.recipeDisplayName = recipeDisplayName;
+        this.extraData = new NBTTagCompound();
         this.state = State.RUNNING;
     }
 
@@ -145,6 +151,23 @@ public class RecipeSlot {
     }
 
     /**
+     * Handles progress loss on a failed tick (e.g. condition failure or energy shortage).
+     *
+     * @return {@code true} if {@link ConfigHolder.machines#resetRecipeOnPowerLoss} is enabled and the
+     *         caller should invalidate and remove this slot; {@code false} if progress was reset to 0
+     */
+    public boolean decreaseProgress() {
+        if (state != State.RUNNING) {
+            return false;
+        }
+        if (ConfigHolder.machines.resetRecipeOnPowerLoss) {
+            return true;
+        }
+        this.progressTime = 0;
+        return false;
+    }
+
+    /**
      * Resets this slot to IDLE state after outputs have been extracted.
      */
     public void reset() {
@@ -159,6 +182,7 @@ public class RecipeSlot {
         this.recipeDisplayName = "";
         this.parallelCount = 1;
         this.totalOperations = 1;
+        this.extraData = new NBTTagCompound();
     }
 
     // ==================== Getters ====================
@@ -227,6 +251,15 @@ public class RecipeSlot {
         return totalOperations;
     }
 
+    @NotNull
+    public NBTTagCompound getExtraData() {
+        return extraData;
+    }
+
+    public void setExtraData(@NotNull NBTTagCompound extraData) {
+        this.extraData = extraData;
+    }
+
     /**
      * @return progress as a percentage (0.0 to 1.0)
      */
@@ -263,6 +296,10 @@ public class RecipeSlot {
                 fluidList.appendTag(fluid.writeToNBT(new NBTTagCompound()));
             }
             tag.setTag("fluidOutputs", fluidList);
+
+            if (!extraData.isEmpty()) {
+                tag.setTag("extraData", extraData.copy());
+            }
         }
 
         return tag;
@@ -292,6 +329,11 @@ public class RecipeSlot {
             for (int i = 0; i < fluidList.tagCount(); i++) {
                 this.fluidOutputs.add(FluidStack.loadFluidStackFromNBT(fluidList.getCompoundTagAt(i)));
             }
+
+            this.extraData = tag.hasKey("extraData", Constants.NBT.TAG_COMPOUND) ?
+                    tag.getCompoundTag("extraData").copy() : new NBTTagCompound();
+        } else {
+            this.extraData = new NBTTagCompound();
         }
     }
 
