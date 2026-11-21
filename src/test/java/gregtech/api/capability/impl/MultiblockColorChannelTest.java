@@ -523,6 +523,101 @@ class MultiblockColorChannelTest {
                 "Distinct mode must still allow two painted channels with own inputs to run same recipe");
     }
 
+    @Test
+    void distinctColorChannelsDoNotPrematurelyInvalidatePublicBus() {
+        // Case 1: Distinct + scheduler mode (parallelLimit = 4).
+        // Public bus has STICK; empty WHITE fluid hatch (channel 0, scanned first) fails,
+        // RED fluid hatch (channel 14) has WATER -> must still match and start 1 slot.
+        TestController schedCtrl = new TestController(TEST_RECIPE_MAP);
+        schedCtrl.setDistinct(true);
+        TestMultiblockRecipeLogic schedLogic = schedCtrl.getTestLogic();
+        schedLogic.setAllowOverclocking(false);
+        schedLogic.setParallelLimit(4);
+
+        MetaTileEntityItemBus schedPublicBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_pub_inval_sched_bus"), 1, false);
+        schedPublicBus.getImportItems().setStackInSlot(0, new ItemStack(Items.STICK, 1));
+
+        MetaTileEntityFluidHatch schedWhiteFluid = new MetaTileEntityFluidHatch(
+                new ResourceLocation("gregtech", "test_pub_inval_sched_white"), 1, false);
+        schedWhiteFluid.setPaintingColor(EnumDyeColor.WHITE, null); // channel 0 (empty)
+
+        MetaTileEntityFluidHatch schedRedFluid = new MetaTileEntityFluidHatch(
+                new ResourceLocation("gregtech", "test_pub_inval_sched_red"), 1, false);
+        schedRedFluid.setPaintingColor(EnumDyeColor.RED, null); // channel 14 (has water)
+        schedRedFluid.getImportFluids().fill(new FluidStack(FluidRegistry.WATER, 500), true);
+
+        schedCtrl.addPart(schedPublicBus);
+        schedCtrl.addPart(schedWhiteFluid);
+        schedCtrl.addPart(schedRedFluid);
+        assertTrue(schedLogic.shouldUseDistinctInputBuses(), "Test fixture must actually enter distinct bus mode");
+
+        schedLogic.trySearchNewRecipePublic();
+        CrossRecipeParallelScheduler sched = schedLogic.getCrossRecipeScheduler();
+        assertNotNull(sched);
+        assertEquals(1, sched.getActiveSlotCount(),
+                "Empty WHITE channel must not blacklist public bus before RED channel is checked");
+        IItemHandlerModifiable schedRegisteredBus = schedCtrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0);
+        assertFalse(schedLogic.isBusInvalidated(schedRegisteredBus),
+                "Matched public bus must not be invalidated");
+
+        // Case 2: Distinct + single-recipe mode (parallelLimit = 1).
+        TestController singleCtrl = new TestController(TEST_RECIPE_MAP);
+        singleCtrl.setDistinct(true);
+        TestMultiblockRecipeLogic singleLogic = singleCtrl.getTestLogic();
+        singleLogic.setAllowOverclocking(false);
+        singleLogic.setParallelLimit(1);
+
+        MetaTileEntityItemBus singlePublicBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_pub_inval_single_bus"), 1, false);
+        singlePublicBus.getImportItems().setStackInSlot(0, new ItemStack(Items.STICK, 1));
+
+        MetaTileEntityFluidHatch singleWhiteFluid = new MetaTileEntityFluidHatch(
+                new ResourceLocation("gregtech", "test_pub_inval_single_white"), 1, false);
+        singleWhiteFluid.setPaintingColor(EnumDyeColor.WHITE, null);
+
+        MetaTileEntityFluidHatch singleRedFluid = new MetaTileEntityFluidHatch(
+                new ResourceLocation("gregtech", "test_pub_inval_single_red"), 1, false);
+        singleRedFluid.setPaintingColor(EnumDyeColor.RED, null);
+        singleRedFluid.getImportFluids().fill(new FluidStack(FluidRegistry.WATER, 500), true);
+
+        singleCtrl.addPart(singlePublicBus);
+        singleCtrl.addPart(singleWhiteFluid);
+        singleCtrl.addPart(singleRedFluid);
+
+        singleLogic.trySearchNewRecipePublic();
+        assertTrue(singleLogic.isActive(),
+                "Non-parallel distinct color search must reach RED channel after empty WHITE channel fails");
+        assertEquals(EnumDyeColor.RED.getMetadata(), singleLogic.getLastColorChannel());
+        IItemHandlerModifiable singleRegisteredBus = singleCtrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0);
+        assertFalse(singleLogic.isBusInvalidated(singleRegisteredBus));
+
+        // Case 3: When ALL channels fail (no water anywhere), public bus IS invalidated after full scan.
+        TestController failCtrl = new TestController(TEST_RECIPE_MAP);
+        failCtrl.setDistinct(true);
+        TestMultiblockRecipeLogic failLogic = failCtrl.getTestLogic();
+        failLogic.setParallelLimit(4);
+
+        MetaTileEntityItemBus failPublicBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_pub_inval_fail_bus"), 1, false);
+        failPublicBus.getImportItems().setStackInSlot(0, new ItemStack(Items.STICK, 1));
+        MetaTileEntityFluidHatch failWhiteFluid = new MetaTileEntityFluidHatch(
+                new ResourceLocation("gregtech", "test_pub_inval_fail_white"), 1, false);
+        failWhiteFluid.setPaintingColor(EnumDyeColor.WHITE, null);
+        MetaTileEntityFluidHatch failRedFluid = new MetaTileEntityFluidHatch(
+                new ResourceLocation("gregtech", "test_pub_inval_fail_red"), 1, false);
+        failRedFluid.setPaintingColor(EnumDyeColor.RED, null);
+
+        failCtrl.addPart(failPublicBus);
+        failCtrl.addPart(failWhiteFluid);
+        failCtrl.addPart(failRedFluid);
+
+        failLogic.trySearchNewRecipePublic();
+        IItemHandlerModifiable failRegisteredBus = failCtrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0);
+        assertTrue(failLogic.isBusInvalidated(failRegisteredBus),
+                "Public bus should be invalidated once all color channels fail");
+    }
+
     private static List<Object> abilityOf(IMultiblockAbilityPart<?> part, MultiblockAbility<?> ability) {
         AbilityInstances instances = new AbilityInstances(ability);
         part.registerAbilities(instances);
@@ -607,6 +702,16 @@ class MultiblockColorChannelTest {
         @Override
         public IEnergyContainer getEnergyContainer() {
             return energy;
+        }
+
+        @Override
+        public boolean canBeDistinct() {
+            return true;
+        }
+
+        @Override
+        public IItemHandlerModifiable getInputInventory() {
+            return new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
         }
 
         @Override
@@ -726,6 +831,10 @@ class MultiblockColorChannelTest {
 
         void clearInvalidatedInputs() {
             invalidatedInputList.clear();
+        }
+
+        boolean isBusInvalidated(IItemHandlerModifiable bus) {
+            return invalidatedInputList.contains(bus);
         }
     }
 
