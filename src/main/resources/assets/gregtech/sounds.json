@@ -353,7 +353,7 @@
     "category": "block",
     "sounds": [
       {
-        "name": "gregtech:tree_ta",
+        "name": "gregtech:tree_tap",
         "stream": false
       }
     ]
