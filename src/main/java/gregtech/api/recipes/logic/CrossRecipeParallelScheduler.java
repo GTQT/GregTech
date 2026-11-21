@@ -280,6 +280,12 @@ public class CrossRecipeParallelScheduler {
         List<RecipeExecutionContext> runnableContexts = hasConditions ? new ArrayList<>(activeSlots.size()) : null;
         long totalEUt = 0L;
 
+        if (hasConditions) {
+            for (IRecipeCondition cond : conditions) {
+                cond.beginTick();
+            }
+        }
+
         // Phase 1: Retry blocked COMPLETED slots & testTick on RUNNING slots (simulate only)
         Iterator<RecipeSlot> it = activeSlots.iterator();
         while (it.hasNext()) {
@@ -330,6 +336,9 @@ public class CrossRecipeParallelScheduler {
                         returnSlotToPool(slot);
                     }
                 } else {
+                    for (IRecipeCondition cond : conditions) {
+                        cond.reserveTick(ctx);
+                    }
                     runnableSlots.add(slot);
                     runnableContexts.add(ctx);
                     totalEUt += slot.getRecipeEUt();

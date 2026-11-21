@@ -317,6 +317,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         int remainingParallel;
         final List<SlotAllocation> allocations = new ArrayList<>();
         final Set<Recipe> allAllocatedRecipes = new HashSet<>();
+        final Set<IItemHandlerModifiable> allocatedPublicBuses = new HashSet<>();
+        final Set<Recipe> allocatedPublicRecipes = new HashSet<>();
 
         AllocationBudget(long remainingBasePower, int remainingParallel) {
             this.remainingBasePower = remainingBasePower;
@@ -391,6 +393,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             if (budget.remainingParallel <= 0 || budget.remainingBasePower <= 0) break;
             if (skipInvalidated && invalidatedInputList.contains(bus)) continue;
 
+            boolean isPublicBus = colorChannel != UNTRACKED_CHANNEL && colorIndexOf(bus) < 0;
+            if (isPublicBus && budget.allocatedPublicBuses.contains(bus)) {
+                continue;
+            }
+
             IMultipleTankHandler busFluidTank = channelFluids == null ?
                     getInputTank(bus) : getBusFluidsInChannel(bus, channelFluids);
             boolean foundFromBus = false;
@@ -420,6 +427,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     alloc.colorChannel = colorChannel;
                     budget.allocations.add(alloc);
                     budget.allAllocatedRecipes.add(recipe);
+                    if (isPublicBus) {
+                        budget.allocatedPublicBuses.add(bus);
+                    }
                     budget.remainingBasePower -= alloc.basePowerDemand;
                     budget.remainingParallel -= alloc.inputParallel;
                     foundFromBus = true;
@@ -449,7 +459,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         long totalPowerBudget = scheduler.getRemainingPowerBudget();
         AllocationBudget budget = new AllocationBudget(totalPowerBudget, scheduler.getRemainingParallelBudget());
         collectSchedulerAllocations(scheduler, recipeMap, getInputInventory(), getInputTank(),
-                UNTRACKED_CHANNEL, budget);
+                null, null, UNTRACKED_CHANNEL, budget);
         return distributeAndOverclock(budget.allocations, totalPowerBudget, scheduler);
     }
 
@@ -463,21 +473,33 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         long totalPowerBudget = scheduler.getRemainingPowerBudget();
         AllocationBudget budget = new AllocationBudget(totalPowerBudget, scheduler.getRemainingParallelBudget());
+        IItemHandlerModifiable publicInventory = new ItemHandlerList(getInputBusesForColor(NO_CHANNEL));
+        IMultipleTankHandler publicFluids = getInputTankForColor(NO_CHANNEL);
         int[] channelOrder = getChannelOrder(mask);
         for (int i = 0; i < channelOrder.length; i++) {
             if (budget.remainingParallel <= 0 || budget.remainingBasePower <= 0) break;
             int color = channelOrder[i];
             IItemHandlerModifiable channelInventory = new ItemHandlerList(getInputBusesForColor(color));
             IMultipleTankHandler channelFluids = getInputTankForColor(color);
-            collectSchedulerAllocations(scheduler, recipeMap, channelInventory, channelFluids, color, budget);
+            collectSchedulerAllocations(scheduler, recipeMap, channelInventory, channelFluids,
+                    publicInventory, publicFluids, color, budget);
         }
         return distributeAndOverclock(budget.allocations, totalPowerBudget, scheduler);
+    }
+
+    private static boolean isPublicSharedRecipe(@NotNull Recipe recipe,
+                                                @Nullable IItemHandlerModifiable publicInventory,
+                                                @Nullable IMultipleTankHandler publicFluids) {
+        return publicInventory != null && publicFluids != null &&
+                recipe.matches(false, publicInventory, publicFluids);
     }
 
     private void collectSchedulerAllocations(@NotNull CrossRecipeParallelScheduler scheduler,
                                              @NotNull RecipeMap<?> recipeMap,
                                              @NotNull IItemHandlerModifiable importInventory,
                                              @NotNull IMultipleTankHandler importFluids,
+                                             @Nullable IItemHandlerModifiable publicInventory,
+                                             @Nullable IMultipleTankHandler publicFluids,
                                              int colorChannel,
                                              @NotNull AllocationBudget budget) {
         if (budget.remainingParallel <= 0 || budget.remainingBasePower <= 0) return;
@@ -489,6 +511,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         // Phase 1a: Try cached recipe first (fast path, avoids full recipe search)
         if (lastCrossRecipe != null && !channelUsedRecipes.contains(lastCrossRecipe) &&
+                !(isPublicSharedRecipe(lastCrossRecipe, publicInventory, publicFluids) &&
+                        budget.allocatedPublicRecipes.contains(lastCrossRecipe)) &&
                 lastCrossRecipe.getEUt() <= budget.remainingBasePower &&
                 lastCrossRecipe.matches(false, importInventory, importFluids) &&
                 checkRecipe(lastCrossRecipe, importInventory, importFluids)) {
@@ -501,6 +525,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     alloc.colorChannel = colorChannel;
                     budget.allocations.add(alloc);
                     budget.allAllocatedRecipes.add(lastCrossRecipe);
+                    if (isPublicSharedRecipe(lastCrossRecipe, publicInventory, publicFluids)) {
+                        budget.allocatedPublicRecipes.add(lastCrossRecipe);
+                    }
                     channelUsedRecipes.add(lastCrossRecipe);
                     budget.remainingBasePower -= alloc.basePowerDemand;
                     budget.remainingParallel -= alloc.inputParallel;
@@ -523,16 +550,26 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             RecipeIterator iterator = recipeMap.findRecipeIterator(filteredItems, filteredFluids,
                     recipe -> recipe.getEUt() <= powerBudgetSnapshot &&
                             !channelUsedRecipes.contains(recipe) &&
+                            !(isPublicSharedRecipe(recipe, publicInventory, publicFluids) &&
+                                    budget.allocatedPublicRecipes.contains(recipe)) &&
                             recipe.matches(false, importInventory, importFluids));
 
             if (iterator != null) {
                 for (Recipe excluded : channelUsedRecipes) {
                     iterator.exclude(excluded);
                 }
+                for (Recipe excluded : budget.allocatedPublicRecipes) {
+                    iterator.exclude(excluded);
+                }
 
                 while (iterator.hasNext() && budget.remainingParallel > 0 && budget.remainingBasePower > 0) {
                     Recipe recipe = iterator.next();
                     if (recipe == null || !channelUsedRecipes.add(recipe)) continue;
+                    if (isPublicSharedRecipe(recipe, publicInventory, publicFluids) &&
+                            budget.allocatedPublicRecipes.contains(recipe)) {
+                        iterator.exclude(recipe);
+                        continue;
+                    }
                     if (!checkRecipe(recipe, importInventory, importFluids)) {
                         iterator.exclude(recipe);
                         continue;
@@ -548,6 +585,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                         alloc.colorChannel = colorChannel;
                         budget.allocations.add(alloc);
                         budget.allAllocatedRecipes.add(recipe);
+                        if (isPublicSharedRecipe(recipe, publicInventory, publicFluids)) {
+                            budget.allocatedPublicRecipes.add(recipe);
+                        }
                         budget.remainingBasePower -= alloc.basePowerDemand;
                         budget.remainingParallel -= alloc.inputParallel;
                         lastCrossRecipe = recipe;

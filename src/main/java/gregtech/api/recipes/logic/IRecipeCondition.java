@@ -59,6 +59,12 @@ public interface IRecipeCondition {
     default void onRecipeStart(@NotNull RecipeExecutionContext context) {}
 
     /**
+     * Invoked once per server tick before any {@link #testTick(RecipeExecutionContext)} simulation
+     * runs, allowing conditions that share machine-wide finite pools to reset per-tick reservations.
+     */
+    default void beginTick() {}
+
+    /**
      * Phase 1 (simulate) per-tick check. Must not mutate world state or consume resources.
      *
      * @return {@code true} if this condition permits advancing progress this tick
@@ -66,6 +72,13 @@ public interface IRecipeCondition {
     default boolean testTick(@NotNull RecipeExecutionContext context) {
         return true;
     }
+
+    /**
+     * Invoked only after every condition's {@link #testTick(RecipeExecutionContext)} has returned
+     * {@code true} for a slot or recipe, allowing shared-pool conditions to reserve this slot's share
+     * before subsequent slots are simulated in the same tick.
+     */
+    default void reserveTick(@NotNull RecipeExecutionContext context) {}
 
     /**
      * Phase 2 (commit) per-tick execution. Called only after energy draw and all conditions'

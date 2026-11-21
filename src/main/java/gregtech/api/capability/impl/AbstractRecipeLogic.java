@@ -590,11 +590,19 @@ public abstract class AbstractRecipeLogic extends MTETrait
         List<IRecipeCondition> failedConditions = null;
         if (hasConditions) {
             for (IRecipeCondition cond : recipeConditions) {
+                cond.beginTick();
+            }
+            for (IRecipeCondition cond : recipeConditions) {
                 if (!cond.testTick(ctx)) {
                     if (failedConditions == null) {
                         failedConditions = new ArrayList<>(1);
                     }
                     failedConditions.add(cond);
+                }
+            }
+            if (failedConditions == null) {
+                for (IRecipeCondition cond : recipeConditions) {
+                    cond.reserveTick(ctx);
                 }
             }
         }

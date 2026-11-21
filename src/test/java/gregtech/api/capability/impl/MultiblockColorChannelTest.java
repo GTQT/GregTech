@@ -442,6 +442,87 @@ class MultiblockColorChannelTest {
         assertEquals(1, countItem(controller.getOutputInventory(), Items.GOLD_INGOT));
     }
 
+    @Test
+    void colorChannelsDeduplicatePublicBusAndAllowConcurrentPaintedChannels() {
+        // 1. Combined mode: uncolored public bus holding 2x iron with 2 painted channels & per-slot cap 1
+        TestController combinedCtrl = new TestController(TEST_RECIPE_MAP);
+        TestMultiblockRecipeLogic combinedLogic = combinedCtrl.getTestLogic();
+        combinedLogic.setAllowOverclocking(false);
+        combinedLogic.setThreadLimit(4);
+        combinedLogic.setParallelLimit(1); // threaded: maxSlots=4, perSlotParallelCap=1, totalParallel=4
+
+        MetaTileEntityItemBus cRed = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_dedup_comb_red"), 1, false);
+        cRed.setPaintingColor(EnumDyeColor.RED, null);
+        MetaTileEntityItemBus cBlue = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_dedup_comb_blue"), 1, false);
+        cBlue.setPaintingColor(EnumDyeColor.BLUE, null);
+        MetaTileEntityItemBus cPublic = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_dedup_comb_public"), 1, false);
+        cPublic.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 2));
+
+        combinedCtrl.addPart(cRed);
+        combinedCtrl.addPart(cBlue);
+        combinedCtrl.addPart(cPublic);
+
+        combinedLogic.trySearchNewRecipePublic();
+        CrossRecipeParallelScheduler combinedSched = combinedLogic.getCrossRecipeScheduler();
+        assertNotNull(combinedSched);
+        assertEquals(1, combinedSched.getActiveSlotCount(),
+                "Combined mode must allocate public recipe only once across multiple painted channels");
+        assertEquals(1, cPublic.getImportItems().getStackInSlot(0).getCount());
+
+        // Same setup with separate painted inputs for the SAME recipe -> both channels allocate concurrently
+        combinedLogic.invalidate();
+        cPublic.getImportItems().setStackInSlot(0, ItemStack.EMPTY);
+        cRed.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+        cBlue.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+
+        combinedLogic.trySearchNewRecipePublic();
+        assertEquals(2, combinedSched.getActiveSlotCount(),
+                "Combined mode must still allow two painted channels with own inputs to run same recipe");
+
+        // 2. Distinct mode: uncolored public bus holding 2x iron with 2 painted channels & per-slot cap 1
+        TestController distinctCtrl = new TestController(TEST_RECIPE_MAP);
+        distinctCtrl.setDistinct(true);
+        TestMultiblockRecipeLogic distinctLogic = distinctCtrl.getTestLogic();
+        distinctLogic.setAllowOverclocking(false);
+        distinctLogic.setThreadLimit(4);
+        distinctLogic.setParallelLimit(1);
+
+        MetaTileEntityItemBus dRed = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_dedup_dist_red"), 1, false);
+        dRed.setPaintingColor(EnumDyeColor.RED, null);
+        MetaTileEntityItemBus dBlue = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_dedup_dist_blue"), 1, false);
+        dBlue.setPaintingColor(EnumDyeColor.BLUE, null);
+        MetaTileEntityItemBus dPublic = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_dedup_dist_public"), 1, false);
+        dPublic.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 2));
+
+        distinctCtrl.addPart(dRed);
+        distinctCtrl.addPart(dBlue);
+        distinctCtrl.addPart(dPublic);
+
+        distinctLogic.trySearchNewRecipePublic();
+        CrossRecipeParallelScheduler distinctSched = distinctLogic.getCrossRecipeScheduler();
+        assertNotNull(distinctSched);
+        assertEquals(1, distinctSched.getActiveSlotCount(),
+                "Distinct mode must allocate uncolored public bus only once across multiple painted channels");
+        assertEquals(1, dPublic.getImportItems().getStackInSlot(0).getCount());
+
+        // Same distinct setup with separate painted inputs for the SAME recipe -> both channels allocate concurrently
+        distinctLogic.invalidate();
+        dPublic.getImportItems().setStackInSlot(0, ItemStack.EMPTY);
+        dRed.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+        dBlue.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+
+        distinctLogic.clearInvalidatedInputs();
+        distinctLogic.trySearchNewRecipePublic();
+        assertEquals(2, distinctSched.getActiveSlotCount(),
+                "Distinct mode must still allow two painted channels with own inputs to run same recipe");
+    }
+
     private static List<Object> abilityOf(IMultiblockAbilityPart<?> part, MultiblockAbility<?> ability) {
         AbilityInstances instances = new AbilityInstances(ability);
         part.registerAbilities(instances);

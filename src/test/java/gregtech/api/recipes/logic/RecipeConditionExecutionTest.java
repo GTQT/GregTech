@@ -707,6 +707,120 @@ class RecipeConditionExecutionTest {
         assertEquals(Collections.singletonList("v"), invalidated);
     }
 
+    @Test
+    void scheduler_sharedFinitePoolReservationsPreventOvercommitAndLeak() {
+        CrossRecipeParallelScheduler scheduler = new CrossRecipeParallelScheduler(16);
+        scheduler.setMaxVoltage(128L);
+        scheduler.setTotalPowerBudget(1000L);
+
+        ItemStackHandler outItems = new ItemStackHandler(4);
+        FluidTankList outFluids = new FluidTankList(false, new FluidTank(10000));
+
+        Recipe recipe = createTestRecipe(new ItemStack(Items.IRON_INGOT), new ItemStack(Items.GOLD_INGOT), 2, 10L);
+
+        RecipeSlot slotBlockedByGate = scheduler.acquireSlot();
+        assertNotNull(slotBlockedByGate);
+        slotBlockedByGate.startRecipe(recipe, 2, 10L, Collections.singletonList(new ItemStack(Items.GOLD_INGOT)),
+                Collections.emptyList(), 1);
+        slotBlockedByGate.getExtraData().setBoolean("gatePass", false);
+
+        RecipeSlot slot1 = scheduler.acquireSlot();
+        assertNotNull(slot1);
+        slot1.startRecipe(recipe, 2, 10L, Collections.singletonList(new ItemStack(Items.GOLD_INGOT)),
+                Collections.emptyList(), 1);
+        slot1.getExtraData().setBoolean("gatePass", true);
+
+        RecipeSlot slot2 = scheduler.acquireSlot();
+        assertNotNull(slot2);
+        slot2.startRecipe(recipe, 2, 10L, Collections.singletonList(new ItemStack(Items.GOLD_INGOT)),
+                Collections.emptyList(), 1);
+        slot2.getExtraData().setBoolean("gatePass", true);
+
+        AtomicInteger pool = new AtomicInteger(120);
+        AtomicInteger reserved = new AtomicInteger(0);
+        AtomicInteger reserveCalls = new AtomicInteger(0);
+        TestEnergyPool energyPool = new TestEnergyPool(1000L);
+
+        IRecipeCondition poolCondition = new IRecipeCondition() {
+
+            @Override
+            public @NotNull String getConditionId() {
+                return "finite_pool";
+            }
+
+            @Override
+            public void beginTick() {
+                reserved.set(0);
+            }
+
+            @Override
+            public boolean testTick(@NotNull RecipeExecutionContext context) {
+                return pool.get() >= reserved.get() + 100;
+            }
+
+            @Override
+            public void reserveTick(@NotNull RecipeExecutionContext context) {
+                reserved.addAndGet(100);
+                reserveCalls.incrementAndGet();
+            }
+
+            @Override
+            public void consumeTick(@NotNull RecipeExecutionContext context) {
+                int remaining = pool.addAndGet(-100);
+                assertTrue(remaining >= 0, "Shared finite pool must never drain below 0");
+            }
+
+            @Override
+            public @NotNull TickFailureAction onTickFailed(@NotNull RecipeExecutionContext context,
+                                                           boolean energyShortage) {
+                return TickFailureAction.PAUSE;
+            }
+        };
+
+        IRecipeCondition gateCondition = new IRecipeCondition() {
+
+            @Override
+            public @NotNull String getConditionId() {
+                return "secondary_gate";
+            }
+
+            @Override
+            public boolean testTick(@NotNull RecipeExecutionContext context) {
+                return context.getExtraData().getBoolean("gatePass");
+            }
+
+            @Override
+            public @NotNull TickFailureAction onTickFailed(@NotNull RecipeExecutionContext context,
+                                                           boolean energyShortage) {
+                return TickFailureAction.PAUSE;
+            }
+        };
+
+        List<IRecipeCondition> conditions = java.util.Arrays.asList(poolCondition, gateCondition);
+
+        // Tick 1:
+        // - slotBlockedByGate passes poolCondition (0 + 100 <= 120) but fails gateCondition -> must NOT reserve!
+        // - slot1 passes both -> reserves 100 and consumes 100 (pool: 120 -> 20), progresses 1 -> 2
+        // - slot2 fails poolCondition (100 + 100 > 120) -> pauses at 1 without freeloading
+        int completed1 = scheduler.tickSlots(outItems, outFluids, energyPool, false, false, conditions);
+        assertEquals(0, completed1);
+        assertEquals(20, pool.get());
+        assertEquals(1, reserveCalls.get(), "Failed gate slot must not leak a reservation");
+        assertEquals(1, slotBlockedByGate.getProgressTime());
+        assertEquals(2, slot1.getProgressTime());
+        assertEquals(1, slot2.getProgressTime());
+        assertEquals(990L, energyPool.stored);
+
+        // Refill pool to 200 and tick again: slot1 completes (2 -> 3 > 2), slot2 advances (1 -> 2)
+        pool.set(200);
+        int completed2 = scheduler.tickSlots(outItems, outFluids, energyPool, false, false, conditions);
+        assertEquals(1, completed2);
+        assertEquals(0, pool.get());
+        assertEquals(2, scheduler.getActiveSlotCount());
+        assertEquals(2, slot2.getProgressTime());
+        assertEquals(Items.GOLD_INGOT, outItems.getStackInSlot(0).getItem());
+    }
+
     // ==================== Minimal Headless Test Doubles ====================
 
     private static final class TestEnergyPool implements CrossRecipeParallelScheduler.EnergyDrawer {
