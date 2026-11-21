@@ -242,39 +242,162 @@ public class CrossRecipeParallelScheduler {
                          @NotNull EnergyDrawer energyDrawer,
                          boolean voidItemOutputs,
                          boolean voidFluidOutputs) {
-        long totalEUt = getTotalEnergyConsumption();
-        int completedParallel = 0;
+        return tickSlots(outputInventory, outputFluids, energyDrawer, voidItemOutputs, voidFluidOutputs,
+                Collections.emptyList());
+    }
 
-        // Attempt to draw energy for all active slots
+    /**
+     * Two-phase per-slot tick evaluation with optional {@link IRecipeCondition} support.
+     *
+     * <ol>
+     *   <li>Retries any already-{@code COMPLETED} slots whose outputs were previously blocked; fires
+     *       {@link IRecipeCondition#onRecipeComplete} when outputs commit.</li>
+     *   <li>Simulates {@link IRecipeCondition#testTick} across all conditions for each {@code RUNNING} slot.
+     *       Slots that fail any condition invoke {@link IRecipeCondition#onTickFailed(RecipeExecutionContext, boolean)}
+     *       with {@code energyShortage = false}; if any failing condition returns {@code PAUSE}, that slot skips
+     *       progressing while sibling slots continue normally; otherwise progress is decreased/reset per
+     *       {@link RecipeSlot#decreaseProgress()} (calling {@link IRecipeCondition#onInvalidate} and removing
+     *       the slot on reset).</li>
+     *   <li>Draws aggregate EU/t for all runnable slots. If energy draw fails, sets {@code hasNotEnoughEnergy = true};
+     *       when {@code conditions} is empty, runnable slots pause (preserving legacy scheduler behavior);
+     *       when {@code conditions} is non-empty, {@link IRecipeCondition#onTickFailed(RecipeExecutionContext, boolean)}
+     *       with {@code energyShortage = true} is consulted per runnable slot (pausing if any returns {@code PAUSE},
+     *       otherwise decreasing/resetting progress).</li>
+     *   <li>Commits {@link IRecipeCondition#consumeTick} and {@link RecipeSlot#tick()} for each runnable slot,
+     *       exporting results and firing {@link IRecipeCondition#onRecipeComplete} upon commit.</li>
+     * </ol>
+     */
+    public int tickSlots(@NotNull IItemHandlerModifiable outputInventory,
+                         @NotNull IMultipleTankHandler outputFluids,
+                         @NotNull EnergyDrawer energyDrawer,
+                         boolean voidItemOutputs,
+                         boolean voidFluidOutputs,
+                         @NotNull List<IRecipeCondition> conditions) {
+        int completedParallel = 0;
+        boolean hasConditions = !conditions.isEmpty();
+
+        List<RecipeSlot> runnableSlots = new ArrayList<>(activeSlots.size());
+        List<RecipeExecutionContext> runnableContexts = hasConditions ? new ArrayList<>(activeSlots.size()) : null;
+        long totalEUt = 0L;
+
+        if (hasConditions) {
+            for (IRecipeCondition cond : conditions) {
+                cond.beginTick();
+            }
+        }
+
+        // Phase 1: Retry blocked COMPLETED slots & testTick on RUNNING slots (simulate only)
+        Iterator<RecipeSlot> it = activeSlots.iterator();
+        while (it.hasNext()) {
+            RecipeSlot slot = it.next();
+            if (slot.isCompleted()) {
+                // Retry completed slots after output capacity changes.
+                if (outputSlotResults(slot, outputInventory, outputFluids, voidItemOutputs, voidFluidOutputs)) {
+                    if (hasConditions) {
+                        RecipeExecutionContext ctx = RecipeExecutionContext.forSlot(slot);
+                        for (IRecipeCondition cond : conditions) {
+                            cond.onRecipeComplete(ctx);
+                        }
+                    }
+                    completedParallel += Math.max(1, slot.getTotalOperations());
+                    it.remove();
+                    returnSlotToPool(slot);
+                }
+            } else if (slot.isRunning()) {
+                if (!hasConditions) {
+                    runnableSlots.add(slot);
+                    totalEUt += slot.getRecipeEUt();
+                    continue;
+                }
+
+                RecipeExecutionContext ctx = RecipeExecutionContext.forSlot(slot);
+                List<IRecipeCondition> failedConditions = null;
+                for (IRecipeCondition cond : conditions) {
+                    if (!cond.testTick(ctx)) {
+                        if (failedConditions == null) {
+                            failedConditions = new ArrayList<>(1);
+                        }
+                        failedConditions.add(cond);
+                    }
+                }
+
+                if (failedConditions != null) {
+                    boolean pause = false;
+                    for (IRecipeCondition cond : failedConditions) {
+                        if (cond.onTickFailed(ctx, false) == IRecipeCondition.TickFailureAction.PAUSE) {
+                            pause = true;
+                        }
+                    }
+                    if (!pause && slot.decreaseProgress()) {
+                        for (IRecipeCondition cond : conditions) {
+                            cond.onInvalidate(ctx);
+                        }
+                        it.remove();
+                        returnSlotToPool(slot);
+                    }
+                } else {
+                    for (IRecipeCondition cond : conditions) {
+                        cond.reserveTick(ctx);
+                    }
+                    runnableSlots.add(slot);
+                    runnableContexts.add(ctx);
+                    totalEUt += slot.getRecipeEUt();
+                }
+            }
+        }
+
+        // Phase 2: Attempt to draw aggregate energy for all runnable slots
         if (totalEUt > 0) {
             if (energyDrawer.drawEnergy(totalEUt, true)) {
                 energyDrawer.drawEnergy(totalEUt, false);
                 hasNotEnoughEnergy = false;
             } else {
                 hasNotEnoughEnergy = true;
-                return 0;
-            }
-        }
-
-        // Tick all running slots and collect completed ones
-        Iterator<RecipeSlot> it = activeSlots.iterator();
-        while (it.hasNext()) {
-            RecipeSlot slot = it.next();
-            if (slot.isRunning()) {
-                if (slot.tick()) {
-                    // A completed slot remains reserved until results are committed or configured to be voided.
-                    // Dropping it unconditionally loses already-consumed inputs whenever an export hatch rejects.
-                    if (outputSlotResults(slot, outputInventory, outputFluids, voidItemOutputs, voidFluidOutputs)) {
-                        completedParallel += Math.max(1, slot.getTotalOperations());
-                        it.remove();
-                        returnSlotToPool(slot);
+                if (hasConditions) {
+                    for (int i = 0; i < runnableSlots.size(); i++) {
+                        RecipeSlot slot = runnableSlots.get(i);
+                        RecipeExecutionContext ctx = runnableContexts.get(i);
+                        boolean pause = false;
+                        for (IRecipeCondition cond : conditions) {
+                            if (cond.onTickFailed(ctx, true) == IRecipeCondition.TickFailureAction.PAUSE) {
+                                pause = true;
+                            }
+                        }
+                        if (!pause && slot.decreaseProgress()) {
+                            for (IRecipeCondition cond : conditions) {
+                                cond.onInvalidate(ctx);
+                            }
+                            activeSlots.remove(slot);
+                            returnSlotToPool(slot);
+                        }
                     }
                 }
-            } else if (slot.isCompleted()) {
-                // Retry completed slots after output capacity changes.
+                return completedParallel;
+            }
+        } else {
+            hasNotEnoughEnergy = false;
+        }
+
+        // Phase 3: Commit condition tick consumption and advance running slots
+        for (int i = 0; i < runnableSlots.size(); i++) {
+            RecipeSlot slot = runnableSlots.get(i);
+            RecipeExecutionContext ctx = hasConditions ? runnableContexts.get(i) : null;
+            if (ctx != null) {
+                for (IRecipeCondition cond : conditions) {
+                    cond.consumeTick(ctx);
+                }
+            }
+            if (slot.tick()) {
+                // A completed slot remains reserved until results are committed or configured to be voided.
+                // Dropping it unconditionally loses already-consumed inputs whenever an export hatch rejects.
                 if (outputSlotResults(slot, outputInventory, outputFluids, voidItemOutputs, voidFluidOutputs)) {
+                    if (ctx != null) {
+                        for (IRecipeCondition cond : conditions) {
+                            cond.onRecipeComplete(ctx);
+                        }
+                    }
                     completedParallel += Math.max(1, slot.getTotalOperations());
-                    it.remove();
+                    activeSlots.remove(slot);
                     returnSlotToPool(slot);
                 }
             }
@@ -586,6 +709,22 @@ public class CrossRecipeParallelScheduler {
      * Removes all active slots and returns them to the pool. Called when the multiblock is invalidated.
      */
     public void invalidateAll() {
+        invalidateAll(Collections.emptyList());
+    }
+
+    /**
+     * Invokes {@link IRecipeCondition#onInvalidate(RecipeExecutionContext)} for every active slot,
+     * then removes all active slots and returns them to the pool.
+     */
+    public void invalidateAll(@NotNull List<IRecipeCondition> conditions) {
+        if (!conditions.isEmpty()) {
+            for (RecipeSlot slot : activeSlots) {
+                RecipeExecutionContext ctx = RecipeExecutionContext.forSlot(slot);
+                for (IRecipeCondition cond : conditions) {
+                    cond.onInvalidate(ctx);
+                }
+            }
+        }
         for (RecipeSlot slot : activeSlots) {
             slot.reset();
             slotPool.add(slot);
@@ -622,8 +761,8 @@ public class CrossRecipeParallelScheduler {
         for (int i = 0; i < slotList.tagCount(); i++) {
             RecipeSlot slot = new RecipeSlot(i);
             slot.deserializeNBT(slotList.getCompoundTagAt(i));
-            // Only restore running slots (completed ones would have been output on save)
-            if (slot.isRunning()) {
+            // Restore both running and output-blocked completed slots across reloads
+            if (slot.isRunning() || slot.isCompleted()) {
                 activeSlots.add(slot);
             }
         }

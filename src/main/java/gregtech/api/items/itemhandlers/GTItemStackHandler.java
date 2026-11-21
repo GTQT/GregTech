@@ -29,6 +29,10 @@ public class GTItemStackHandler extends ItemStackHandler {
         this.metaTileEntity = metaTileEntity;
     }
 
+    public MetaTileEntity getMetaTileEntity() {
+        return metaTileEntity;
+    }
+
     public boolean getAllowSameItemInsert() {
         return allowSameItemInsert;
     }

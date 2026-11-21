@@ -1,11 +1,14 @@
 package gregtech.common.metatileentities.multi.multiblockpart;
 
+import gregtech.api.capability.IRecipeMapHolder;
+import gregtech.api.capability.impl.MultiblockRecipeLogic;
 import gregtech.api.metatileentity.ITieredMetaTileEntity;
 import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.multiblock.IColorChannelPart;
+import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
-import gregtech.api.metatileentity.multiblock.RecipeMapMultiblockController;
 import gregtech.api.mui.factory.MetaTileEntityGuiFactory;
 import gregtech.api.mui.widget.SidePanel;
 import gregtech.api.util.GTUtility;
@@ -40,6 +43,8 @@ import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.List;
 
 import static gregtech.api.capability.GregtechDataCodes.SYNC_CONTROLLER;
 
@@ -203,14 +208,28 @@ public abstract class MetaTileEntityMultiblockPart extends MetaTileEntity
 
     @Override
     public void setPaintingColor(int paintingColor, @Nullable EnumFacing side) {
+        int previousColor = getPaintingColor();
         super.setPaintingColor(paintingColor, side);
-        // 染色变化影响颜色通道分组,立即通知控制器重查配方(喷涂本身不触发仓输入通知)
-        if (getWorld() != null && !getWorld().isRemote) {
+        if (previousColor == getPaintingColor()) {
+            return;
+        }
+        // 仅输入部件染色变化影响颜色通道分组;延迟清缓存而不中断正在运行的配方
+        if (getWorld() != null && !getWorld().isRemote && isImportPart()) {
             MultiblockControllerBase controller = getController();
-            if (controller instanceof RecipeMapMultiblockController recipeMapController) {
-                recipeMapController.getRecipeMapWorkable().forceRecipeRecheck();
+            if (controller instanceof IRecipeMapHolder holder &&
+                    holder.getRecipeMapWorkable() instanceof MultiblockRecipeLogic multiblockLogic) {
+                multiblockLogic.onHatchColorChanged();
             }
         }
+    }
+
+    private boolean isImportPart() {
+        if (!(this instanceof IMultiblockAbilityPart<?> abilityPart)) {
+            return false;
+        }
+        List<MultiblockAbility<?>> abilities = abilityPart.getAbilities();
+        return abilities.contains(MultiblockAbility.IMPORT_ITEMS) ||
+                abilities.contains(MultiblockAbility.IMPORT_FLUIDS);
     }
 
     /**
