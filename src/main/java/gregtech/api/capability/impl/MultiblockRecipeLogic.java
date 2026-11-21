@@ -315,9 +315,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         long remainingBasePower;
         int remainingParallel;
+        boolean exhausted;
         final List<SlotAllocation> allocations = new ArrayList<>();
         final Set<Recipe> allAllocatedRecipes = new HashSet<>();
         final Set<IItemHandlerModifiable> allocatedPublicBuses = new HashSet<>();
+        final Set<IItemHandlerModifiable> failedPublicBuses = new HashSet<>();
         final Set<Recipe> allocatedPublicRecipes = new HashSet<>();
 
         AllocationBudget(long remainingBasePower, int remainingParallel) {
@@ -371,13 +373,25 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         AllocationBudget budget = new AllocationBudget(totalPowerBudget, scheduler.getRemainingParallelBudget());
         int[] channelOrder = getChannelOrder(mask);
         for (int i = 0; i < channelOrder.length; i++) {
-            if (budget.remainingParallel <= 0 || budget.remainingBasePower <= 0) break;
+            if (budget.remainingParallel <= 0 || budget.remainingBasePower <= 0) {
+                budget.exhausted = true;
+                break;
+            }
             int color = channelOrder[i];
             List<IItemHandlerModifiable> channelBuses = getInputBusesForColor(color);
             if (channelBuses.isEmpty()) continue;
             IMultipleTankHandler channelFluids = getInputTankForColor(color);
             collectDistinctSchedulerAllocations(scheduler, channelBuses, channelFluids, color,
                     skipInvalidated, budget, new HashSet<>());
+            if (budget.exhausted) break;
+        }
+        if (skipInvalidated && !budget.exhausted) {
+            for (IItemHandlerModifiable bus : budget.failedPublicBuses) {
+                if (!budget.allocatedPublicBuses.contains(bus) && !invalidatedInputList.contains(bus)) {
+                    logBoundInputNoRecipe(bus, getRecipeMapForInput(bus), "NO_RECIPE_MATCHED_BUFFER");
+                    invalidatedInputList.add(bus);
+                }
+            }
         }
         return distributeAndOverclock(budget.allocations, totalPowerBudget, scheduler);
     }
@@ -390,7 +404,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                                                      @NotNull AllocationBudget budget,
                                                      @NotNull Set<Recipe> channelUsedRecipes) {
         for (IItemHandlerModifiable bus : buses) {
-            if (budget.remainingParallel <= 0 || budget.remainingBasePower <= 0) break;
+            if (budget.remainingParallel <= 0 || budget.remainingBasePower <= 0) {
+                budget.exhausted = true;
+                break;
+            }
             if (skipInvalidated && invalidatedInputList.contains(bus)) continue;
 
             boolean isPublicBus = colorChannel != UNTRACKED_CHANNEL && colorIndexOf(bus) < 0;
@@ -418,6 +435,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     checkRecipe(recipe, bus, busFluidTank) && channelUsedRecipes.add(recipe)) {
                 RecipeSlot slot = scheduler.acquireSlot();
                 if (slot == null) {
+                    budget.exhausted = true;
                     routedRecipeMap = null;
                     break;
                 }
@@ -441,10 +459,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             routedRecipeMap = null;
 
             if (!foundFromBus && skipInvalidated) {
-                if (recipe == null) {
-                    logBoundInputNoRecipe(bus, recipeMap, "NO_RECIPE_MATCHED_BUFFER");
+                if (isPublicBus) {
+                    budget.failedPublicBuses.add(bus);
+                } else {
+                    if (recipe == null) {
+                        logBoundInputNoRecipe(bus, recipeMap, "NO_RECIPE_MATCHED_BUFFER");
+                    }
+                    invalidatedInputList.add(bus);
                 }
-                invalidatedInputList.add(bus);
             }
         }
     }
@@ -1654,6 +1676,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         long maxVoltage = getMaxVoltage();
         int[] channelOrder = getChannelOrder(mask);
+        Set<IItemHandlerModifiable> failedPublicBuses = null;
         for (int i = 0; i < channelOrder.length; i++) {
             int color = channelOrder[i];
             List<IItemHandlerModifiable> channelBuses = getInputBusesForColor(color);
@@ -1682,11 +1705,26 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     routedRecipeMap = null;
                 }
                 if (currentRecipe == null) {
-                    logBoundInputNoRecipe(bus, recipeMap, "NO_RECIPE_MATCHED_BUFFER");
-                    invalidatedInputList.add(bus);
+                    if (colorIndexOf(bus) < 0) {
+                        if (failedPublicBuses == null) {
+                            failedPublicBuses = new HashSet<>();
+                        }
+                        failedPublicBuses.add(bus);
+                    } else {
+                        logBoundInputNoRecipe(bus, recipeMap, "NO_RECIPE_MATCHED_BUFFER");
+                        invalidatedInputList.add(bus);
+                    }
                 }
             }
             routedRecipeMap = null;
+        }
+        if (failedPublicBuses != null) {
+            for (IItemHandlerModifiable bus : failedPublicBuses) {
+                if (!invalidatedInputList.contains(bus)) {
+                    logBoundInputNoRecipe(bus, getRecipeMapForInput(bus), "NO_RECIPE_MATCHED_BUFFER");
+                    invalidatedInputList.add(bus);
+                }
+            }
         }
     }
 
