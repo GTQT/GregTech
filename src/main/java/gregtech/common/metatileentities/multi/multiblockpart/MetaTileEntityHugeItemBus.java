@@ -99,8 +99,8 @@ public class MetaTileEntityHugeItemBus extends MetaTileEntityMultiblockNotifiabl
 
     @Override
     protected void initializeInventory() {
-        this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getInventorySize(), null, false,
-                this::getSlotCapacity);
+        this.largeSlotItemStackHandler = new LargeSlotItemStackHandler(this, getInventorySize(), null,
+                this.isExportHatch, this::getSlotCapacity);
 
         if (this.hasGhostCircuitInventory()) {
             this.circuitInventory = new GhostCircuitItemStackHandler(this);

@@ -1,5 +1,8 @@
 package gregtech.api.items.itemhandlers;
 
+import gregtech.api.capability.IMultipleNotifiableHandler;
+import gregtech.api.capability.INotifiableHandler;
+import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.common.covers.filter.ItemFilterContainer;
 
 import net.minecraft.item.ItemStack;
@@ -7,11 +10,15 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+import java.util.Collections;
+
 /**
  * 输出物品过滤包装 Handler —— 在 insertItem 时检查过滤器，不匹配的物品将被拒绝。
  * extractItem / getStackInSlot 不受过滤影响，玩家可正常取出所有已放入的物品。
  */
-public class FilteredExportItemHandler implements IItemHandlerModifiable {
+public class FilteredExportItemHandler implements IItemHandlerModifiable,
+                                          IMultipleNotifiableHandler, INotifiableHandler {
 
     private final IItemHandlerModifiable delegate;
     private final ItemFilterContainer filter;
@@ -50,5 +57,30 @@ public class FilteredExportItemHandler implements IItemHandlerModifiable {
     @Override
     public void setStackInSlot(int slot, @NotNull ItemStack stack) {
         delegate.setStackInSlot(slot, stack);
+    }
+
+    @Override
+    public @NotNull Collection<INotifiableHandler> getBackingNotifiers() {
+        if (delegate instanceof IMultipleNotifiableHandler multi) {
+            return multi.getBackingNotifiers();
+        }
+        if (delegate instanceof INotifiableHandler notifiable) {
+            return Collections.singletonList(notifiable);
+        }
+        return Collections.emptyList();
+    }
+
+    @Override
+    public void addNotifiableMetaTileEntity(MetaTileEntity metaTileEntity) {
+        for (INotifiableHandler notifier : getBackingNotifiers()) {
+            notifier.addNotifiableMetaTileEntity(metaTileEntity);
+        }
+    }
+
+    @Override
+    public void removeNotifiableMetaTileEntity(MetaTileEntity metaTileEntity) {
+        for (INotifiableHandler notifier : getBackingNotifiers()) {
+            notifier.removeNotifiableMetaTileEntity(metaTileEntity);
+        }
     }
 }

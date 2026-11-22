@@ -170,6 +170,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected Recipe findRecipe(@Nullable RecipeMap<?> recipeMap, long maxVoltage,
                                 IItemHandlerModifiable inputs, IMultipleTankHandler fluidInputs) {
         if (recipeMap == null || !isRecipeMapValid(recipeMap)) return null;
+        if (getLockedRecipe() != null) {
+            return matchLockedRecipe(recipeMap, maxVoltage, inputs, fluidInputs);
+        }
         return recipeMap.findRecipe(maxVoltage, inputs, fluidInputs);
     }
 
@@ -272,14 +275,22 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         // In CROSS_RECIPE mode, the scheduler manages all progress and energy
         CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
+        IMultipleTankHandler outputTank = getOutputTank();
 
         int completedParallel = scheduler.tickSlots(
                 getOutputInventory(),
-                getOutputTank(),
+                outputTank,
                 (amount, simulate) -> drawEnergy(amount, simulate),
                 metaTileEntity.canVoidRecipeItemOutputs(),
                 metaTileEntity.canVoidRecipeFluidOutputs(),
-                getRecipeConditions()
+                getRecipeConditions(),
+                (fluids, simulate) -> {
+                    if (simulate) {
+                        return checkOutputFluidSpace(fluids, outputTank);
+                    }
+                    commitFluidOutputs(fluids, outputTank);
+                    return true;
+                }
         );
         if (completedParallel > 0) {
             onCrossRecipeSlotsCompleted(completedParallel);
@@ -451,6 +462,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     budget.remainingBasePower -= alloc.basePowerDemand;
                     budget.remainingParallel -= alloc.inputParallel;
                     foundFromBus = true;
+                    this.previousRecipe = recipe;
+                    this.previousDistinctRecipeMap = recipeMap;
                     lastCrossRecipe = recipe;
                 } else {
                     scheduler.releaseSlot(slot);
@@ -531,8 +544,44 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             channelUsedRecipes.addAll(budget.allAllocatedRecipes);
         }
 
+        Recipe locked = getLockedRecipe();
+        if (locked != null) {
+            if (recipeMap.ownsRecipe(locked) &&
+                    !channelUsedRecipes.contains(locked) &&
+                    !(isPublicSharedRecipe(locked, publicInventory, publicFluids) &&
+                            budget.allocatedPublicRecipes.contains(locked)) &&
+                    locked.getEUt() <= budget.remainingBasePower &&
+                    locked.matches(false, importInventory, importFluids) &&
+                    checkRecipe(locked, importInventory, importFluids)) {
+                RecipeSlot slot = scheduler.acquireSlot();
+                if (slot != null) {
+                    SlotAllocation alloc = allocateSlotParallel(slot, locked, recipeMap,
+                            importInventory, importFluids, budget.remainingBasePower, budget.remainingParallel,
+                            scheduler.getPerSlotParallelCap());
+                    if (alloc != null) {
+                        alloc.colorChannel = colorChannel;
+                        budget.allocations.add(alloc);
+                        budget.allAllocatedRecipes.add(locked);
+                        if (isPublicSharedRecipe(locked, publicInventory, publicFluids)) {
+                            budget.allocatedPublicRecipes.add(locked);
+                        }
+                        channelUsedRecipes.add(locked);
+                        budget.remainingBasePower -= alloc.basePowerDemand;
+                        budget.remainingParallel -= alloc.inputParallel;
+                        this.previousRecipe = locked;
+                        lastCrossRecipe = locked;
+                    } else {
+                        scheduler.releaseSlot(slot);
+                    }
+                }
+            }
+            return;
+        }
+
         // Phase 1a: Try cached recipe first (fast path, avoids full recipe search)
-        if (lastCrossRecipe != null && !channelUsedRecipes.contains(lastCrossRecipe) &&
+        if (lastCrossRecipe != null &&
+                recipeMap.ownsRecipe(lastCrossRecipe) &&
+                !channelUsedRecipes.contains(lastCrossRecipe) &&
                 !(isPublicSharedRecipe(lastCrossRecipe, publicInventory, publicFluids) &&
                         budget.allocatedPublicRecipes.contains(lastCrossRecipe)) &&
                 lastCrossRecipe.getEUt() <= budget.remainingBasePower &&
@@ -553,6 +602,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     channelUsedRecipes.add(lastCrossRecipe);
                     budget.remainingBasePower -= alloc.basePowerDemand;
                     budget.remainingParallel -= alloc.inputParallel;
+                    this.previousRecipe = lastCrossRecipe;
+                    if (isRecipeLockEnable()) {
+                        return;
+                    }
                 } else {
                     scheduler.releaseSlot(slot);
                 }
@@ -612,7 +665,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                         }
                         budget.remainingBasePower -= alloc.basePowerDemand;
                         budget.remainingParallel -= alloc.inputParallel;
+                        this.previousRecipe = recipe;
                         lastCrossRecipe = recipe;
+                        if (isRecipeLockEnable()) {
+                            break;
+                        }
                     } else {
                         scheduler.releaseSlot(slot);
                     }
@@ -700,7 +757,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // Power check: remaining base power must be enough for at least 1 recipe
         if (remainingBasePower < baseEUt) return null;
 
-        int effectiveParallelLimit = Math.max(1, getEffectiveParallelLimit(trimmed, importInventory, importFluids));
+        int effectiveParallelLimit = Math.min(
+                Math.max(1, getEffectiveParallelLimit(trimmed, importInventory, importFluids)),
+                Math.max(1, getMaxRecipeOperations(trimmed)));
         int boundedParallelBudget = Math.min(maxParallelBudget, effectiveParallelLimit);
 
         // Parallel is limited by: min(parallelBudget, effectiveParallelLimit, remainingBasePower / baseEUt)
@@ -723,7 +782,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (inputParallel == 0) return null;
 
         // Limit by output space
-        int outputParallel = ParallelLogic.limitByOutputMerging(trimmed, getOutputInventory(), getOutputTank(),
+        int outputParallel = limitOutputParallel(trimmed, getOutputInventory(), getOutputTank(),
                 inputParallel,
                 metaTileEntity.canVoidRecipeItemOutputs(),
                 metaTileEntity.canVoidRecipeFluidOutputs());
@@ -778,7 +837,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         long overclockedEUt = result.eut();
         int overclockedDuration = result.duration();
-        int subTickParallel = Math.max(1, result.parallel());
+        int maxOps = Math.max(1, getMaxRecipeOperations(trimmed));
+        inputParallel = Math.min(inputParallel, maxOps);
+        int rawSubTickParallel = Math.max(1, result.parallel());
+        int maxSubTickByOps = Math.max(1, maxOps / inputParallel);
+        int subTickParallel = Math.min(rawSubTickParallel, maxSubTickByOps);
 
         // --- Calculate parallel and total operations ---
         // A sub-tick OC can repeat a complete input-parallel group, but it must not turn a partial
@@ -786,7 +849,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // input-parallel recipe and then repeats that whole recipe for sub-tick OC; mirror that grouping here.
         long plannedTotalOperations = (long) inputParallel * subTickParallel;
 
-        long plannedSlotEUt = result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt;
+        long plannedSlotEUt = subTickParallel < rawSubTickParallel ?
+                saturatingMultiply(overclockedEUt, subTickParallel) :
+                (result.parallelEUt() > 0 ? result.parallelEUt() : overclockedEUt);
 
         // Clamp totalSlotEUt to the allocated power budget (only when power multiplies with parallel)
         if (shouldParallelMultiplyPower() && plannedSlotEUt > ocPowerBudget) {
@@ -805,7 +870,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return false;
         }
 
-        int outputOperations = ParallelLogic.limitByOutputMerging(trimmed, getOutputInventory(), getOutputTank(),
+        int outputOperations = limitOutputParallel(trimmed, getOutputInventory(), getOutputTank(),
                 saturatingOperationCount((long) inputParallel * subTickGroups),
                 metaTileEntity.canVoidRecipeItemOutputs(), metaTileEntity.canVoidRecipeFluidOutputs());
         subTickGroups = Math.min(subTickGroups, outputOperations / inputParallel);
@@ -822,16 +887,18 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         // --- Batch processing ---
         int batchMultiplier = 1;
-        if (isBatchEnable() && overclockedDuration <= 64 && overclockedDuration > 0) {
-            int maxBatch = (int) Math.floor(128.0 / overclockedDuration);
+        if (isBatchEnable() && canBatchRecipe(trimmed) && totalParallelBasis < maxOps &&
+                overclockedDuration <= 64 && overclockedDuration > 0) {
+            int maxBatch = Math.min((int) Math.floor(128.0 / overclockedDuration),
+                    Math.max(1, maxOps / totalParallelBasis));
             int bestBatch = 1;
             int lo = 1, hi = maxBatch;
             while (lo <= hi) {
                 int mid = lo + (hi - lo) / 2;
-                int neededParallel = (int) Math.min(Integer.MAX_VALUE, totalParallelBasis * mid);
+                int neededParallel = (int) Math.min(Integer.MAX_VALUE, (long) totalParallelBasis * mid);
                 int available = ParallelLogic.getMaxRecipeMultiplier(
                         trimmed, alloc.importInventory, alloc.importFluids, neededParallel);
-                int outputCapacity = ParallelLogic.limitByOutputMerging(trimmed, getOutputInventory(), getOutputTank(),
+                int outputCapacity = limitOutputParallel(trimmed, getOutputInventory(), getOutputTank(),
                         neededParallel, metaTileEntity.canVoidRecipeItemOutputs(),
                         metaTileEntity.canVoidRecipeFluidOutputs());
                 if (available >= neededParallel && outputCapacity >= neededParallel) {
@@ -846,7 +913,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             }
         }
 
-        int totalOperations = (int) Math.min(Integer.MAX_VALUE, totalParallelBasis * batchMultiplier);
+        int totalOperations = (int) Math.min(Integer.MAX_VALUE, (long) totalParallelBasis * batchMultiplier);
         int finalDuration = overclockedDuration * batchMultiplier;
 
         // A cross-recipe slot normally draws energy on its next tick. Check the total demand now so inputs are not
@@ -1107,6 +1174,19 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         return super.canProgressRecipe() && !((IMultiblockController) metaTileEntity).isStructureObstructed();
     }
 
+    @Override
+    protected void resetInvalidatedInputs() {
+        super.resetInvalidatedInputs();
+        this.invalidatedInputList.clear();
+    }
+
+    @Override
+    public void forceRecipeRecheck() {
+        this.lastCrossRecipe = null;
+        this.previousDistinctRecipeMap = null;
+        super.forceRecipeRecheck();
+    }
+
     /**
      * Used to reset cached values in the Recipe Logic on structure deform
      */
@@ -1138,8 +1218,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      * color-channel rotation without interrupting an actively running recipe.
      */
     public void onHatchColorChanged() {
-        this.invalidInputsForRecipes = false;
-        this.invalidatedInputList.clear();
+        resetInvalidatedInputs();
         this.lastColorChannel = NO_CHANNEL;
     }
 
@@ -1614,7 +1693,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             if (tryFindRecipeForChannel(maxVoltage, channelInventory, channelFluids, color)) return;
         }
         this.invalidInputsForRecipes = true;
-        whyFailed = "NoneRecipes";
+        whyFailed = getLockedRecipe() != null ? "无法运行锁定的配方" : "NoneRecipes";
     }
 
     /**
@@ -1626,23 +1705,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected boolean tryFindRecipeForChannel(long maxVoltage, IItemHandlerModifiable channelInventory,
                                               IMultipleTankHandler channelFluids, int color) {
         Recipe currentRecipe = null;
-        boolean locked = isRecipeLockEnable() && previousRecipe != null;
-        if (locked) {
-            if (previousRecipe.getEUt() <= maxVoltage &&
-                    previousRecipe.matches(false, channelInventory, channelFluids)) {
-                currentRecipe = previousRecipe;
-            } else {
-                this.invalidInputsForRecipes = true;
-                whyFailed = "无法运行锁定的配方";
-                return false;
-            }
-        } else {
-            if (checkPreviousRecipeForChannel(channelInventory, channelFluids)) {
-                currentRecipe = this.previousRecipe;
-            }
-            if (currentRecipe == null) {
-                currentRecipe = findRecipe(maxVoltage, channelInventory, channelFluids);
-            }
+        if (checkPreviousRecipeForChannel(channelInventory, channelFluids)) {
+            currentRecipe = this.previousRecipe;
+        }
+        if (currentRecipe == null) {
+            currentRecipe = findRecipe(maxVoltage, channelInventory, channelFluids);
         }
 
         if (currentRecipe != null) {
@@ -1659,6 +1726,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected boolean checkPreviousRecipeForChannel(IItemHandlerModifiable channelInventory,
                                                     IMultipleTankHandler channelFluids) {
         if (this.previousRecipe == null) return false;
+        RecipeMap<?> map = getRecipeMap();
+        if (map == null || !isRecipeMapValid(map) || !map.ownsRecipe(this.previousRecipe)) return false;
         if (this.previousRecipe.getEUt() > this.getMaxVoltage()) return false;
         return this.previousRecipe.matches(false, channelInventory, channelFluids);
     }
@@ -1788,8 +1857,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         IItemHandlerModifiable previousBus = importInventory.get(lastRecipeIndex);
         RecipeMap<?> previousMap = getRecipeMapForInput(previousBus);
         IMultipleTankHandler previousFluids = getInputTank(previousBus);
-        if (previousMap != null && previousMap == previousDistinctRecipeMap &&
-                checkPreviousRecipeDistinct(previousBus)) {
+        if (previousRecipe != null && previousMap != null && previousMap == previousDistinctRecipeMap &&
+                previousMap.ownsRecipe(previousRecipe) && checkPreviousRecipeDistinct(previousBus)) {
             routedRecipeMap = previousMap;
             currentRecipe = previousRecipe;
             currentDistinctInputBus = previousBus;
@@ -1864,7 +1933,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     protected boolean checkPreviousRecipeDistinct(IItemHandlerModifiable previousBus) {
-        return previousRecipe != null && previousRecipe.matches(false, previousBus, getInputTank(previousBus));
+        return previousRecipe != null && previousRecipe.getEUt() <= getMaxVoltage() &&
+                previousRecipe.matches(false, previousBus, getInputTank(previousBus));
     }
 
     protected boolean prepareRecipeDistinct(Recipe recipe) {
@@ -1892,7 +1962,15 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return false;
         }
 
-        int effectiveParallelLimit = getEffectiveParallelLimit(recipe, inputBus, inputFluid);
+        int effectiveParallelLimit = Math.min(
+                getEffectiveParallelLimit(recipe, inputBus, inputFluid),
+                Math.max(1, getMaxRecipeOperations(recipe)));
+        setParallelRecipesPerformed(0);
+        if (effectiveParallelLimit > 1) {
+            int fluidCap = limitFluidOutputParallel(recipe, getOutputTank(), effectiveParallelLimit,
+                    metaTileEntity.canVoidRecipeFluidOutputs());
+            effectiveParallelLimit = fluidCap == 0 ? 1 : Math.min(effectiveParallelLimit, fluidCap);
+        }
         if (effectiveParallelLimit > 1) {
             Recipe originalRecipe = recipe;
             recipe = findParallelRecipe(
@@ -1905,6 +1983,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     effectiveParallelLimit);
             if (recipe == null) {
                 whyFailed = "无法进行并行处理，按无并行继续流程！";
+                setParallelRecipesPerformed(0);
                 recipe = originalRecipe;
             }
         }
@@ -2049,10 +2128,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     protected @NotNull RecipeExecutionContext createSingleExecutionContext(@Nullable Recipe recipe) {
         if (activeCheckInventory != null || activeCheckFluids != null) {
+            int parallel = Math.max(1, parallelRecipesPerformed);
             return RecipeExecutionContext.forSingle(
                     recipe,
-                    Math.max(1, parallelRecipesPerformed),
-                    Math.max(1, parallelRecipesPerformed),
+                    parallel,
+                    Math.max(parallel, singleTotalOperations),
                     progressTime,
                     maxProgressTime,
                     recipeEUt,

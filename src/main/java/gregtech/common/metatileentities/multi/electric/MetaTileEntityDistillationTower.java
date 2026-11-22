@@ -17,7 +17,6 @@ import gregtech.api.pattern.element.Elements;
 import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMaps;
-import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.RelativeDirection;
 import gregtech.client.renderer.ICubeRenderer;
 import gregtech.client.renderer.texture.Textures;
@@ -30,12 +29,14 @@ import net.minecraft.util.EnumFacing;
 import net.minecraft.util.ResourceLocation;
 import net.minecraft.util.SoundEvent;
 import net.minecraft.util.math.BlockPos;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
 import java.util.function.Function;
 
 import static gregtech.api.util.RelativeDirection.*;
@@ -188,20 +189,24 @@ public class MetaTileEntityDistillationTower extends RecipeMapMultiblockControll
         }
 
         @Override
-        protected void outputRecipeOutputs() {
-            GTTransferUtils.addItemsToItemHandler(getOutputInventory(), false, itemOutputs);
-            handler.applyFluidToOutputs(fluidOutputs, true);
+        protected boolean checkOutputFluidSpace(@NotNull List<FluidStack> fluids,
+                                                @NotNull IMultipleTankHandler exportFluids) {
+            return handler.applyFluidToOutputs(fluids, false);
         }
 
         @Override
-        protected boolean checkOutputSpaceFluids(@NotNull Recipe recipe, @NotNull IMultipleTankHandler exportFluids) {
-            // We have already trimmed fluid outputs at this time
-            if (!metaTileEntity.canVoidRecipeFluidOutputs() &&
-                    !handler.applyFluidToOutputs(recipe.getAllFluidOutputs(), false)) {
-                this.isOutputsFull = true;
-                return false;
-            }
-            return true;
+        protected void commitFluidOutputs(@NotNull List<FluidStack> fluids,
+                                          @NotNull IMultipleTankHandler exportFluids) {
+            handler.applyFluidToOutputs(fluids, true);
+        }
+
+        @Override
+        protected int limitFluidOutputParallel(@NotNull Recipe recipe,
+                                               @NotNull IMultipleTankHandler exportFluids,
+                                               int maxParallel,
+                                               boolean voidFluids) {
+            return voidFluids ? maxParallel :
+                    handler.limitFluidOutputParallel(recipe.getAllFluidOutputs(), maxParallel);
         }
 
         @Override

@@ -1417,6 +1417,10 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
     }
 
 
+    public boolean ownsRecipe(@NotNull Recipe recipe) {
+        return recipe.getRecipeCategory().getRecipeMap() == this;
+    }
+
     public Branch getLookup() {
         return lookup;
     }

@@ -16,6 +16,7 @@ import net.minecraftforge.fluids.capability.IFluidHandler;
 import net.minecraftforge.fluids.capability.IFluidTankProperties;
 
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -44,14 +45,46 @@ public class DistillationTowerLogicHandler {
      * @return whether the fluids were successfully applied to the outputs or not.
      */
     public boolean applyFluidToOutputs(List<FluidStack> fluids, boolean doFill) {
+        List<IFluidHandler> ordered = this.getOrderedFluidOutputs();
+        if (ordered == null) {
+            return fluids.isEmpty();
+        }
         boolean valid = true;
-        for (int i = 0; i < Math.min(fluids.size(), this.getOrderedFluidOutputs().size()); i++) {
-            IFluidHandler handler = this.getOrderedFluidOutputs().get(i);
-            int accepted = handler.fill(fluids.get(i), doFill);
-            if (accepted != fluids.get(i).amount) valid = false;
+        for (int i = 0; i < Math.min(fluids.size(), ordered.size()); i++) {
+            FluidStack fluid = fluids.get(i);
+            if (fluid == null || fluid.amount <= 0) continue;
+            IFluidHandler handler = ordered.get(i);
+            int accepted = handler.fill(fluid, doFill);
+            if (accepted != fluid.amount) valid = false;
             if (!doFill && !valid) break;
         }
         return valid;
+    }
+
+    /**
+     * Simulates how many parallel operations of {@code fluids} can fit into their respective ordered layers.
+     */
+    public int limitFluidOutputParallel(@NotNull List<FluidStack> fluids, int maxParallel) {
+        if (maxParallel <= 0) return 0;
+        if (fluids.isEmpty()) return maxParallel;
+        List<IFluidHandler> ordered = this.getOrderedFluidOutputs();
+        if (ordered == null) return 0;
+
+        int limit = maxParallel;
+        for (int i = 0; i < Math.min(fluids.size(), ordered.size()); i++) {
+            FluidStack fluid = fluids.get(i);
+            if (fluid == null || fluid.amount <= 0) continue;
+            int requested = limit > Integer.MAX_VALUE / fluid.amount ? Integer.MAX_VALUE : fluid.amount * limit;
+            FluidStack probe = fluid.copy();
+            probe.amount = requested;
+            int accepted = ordered.get(i).fill(probe, false);
+            int layerLimit = accepted / fluid.amount;
+            if (layerLimit < limit) {
+                limit = layerLimit;
+                if (limit == 0) return 0;
+            }
+        }
+        return limit;
     }
 
     /**

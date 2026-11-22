@@ -7,6 +7,8 @@ import gregtech.api.recipes.ui.RecipeMapUIFunction;
 import net.minecraft.item.ItemStack;
 import net.minecraftforge.fluids.FluidStack;
 
+import org.jetbrains.annotations.NotNull;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -60,5 +62,11 @@ public class PseudoTripleRecipeMap<R extends RecipeBuilder<R>>
             default:
                 return null;
         }
+    }
+
+    @Override
+    public boolean ownsRecipe(@NotNull Recipe recipe) {
+        return super.ownsRecipe(recipe) || leftRecipeMap.ownsRecipe(recipe) ||
+                middleRecipeMap.ownsRecipe(recipe) || rightRecipeMap.ownsRecipe(recipe);
     }
 }

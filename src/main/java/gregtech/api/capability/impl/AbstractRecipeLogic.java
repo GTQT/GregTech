@@ -27,6 +27,7 @@ import gregtech.api.recipes.logic.IParallelableRecipeLogic;
 import gregtech.api.recipes.logic.IRecipeCondition;
 import gregtech.api.recipes.logic.OCParams;
 import gregtech.api.recipes.logic.OCResult;
+import gregtech.api.recipes.logic.ParallelLogic;
 import gregtech.api.recipes.logic.RecipeExecutionContext;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
 import gregtech.api.recipes.properties.impl.CleanroomProperty;
@@ -35,6 +36,8 @@ import gregtech.api.util.GTLog;
 import gregtech.api.util.GTQTUtility;
 import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
+import gregtech.api.util.OverlayedFluidHandler;
+import gregtech.api.util.OverlayedItemHandler;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.item.ItemStack;
@@ -81,6 +84,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected Recipe previousRecipe;
     protected Recipe showRecipes;
     protected int parallelRecipesPerformed;
+    protected int singleTotalOperations = 1;
     protected boolean canRecipeProgress = true;
     protected int maxProgressTime;
     protected long recipeEUt;
@@ -112,6 +116,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private transient IItemHandlerModifiable activePreparationInventory;
     @Nullable
     private transient IMultipleTankHandler activePreparationFluids;
+    private transient int lastSubTickMultiplier = 1;
+    private transient int pendingSingleOperations = 1;
 
     /**
      * DO NOT use the parallelLimit field directly, EVER use {@link AbstractRecipeLogic#setParallelLimit(int)} instead
@@ -445,6 +451,13 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
+     * Resets cached invalidation state for inputs when outputs or recipe lock states change.
+     */
+    protected void resetInvalidatedInputs() {
+        this.invalidInputsForRecipes = false;
+    }
+
+    /**
      * @return true if recipes should be searched for
      */
     protected boolean shouldSearchForRecipes() {
@@ -454,7 +467,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         // alone would never trigger a new recipe search — the player would have to
         // also re-insert input items to unblock the search.
         if (hasNotifiedOutputs()) {
-            this.invalidInputsForRecipes = false;
+            resetInvalidatedInputs();
         }
         return canWorkWithInputs() && canFitNewOutputs();
     }
@@ -559,6 +572,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @NotNull
     protected RecipeExecutionContext createSingleExecutionContext(@Nullable Recipe recipe) {
         int parallel = Math.max(1, parallelRecipesPerformed);
+        int totalOps = Math.max(parallel, singleTotalOperations);
         IItemHandlerModifiable inputs = activePreparationInventory != null ?
                 activePreparationInventory : getInputInventory();
         IMultipleTankHandler fluids = activePreparationFluids != null ?
@@ -566,7 +580,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         return RecipeExecutionContext.forSingle(
                 recipe,
                 parallel,
-                parallel,
+                totalOps,
                 progressTime,
                 maxProgressTime,
                 recipeEUt,
@@ -721,35 +735,23 @@ public abstract class AbstractRecipeLogic extends MTETrait
         IItemHandlerModifiable importInventory = getInputInventory();
         IMultipleTankHandler importFluids = getInputTank();
 
-        // 如果锁定配方且存在上一个配方，则只检查这一个配方
-        if (lockRecipe && previousRecipe != null) {
-            if (previousRecipe.getEUt() <= maxVoltage &&
-                    previousRecipe.matches(false, importInventory, importFluids)) {
-                currentRecipe = previousRecipe;
-            } else {
-                this.invalidInputsForRecipes = true;
-                whyFailed = "无法运行锁定的配方";
-                return;
-            }
-        } else {
-            // 检查上一个配方是否仍然有效
-            if (checkPreviousRecipe()) {
-                currentRecipe = this.previousRecipe;
-            }
+        // 检查上一个配方是否仍然有效
+        if (checkPreviousRecipe()) {
+            currentRecipe = this.previousRecipe;
+        }
 
-            // 如果上一个配方不存在，则尝试从配方列表中寻找
-            if (currentRecipe == null) {
-                currentRecipe = findRecipe(maxVoltage, importInventory, importFluids);
-            }
+        // 如果上一个配方不存在，则尝试从配方列表中寻找
+        if (currentRecipe == null) {
+            currentRecipe = findRecipe(maxVoltage, importInventory, importFluids);
         }
 
         // If a recipe was found, then inputs were valid. Cache found recipe.
         if (currentRecipe != null) {
             this.previousRecipe = currentRecipe;
-        } else  {
+        } else {
             // If no recipe was found, then inputs were invalid.
             this.invalidInputsForRecipes = true;
-            whyFailed = "NoneRecipes";
+            whyFailed = getLockedRecipe() != null ? "无法运行锁定的配方" : "NoneRecipes";
             return;
         }
 
@@ -767,6 +769,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     protected boolean checkPreviousRecipe() {
         if (this.previousRecipe == null) return false;
+        RecipeMap<?> map = getRecipeMap();
+        if (map == null || !isRecipeMapValid(map) || !map.ownsRecipe(this.previousRecipe)) return false;
         if (this.previousRecipe.getEUt() > this.getMaxVoltage()) return false;
         return this.previousRecipe.matches(false, getInputInventory(), getInputTank());
     }
@@ -882,7 +886,15 @@ public abstract class AbstractRecipeLogic extends MTETrait
         }
 
         // Pass in the trimmed recipe to the parallel logic
-        int effectiveParallelLimit = getEffectiveParallelLimit(recipe, inputInventory, inputFluidInventory);
+        int effectiveParallelLimit = Math.min(
+                getEffectiveParallelLimit(recipe, inputInventory, inputFluidInventory),
+                Math.max(1, getMaxRecipeOperations(recipe)));
+        setParallelRecipesPerformed(0);
+        if (effectiveParallelLimit > 1) {
+            int fluidCap = limitFluidOutputParallel(recipe, getOutputTank(), effectiveParallelLimit,
+                    metaTileEntity.canVoidRecipeFluidOutputs());
+            effectiveParallelLimit = fluidCap == 0 ? 1 : Math.min(effectiveParallelLimit, fluidCap);
+        }
         if (effectiveParallelLimit > 1) {
             Recipe originalRecipe = recipe;
             recipe = findParallelRecipe(
@@ -895,6 +907,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
                     effectiveParallelLimit);
             if (recipe == null) {
                 whyFailed = "无法进行并行处理，按无并行继续流程！";
+                setParallelRecipesPerformed(0);
                 recipe = originalRecipe;
             }
         }
@@ -1077,6 +1090,48 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
+     * @return the currently locked recipe if recipe lock is enabled and a recipe has been captured, else {@code null}
+     */
+    @Nullable
+    protected Recipe getLockedRecipe() {
+        return isRecipeLockEnable() ? this.previousRecipe : null;
+    }
+
+    /**
+     * Matches the currently locked recipe against the given {@link RecipeMap}, voltage ceiling, and inputs.
+     */
+    @Nullable
+    protected Recipe matchLockedRecipe(@Nullable RecipeMap<?> recipeMap, long maxVoltage,
+                                       @NotNull IItemHandlerModifiable inputs,
+                                       @NotNull IMultipleTankHandler fluidInputs) {
+        Recipe locked = getLockedRecipe();
+        if (locked == null || recipeMap == null || !isRecipeMapValid(recipeMap)) {
+            return null;
+        }
+        if (!recipeMap.ownsRecipe(locked)) {
+            return null;
+        }
+        if (locked.getEUt() <= maxVoltage && locked.matches(false, inputs, fluidInputs)) {
+            return locked;
+        }
+        return null;
+    }
+
+    /**
+     * @return whether {@code recipe} is eligible for batch processing
+     */
+    protected boolean canBatchRecipe(@NotNull Recipe recipe) {
+        return true;
+    }
+
+    /**
+     * @return hard upper bound on total operations (parallel × sub-tick × batch) for a single execution/slot
+     */
+    protected int getMaxRecipeOperations(@NotNull Recipe recipe) {
+        return Integer.MAX_VALUE;
+    }
+
+    /**
      * Find a recipe using inputs
      *
      * @param maxVoltage  the maximum voltage the recipe can have
@@ -1092,6 +1147,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
             return null;
         }
 
+        if (getLockedRecipe() != null) {
+            return matchLockedRecipe(map, maxVoltage, inputs, fluidInputs);
+        }
         return map.findRecipe(maxVoltage, inputs, fluidInputs);
     }
 
@@ -1140,21 +1198,43 @@ public abstract class AbstractRecipeLogic extends MTETrait
         calculateOverclock(recipe);
         modifyOverclockPost(ocResult, recipe.propertyStorage());
 
+        int maxOps = Math.max(1, getMaxRecipeOperations(recipe));
+        int currentOps = Math.max(1, parallelRecipesPerformed);
+        this.lastSubTickMultiplier = 1;
+
         // 执行并行处理（TOC），将单次配方扩展为多次并行执行
         if (ocResult.parallel() > 1) {
-            recipe = subTickOC(ocResult, recipe, importInventory, importFluids);
-            if (recipe == null) {
-                invalidateInputs();
-                whyFailed = "并行处理失败，输入材料、输出空间或电压不足，无法执行多次配方";
-                return null;
+            int allowedSubTick = Math.min(ocResult.parallel(), Math.max(1, maxOps / currentOps));
+            if (allowedSubTick < ocResult.parallel()) {
+                ocResult.setParallel(allowedSubTick <= 1 ? 0 : allowedSubTick);
+                long cappedParallelEUt = allowedSubTick > 0 && ocResult.eut() > Long.MAX_VALUE / allowedSubTick ?
+                        Long.MAX_VALUE : ocResult.eut() * allowedSubTick;
+                ocResult.setParallelEUt(cappedParallelEUt);
+            }
+            if (allowedSubTick > 1) {
+                recipe = subTickOC(ocResult, recipe, importInventory, importFluids);
+                if (recipe == null) {
+                    invalidateInputs();
+                    whyFailed = "并行处理失败，输入材料、输出空间或电压不足，无法执行多次配方";
+                    return null;
+                }
+                currentOps = (int) Math.min(Integer.MAX_VALUE,
+                        (long) currentOps * Math.max(1, this.lastSubTickMultiplier));
+                this.lastSubTickMultiplier = 1;
             }
         }
 
         // 执行批处理，将配方输入/输出/时长等比缩放，使总耗时趋近128 tick
-        if (enableBatch) {
+        this.pendingSingleOperations = currentOps;
+        if (enableBatch && canBatchRecipe(recipe) && currentOps < maxOps) {
+            int preBatchDuration = ocResult.duration();
             Recipe batchedRecipe = batchProcessing(ocResult, recipe, importInventory, importFluids);
             if (batchedRecipe != recipe) {
                 recipe = batchedRecipe;
+                if (preBatchDuration > 0) {
+                    int batchApplied = Math.max(1, ocResult.duration() / preBatchDuration);
+                    currentOps = (int) Math.min(Integer.MAX_VALUE, (long) currentOps * batchApplied);
+                }
             }
         }
 
@@ -1170,6 +1250,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
                 checkOutputSpaceFluids(recipe, getOutputTank())) {
             this.isOutputsFull = false;
             if (consumeSingleRecipeInputs(recipe, importInventory, importFluids)) {
+                this.singleTotalOperations = currentOps;
                 this.metaTileEntity.addNotifiedInput(importInventory);
                 return recipe;
             } else {
@@ -1215,12 +1296,69 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected boolean checkOutputSpaceFluids(@NotNull Recipe recipe, @NotNull IMultipleTankHandler exportFluids) {
         // We have already trimmed fluid outputs at this time
         if (!metaTileEntity.canVoidRecipeFluidOutputs() &&
-                !GTTransferUtils.addFluidsToFluidHandler(exportFluids, true, recipe.getAllFluidOutputs())) {
+                !checkOutputFluidSpace(recipe.getAllFluidOutputs(), exportFluids)) {
             this.isOutputsFull = true;
             whyFailed = "当前流体输出条件无法满足配方需求";
             return false;
         }
         return true;
+    }
+
+    /**
+     * Unified fluid output simulation hook shared between single-recipe execution and {@code CrossRecipeParallelScheduler}.
+     */
+    protected boolean checkOutputFluidSpace(@NotNull List<FluidStack> fluids,
+                                            @NotNull IMultipleTankHandler exportFluids) {
+        return GTTransferUtils.addFluidsToFluidHandler(exportFluids, true, fluids);
+    }
+
+    /**
+     * Unified fluid output commit hook shared between single-recipe execution and {@code CrossRecipeParallelScheduler}.
+     */
+    protected void commitFluidOutputs(@NotNull List<FluidStack> fluids,
+                                      @NotNull IMultipleTankHandler exportFluids) {
+        GTTransferUtils.addFluidsToFluidHandler(exportFluids, false, fluids);
+    }
+
+    /**
+     * Unified parallel fluid output capacity hook. Override for custom fluid output routing (e.g. Distillation Towers).
+     */
+    protected int limitFluidOutputParallel(@NotNull Recipe recipe,
+                                           @NotNull IMultipleTankHandler exportFluids,
+                                           int maxParallel,
+                                           boolean voidFluids) {
+        if (maxParallel <= 0) return 0;
+        if (voidFluids || (recipe.getFluidOutputs().isEmpty() &&
+                recipe.getChancedFluidOutputs().getChancedEntries().isEmpty())) {
+            return maxParallel;
+        }
+        return ParallelLogic.limitParallelByFluids(recipe, new OverlayedFluidHandler(exportFluids), maxParallel);
+    }
+
+    /**
+     * Unified parallel output capacity check combining items and custom-routed fluids.
+     */
+    protected int limitOutputParallel(@NotNull Recipe recipe,
+                                      @NotNull IItemHandlerModifiable exportInventory,
+                                      @NotNull IMultipleTankHandler exportFluids,
+                                      int maxParallel,
+                                      boolean voidItems,
+                                      boolean voidFluids) {
+        if (maxParallel <= 0) return 0;
+        if (voidItems && voidFluids) {
+            return maxParallel;
+        }
+        int itemLimit = maxParallel;
+        if (!voidItems && (!recipe.getOutputs().isEmpty() ||
+                !recipe.getChancedOutputs().getChancedEntries().isEmpty())) {
+            itemLimit = ParallelLogic.limitParallelByItems(recipe, new OverlayedItemHandler(exportInventory),
+                    maxParallel);
+            if (itemLimit == 0) {
+                return 0;
+            }
+        }
+        int fluidLimit = limitFluidOutputParallel(recipe, exportFluids, itemLimit, voidFluids);
+        return Math.min(itemLimit, fluidLimit);
     }
 
     /**
@@ -1235,6 +1373,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected @NotNull Recipe batchProcessing(@NotNull OCResult ocResult, @NotNull Recipe recipe,
                                               @NotNull IItemHandlerModifiable importInventory,
                                               @NotNull IMultipleTankHandler importFluids) {
+        if (!canBatchRecipe(recipe)) {
+            return recipe;
+        }
         RecipeMap<?> map = getRecipeMap();
         if (map == null) {
             return recipe;
@@ -1242,11 +1383,17 @@ public abstract class AbstractRecipeLogic extends MTETrait
 
         int baseDuration = ocResult.duration();
 
-        if (baseDuration > 64) {
+        if (baseDuration <= 0 || baseDuration > 64) {
             return recipe;
         }
 
-        int maxMultiplier = (int) Math.floor(128.0 / baseDuration);
+        int maxOps = Math.max(1, getMaxRecipeOperations(recipe));
+        int opsCap = Math.max(1, maxOps / Math.max(1, pendingSingleOperations));
+        int maxMultiplier = Math.min((int) Math.floor(128.0 / baseDuration), opsCap);
+        if (maxMultiplier <= 1) {
+            return recipe;
+        }
+
         int minMultiplier = 1;
         int bestMultiplier = 1;
 
@@ -1312,24 +1459,34 @@ public abstract class AbstractRecipeLogic extends MTETrait
             return recipe;
         }
 
+        int fluidParallelCap = limitFluidOutputParallel(r, getOutputTank(), ocResult.parallel(),
+                metaTileEntity.canVoidRecipeFluidOutputs());
+        if (fluidParallelCap <= 1) {
+            this.lastSubTickMultiplier = 1;
+            return recipe;
+        }
+
         RecipeBuilder<?> builder = findMultipliedParallelRecipe(map, r, importInventory, importFluids,
-                getOutputInventory(), getOutputTank(), ocResult.parallel(), ocResult.parallelEUt(),
-                getMetaTileEntity());
+                getOutputInventory(), getOutputTank(), Math.min(ocResult.parallel(), fluidParallelCap),
+                ocResult.parallelEUt(), getMetaTileEntity());
 
         if (builder == null) {
             return null;
         }
 
         if (builder.getParallel() == 0) {
+            this.lastSubTickMultiplier = 1;
             return recipe;
         }
 
+        this.lastSubTickMultiplier = Math.max(1, builder.getParallel());
         ocResult.setEut(builder.getEUt());
         r = builder.EUt(builder.getEUt())
                 .build()
                 .getResult();
 
         if (r == null) {
+            this.lastSubTickMultiplier = 1;
             return recipe;
         }
 
@@ -1558,6 +1715,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         this.hasNotEnoughEnergy = false;
         this.wasActiveAndNeedsUpdate = true;
         this.parallelRecipesPerformed = 0;
+        this.singleTotalOperations = 1;
         this.ocResult.reset();
         this.singleRecipeExtraData = new NBTTagCompound();
 
@@ -1572,7 +1730,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
      */
     protected void outputRecipeOutputs() {
         GTTransferUtils.addItemsToItemHandler(getOutputInventory(), false, itemOutputs);
-        GTTransferUtils.addFluidsToFluidHandler(getOutputTank(), false, fluidOutputs);
+        commitFluidOutputs(fluidOutputs, getOutputTank());
     }
 
     /**
@@ -1664,7 +1822,11 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     public void setRecipeLockEnable(boolean enable) {
+        boolean changed = this.lockRecipe != enable;
         lockRecipe = enable;
+        if (changed) {
+            resetInvalidatedInputs();
+        }
         metaTileEntity.markDirty();
         World world = metaTileEntity.getWorld();
         if (world != null && !world.isRemote) {
@@ -1828,6 +1990,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         this.fluidOutputs = Collections.emptyList();
         this.itemOutputs = Collections.emptyList();
         parallelRecipesPerformed = 0;
+        singleTotalOperations = 1;
         isOutputsFull = false;
         invalidInputsForRecipes = false;
         this.ocResult.reset();
@@ -1897,6 +2060,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
             compound.setInteger("Progress", progressTime);
             compound.setInteger("MaxProgress", maxProgressTime);
             compound.setLong("RecipeEUt", this.recipeEUt);
+            compound.setInteger("SingleTotalOperations", this.singleTotalOperations);
             NBTTagList itemOutputsList = new NBTTagList();
             for (ItemStack itemOutput : itemOutputs) {
                 itemOutputsList.appendTag(itemOutput.writeToNBT(new NBTTagCompound()));
@@ -1940,6 +2104,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
             this.isActive = true;
             this.maxProgressTime = compound.getInteger("MaxProgress");
             this.recipeEUt = Math.abs(compound.getLong("RecipeEUt"));
+            this.singleTotalOperations = compound.hasKey("SingleTotalOperations", Constants.NBT.TAG_INT) ?
+                    Math.max(1, compound.getInteger("SingleTotalOperations")) :
+                    Math.max(1, parallelRecipesPerformed);
             NBTTagList itemOutputsList = compound.getTagList("ItemOutputs", Constants.NBT.TAG_COMPOUND);
             this.itemOutputs = new ArrayList<>(itemOutputsList.tagCount());
             for (int i = 0; i < itemOutputsList.tagCount(); i++) {
@@ -1953,6 +2120,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
             this.singleRecipeExtraData = compound.hasKey("singleRecipeExtraData", Constants.NBT.TAG_COMPOUND) ?
                     compound.getCompoundTag("singleRecipeExtraData").copy() : new NBTTagCompound();
         } else {
+            this.singleTotalOperations = 1;
             this.singleRecipeExtraData = new NBTTagCompound();
         }
 

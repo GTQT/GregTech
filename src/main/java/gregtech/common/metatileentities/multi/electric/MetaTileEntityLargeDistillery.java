@@ -19,7 +19,6 @@ import gregtech.api.pattern.element.StructureDefinition;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.RecipeMaps;
-import gregtech.api.util.GTTransferUtils;
 import gregtech.api.util.GTUtility;
 import gregtech.api.util.RelativeDirection;
 import gregtech.api.util.TextComponentUtil;
@@ -169,8 +168,7 @@ public class MetaTileEntityLargeDistillery extends GCYMRecipeMapMultiblockContro
     @Override
     public void invalidateStructure() {
         super.invalidateStructure();
-        if (usesAdvHatchLogic())
-            this.handler.invalidate();
+        this.handler.invalidate();
     }
 
     @Override
@@ -221,25 +219,38 @@ public class MetaTileEntityLargeDistillery extends GCYMRecipeMapMultiblockContro
         }
 
         @Override
-        protected void outputRecipeOutputs() {
-            GTTransferUtils.addItemsToItemHandler(getOutputInventory(), false, itemOutputs);
-            handler.applyFluidToOutputs(fluidOutputs, true);
+        protected boolean checkOutputFluidSpace(@NotNull List<FluidStack> fluids,
+                                                @NotNull IMultipleTankHandler exportFluids) {
+            return usesAdvHatchLogic() ?
+                    handler.applyFluidToOutputs(fluids, false) :
+                    super.checkOutputFluidSpace(fluids, exportFluids);
         }
 
         @Override
-        protected boolean checkOutputSpaceFluids(@NotNull Recipe recipe, @NotNull IMultipleTankHandler exportFluids) {
-            // We have already trimmed fluid outputs at this time
-            if (!metaTileEntity.canVoidRecipeFluidOutputs() &&
-                    !handler.applyFluidToOutputs(recipe.getAllFluidOutputs(), false)) {
-                this.isOutputsFull = true;
-                return false;
+        protected void commitFluidOutputs(@NotNull List<FluidStack> fluids,
+                                          @NotNull IMultipleTankHandler exportFluids) {
+            if (usesAdvHatchLogic()) {
+                handler.applyFluidToOutputs(fluids, true);
+            } else {
+                super.commitFluidOutputs(fluids, exportFluids);
             }
-            return true;
+        }
+
+        @Override
+        protected int limitFluidOutputParallel(@NotNull Recipe recipe,
+                                               @NotNull IMultipleTankHandler exportFluids,
+                                               int maxParallel,
+                                               boolean voidFluids) {
+            if (!usesAdvHatchLogic()) {
+                return super.limitFluidOutputParallel(recipe, exportFluids, maxParallel, voidFluids);
+            }
+            return voidFluids ? maxParallel :
+                    handler.limitFluidOutputParallel(recipe.getAllFluidOutputs(), maxParallel);
         }
 
         @Override
         protected IMultipleTankHandler getOutputTank() {
-            return handler.getFluidTanks();
+            return usesAdvHatchLogic() ? handler.getFluidTanks() : super.getOutputTank();
         }
     }
 }
