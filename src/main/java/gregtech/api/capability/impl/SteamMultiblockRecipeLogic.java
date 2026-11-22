@@ -64,6 +64,12 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     @Override
+    protected void resetInvalidatedInputs() {
+        super.resetInvalidatedInputs();
+        this.invalidatedInputList.clear();
+    }
+
+    @Override
     public void invalidate() {
         super.invalidate();
         lastRecipeIndex = 0;
@@ -204,7 +210,11 @@ public class SteamMultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     protected boolean checkPreviousRecipeDistinct(IItemHandlerModifiable previousBus) {
-        return previousRecipe != null && previousRecipe.matches(false, previousBus, getInputTank(previousBus));
+        if (previousRecipe == null) return false;
+        RecipeMap<?> map = getRecipeMap();
+        if (map == null || !isRecipeMapValid(map) || !map.ownsRecipe(previousRecipe)) return false;
+        if (previousRecipe.getEUt() > getMaxVoltage()) return false;
+        return previousRecipe.matches(false, previousBus, getInputTank(previousBus));
     }
 
     protected boolean prepareRecipeDistinct(Recipe recipe) {

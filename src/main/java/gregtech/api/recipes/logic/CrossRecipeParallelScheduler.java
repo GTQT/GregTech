@@ -9,6 +9,7 @@ import gregtech.api.util.GTTransferUtils;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraftforge.common.util.Constants;
+import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
 import org.jetbrains.annotations.NotNull;
@@ -243,7 +244,17 @@ public class CrossRecipeParallelScheduler {
                          boolean voidItemOutputs,
                          boolean voidFluidOutputs) {
         return tickSlots(outputInventory, outputFluids, energyDrawer, voidItemOutputs, voidFluidOutputs,
-                Collections.emptyList());
+                Collections.emptyList(), null);
+    }
+
+    public int tickSlots(@NotNull IItemHandlerModifiable outputInventory,
+                         @NotNull IMultipleTankHandler outputFluids,
+                         @NotNull EnergyDrawer energyDrawer,
+                         boolean voidItemOutputs,
+                         boolean voidFluidOutputs,
+                         @NotNull List<IRecipeCondition> conditions) {
+        return tickSlots(outputInventory, outputFluids, energyDrawer, voidItemOutputs, voidFluidOutputs,
+                conditions, null);
     }
 
     /**
@@ -272,7 +283,8 @@ public class CrossRecipeParallelScheduler {
                          @NotNull EnergyDrawer energyDrawer,
                          boolean voidItemOutputs,
                          boolean voidFluidOutputs,
-                         @NotNull List<IRecipeCondition> conditions) {
+                         @NotNull List<IRecipeCondition> conditions,
+                         @Nullable FluidOutputHandler fluidOutputHandler) {
         int completedParallel = 0;
         boolean hasConditions = !conditions.isEmpty();
 
@@ -292,7 +304,8 @@ public class CrossRecipeParallelScheduler {
             RecipeSlot slot = it.next();
             if (slot.isCompleted()) {
                 // Retry completed slots after output capacity changes.
-                if (outputSlotResults(slot, outputInventory, outputFluids, voidItemOutputs, voidFluidOutputs)) {
+                if (outputSlotResults(slot, outputInventory, outputFluids, voidItemOutputs, voidFluidOutputs,
+                        fluidOutputHandler)) {
                     if (hasConditions) {
                         RecipeExecutionContext ctx = RecipeExecutionContext.forSlot(slot);
                         for (IRecipeCondition cond : conditions) {
@@ -390,7 +403,8 @@ public class CrossRecipeParallelScheduler {
             if (slot.tick()) {
                 // A completed slot remains reserved until results are committed or configured to be voided.
                 // Dropping it unconditionally loses already-consumed inputs whenever an export hatch rejects.
-                if (outputSlotResults(slot, outputInventory, outputFluids, voidItemOutputs, voidFluidOutputs)) {
+                if (outputSlotResults(slot, outputInventory, outputFluids, voidItemOutputs, voidFluidOutputs,
+                        fluidOutputHandler)) {
                     if (ctx != null) {
                         for (IRecipeCondition cond : conditions) {
                             cond.onRecipeComplete(ctx);
@@ -656,17 +670,24 @@ public class CrossRecipeParallelScheduler {
                                       @NotNull IItemHandlerModifiable outputInventory,
                                       @NotNull IMultipleTankHandler outputFluids,
                                       boolean voidItemOutputs,
-                                      boolean voidFluidOutputs) {
+                                      boolean voidFluidOutputs,
+                                      @Nullable FluidOutputHandler fluidOutputHandler) {
         boolean itemsFit = voidItemOutputs ||
                 GTTransferUtils.addItemsToItemHandler(outputInventory, true, slot.getItemOutputs());
         boolean fluidsFit = voidFluidOutputs ||
-                GTTransferUtils.addFluidsToFluidHandler(outputFluids, true, slot.getFluidOutputs());
+                (fluidOutputHandler != null ?
+                        fluidOutputHandler.outputFluids(slot.getFluidOutputs(), true) :
+                        GTTransferUtils.addFluidsToFluidHandler(outputFluids, true, slot.getFluidOutputs()));
         if (!itemsFit || !fluidsFit) {
             logBlockedOutput(slot, outputInventory, outputFluids, itemsFit, fluidsFit);
             return false;
         }
         GTTransferUtils.addItemsToItemHandler(outputInventory, false, slot.getItemOutputs());
-        GTTransferUtils.addFluidsToFluidHandler(outputFluids, false, slot.getFluidOutputs());
+        if (fluidOutputHandler != null) {
+            fluidOutputHandler.outputFluids(slot.getFluidOutputs(), false);
+        } else {
+            GTTransferUtils.addFluidsToFluidHandler(outputFluids, false, slot.getFluidOutputs());
+        }
         logCommittedOutput(slot, outputInventory, outputFluids);
         return true;
     }
@@ -785,6 +806,15 @@ public class CrossRecipeParallelScheduler {
          * @return true if the draw was successful (or would be successful in simulation)
          */
         boolean drawEnergy(long amount, boolean simulate);
+    }
+
+    /**
+     * Custom fluid output simulation and commit hook (e.g. for layer-ordered Distillation Towers).
+     */
+    @FunctionalInterface
+    public interface FluidOutputHandler {
+
+        boolean outputFluids(@NotNull List<FluidStack> fluidOutputs, boolean simulate);
     }
 
     /**
