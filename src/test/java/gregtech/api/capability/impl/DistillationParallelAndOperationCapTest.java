@@ -202,6 +202,111 @@ class DistillationParallelAndOperationCapTest {
     }
 
     @Test
+    void distillationTowerLogicHandlerRejectsExcessNonEmptyFluidsWhenOrderedTooShort() {
+        IDistillationTower dummyTower = new IDistillationTower() {
+
+            @Override
+            public List<IMultiblockPart> getMultiblockParts() {
+                return Collections.emptyList();
+            }
+
+            @Override
+            public BlockPos getPos() {
+                return BlockPos.ORIGIN;
+            }
+
+            @Override
+            public void invalidateStructure() {}
+
+            @Override
+            public boolean allowSameFluidFillForOutputs() {
+                return false;
+            }
+        };
+
+        List<FluidStack> nonEmpty = Arrays.asList(
+                new FluidStack(FluidRegistry.WATER, 200),
+                new FluidStack(FluidRegistry.LAVA, 100));
+
+        ConfiguredDistillationHandler emptyOrdered = new ConfiguredDistillationHandler(dummyTower);
+        assertFalse(emptyOrdered.applyFluidToOutputs(nonEmpty, false));
+        assertTrue(emptyOrdered.applyFluidToOutputs(Collections.emptyList(), false));
+        assertEquals(0, emptyOrdered.limitFluidOutputParallel(nonEmpty, 8));
+
+        FluidTank singleLayer = new FluidTank(1000);
+        ConfiguredDistillationHandler shortOrdered = new ConfiguredDistillationHandler(dummyTower, singleLayer);
+        assertFalse(shortOrdered.applyFluidToOutputs(nonEmpty, false));
+        assertFalse(shortOrdered.applyFluidToOutputs(nonEmpty, true));
+        assertEquals(0, singleLayer.getFluidAmount());
+        assertEquals(0, shortOrdered.limitFluidOutputParallel(nonEmpty, 8));
+
+        List<FluidStack> withTrailingNull = Arrays.asList(new FluidStack(FluidRegistry.WATER, 200), null);
+        assertTrue(shortOrdered.applyFluidToOutputs(withTrailingNull, false));
+        assertEquals(5, shortOrdered.limitFluidOutputParallel(withTrailingNull, 8));
+    }
+
+    @Test
+    void singleRecipeBatchProcessingCapsMultiplierByPerLayerFluidsAndItemOutputs() {
+        TestDistilleryController ctrl = new TestDistilleryController(DISTILL_MAP);
+        TestDistilleryLogic logic = ctrl.getDistilleryLogic();
+        logic.setAllowOverclocking(false);
+        logic.setParallelLimit(1);
+        logic.setBatchEnable(true);
+        ctrl.setAdvHatchLogic(true);
+        ctrl.importTank.fill(new FluidStack(FluidRegistry.WATER, 5000), true);
+
+        assertTrue(logic.prepareRecipe(DISTILL_RECIPE),
+                "Single-recipe batching must cap multiplier by bottleneck layer instead of stalling");
+        assertEquals(6, logic.getMaxProgress());
+        assertEquals(3500, ctrl.importTank.getFluidAmount());
+
+        for (int t = 0; t < 6; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(600, ctrl.layer0.getFluidAmount());
+        assertEquals(FluidRegistry.WATER, ctrl.layer0.getFluid().getFluid());
+        assertEquals(300, ctrl.layer1.getFluidAmount());
+        assertEquals(FluidRegistry.LAVA, ctrl.layer1.getFluid().getFluid());
+
+        Recipe itemBatchRecipe = new Recipe(
+                Collections.singletonList(new GTRecipeItemInput(new ItemStack(Items.EMERALD, 1))),
+                Collections.singletonList(new ItemStack(Items.GOLD_INGOT, 32)),
+                ChancedOutputList.empty(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                ChancedOutputList.empty(),
+                Collections.singletonList(new ItemStack(Items.COAL)),
+                8,
+                16L,
+                false,
+                new RecipePropertyStorageImpl(),
+                OP_CAP_MAP.getPrimaryRecipeCategory());
+        OP_CAP_MAP.compileRecipe(itemBatchRecipe);
+
+        TestOpCapController itemCtrl = new TestOpCapController(OP_CAP_MAP, 128L, 1024L, false, Integer.MAX_VALUE);
+        for (int slot = 1; slot < itemCtrl.outputItems.getSlots(); slot++) {
+            itemCtrl.outputItems.setStackInSlot(slot, new ItemStack(Items.APPLE, 64));
+        }
+        itemCtrl.inputItems.setStackInSlot(0, new ItemStack(Items.EMERALD, 64));
+
+        TestOpCapLogic itemLogic = itemCtrl.getOpLogic();
+        itemLogic.setAllowOverclocking(false);
+        itemLogic.setParallelLimit(1);
+        itemLogic.setBatchEnable(true);
+
+        assertTrue(itemLogic.prepareRecipe(itemBatchRecipe),
+                "Single-recipe batching must cap multiplier by free item output space");
+        assertEquals(16, itemLogic.getMaxProgress());
+        assertEquals(62, itemCtrl.inputItems.getStackInSlot(0).getCount());
+
+        for (int t = 0; t < 16; t++) {
+            itemLogic.updateWorkable();
+        }
+        assertEquals(Items.GOLD_INGOT, itemCtrl.outputItems.getStackInSlot(0).getItem());
+        assertEquals(64, itemCtrl.outputItems.getStackInSlot(0).getCount());
+    }
+
+    @Test
     void schedulerRoutesFluidOutputsThroughCustomFluidOutputHandlerPerLayer() {
         FluidTank layer0 = new FluidTank(1000);
         FluidTank layer1 = new FluidTank(300);
@@ -427,12 +532,12 @@ class DistillationParallelAndOperationCapTest {
 
     private static final class ConfiguredDistillationHandler extends DistillationTowerLogicHandler {
 
-        ConfiguredDistillationHandler(IDistillationTower tower, FluidTank layer0, FluidTank layer1) {
+        ConfiguredDistillationHandler(IDistillationTower tower, FluidTank... layers) {
             super(tower);
-            setLayerCount(2);
-            List<IFluidHandler> ordered = Arrays.asList(layer0, layer1);
+            setLayerCount(layers.length);
+            List<IFluidHandler> ordered = Arrays.<IFluidHandler>asList(layers);
             setOrderedFluidOutputs(ordered);
-            setFluidTanks(new FluidTankList(false, layer0, layer1));
+            setFluidTanks(new FluidTankList(false, layers));
         }
     }
 

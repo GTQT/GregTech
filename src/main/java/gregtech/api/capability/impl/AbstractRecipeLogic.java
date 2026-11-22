@@ -1394,6 +1394,13 @@ public abstract class AbstractRecipeLogic extends MTETrait
             return recipe;
         }
 
+        int outputCap = limitOutputParallel(recipe, getOutputInventory(), getOutputTank(), maxMultiplier,
+                metaTileEntity.canVoidRecipeItemOutputs(), metaTileEntity.canVoidRecipeFluidOutputs());
+        maxMultiplier = Math.min(maxMultiplier, outputCap);
+        if (maxMultiplier <= 1) {
+            return recipe;
+        }
+
         int minMultiplier = 1;
         int bestMultiplier = 1;
 

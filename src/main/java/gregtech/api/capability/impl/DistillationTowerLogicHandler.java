@@ -49,6 +49,12 @@ public class DistillationTowerLogicHandler {
         if (ordered == null) {
             return fluids.isEmpty();
         }
+        for (int i = ordered.size(); i < fluids.size(); i++) {
+            FluidStack extra = fluids.get(i);
+            if (extra != null && extra.amount > 0) {
+                return false;
+            }
+        }
         boolean valid = true;
         for (int i = 0; i < Math.min(fluids.size(), ordered.size()); i++) {
             FluidStack fluid = fluids.get(i);
@@ -69,6 +75,13 @@ public class DistillationTowerLogicHandler {
         if (fluids.isEmpty()) return maxParallel;
         List<IFluidHandler> ordered = this.getOrderedFluidOutputs();
         if (ordered == null) return 0;
+
+        for (int i = ordered.size(); i < fluids.size(); i++) {
+            FluidStack extra = fluids.get(i);
+            if (extra != null && extra.amount > 0) {
+                return 0;
+            }
+        }
 
         int limit = maxParallel;
         for (int i = 0; i < Math.min(fluids.size(), ordered.size()); i++) {
