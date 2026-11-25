@@ -1,8 +1,6 @@
 package gregtech.api.recipes.logic;
 
-import gregtech.api.metatileentity.multiblock.CleanroomType;
 import gregtech.api.recipes.Recipe;
-import gregtech.api.recipes.properties.impl.CleanroomProperty;
 import gregtech.common.ConfigHolder;
 
 import net.minecraft.item.ItemStack;
@@ -57,10 +55,6 @@ public class RecipeSlot {
     // --- The original recipe reference (for display/debug only, not serialized) ---
     @Nullable
     private transient Recipe sourceRecipe;
-
-    // --- Required cleanroom type for runtime environment re-checks (serialized for reloads) ---
-    @Nullable
-    private CleanroomType requiredCleanroom;
 
     // --- Human-readable recipe label for UI display (serialized for reloads) ---
     @NotNull
@@ -128,7 +122,6 @@ public class RecipeSlot {
                             @NotNull String recipeDisplayName,
                             long powerReservation) {
         this.sourceRecipe = recipe;
-        this.requiredCleanroom = recipe.getProperty(CleanroomProperty.getInstance(), null);
         this.progressTime = 1;
         this.maxProgressTime = duration;
         this.recipeEUt = eut;
@@ -189,7 +182,6 @@ public class RecipeSlot {
         this.itemOutputs = Collections.emptyList();
         this.fluidOutputs = Collections.emptyList();
         this.sourceRecipe = null;
-        this.requiredCleanroom = null;
         this.recipeDisplayName = "";
         this.parallelCount = 1;
         this.totalOperations = 1;
@@ -249,11 +241,6 @@ public class RecipeSlot {
         return sourceRecipe;
     }
 
-    @Nullable
-    public CleanroomType getRequiredCleanroom() {
-        return requiredCleanroom;
-    }
-
     public boolean isPaused() {
         return paused;
     }
@@ -308,9 +295,6 @@ public class RecipeSlot {
             tag.setLong("recipeEUt", recipeEUt);
             tag.setLong("powerReservation", powerReservation);
             tag.setString("recipeDisplayName", recipeDisplayName);
-            if (requiredCleanroom != null) {
-                tag.setString("cleanroomType", requiredCleanroom.getName());
-            }
 
             NBTTagList itemList = new NBTTagList();
             for (ItemStack stack : itemOutputs) {
@@ -345,8 +329,6 @@ public class RecipeSlot {
             this.powerReservation = tag.hasKey("powerReservation", Constants.NBT.TAG_LONG) ?
                     tag.getLong("powerReservation") : Math.max(0L, this.recipeEUt);
             this.recipeDisplayName = tag.getString("recipeDisplayName");
-            this.requiredCleanroom = tag.hasKey("cleanroomType", Constants.NBT.TAG_STRING) ?
-                    CleanroomType.getByName(tag.getString("cleanroomType")) : null;
 
             NBTTagList itemList = tag.getTagList("itemOutputs", Constants.NBT.TAG_COMPOUND);
             this.itemOutputs = new ArrayList<>(itemList.tagCount());

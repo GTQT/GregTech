@@ -26,6 +26,7 @@ import gregtech.api.recipes.builders.SimpleRecipeBuilder;
 import gregtech.api.recipes.chance.output.ChancedOutputList;
 import gregtech.api.recipes.ingredients.GTRecipeInput;
 import gregtech.api.recipes.ingredients.GTRecipeItemInput;
+import gregtech.api.recipes.logic.CleanroomRecipeCondition;
 import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
 import gregtech.api.recipes.map.PseudoPairRecipeMap;
 import gregtech.api.recipes.map.PseudoQuadrupleRecipeMap;
@@ -519,16 +520,25 @@ class MultiblockRecipeLockAndInvalidationTest {
             logic.updateWorkable();
             assertTrue(logic.isActive());
             assertEquals(0, countItem(inBus.getImportItems(), Items.IRON_INGOT));
-            long energyAfterStart = ctrl.getEnergyContainer().getEnergyStored();
 
-            // Invalidate cleanroom immediately after inputs are consumed -> 0 EU drawn, 0 outputs produced
-            cleanroom.clean = false;
+            // Simulate world reload (drops transient RecipeSlot.sourceRecipe, keeps extraData from CleanroomRecipeCondition)
+            TestController reloadedCtrl = new TestController(cleanMap);
+            TestCleanroom reloadedCleanroom = new TestCleanroom(CleanroomType.STERILE_CLEANROOM, false);
+            reloadedCtrl.setCleanroom(reloadedCleanroom);
+            reloadedCtrl.addPart(outBus);
+            TestMultiblockRecipeLogic reloadedLogic = reloadedCtrl.getTestLogic();
+            reloadedLogic.setAllowOverclocking(false);
+            reloadedLogic.setParallelLimit(2);
+            reloadedLogic.deserializeNBT(logic.serializeNBT());
+            long energyAfterStart = reloadedCtrl.getEnergyContainer().getEnergyStored();
+
+            // Cleanroom is unclean after reload -> CleanroomRecipeCondition halts slot with 0 EU drawn and 0 outputs
             for (int tick = 0; tick < 10; tick++) {
-                logic.updateWorkable();
+                reloadedLogic.updateWorkable();
             }
-            assertEquals(energyAfterStart, ctrl.getEnergyContainer().getEnergyStored());
+            assertEquals(energyAfterStart, reloadedCtrl.getEnergyContainer().getEnergyStored());
             assertEquals(0, countItem(outBus.getExportItems(), Items.GOLD_INGOT));
-            assertEquals("当前配方需要超净环境！", logic.getWhyFailed());
+            assertEquals(CleanroomRecipeCondition.MISSING_CLEANROOM_REASON, reloadedLogic.getWhyFailed());
         } finally {
             ConfigHolder.machines.cleanMultiblocks = prevCleanMulti;
             ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;

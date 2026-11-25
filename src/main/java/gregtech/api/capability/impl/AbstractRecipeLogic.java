@@ -9,9 +9,6 @@ import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.capability.IWorkable;
 import gregtech.api.metatileentity.MTETrait;
 import gregtech.api.metatileentity.MetaTileEntity;
-import gregtech.api.metatileentity.multiblock.CleanroomType;
-import gregtech.api.metatileentity.multiblock.ICleanroomProvider;
-import gregtech.api.metatileentity.multiblock.ICleanroomReceiver;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.metatileentity.multiblock.MultiblockControllerBase;
 import gregtech.api.metatileentity.multiblock.MultiblockWithDisplayBase;
@@ -23,6 +20,7 @@ import gregtech.api.recipes.chance.boost.ChanceBoostFunction;
 import gregtech.api.recipes.chance.output.ChancedOutput;
 import gregtech.api.recipes.chance.output.ChancedOutputList;
 import gregtech.api.recipes.chance.output.ChancedOutputLogic;
+import gregtech.api.recipes.logic.CleanroomRecipeCondition;
 import gregtech.api.recipes.logic.IParallelableRecipeLogic;
 import gregtech.api.recipes.logic.IRecipeCondition;
 import gregtech.api.recipes.logic.OCParams;
@@ -30,7 +28,6 @@ import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.logic.ParallelLogic;
 import gregtech.api.recipes.logic.RecipeExecutionContext;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
-import gregtech.api.recipes.properties.impl.CleanroomProperty;
 import gregtech.api.recipes.properties.impl.DimensionProperty;
 import gregtech.api.util.GTLog;
 import gregtech.api.util.GTQTUtility;
@@ -112,6 +109,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private boolean lackEnergyWarning = false;
 
     private final List<IRecipeCondition> recipeConditions = new ArrayList<>();
+    private final CleanroomRecipeCondition cleanroomCondition;
     protected NBTTagCompound singleRecipeExtraData = new NBTTagCompound();
     @Nullable
     private transient IItemHandlerModifiable activePreparationInventory;
@@ -148,14 +146,15 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private List<Pair<FluidStack, Integer>> chancedFluidOutputs = null;
 
     public AbstractRecipeLogic(MetaTileEntity tileEntity, RecipeMap<?> recipeMap) {
-        super(tileEntity);
-        this.recipeMap = recipeMap;
+        this(tileEntity, recipeMap, false);
     }
 
     public AbstractRecipeLogic(MetaTileEntity tileEntity, RecipeMap<?> recipeMap, boolean hasPerfectOC) {
         super(tileEntity);
         this.recipeMap = recipeMap;
         this.hasPerfectOC = hasPerfectOC;
+        this.cleanroomCondition = new CleanroomRecipeCondition(this::getMetaTileEntity, this::setWhyFailed);
+        addRecipeCondition(this.cleanroomCondition);
     }
 
     public void setProgressTime(int progressTime) {
@@ -720,8 +719,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * @return true if the recipe can progress, otherwise false
      */
     protected boolean canProgressRecipe() {
-        if (previousRecipe == null) return true;
-        return checkCleanroomRequirement(previousRecipe);
+        return true;
     }
 
     /**
@@ -788,7 +786,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * @return true if the recipe is allowed to be used, else false
      */
     public boolean checkRecipe(@NotNull Recipe recipe) {
-        return checkCleanroomRequirement(recipe) && checkDimensionRequirement(recipe)
+        return checkDimensionRequirement(recipe)
                 && canStartConditions(recipe, getInputInventory(), getInputTank());
     }
 
@@ -810,32 +808,11 @@ public abstract class AbstractRecipeLogic extends MTETrait
     /**
      * @param recipe the recipe to check
      * @return if the cleanroom requirement is met
+     * @deprecated Cleanroom validation is handled via {@link CleanroomRecipeCondition}
      */
+    @Deprecated
     protected boolean checkCleanroomRequirement(@NotNull Recipe recipe) {
-        return checkCleanroomTypeRequirement(recipe.getProperty(CleanroomProperty.getInstance(), null));
-    }
-
-    protected boolean checkCleanroomTypeRequirement(@Nullable CleanroomType requiredType) {
-        if (requiredType == null) return true;
-
-        MetaTileEntity mte = getMetaTileEntity();
-        if (mte instanceof ICleanroomReceiver receiver) {
-            if (ConfigHolder.machines.cleanMultiblocks && mte instanceof IMultiblockController) return true;
-
-            ICleanroomProvider cleanroomProvider = receiver.getCleanroom();
-            if (cleanroomProvider == null) {
-                whyFailed = "当前配方需要超净环境！";
-                return false;
-            }
-
-            if (cleanroomProvider.isClean() && cleanroomProvider.checkCleanroomType(requiredType)) {
-                return true;
-            }
-            whyFailed = "当前配方需要超净环境！";
-            return false;
-        }
-
-        return false;
+        return cleanroomCondition.checkRecipe(recipe);
     }
 
     protected boolean checkDimensionRequirement(@NotNull Recipe recipe) {

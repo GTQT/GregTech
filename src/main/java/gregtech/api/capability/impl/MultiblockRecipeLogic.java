@@ -290,8 +290,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     }
                     commitFluidOutputs(fluids, outputTank);
                     return true;
-                },
-                this::canProgressSlot
+                }
         );
         if (completedParallel > 0) {
             onCrossRecipeSlotsCompleted(completedParallel);
@@ -1179,21 +1178,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected boolean canProgressRecipe() {
-        if (crossRecipeSchedulerActive) {
-            return !((IMultiblockController) metaTileEntity).isStructureObstructed();
-        }
         return super.canProgressRecipe() && !((IMultiblockController) metaTileEntity).isStructureObstructed();
-    }
-
-    protected boolean canProgressSlot(@NotNull RecipeSlot slot) {
-        if (!this.canRecipeProgress) {
-            return false;
-        }
-        Recipe recipe = slot.getSourceRecipe();
-        if (recipe != null) {
-            return checkCleanroomRequirement(recipe);
-        }
-        return checkCleanroomTypeRequirement(slot.getRequiredCleanroom());
     }
 
     @Override
@@ -2177,7 +2162,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             holder.checkRecipe(recipe, true);
             IItemHandlerModifiable checkInv = activeCheckInventory != null ? activeCheckInventory : getInputInventory();
             IMultipleTankHandler checkFluids = activeCheckFluids != null ? activeCheckFluids : getInputTank();
-            return checkCleanroomRequirement(recipe) && checkDimensionRequirement(recipe) &&
+            return checkDimensionRequirement(recipe) &&
                     canStartConditions(recipe, checkInv, checkFluids);
         }
         return false;

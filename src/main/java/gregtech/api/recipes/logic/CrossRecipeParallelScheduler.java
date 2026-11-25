@@ -285,18 +285,6 @@ public class CrossRecipeParallelScheduler {
                          boolean voidFluidOutputs,
                          @NotNull List<IRecipeCondition> conditions,
                          @Nullable FluidOutputHandler fluidOutputHandler) {
-        return tickSlots(outputInventory, outputFluids, energyDrawer, voidItemOutputs, voidFluidOutputs,
-                conditions, fluidOutputHandler, null);
-    }
-
-    public int tickSlots(@NotNull IItemHandlerModifiable outputInventory,
-                         @NotNull IMultipleTankHandler outputFluids,
-                         @NotNull EnergyDrawer energyDrawer,
-                         boolean voidItemOutputs,
-                         boolean voidFluidOutputs,
-                         @NotNull List<IRecipeCondition> conditions,
-                         @Nullable FluidOutputHandler fluidOutputHandler,
-                         @Nullable SlotProgressValidator progressValidator) {
         int completedParallel = 0;
         boolean hasConditions = !conditions.isEmpty();
 
@@ -329,21 +317,6 @@ public class CrossRecipeParallelScheduler {
                     returnSlotToPool(slot);
                 }
             } else if (slot.isRunning()) {
-                if (progressValidator != null && !progressValidator.canProgress(slot)) {
-                    slot.setPaused(true);
-                    if (slot.decreaseProgress()) {
-                        if (hasConditions) {
-                            RecipeExecutionContext ctx = RecipeExecutionContext.forSlot(slot);
-                            for (IRecipeCondition cond : conditions) {
-                                cond.onInvalidate(ctx);
-                            }
-                        }
-                        it.remove();
-                        returnSlotToPool(slot);
-                    }
-                    continue;
-                }
-
                 if (!hasConditions) {
                     runnableSlots.add(slot);
                     totalEUt += slot.getRecipeEUt();
@@ -871,15 +844,6 @@ public class CrossRecipeParallelScheduler {
     public interface FluidOutputHandler {
 
         boolean outputFluids(@NotNull List<FluidStack> fluidOutputs, boolean simulate);
-    }
-
-    /**
-     * Per-slot runtime environment/progress check (e.g. cleanroom validity and structure obstruction).
-     */
-    @FunctionalInterface
-    public interface SlotProgressValidator {
-
-        boolean canProgress(@NotNull RecipeSlot slot);
     }
 
     /**
