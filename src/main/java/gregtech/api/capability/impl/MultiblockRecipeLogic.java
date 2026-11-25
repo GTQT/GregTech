@@ -290,13 +290,15 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     }
                     commitFluidOutputs(fluids, outputTank);
                     return true;
-                }
+                },
+                this::canProgressSlot
         );
         if (completedParallel > 0) {
             onCrossRecipeSlotsCompleted(completedParallel);
         }
 
         this.hasNotEnoughEnergy = scheduler.isHasNotEnoughEnergy();
+        boolean wasPaused = this.isPaused;
 
         // If scheduler can accept more recipes (has remaining parallel budget), try to fill
         if (usesParallelScheduler() && scheduler.canAcceptMoreRecipes()) {
@@ -310,6 +312,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // Update active state based on whether any slots are still running
         if (!scheduler.hasActiveSlots()) {
             crossRecipeSchedulerActive = false;
+            this.isPaused = false;
             this.progressTime = 0;
             setMaxProgress(0);
             this.recipeEUt = 0;
@@ -317,6 +320,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             this.wasActiveAndNeedsUpdate = true;
         } else {
             crossRecipeSchedulerActive = true;
+            boolean workingNow = scheduler.hasWorkingSlots();
+            if (workingNow && wasPaused) {
+                this.whyFailed = "";
+            }
+            this.isPaused = !this.hasNotEnoughEnergy && !workingNow;
             // Keep progressTime > 0 so the main loop continues calling updateRecipeProgress()
             this.progressTime = 1;
         }
@@ -983,7 +991,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return true;
         }
 
-        long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getTotalEnergyConsumption();
+        long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getTotalScheduledEUt();
         long totalEUt = saturatingAdd(runningEUt, candidateEUt);
         if (drawEnergy(totalEUt, true)) {
             this.hasNotEnoughEnergy = false;
@@ -1171,7 +1179,21 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected boolean canProgressRecipe() {
+        if (crossRecipeSchedulerActive) {
+            return !((IMultiblockController) metaTileEntity).isStructureObstructed();
+        }
         return super.canProgressRecipe() && !((IMultiblockController) metaTileEntity).isStructureObstructed();
+    }
+
+    protected boolean canProgressSlot(@NotNull RecipeSlot slot) {
+        if (!this.canRecipeProgress) {
+            return false;
+        }
+        Recipe recipe = slot.getSourceRecipe();
+        if (recipe != null) {
+            return checkCleanroomRequirement(recipe);
+        }
+        return checkCleanroomTypeRequirement(slot.getRequiredCleanroom());
     }
 
     @Override
@@ -1817,6 +1839,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             setMaxProgress(Integer.MAX_VALUE);
             this.recipeEUt = scheduler.getTotalEnergyConsumption();
             this.parallelRecipesPerformed = scheduler.getTotalParallelCount();
+            this.isPaused = !scheduler.hasWorkingSlots();
+            this.whyFailed = "";
             crossRecipeSchedulerActive = true;
             if (this.wasActiveAndNeedsUpdate) {
                 this.wasActiveAndNeedsUpdate = false;

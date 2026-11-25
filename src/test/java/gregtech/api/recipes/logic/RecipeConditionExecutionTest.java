@@ -253,20 +253,26 @@ class RecipeConditionExecutionTest {
         assertTrue(logic.prepareRecipe(recipe));
         assertEquals(1, logic.getProgress());
 
-        // Fail tick -> PAUSE: progress remains 1, no energy drawn, cond1.consumeTick not called
+        // Fail tick -> PAUSE: progress remains 1, no energy drawn, cond1.consumeTick not called, not working (0 EU/t)
         logic.tickProgress();
         assertEquals(1, logic.getProgress());
         assertEquals(500L, energy.getEnergyStored());
         assertEquals(0, cond1Consumed.get());
         assertEquals(1, cond2FailedCalls.get());
         assertTrue(logic.isActive());
+        assertTrue(logic.isPaused());
+        assertFalse(logic.isWorking());
+        assertEquals(0L, logic.getInfoProviderEUt());
 
-        // Now allow cond2 -> advances normally
+        // Now allow cond2 -> advances normally and restores working power state
         allowCond2.set(true);
         logic.tickProgress();
         assertEquals(2, logic.getProgress());
         assertEquals(475L, energy.getEnergyStored());
         assertEquals(1, cond1Consumed.get());
+        assertFalse(logic.isPaused());
+        assertTrue(logic.isWorking());
+        assertEquals(25L, logic.getInfoProviderEUt());
     }
 
     @Test
@@ -819,6 +825,51 @@ class RecipeConditionExecutionTest {
         assertEquals(2, scheduler.getActiveSlotCount());
         assertEquals(2, slot2.getProgressTime());
         assertEquals(Items.GOLD_INGOT, outItems.getStackInSlot(0).getItem());
+    }
+
+    @Test
+    void scheduler_pausedSlotsExcludeEnergyConsumptionUntilResumed() {
+        CrossRecipeParallelScheduler scheduler = new CrossRecipeParallelScheduler(4);
+        ItemStackHandler outItems = new ItemStackHandler(4);
+        FluidTankList outFluids = new FluidTankList(false, new FluidTank(10000));
+        TestEnergyPool energyPool = new TestEnergyPool(1000L);
+        AtomicBoolean allowCond = new AtomicBoolean(false);
+
+        Recipe recipe = createTestRecipe(new ItemStack(Items.IRON_INGOT, 1), new ItemStack(Items.GOLD_INGOT, 1), 3, 32L);
+        RecipeSlot slot = scheduler.acquireSlot();
+        assertNotNull(slot);
+        slot.startRecipe(recipe, 3, 32L, Collections.singletonList(new ItemStack(Items.GOLD_INGOT, 1)),
+                Collections.emptyList(), 1, "test");
+
+        IRecipeCondition pauseCond = new IRecipeCondition() {
+
+            @Override
+            public @NotNull String getConditionId() {
+                return "pause_eut";
+            }
+
+            @Override
+            public boolean testTick(@NotNull RecipeExecutionContext context) {
+                return allowCond.get();
+            }
+
+            @Override
+            public @NotNull TickFailureAction onTickFailed(@NotNull RecipeExecutionContext context, boolean energyShortage) {
+                return TickFailureAction.PAUSE;
+            }
+        };
+
+        scheduler.tickSlots(outItems, outFluids, energyPool, false, false, Collections.singletonList(pauseCond));
+        assertTrue(slot.isPaused());
+        assertFalse(scheduler.hasWorkingSlots());
+        assertEquals(0L, scheduler.getTotalEnergyConsumption());
+        assertEquals(32L, scheduler.getTotalScheduledEUt());
+
+        allowCond.set(true);
+        scheduler.tickSlots(outItems, outFluids, energyPool, false, false, Collections.singletonList(pauseCond));
+        assertFalse(slot.isPaused());
+        assertTrue(scheduler.hasWorkingSlots());
+        assertEquals(32L, scheduler.getTotalEnergyConsumption());
     }
 
     // ==================== Minimal Headless Test Doubles ====================

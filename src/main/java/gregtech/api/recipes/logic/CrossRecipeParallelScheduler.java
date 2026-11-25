@@ -285,6 +285,18 @@ public class CrossRecipeParallelScheduler {
                          boolean voidFluidOutputs,
                          @NotNull List<IRecipeCondition> conditions,
                          @Nullable FluidOutputHandler fluidOutputHandler) {
+        return tickSlots(outputInventory, outputFluids, energyDrawer, voidItemOutputs, voidFluidOutputs,
+                conditions, fluidOutputHandler, null);
+    }
+
+    public int tickSlots(@NotNull IItemHandlerModifiable outputInventory,
+                         @NotNull IMultipleTankHandler outputFluids,
+                         @NotNull EnergyDrawer energyDrawer,
+                         boolean voidItemOutputs,
+                         boolean voidFluidOutputs,
+                         @NotNull List<IRecipeCondition> conditions,
+                         @Nullable FluidOutputHandler fluidOutputHandler,
+                         @Nullable SlotProgressValidator progressValidator) {
         int completedParallel = 0;
         boolean hasConditions = !conditions.isEmpty();
 
@@ -317,6 +329,21 @@ public class CrossRecipeParallelScheduler {
                     returnSlotToPool(slot);
                 }
             } else if (slot.isRunning()) {
+                if (progressValidator != null && !progressValidator.canProgress(slot)) {
+                    slot.setPaused(true);
+                    if (slot.decreaseProgress()) {
+                        if (hasConditions) {
+                            RecipeExecutionContext ctx = RecipeExecutionContext.forSlot(slot);
+                            for (IRecipeCondition cond : conditions) {
+                                cond.onInvalidate(ctx);
+                            }
+                        }
+                        it.remove();
+                        returnSlotToPool(slot);
+                    }
+                    continue;
+                }
+
                 if (!hasConditions) {
                     runnableSlots.add(slot);
                     totalEUt += slot.getRecipeEUt();
@@ -341,6 +368,7 @@ public class CrossRecipeParallelScheduler {
                             pause = true;
                         }
                     }
+                    slot.setPaused(true);
                     if (!pause && slot.decreaseProgress()) {
                         for (IRecipeCondition cond : conditions) {
                             cond.onInvalidate(ctx);
@@ -376,6 +404,7 @@ public class CrossRecipeParallelScheduler {
                                 pause = true;
                             }
                         }
+                        slot.setPaused(true);
                         if (!pause && slot.decreaseProgress()) {
                             for (IRecipeCondition cond : conditions) {
                                 cond.onInvalidate(ctx);
@@ -394,6 +423,7 @@ public class CrossRecipeParallelScheduler {
         // Phase 3: Commit condition tick consumption and advance running slots
         for (int i = 0; i < runnableSlots.size(); i++) {
             RecipeSlot slot = runnableSlots.get(i);
+            slot.setPaused(false);
             RecipeExecutionContext ctx = hasConditions ? runnableContexts.get(i) : null;
             if (ctx != null) {
                 for (IRecipeCondition cond : conditions) {
@@ -422,9 +452,22 @@ public class CrossRecipeParallelScheduler {
     // ==================== Query Methods ====================
 
     /**
-     * @return the total EU/t being consumed by all active slots
+     * @return the total EU/t actively being consumed by unpaused running slots
      */
     public long getTotalEnergyConsumption() {
+        long total = 0;
+        for (RecipeSlot slot : activeSlots) {
+            if (slot.isRunning() && !slot.isPaused()) {
+                total += slot.getRecipeEUt();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * @return the total scheduled EU/t across all running slots (including temporarily paused slots)
+     */
+    public long getTotalScheduledEUt() {
         long total = 0;
         for (RecipeSlot slot : activeSlots) {
             if (slot.isRunning()) {
@@ -432,6 +475,18 @@ public class CrossRecipeParallelScheduler {
             }
         }
         return total;
+    }
+
+    /**
+     * @return true if at least one running slot is actively progressing (not paused)
+     */
+    public boolean hasWorkingSlots() {
+        for (RecipeSlot slot : activeSlots) {
+            if (slot.isRunning() && !slot.isPaused()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -628,6 +683,7 @@ public class CrossRecipeParallelScheduler {
 
             String name = slot.getRecipeDisplayName();
             int maxProg = slot.getMaxProgressTime();
+            long effectiveEUt = slot.isPaused() ? 0L : slot.getRecipeEUt();
             boolean merged = false;
 
             for (int i = 0; i < result.size(); i++) {
@@ -640,7 +696,7 @@ public class CrossRecipeParallelScheduler {
                             existing.totalOperations + slot.getTotalOperations(),
                             Math.max(existing.progress, slot.getProgressTime()),
                             existing.maxProgress,
-                            existing.totalEUt + slot.getRecipeEUt()));
+                            existing.totalEUt + effectiveEUt));
                     merged = true;
                     break;
                 }
@@ -654,7 +710,7 @@ public class CrossRecipeParallelScheduler {
                         slot.getTotalOperations(),
                         slot.getProgressTime(),
                         maxProg,
-                        slot.getRecipeEUt()));
+                        effectiveEUt));
             }
         }
 
@@ -815,6 +871,15 @@ public class CrossRecipeParallelScheduler {
     public interface FluidOutputHandler {
 
         boolean outputFluids(@NotNull List<FluidStack> fluidOutputs, boolean simulate);
+    }
+
+    /**
+     * Per-slot runtime environment/progress check (e.g. cleanroom validity and structure obstruction).
+     */
+    @FunctionalInterface
+    public interface SlotProgressValidator {
+
+        boolean canProgress(@NotNull RecipeSlot slot);
     }
 
     /**

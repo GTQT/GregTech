@@ -29,6 +29,7 @@ public class NotifiableFilteredFluidHandler extends FilteredFluidHandler impleme
 
     @Override
     public void addNotifiableMetaTileEntity(MetaTileEntity metaTileEntity) {
+        if (metaTileEntity == null || this.notifiableEntities.contains(metaTileEntity)) return;
         this.notifiableEntities.add(metaTileEntity);
     }
 

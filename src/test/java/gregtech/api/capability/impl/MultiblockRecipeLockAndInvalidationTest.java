@@ -7,6 +7,8 @@ import gregtech.api.metatileentity.MetaTileEntity;
 import gregtech.api.metatileentity.TestMetaTileEntityHolder;
 import gregtech.api.metatileentity.interfaces.IGregTechTileEntity;
 import gregtech.api.metatileentity.multiblock.AbilityInstances;
+import gregtech.api.metatileentity.multiblock.CleanroomType;
+import gregtech.api.metatileentity.multiblock.ICleanroomProvider;
 import gregtech.api.metatileentity.multiblock.IMultiblockAbilityPart;
 import gregtech.api.metatileentity.multiblock.IMultiblockPart;
 import gregtech.api.metatileentity.multiblock.MultiblockAbility;
@@ -28,11 +30,14 @@ import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
 import gregtech.api.recipes.map.PseudoPairRecipeMap;
 import gregtech.api.recipes.map.PseudoQuadrupleRecipeMap;
 import gregtech.api.recipes.map.PseudoTripleRecipeMap;
+import gregtech.api.recipes.properties.RecipePropertyStorage;
 import gregtech.api.recipes.properties.RecipePropertyStorageImpl;
+import gregtech.api.recipes.properties.impl.CleanroomProperty;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
 import gregtech.api.unification.material.registry.MarkerMaterialRegistry;
 import gregtech.client.renderer.ICubeRenderer;
+import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityItemBus;
 import gregtech.core.unification.material.internal.MaterialRegistryManager;
 
@@ -475,6 +480,101 @@ class MultiblockRecipeLockAndInvalidationTest {
         logic.trySearchNewRecipePublic();
         assertFalse(logic.isActive(),
                 "Switched map must not start foreign locked recipe even with matching inputs");
+    }
+
+    @Test
+    void parallelSchedulerStopsSterileCleanroomSlotWhenCleanroomBecomesUnclean() {
+        boolean prevCleanMulti = ConfigHolder.machines.cleanMultiblocks;
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.cleanMultiblocks = false;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = true;
+        try {
+            RecipeMap<SimpleRecipeBuilder> cleanMap = new RecipeMap<>("test_sched_cleanroom_map",
+                    new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
+            RecipePropertyStorage props = new RecipePropertyStorageImpl();
+            props.store(CleanroomProperty.getInstance(), CleanroomType.STERILE_CLEANROOM);
+            Recipe sterileRecipe = new Recipe(
+                    Collections.singletonList(new GTRecipeItemInput(new ItemStack(Items.IRON_INGOT, 1))),
+                    Collections.singletonList(new ItemStack(Items.GOLD_INGOT, 1)),
+                    ChancedOutputList.empty(), Collections.emptyList(), Collections.emptyList(),
+                    ChancedOutputList.empty(), Collections.emptyList(),
+                    8, 32L, false, props, cleanMap.getPrimaryRecipeCategory());
+            cleanMap.compileRecipe(sterileRecipe);
+
+            TestController ctrl = new TestController(cleanMap);
+            TestCleanroom cleanroom = new TestCleanroom(CleanroomType.STERILE_CLEANROOM, true);
+            ctrl.setCleanroom(cleanroom);
+            TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setParallelLimit(2);
+
+            MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_cleanroom_in"), 1, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_cleanroom_out"), 1, true);
+            ctrl.addPart(inBus);
+            ctrl.addPart(outBus);
+            inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 2));
+
+            logic.updateWorkable();
+            assertTrue(logic.isActive());
+            assertEquals(0, countItem(inBus.getImportItems(), Items.IRON_INGOT));
+            long energyAfterStart = ctrl.getEnergyContainer().getEnergyStored();
+
+            // Invalidate cleanroom immediately after inputs are consumed -> 0 EU drawn, 0 outputs produced
+            cleanroom.clean = false;
+            for (int tick = 0; tick < 10; tick++) {
+                logic.updateWorkable();
+            }
+            assertEquals(energyAfterStart, ctrl.getEnergyContainer().getEnergyStored());
+            assertEquals(0, countItem(outBus.getExportItems(), Items.GOLD_INGOT));
+            assertEquals("当前配方需要超净环境！", logic.getWhyFailed());
+        } finally {
+            ConfigHolder.machines.cleanMultiblocks = prevCleanMulti;
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
+    }
+
+    private static final class TestCleanroom implements ICleanroomProvider {
+
+        private final CleanroomType type;
+        boolean clean;
+
+        TestCleanroom(CleanroomType type, boolean clean) {
+            this.type = type;
+            this.clean = clean;
+        }
+
+        @Override
+        public boolean checkCleanroomType(@NotNull CleanroomType required) {
+            return this.type == required;
+        }
+
+        @Override
+        public void setCleanAmount(int amount) {}
+
+        @Override
+        public void adjustCleanAmount(int amount) {}
+
+        @Override
+        public boolean isClean() {
+            return clean;
+        }
+
+        @Override
+        public boolean drainEnergy(boolean simulate) {
+            return true;
+        }
+
+        @Override
+        public long getEnergyInputPerSecond() {
+            return 0;
+        }
+
+        @Override
+        public int getEnergyTier() {
+            return 1;
+        }
     }
 
     // ==================== Headless Test Doubles ====================

@@ -95,6 +95,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected boolean isActive;
     protected boolean workingEnabled = true;
     protected boolean hasNotEnoughEnergy;
+    protected boolean isPaused;
     protected boolean wasActiveAndNeedsUpdate;
     protected boolean isOutputsFull;
     protected boolean invalidInputsForRecipes;
@@ -623,6 +624,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
         boolean conditionsOk = failedConditions == null;
 
         if (canRecipeProgress && energyOk && conditionsOk) {
+            if (this.isPaused) {
+                this.isPaused = false;
+                this.whyFailed = "";
+            }
             drawEnergy(recipeEUt, false);
             if (ctx != null) {
                 for (IRecipeCondition cond : recipeConditions) {
@@ -660,6 +665,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
                         }
                     }
                 }
+                this.isPaused = pause;
                 if (!pause) {
                     decreaseProgress(energyShortage);
                 }
@@ -806,7 +812,10 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * @return if the cleanroom requirement is met
      */
     protected boolean checkCleanroomRequirement(@NotNull Recipe recipe) {
-        CleanroomType requiredType = recipe.getProperty(CleanroomProperty.getInstance(), null);
+        return checkCleanroomTypeRequirement(recipe.getProperty(CleanroomProperty.getInstance(), null));
+    }
+
+    protected boolean checkCleanroomTypeRequirement(@Nullable CleanroomType requiredType) {
         if (requiredType == null) return true;
 
         MetaTileEntity mte = getMetaTileEntity();
@@ -819,7 +828,11 @@ public abstract class AbstractRecipeLogic extends MTETrait
                 return false;
             }
 
-            return cleanroomProvider.isClean() && cleanroomProvider.checkCleanroomType(requiredType);
+            if (cleanroomProvider.isClean() && cleanroomProvider.checkCleanroomType(requiredType)) {
+                return true;
+            }
+            whyFailed = "当前配方需要超净环境！";
+            return false;
         }
 
         return false;
@@ -1650,6 +1663,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @MustBeInvokedByOverriders
     protected void setupRecipe(@NotNull Recipe recipe) {
         this.progressTime = 1;
+        this.isPaused = false;
         whyFailed = "";
         setMaxProgress(ocResult.duration());
         this.recipeEUt = ocResult.eut();
@@ -1720,6 +1734,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         this.fluidOutputs = Collections.emptyList();
         this.itemOutputs = Collections.emptyList();
         this.hasNotEnoughEnergy = false;
+        this.isPaused = false;
         this.wasActiveAndNeedsUpdate = true;
         this.parallelRecipesPerformed = 0;
         this.singleTotalOperations = 1;
@@ -1779,7 +1794,11 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * @return the current recipe's EU/t for TOP/Tricorder
      */
     public long getInfoProviderEUt() {
-        return getRecipeEUt();
+        return isWorking() ? getRecipeEUt() : 0L;
+    }
+
+    public boolean isPaused() {
+        return isPaused;
     }
 
     /**
@@ -1911,7 +1930,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * @return true if the workable is actively working
      */
     public boolean isWorking() {
-        return isActive && !hasNotEnoughEnergy && workingEnabled;
+        return isActive && !hasNotEnoughEnergy && !isPaused && workingEnabled;
     }
 
     /**
@@ -2000,6 +2019,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
         singleTotalOperations = 1;
         isOutputsFull = false;
         invalidInputsForRecipes = false;
+        hasNotEnoughEnergy = false;
+        isPaused = false;
         this.ocResult.reset();
         this.singleRecipeExtraData = new NBTTagCompound();
         setActive(false); // this marks dirty for us
