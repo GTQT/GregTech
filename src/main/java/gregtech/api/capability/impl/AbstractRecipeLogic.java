@@ -652,6 +652,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
                 if (ctx != null) {
                     if (energyShortage) {
                         for (IRecipeCondition cond : recipeConditions) {
+                            if (!cond.handlesEnergyShortage()) continue;
                             if (cond.onTickFailed(ctx, true) == IRecipeCondition.TickFailureAction.PAUSE) {
                                 pause = true;
                             }
@@ -716,10 +717,13 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
+     * Compatibility hook for legacy subclasses that override {@link #updateRecipeProgress()}
+     * directly and poll {@link #canRecipeProgress} instead of delegating to {@link IRecipeCondition}.
+     *
      * @return true if the recipe can progress, otherwise false
      */
     protected boolean canProgressRecipe() {
-        return true;
+        return previousRecipe == null || cleanroomCondition.checkRecipe(previousRecipe);
     }
 
     /**

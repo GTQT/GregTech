@@ -70,6 +70,11 @@ public final class CleanroomRecipeCondition implements IRecipeCondition {
     }
 
     @Override
+    public boolean handlesEnergyShortage() {
+        return false;
+    }
+
+    @Override
     @NotNull
     public TickFailureAction onTickFailed(@NotNull RecipeExecutionContext context, boolean energyShortage) {
         if (!energyShortage && failureReasonSink != null) {

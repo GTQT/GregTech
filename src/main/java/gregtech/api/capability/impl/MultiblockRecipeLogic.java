@@ -1178,6 +1178,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected boolean canProgressRecipe() {
+        if (crossRecipeSchedulerActive) {
+            return !((IMultiblockController) metaTileEntity).isStructureObstructed();
+        }
         return super.canProgressRecipe() && !((IMultiblockController) metaTileEntity).isStructureObstructed();
     }
 

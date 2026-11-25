@@ -87,6 +87,15 @@ public interface IRecipeCondition {
     default void consumeTick(@NotNull RecipeExecutionContext context) {}
 
     /**
+     * Whether this condition participates in {@link #onTickFailed(RecipeExecutionContext, boolean)}
+     * when {@code energyShortage == true}. Passive property checks (such as {@link CleanroomRecipeCondition})
+     * return {@code false} so ordinary recipes keep baseline scheduler power-loss semantics.
+     */
+    default boolean handlesEnergyShortage() {
+        return true;
+    }
+
+    /**
      * Invoked when a tick fails either because energy draw failed ({@code energyShortage == true})
      * or because this condition's {@link #testTick(RecipeExecutionContext)} returned {@code false}.
      *

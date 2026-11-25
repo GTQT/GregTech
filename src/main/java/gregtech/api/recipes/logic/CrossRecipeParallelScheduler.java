@@ -371,11 +371,17 @@ public class CrossRecipeParallelScheduler {
                     for (int i = 0; i < runnableSlots.size(); i++) {
                         RecipeSlot slot = runnableSlots.get(i);
                         RecipeExecutionContext ctx = runnableContexts.get(i);
+                        boolean hasEnergyHandler = false;
                         boolean pause = false;
                         for (IRecipeCondition cond : conditions) {
+                            if (!cond.handlesEnergyShortage()) continue;
+                            hasEnergyHandler = true;
                             if (cond.onTickFailed(ctx, true) == IRecipeCondition.TickFailureAction.PAUSE) {
                                 pause = true;
                             }
+                        }
+                        if (!hasEnergyHandler) {
+                            continue;
                         }
                         slot.setPaused(true);
                         if (!pause && slot.decreaseProgress()) {
