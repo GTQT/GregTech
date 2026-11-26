@@ -298,6 +298,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         this.hasNotEnoughEnergy = scheduler.isHasNotEnoughEnergy();
         boolean wasPaused = this.isPaused;
+        if (wasPaused && (scheduler.hasWorkingSlots() || completedParallel > 0)) {
+            this.whyFailed = "";
+        }
 
         // If scheduler can accept more recipes (has remaining parallel budget), try to fill
         if (usesParallelScheduler() && scheduler.canAcceptMoreRecipes()) {
@@ -312,6 +315,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (!scheduler.hasActiveSlots()) {
             crossRecipeSchedulerActive = false;
             this.isPaused = false;
+            this.canRecipeProgress = true;
             this.progressTime = 0;
             setMaxProgress(0);
             this.recipeEUt = 0;
@@ -320,9 +324,6 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         } else {
             crossRecipeSchedulerActive = true;
             boolean workingNow = scheduler.hasWorkingSlots();
-            if (workingNow && wasPaused) {
-                this.whyFailed = "";
-            }
             this.isPaused = !this.hasNotEnoughEnergy && !workingNow;
             // Keep progressTime > 0 so the main loop continues calling updateRecipeProgress()
             this.progressTime = 1;
@@ -1824,6 +1825,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected void activateSchedulerIfFilled(@NotNull CrossRecipeParallelScheduler scheduler, int filled) {
         if (filled > 0) {
             this.progressTime = 1;
+            this.canRecipeProgress = true;
             setMaxProgress(Integer.MAX_VALUE);
             this.recipeEUt = scheduler.getTotalEnergyConsumption();
             this.parallelRecipesPerformed = scheduler.getTotalParallelCount();

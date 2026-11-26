@@ -88,11 +88,20 @@ public interface IRecipeCondition {
 
     /**
      * Whether this condition participates in {@link #onTickFailed(RecipeExecutionContext, boolean)}
-     * when {@code energyShortage == true}. Passive property checks (such as {@link CleanroomRecipeCondition})
-     * return {@code false} so ordinary recipes keep baseline scheduler power-loss semantics.
+     * when {@code energyShortage == true}. Passive property checks return {@code false} so ordinary
+     * recipes keep baseline scheduler power-loss semantics.
      */
     default boolean handlesEnergyShortage() {
         return true;
+    }
+
+    /**
+     * Whether this condition should also be checked by {@link gregtech.api.capability.impl.AbstractRecipeLogic#canProgressRecipe()}
+     * for legacy subclasses that override {@code updateRecipeProgress()} directly instead of running
+     * the standard {@link IRecipeCondition} tick loop. Must be side-effect free during {@link #testTick}.
+     */
+    default boolean checksLegacyProgress() {
+        return false;
     }
 
     /**

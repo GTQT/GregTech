@@ -279,7 +279,7 @@ class RecipeConditionExecutionTest {
     void singleRecipe_decreaseProgressRespectsResetRecipeOnPowerLoss() {
         boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
         try {
-            // Case 1: resetRecipeOnPowerLoss = false -> progressTime resets to 0 without onInvalidate
+            // Case 1: resetRecipeOnPowerLoss = false -> resets progressTime to 1 without onInvalidate, pauses display, and recovers
             ConfigHolder.machines.resetRecipeOnPowerLoss = false;
             TestMetaTileEntity mte1 = new TestMetaTileEntity(4);
             mte1.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 2));
@@ -320,9 +320,21 @@ class RecipeConditionExecutionTest {
 
             pass1.set(false);
             logic1.tickProgress();
-            assertEquals(0, logic1.getProgress());
+            assertEquals(1, logic1.getProgress());
+            assertTrue(logic1.isPaused());
+            assertFalse(logic1.isWorking());
+            assertEquals(0L, logic1.getInfoProviderEUt());
             assertEquals(0, invalidates1.get());
             assertEquals(490L, energy1.getEnergyStored());
+
+            // Recover condition -> single-slot recipe resumes from 1 and finishes cleanly
+            pass1.set(true);
+            for (int t = 0; t < 5; t++) {
+                logic1.tickProgress();
+            }
+            assertEquals(0, logic1.getProgress());
+            assertEquals(1, mte1.getExportItems().getStackInSlot(0).getCount());
+            assertEquals(Items.GOLD_INGOT, mte1.getExportItems().getStackInSlot(0).getItem());
 
             // Case 2: resetRecipeOnPowerLoss = true -> invalidates recipe and invokes onInvalidate
             ConfigHolder.machines.resetRecipeOnPowerLoss = true;
@@ -870,6 +882,109 @@ class RecipeConditionExecutionTest {
         assertFalse(slot.isPaused());
         assertTrue(scheduler.hasWorkingSlots());
         assertEquals(32L, scheduler.getTotalEnergyConsumption());
+    }
+
+    @Test
+    void singleRecipe_pauseConditionTakesPrecedenceOverSimultaneousEnergyShortage() {
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = true;
+        try {
+            TestMetaTileEntity mte = new TestMetaTileEntity(4);
+            mte.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            TestEnergyContainer energy = new TestEnergyContainer(100L, 1000L, 128L);
+            TestSingleRecipeLogic logic = new TestSingleRecipeLogic(mte, energy);
+            AtomicBoolean fluidAvailable = new AtomicBoolean(true);
+            logic.addRecipeCondition(new IRecipeCondition() {
+
+                @Override
+                public @NotNull String getConditionId() {
+                    return "pause_before_energy";
+                }
+
+                @Override
+                public boolean testTick(@NotNull RecipeExecutionContext context) {
+                    return fluidAvailable.get();
+                }
+
+                @Override
+                public @NotNull TickFailureAction onTickFailed(@NotNull RecipeExecutionContext context,
+                                                               boolean energyShortage) {
+                    return energyShortage ? TickFailureAction.DECREASE_PROGRESS : TickFailureAction.PAUSE;
+                }
+            });
+
+            Recipe recipe = createTestRecipe(new ItemStack(Items.IRON_INGOT, 1), new ItemStack(Items.GOLD_INGOT, 1), 3, 20L);
+            assertTrue(logic.prepareRecipe(recipe));
+            logic.tickProgress();
+            assertEquals(2, logic.getProgress());
+
+            // Both condition and energy fail on the same tick -> Phase 1 PAUSE preserves the recipe
+            fluidAvailable.set(false);
+            energy.changeEnergy(-energy.getEnergyStored());
+            logic.tickProgress();
+            assertTrue(logic.isActive());
+            assertTrue(logic.isPaused());
+            assertFalse(logic.isHasNotEnoughEnergy());
+            assertEquals(2, logic.getProgress());
+
+            // Restore both -> recipe completes cleanly
+            fluidAvailable.set(true);
+            energy.changeEnergy(100L);
+            logic.tickProgress();
+            logic.tickProgress();
+            assertEquals(0, logic.getProgress());
+            assertEquals(1, mte.getExportItems().getStackInSlot(0).getCount());
+        } finally {
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
+    }
+
+    @Test
+    void scheduler_energyShortageMarksPassiveAndUnconditionedSlotsPausedAndZerosDisplayPower() {
+        ItemStackHandler outItems = new ItemStackHandler(4);
+        FluidTankList outFluids = new FluidTankList(false, new FluidTank(10000));
+        Recipe recipe = createTestRecipe(new ItemStack(Items.IRON_INGOT, 1), new ItemStack(Items.GOLD_INGOT, 1), 3, 32L);
+        IRecipeCondition passiveCond = new IRecipeCondition() {
+
+            @Override
+            public @NotNull String getConditionId() {
+                return "passive_only";
+            }
+
+            @Override
+            public boolean handlesEnergyShortage() {
+                return false;
+            }
+        };
+
+        for (List<IRecipeCondition> conds : java.util.Arrays.asList(
+                Collections.<IRecipeCondition>emptyList(), Collections.singletonList(passiveCond))) {
+            CrossRecipeParallelScheduler scheduler = new CrossRecipeParallelScheduler(4);
+            RecipeSlot slot = scheduler.acquireSlot();
+            assertNotNull(slot);
+            slot.startRecipe(recipe, 3, 32L, Collections.singletonList(new ItemStack(Items.GOLD_INGOT, 1)),
+                    Collections.emptyList(), 1, "test");
+
+            TestEnergyPool energy = new TestEnergyPool(0L);
+            scheduler.tickSlots(outItems, outFluids, energy, false, false, conds);
+            assertTrue(scheduler.isHasNotEnoughEnergy());
+            assertTrue(slot.isPaused());
+            assertFalse(scheduler.hasWorkingSlots());
+            assertEquals(0L, scheduler.getTotalEnergyConsumption());
+            assertEquals(32L, scheduler.getTotalScheduledEUt());
+            assertEquals(0L, scheduler.getMergedDisplaySlots().get(0).totalEUt);
+            assertEquals(1, slot.getProgressTime());
+
+            // Restore power -> slot unpauses and reports full 32 EU/t again
+            energy.stored = 100L;
+            scheduler.tickSlots(outItems, outFluids, energy, false, false, conds);
+            assertFalse(scheduler.isHasNotEnoughEnergy());
+            assertFalse(slot.isPaused());
+            assertTrue(scheduler.hasWorkingSlots());
+            assertEquals(32L, scheduler.getTotalEnergyConsumption());
+            assertEquals(32L, scheduler.getMergedDisplaySlots().get(0).totalEUt);
+            assertEquals(2, slot.getProgressTime());
+        }
     }
 
     // ==================== Minimal Headless Test Doubles ====================

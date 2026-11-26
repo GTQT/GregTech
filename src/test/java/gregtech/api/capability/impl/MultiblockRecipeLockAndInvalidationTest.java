@@ -540,18 +540,138 @@ class MultiblockRecipeLockAndInvalidationTest {
             assertEquals(0, countItem(outBus.getExportItems(), Items.GOLD_INGOT));
             assertEquals(CleanroomRecipeCondition.MISSING_CLEANROOM_REASON, reloadedLogic.getWhyFailed());
 
-            // Legacy subclasses polling canProgressRecipe() (e.g. PressureSingleRecipeLogic) still re-verify cleanroom
+            // Legacy subclasses polling canProgressRecipe() (e.g. PressureSingleRecipeLogic):
+            // 1) Idle machine with stale previousRecipe must NOT fail canProgressRecipe() or pollute whyFailed
             TestController legacyCtrl = new TestController(cleanMap);
             TestCleanroom legacyCleanroom = new TestCleanroom(CleanroomType.STERILE_CLEANROOM, false);
             legacyCtrl.setCleanroom(legacyCleanroom);
             TestMultiblockRecipeLogic legacyLogic = legacyCtrl.getTestLogic();
             legacyLogic.previousRecipe = sterileRecipe;
-            assertFalse(legacyLogic.canProgressRecipe());
-            assertEquals(CleanroomRecipeCondition.MISSING_CLEANROOM_REASON, legacyLogic.getWhyFailed());
+            assertTrue(legacyLogic.canProgressRecipe());
+            assertEquals("", legacyLogic.getWhyFailed());
+
+            // 2) Active single-slot recipe (including after NBT reload where previousRecipe == null) re-verifies via IRecipeCondition
+            legacyCleanroom.clean = true;
+            MetaTileEntityItemBus legacyIn = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_legacy_clean_in"), 1, false);
+            legacyCtrl.addPart(legacyIn);
+            legacyIn.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            legacyLogic.setAllowOverclocking(false);
+            legacyLogic.setParallelLimit(1);
+            assertTrue(legacyLogic.prepareRecipe(sterileRecipe));
+
+            TestController legacyReloadedCtrl = new TestController(cleanMap);
+            legacyReloadedCtrl.setCleanroom(new TestCleanroom(CleanroomType.STERILE_CLEANROOM, false));
+            TestMultiblockRecipeLogic legacyReloadedLogic = legacyReloadedCtrl.getTestLogic();
+            legacyReloadedLogic.deserializeNBT(legacyLogic.serializeNBT());
+            assertNull(legacyReloadedLogic.previousRecipe);
+            assertFalse(legacyReloadedLogic.canProgressRecipe());
+            assertEquals(CleanroomRecipeCondition.MISSING_CLEANROOM_REASON, legacyReloadedLogic.getWhyFailed());
         } finally {
             ConfigHolder.machines.cleanMultiblocks = prevCleanMulti;
             ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
         }
+    }
+
+    @Test
+    void staleCanRecipeProgressDoesNotDestroyNewOrRecoveredRecipe() {
+        boolean prevCleanMulti = ConfigHolder.machines.cleanMultiblocks;
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.cleanMultiblocks = false;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = true;
+        try {
+            TestController ctrl = new TestController(TEST_MAP);
+            TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setParallelLimit(1);
+
+            MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_stale_canprog_in"), 1, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_stale_canprog_out"), 1, true);
+            ctrl.addPart(inBus);
+            ctrl.addPart(outBus);
+
+            // Simulate stale canRecipeProgress=false left over before starting a normal recipe
+            logic.setCanRecipeProgress(false);
+            inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            assertTrue(logic.prepareRecipe(RECIPE_IRON_TO_GOLD));
+            assertTrue(logic.isCanRecipeProgress());
+
+            // Simulate stale canRecipeProgress=false mid-recipe after conditions already recovered
+            logic.setCanRecipeProgress(false);
+            for (int t = 0; t < 4; t++) {
+                logic.updateWorkable();
+            }
+            assertEquals(1, countItem(outBus.getExportItems(), Items.GOLD_INGOT));
+        } finally {
+            ConfigHolder.machines.cleanMultiblocks = prevCleanMulti;
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
+    }
+
+    @Test
+    void parallelSchedulerClearsWhyFailedWhenLastSlotResumesAndCompletesOnFinalTick() {
+        TestController ctrl = new TestController(TEST_MAP);
+        TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setParallelLimit(4);
+
+        java.util.concurrent.atomic.AtomicBoolean allow = new java.util.concurrent.atomic.AtomicBoolean(true);
+        logic.addRecipeCondition(new gregtech.api.recipes.logic.IRecipeCondition() {
+
+            @Override
+            public @NotNull String getConditionId() {
+                return "test_final_tick_pause";
+            }
+
+            @Override
+            public boolean testTick(@NotNull gregtech.api.recipes.logic.RecipeExecutionContext context) {
+                return allow.get();
+            }
+
+            @Override
+            public boolean handlesEnergyShortage() {
+                return false;
+            }
+
+            @Override
+            public @NotNull TickFailureAction onTickFailed(
+                    @NotNull gregtech.api.recipes.logic.RecipeExecutionContext context, boolean energyShortage) {
+                if (!energyShortage) {
+                    logic.setWhyFailed("missing_special_fluid");
+                }
+                return TickFailureAction.PAUSE;
+            }
+        });
+
+        MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_last_tick_in"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_last_tick_out"), 1, true);
+        ctrl.addPart(inBus);
+        ctrl.addPart(outBus);
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+
+        // Start 4-tick recipe (progress=1) and advance 3 ticks to final tick (progress=4)
+        logic.updateWorkable();
+        for (int t = 0; t < 3; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(4, logic.getCrossRecipeScheduler().getActiveSlots().get(0).getProgressTime());
+
+        // Pause on final tick -> whyFailed recorded
+        allow.set(false);
+        logic.updateWorkable();
+        assertTrue(logic.isPaused());
+        assertEquals("missing_special_fluid", logic.getWhyFailed());
+
+        // Resume -> completes on that very tick (activeSlots becomes empty) and clears stale whyFailed
+        allow.set(true);
+        logic.updateWorkable();
+        assertEquals(0, logic.getCrossRecipeScheduler().getActiveSlotCount());
+        assertEquals("", logic.getWhyFailed());
+        assertEquals(1, countItem(outBus.getExportItems(), Items.GOLD_INGOT));
     }
 
     @Test
@@ -577,11 +697,19 @@ class MultiblockRecipeLockAndInvalidationTest {
             logic.updateWorkable();
             assertEquals(2, logic.getCrossRecipeScheduler().getActiveSlots().get(0).getProgressTime());
 
-            // 1-tick power outage must preserve slot progress at 2 (not reset to 0 via CleanroomRecipeCondition)
+            // 1-tick power outage must preserve slot progress at 2 and report 0 EU/t across scheduler & display views
             TestEnergyContainer energy = (TestEnergyContainer) ctrl.getEnergyContainer();
             energy.changeEnergy(-energy.getEnergyStored());
             logic.updateWorkable();
-            assertEquals(2, logic.getCrossRecipeScheduler().getActiveSlots().get(0).getProgressTime());
+            CrossRecipeParallelScheduler scheduler = logic.getCrossRecipeScheduler();
+            assertEquals(2, scheduler.getActiveSlots().get(0).getProgressTime());
+            assertTrue(scheduler.getActiveSlots().get(0).isPaused());
+            assertTrue(logic.isHasNotEnoughEnergy());
+            assertFalse(logic.isPaused());
+            assertEquals(0L, logic.getRecipeEUt());
+            assertEquals(0L, logic.getInfoProviderEUt());
+            assertEquals(0L, scheduler.getTotalEnergyConsumption());
+            assertEquals(0L, scheduler.getMergedDisplaySlots().get(0).totalEUt);
 
             // Alternating 1-tick power on / 1-tick power off completes the 4-tick recipe cleanly
             for (int i = 0; i < 10 && logic.isActive(); i++) {

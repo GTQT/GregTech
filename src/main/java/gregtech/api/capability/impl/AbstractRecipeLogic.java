@@ -20,12 +20,12 @@ import gregtech.api.recipes.chance.boost.ChanceBoostFunction;
 import gregtech.api.recipes.chance.output.ChancedOutput;
 import gregtech.api.recipes.chance.output.ChancedOutputList;
 import gregtech.api.recipes.chance.output.ChancedOutputLogic;
-import gregtech.api.recipes.logic.CleanroomRecipeCondition;
 import gregtech.api.recipes.logic.IParallelableRecipeLogic;
 import gregtech.api.recipes.logic.IRecipeCondition;
 import gregtech.api.recipes.logic.OCParams;
 import gregtech.api.recipes.logic.OCResult;
 import gregtech.api.recipes.logic.ParallelLogic;
+import gregtech.api.recipes.logic.RecipeConditionRegistry;
 import gregtech.api.recipes.logic.RecipeExecutionContext;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
 import gregtech.api.recipes.properties.impl.DimensionProperty;
@@ -109,7 +109,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     private boolean lackEnergyWarning = false;
 
     private final List<IRecipeCondition> recipeConditions = new ArrayList<>();
-    private final CleanroomRecipeCondition cleanroomCondition;
     protected NBTTagCompound singleRecipeExtraData = new NBTTagCompound();
     @Nullable
     private transient IItemHandlerModifiable activePreparationInventory;
@@ -153,8 +152,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         super(tileEntity);
         this.recipeMap = recipeMap;
         this.hasPerfectOC = hasPerfectOC;
-        this.cleanroomCondition = new CleanroomRecipeCondition(this::getMetaTileEntity, this::setWhyFailed);
-        addRecipeCondition(this.cleanroomCondition);
+        RecipeConditionRegistry.attachDefaults(this);
     }
 
     public void setProgressTime(int progressTime) {
@@ -600,7 +598,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
     protected void updateRecipeProgress() {
         boolean hasConditions = !recipeConditions.isEmpty();
         RecipeExecutionContext ctx = hasConditions ? createSingleExecutionContext() : null;
-        boolean energyOk = drawEnergy(recipeEUt, true);
         List<IRecipeCondition> failedConditions = null;
         if (hasConditions) {
             for (IRecipeCondition cond : recipeConditions) {
@@ -621,8 +618,28 @@ public abstract class AbstractRecipeLogic extends MTETrait
             }
         }
         boolean conditionsOk = failedConditions == null;
+        if (!canRecipeProgress && conditionsOk) {
+            this.canRecipeProgress = canProgressRecipe();
+        }
 
-        if (canRecipeProgress && energyOk && conditionsOk) {
+        // Phase 1: Condition failure takes precedence over energy draw (aligned with CrossRecipeParallelScheduler)
+        if (!conditionsOk) {
+            boolean pause = false;
+            for (IRecipeCondition cond : failedConditions) {
+                if (cond.onTickFailed(ctx, false) == IRecipeCondition.TickFailureAction.PAUSE) {
+                    pause = true;
+                }
+            }
+            this.isPaused = true;
+            if (!pause) {
+                decreaseProgress(false);
+            }
+            return;
+        }
+
+        // Phase 2: Energy draw & non-condition progress check
+        boolean energyOk = drawEnergy(recipeEUt, true);
+        if (canRecipeProgress && energyOk) {
             if (this.isPaused) {
                 this.isPaused = false;
                 this.whyFailed = "";
@@ -647,25 +664,17 @@ public abstract class AbstractRecipeLogic extends MTETrait
                 // generators always have enough energy
                 this.hasNotEnoughEnergy = true;
             }
-            if (energyShortage || !conditionsOk || (!canRecipeProgress && recipeEUt > 0)) {
+            if (energyShortage || (!canRecipeProgress && recipeEUt > 0)) {
                 boolean pause = false;
-                if (ctx != null) {
-                    if (energyShortage) {
-                        for (IRecipeCondition cond : recipeConditions) {
-                            if (!cond.handlesEnergyShortage()) continue;
-                            if (cond.onTickFailed(ctx, true) == IRecipeCondition.TickFailureAction.PAUSE) {
-                                pause = true;
-                            }
-                        }
-                    } else if (failedConditions != null) {
-                        for (IRecipeCondition cond : failedConditions) {
-                            if (cond.onTickFailed(ctx, false) == IRecipeCondition.TickFailureAction.PAUSE) {
-                                pause = true;
-                            }
+                if (ctx != null && energyShortage) {
+                    for (IRecipeCondition cond : recipeConditions) {
+                        if (!cond.handlesEnergyShortage()) continue;
+                        if (cond.onTickFailed(ctx, true) == IRecipeCondition.TickFailureAction.PAUSE) {
+                            pause = true;
                         }
                     }
                 }
-                this.isPaused = pause;
+                this.isPaused = pause || !energyShortage;
                 if (!pause) {
                     decreaseProgress(energyShortage);
                 }
@@ -702,7 +711,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
             return;
         }
 
-        this.progressTime = 0;
+        // Keep progressTime at 1 so update() and NBT serialization preserve the active recipe until conditions recover.
+        this.progressTime = 1;
 
         /*
         // if current progress value is greater than 2, decrement it by 2
@@ -720,10 +730,21 @@ public abstract class AbstractRecipeLogic extends MTETrait
      * Compatibility hook for legacy subclasses that override {@link #updateRecipeProgress()}
      * directly and poll {@link #canRecipeProgress} instead of delegating to {@link IRecipeCondition}.
      *
-     * @return true if the recipe can progress, otherwise false
+     * @return true if the active recipe can progress, otherwise false
      */
     protected boolean canProgressRecipe() {
-        return previousRecipe == null || cleanroomCondition.checkRecipe(previousRecipe);
+        if (progressTime <= 0 || recipeConditions.isEmpty()) {
+            return true;
+        }
+        RecipeExecutionContext ctx = createSingleExecutionContext();
+        for (IRecipeCondition condition : recipeConditions) {
+            if (!condition.checksLegacyProgress()) continue;
+            if (!condition.testTick(ctx)) {
+                condition.onTickFailed(ctx, false);
+                return false;
+            }
+        }
+        return true;
     }
 
     /**
@@ -807,16 +828,6 @@ public abstract class AbstractRecipeLogic extends MTETrait
             }
         }
         return true;
-    }
-
-    /**
-     * @param recipe the recipe to check
-     * @return if the cleanroom requirement is met
-     * @deprecated Cleanroom validation is handled via {@link CleanroomRecipeCondition}
-     */
-    @Deprecated
-    protected boolean checkCleanroomRequirement(@NotNull Recipe recipe) {
-        return cleanroomCondition.checkRecipe(recipe);
     }
 
     protected boolean checkDimensionRequirement(@NotNull Recipe recipe) {
@@ -1644,6 +1655,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
     @MustBeInvokedByOverriders
     protected void setupRecipe(@NotNull Recipe recipe) {
         this.progressTime = 1;
+        this.canRecipeProgress = true;
         this.isPaused = false;
         whyFailed = "";
         setMaxProgress(ocResult.duration());
@@ -1715,6 +1727,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         this.fluidOutputs = Collections.emptyList();
         this.itemOutputs = Collections.emptyList();
         this.hasNotEnoughEnergy = false;
+        this.canRecipeProgress = true;
         this.isPaused = false;
         this.wasActiveAndNeedsUpdate = true;
         this.parallelRecipesPerformed = 0;
@@ -2001,6 +2014,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
         isOutputsFull = false;
         invalidInputsForRecipes = false;
         hasNotEnoughEnergy = false;
+        canRecipeProgress = true;
         isPaused = false;
         this.ocResult.reset();
         this.singleRecipeExtraData = new NBTTagCompound();
@@ -2109,6 +2123,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
         this.allowOverclocking = compound.getBoolean(ALLOW_OVERCLOCKING);
         this.overclockVoltage = compound.getLong(OVERCLOCK_VOLTAGE);
         this.isActive = false;
+        this.hasNotEnoughEnergy = false;
+        this.isPaused = false;
         if (progressTime > 0) {
             this.isActive = true;
             this.maxProgressTime = compound.getInteger("MaxProgress");
@@ -2129,6 +2145,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
             this.singleRecipeExtraData = compound.hasKey("singleRecipeExtraData", Constants.NBT.TAG_COMPOUND) ?
                     compound.getCompoundTag("singleRecipeExtraData").copy() : new NBTTagCompound();
         } else {
+            this.canRecipeProgress = true;
             this.singleTotalOperations = 1;
             this.singleRecipeExtraData = new NBTTagCompound();
         }

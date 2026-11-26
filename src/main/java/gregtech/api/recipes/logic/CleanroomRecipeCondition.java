@@ -75,6 +75,11 @@ public final class CleanroomRecipeCondition implements IRecipeCondition {
     }
 
     @Override
+    public boolean checksLegacyProgress() {
+        return true;
+    }
+
+    @Override
     @NotNull
     public TickFailureAction onTickFailed(@NotNull RecipeExecutionContext context, boolean energyShortage) {
         if (!energyShortage && failureReasonSink != null) {
