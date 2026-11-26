@@ -52,6 +52,15 @@ public final class ResearchProperty extends RecipeProperty<ResearchPropertyData>
     }
 
     @Override
+    public @NotNull ResearchPropertyData copyValue(@NotNull ResearchPropertyData value) {
+        ResearchPropertyData copied = new ResearchPropertyData();
+        for (var entry : value) {
+            copied.add(new ResearchPropertyData.ResearchEntry(entry.researchId(), entry.dataItem().copy()));
+        }
+        return copied;
+    }
+
+    @Override
     @SideOnly(Side.CLIENT)
     public void drawInfo(@NotNull Minecraft minecraft, int x, int y, int color, Object value) {
         minecraft.fontRenderer.drawString(I18n.format("gregtech.recipe.research"), x, y, color);

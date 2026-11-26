@@ -54,7 +54,10 @@ public final class RecipePropertyStorageImpl implements RecipePropertyStorage {
         return new RecipePropertyStorageImpl(copied);
     }
 
-    private static <T> @NotNull Object copyPropertyValue(@NotNull RecipeProperty<T> property, @NotNull Object value) {
+    private static <T> @Nullable Object copyPropertyValue(@NotNull RecipeProperty<T> property, @Nullable Object value) {
+        if (value == null) {
+            return null;
+        }
         return property.copyValue(property.castValue(value));
     }
 
