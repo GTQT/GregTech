@@ -448,38 +448,45 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             }
             routedRecipeMap = recipeMap;
             Recipe recipe = findRecipe(recipeMap, budget.remainingBasePower, bus, busFluidTank);
-            boolean skippedNoChannelDuplicate = colorChannel == NO_CHANNEL &&
-                    budget.allAllocatedRecipes.contains(recipe);
-            if (recipe != null && !skippedNoChannelDuplicate &&
-                    checkRecipe(recipe, bus, busFluidTank) && channelUsedRecipes.add(recipe)) {
-                RecipeSlot slot = scheduler.acquireSlot();
-                if (slot == null) {
-                    budget.exhausted = true;
-                    routedRecipeMap = null;
-                    break;
-                }
-                SlotAllocation alloc = allocateSlotParallel(slot, recipe, recipeMap, bus, busFluidTank,
-                        budget.remainingBasePower, budget.remainingParallel, scheduler.getPerSlotParallelCap());
-                if (alloc != null) {
-                    alloc.colorChannel = colorChannel;
-                    budget.allocations.add(alloc);
-                    budget.allAllocatedRecipes.add(recipe);
-                    if (isPublicBus) {
-                        budget.allocatedPublicBuses.add(bus);
-                    }
-                    budget.remainingBasePower -= alloc.basePowerDemand;
-                    budget.remainingParallel -= alloc.inputParallel;
-                    foundFromBus = true;
-                    this.previousRecipe = recipe;
-                    this.previousDistinctRecipeMap = recipeMap;
-                    lastCrossRecipe = recipe;
+            boolean skippedDuplicate = false;
+            boolean blockedByCondition = false;
+            if (recipe != null) {
+                if (colorChannel == NO_CHANNEL && budget.allAllocatedRecipes.contains(recipe)) {
+                    skippedDuplicate = true;
+                } else if (!checkRecipe(recipe, bus, busFluidTank)) {
+                    blockedByCondition = true;
+                } else if (!channelUsedRecipes.add(recipe)) {
+                    skippedDuplicate = true;
                 } else {
-                    scheduler.releaseSlot(slot);
+                    RecipeSlot slot = scheduler.acquireSlot();
+                    if (slot == null) {
+                        budget.exhausted = true;
+                        routedRecipeMap = null;
+                        break;
+                    }
+                    SlotAllocation alloc = allocateSlotParallel(slot, recipe, recipeMap, bus, busFluidTank,
+                            budget.remainingBasePower, budget.remainingParallel, scheduler.getPerSlotParallelCap());
+                    if (alloc != null) {
+                        alloc.colorChannel = colorChannel;
+                        budget.allocations.add(alloc);
+                        budget.allAllocatedRecipes.add(recipe);
+                        if (isPublicBus) {
+                            budget.allocatedPublicBuses.add(bus);
+                        }
+                        budget.remainingBasePower -= alloc.basePowerDemand;
+                        budget.remainingParallel -= alloc.inputParallel;
+                        foundFromBus = true;
+                        this.previousRecipe = recipe;
+                        this.previousDistinctRecipeMap = recipeMap;
+                        lastCrossRecipe = recipe;
+                    } else {
+                        scheduler.releaseSlot(slot);
+                    }
                 }
             }
             routedRecipeMap = null;
 
-            if (!foundFromBus && skipInvalidated) {
+            if (!foundFromBus && skipInvalidated && !blockedByCondition && !skippedDuplicate) {
                 if (isPublicBus) {
                     budget.failedPublicBuses.add(bus);
                 } else {
@@ -1684,6 +1691,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         return GTQTUtility.mergeTankHandlers(inputFluids, allowMerge);
     }
 
+    private transient boolean matchedChannelRecipe;
+
     /**
      * 按颜色掩码逐通道查找,每通道只使用同色(含未染色)仓的输入,第一个成功启动的通道即返回。
      */
@@ -1696,15 +1705,25 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         long maxVoltage = getMaxVoltage();
         int[] channelOrder = getChannelOrder(mask);
+        boolean matchedAnyRecipe = false;
+        this.whyFailed = "";
         for (int i = 0; i < channelOrder.length; i++) {
             int color = channelOrder[i];
             List<IItemHandlerModifiable> channelBuses = getInputBusesForColor(color);
             IItemHandlerModifiable channelInventory = new ItemHandlerList(channelBuses);
             IMultipleTankHandler channelFluids = getInputTankForColor(color);
+            this.matchedChannelRecipe = false;
             if (tryFindRecipeForChannel(maxVoltage, channelInventory, channelFluids, color)) return;
+            if (this.matchedChannelRecipe) {
+                matchedAnyRecipe = true;
+            }
         }
-        this.invalidInputsForRecipes = true;
-        whyFailed = getLockedRecipe() != null ? "无法运行锁定的配方" : "NoneRecipes";
+        if (!matchedAnyRecipe) {
+            this.invalidInputsForRecipes = true;
+            this.whyFailed = getLockedRecipe() != null ? "无法运行锁定的配方" : "NoneRecipes";
+        } else if (this.whyFailed.isEmpty()) {
+            this.whyFailed = "配方的特殊条件不满足（例如温度，算力等额外条件）";
+        }
     }
 
     /**
@@ -1724,6 +1743,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         if (currentRecipe != null) {
+            this.matchedChannelRecipe = true;
             this.previousRecipe = currentRecipe;
             if (checkRecipe(currentRecipe, channelInventory, channelFluids) &&
                     prepareRecipe(currentRecipe, channelInventory, channelFluids)) {
