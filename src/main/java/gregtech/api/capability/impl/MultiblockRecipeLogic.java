@@ -338,6 +338,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         final List<SlotAllocation> allocations = new ArrayList<>();
         final Set<Recipe> allAllocatedRecipes = new HashSet<>();
         final Set<IItemHandlerModifiable> allocatedPublicBuses = new HashSet<>();
+        final Set<IItemHandlerModifiable> conditionBlockedPublicBuses = new HashSet<>();
         final Set<IItemHandlerModifiable> failedPublicBuses = new HashSet<>();
         final Set<Recipe> allocatedPublicRecipes = new HashSet<>();
 
@@ -406,7 +407,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         if (skipInvalidated && !budget.exhausted) {
             for (IItemHandlerModifiable bus : budget.failedPublicBuses) {
-                if (!budget.allocatedPublicBuses.contains(bus) && !invalidatedInputList.contains(bus)) {
+                if (!budget.allocatedPublicBuses.contains(bus) &&
+                        !budget.conditionBlockedPublicBuses.contains(bus) &&
+                        !invalidatedInputList.contains(bus)) {
                     logBoundInputNoRecipe(bus, getRecipeMapForInput(bus), "NO_RECIPE_MATCHED_BUFFER");
                     invalidatedInputList.add(bus);
                 }
@@ -486,8 +489,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             }
             routedRecipeMap = null;
 
-            if (!foundFromBus && skipInvalidated && !blockedByCondition && !skippedDuplicate) {
-                if (isPublicBus) {
+            if (!foundFromBus && skipInvalidated) {
+                if (blockedByCondition || skippedDuplicate) {
+                    if (isPublicBus) {
+                        budget.conditionBlockedPublicBuses.add(bus);
+                    }
+                } else if (isPublicBus) {
                     budget.failedPublicBuses.add(bus);
                 } else {
                     if (recipe == null) {
@@ -1777,6 +1784,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         long maxVoltage = getMaxVoltage();
         int[] channelOrder = getChannelOrder(mask);
         Set<IItemHandlerModifiable> failedPublicBuses = null;
+        Set<IItemHandlerModifiable> matchedPublicBuses = null;
         for (int i = 0; i < channelOrder.length; i++) {
             int color = channelOrder[i];
             List<IItemHandlerModifiable> channelBuses = getInputBusesForColor(color);
@@ -1793,6 +1801,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 IMultipleTankHandler busFluids = getBusFluidsInChannel(bus, channelFluids);
                 Recipe currentRecipe = findRecipe(recipeMap, maxVoltage, bus, busFluids);
                 if (currentRecipe != null) {
+                    if (colorIndexOf(bus) < 0) {
+                        if (matchedPublicBuses == null) {
+                            matchedPublicBuses = new HashSet<>();
+                        }
+                        matchedPublicBuses.add(bus);
+                    }
                     routedRecipeMap = recipeMap;
                     currentDistinctInputBus = bus;
                     this.previousRecipe = currentRecipe;
@@ -1820,7 +1834,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
         if (failedPublicBuses != null) {
             for (IItemHandlerModifiable bus : failedPublicBuses) {
-                if (!invalidatedInputList.contains(bus)) {
+                if ((matchedPublicBuses == null || !matchedPublicBuses.contains(bus)) &&
+                        !invalidatedInputList.contains(bus)) {
                     logBoundInputNoRecipe(bus, getRecipeMapForInput(bus), "NO_RECIPE_MATCHED_BUFFER");
                     invalidatedInputList.add(bus);
                 }

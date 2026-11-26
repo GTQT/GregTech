@@ -60,6 +60,15 @@ public abstract class RecipeProperty<T> {
     }
 
     /**
+     * Returns an independent copy of {@code value} when cloning a {@link RecipePropertyStorage}.
+     * Properties storing mutable objects (lists, stacks, compounds) should override this hook so
+     * derived builders or parallel recipes cannot mutate previously built recipes.
+     */
+    public @NotNull T copyValue(@NotNull T value) {
+        return value;
+    }
+
+    /**
      * Controls if the property should display any information in JEI
      *
      * @return true to hide information from JEI
