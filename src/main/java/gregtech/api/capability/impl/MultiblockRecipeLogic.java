@@ -298,7 +298,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         this.hasNotEnoughEnergy = scheduler.isHasNotEnoughEnergy();
         boolean wasPaused = this.isPaused;
-        if (wasPaused && (scheduler.hasWorkingSlots() || completedParallel > 0)) {
+        if (wasPaused && (scheduler.hasWorkingSlots() || completedParallel > 0 || this.hasNotEnoughEnergy)) {
             this.whyFailed = "";
         }
 

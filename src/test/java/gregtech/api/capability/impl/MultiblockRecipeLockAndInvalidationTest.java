@@ -675,6 +675,76 @@ class MultiblockRecipeLockAndInvalidationTest {
     }
 
     @Test
+    void parallelSchedulerClearsStaleWhyFailedWhenConditionRecoversDuringEnergyShortage() {
+        TestController ctrl = new TestController(TEST_MAP);
+        TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setParallelLimit(4);
+
+        java.util.concurrent.atomic.AtomicBoolean allow = new java.util.concurrent.atomic.AtomicBoolean(true);
+        logic.addRecipeCondition(new gregtech.api.recipes.logic.IRecipeCondition() {
+
+            @Override
+            public @NotNull String getConditionId() {
+                return "test_pause_then_energy_shortage";
+            }
+
+            @Override
+            public boolean testTick(@NotNull gregtech.api.recipes.logic.RecipeExecutionContext context) {
+                return allow.get();
+            }
+
+            @Override
+            public boolean handlesEnergyShortage() {
+                return false;
+            }
+
+            @Override
+            public @NotNull TickFailureAction onTickFailed(
+                    @NotNull gregtech.api.recipes.logic.RecipeExecutionContext context, boolean energyShortage) {
+                if (!energyShortage) {
+                    logic.setWhyFailed("missing_special_fluid");
+                }
+                return TickFailureAction.PAUSE;
+            }
+        });
+
+        MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_pause_energy_in"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_pause_energy_out"), 1, true);
+        ctrl.addPart(inBus);
+        ctrl.addPart(outBus);
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+
+        // Start recipe (progress=1)
+        logic.updateWorkable();
+        assertTrue(logic.isActive());
+
+        // Tick 1: condition fails -> PAUSE records whyFailed
+        allow.set(false);
+        logic.updateWorkable();
+        assertTrue(logic.isPaused());
+        assertEquals("missing_special_fluid", logic.getWhyFailed());
+
+        // Tick 2: condition recovers while energy is empty -> clears stale condition whyFailed immediately
+        allow.set(true);
+        TestEnergyContainer energy = (TestEnergyContainer) ctrl.getEnergyContainer();
+        energy.changeEnergy(-energy.getEnergyStored());
+        logic.updateWorkable();
+        assertTrue(logic.isHasNotEnoughEnergy());
+        assertFalse(logic.isPaused());
+        assertEquals("", logic.getWhyFailed());
+
+        // Tick 3: power restored -> advances cleanly with empty whyFailed
+        energy.changeEnergy(1000L);
+        logic.updateWorkable();
+        assertFalse(logic.isHasNotEnoughEnergy());
+        assertEquals(2, logic.getCrossRecipeScheduler().getActiveSlots().get(0).getProgressTime());
+        assertEquals("", logic.getWhyFailed());
+    }
+
+    @Test
     void parallelSchedulerPreservesProgressUnderIntermittentPowerWhenResetDisabled() {
         boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
         ConfigHolder.machines.resetRecipeOnPowerLoss = false;

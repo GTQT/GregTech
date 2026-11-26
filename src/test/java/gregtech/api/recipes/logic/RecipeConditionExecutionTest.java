@@ -940,6 +940,70 @@ class RecipeConditionExecutionTest {
     }
 
     @Test
+    void singleRecipe_clearsStaleWhyFailedWhenConditionRecoversDuringEnergyShortage() {
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = false;
+        try {
+            TestMetaTileEntity mte = new TestMetaTileEntity(4);
+            mte.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            TestEnergyContainer energy = new TestEnergyContainer(100L, 1000L, 128L);
+            TestSingleRecipeLogic logic = new TestSingleRecipeLogic(mte, energy);
+            AtomicBoolean fluidAvailable = new AtomicBoolean(true);
+            logic.addRecipeCondition(new IRecipeCondition() {
+
+                @Override
+                public @NotNull String getConditionId() {
+                    return "pause_then_power_loss";
+                }
+
+                @Override
+                public boolean testTick(@NotNull RecipeExecutionContext context) {
+                    return fluidAvailable.get();
+                }
+
+                @Override
+                public boolean handlesEnergyShortage() {
+                    return false;
+                }
+
+                @Override
+                public @NotNull TickFailureAction onTickFailed(@NotNull RecipeExecutionContext context,
+                                                               boolean energyShortage) {
+                    if (!energyShortage) {
+                        logic.setWhyFailed("missing_special_fluid");
+                    }
+                    return TickFailureAction.PAUSE;
+                }
+            });
+
+            Recipe recipe = createTestRecipe(new ItemStack(Items.IRON_INGOT, 1), new ItemStack(Items.GOLD_INGOT, 1), 3, 20L);
+            assertTrue(logic.prepareRecipe(recipe));
+
+            // Tick 1: condition fails -> PAUSE records whyFailed
+            fluidAvailable.set(false);
+            logic.tickProgress();
+            assertTrue(logic.isPaused());
+            assertEquals("missing_special_fluid", logic.getWhyFailed());
+
+            // Tick 2: condition recovers but energy runs out -> clears stale condition whyFailed immediately
+            fluidAvailable.set(true);
+            energy.changeEnergy(-energy.getEnergyStored());
+            logic.tickProgress();
+            assertFalse(logic.isPaused());
+            assertTrue(logic.isHasNotEnoughEnergy());
+            assertEquals("", logic.getWhyFailed());
+
+            // Tick 3: power restored -> advances cleanly with empty whyFailed
+            energy.changeEnergy(100L);
+            logic.tickProgress();
+            assertEquals(2, logic.getProgress());
+            assertEquals("", logic.getWhyFailed());
+        } finally {
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
+    }
+
+    @Test
     void scheduler_energyShortageMarksPassiveAndUnconditionedSlotsPausedAndZerosDisplayPower() {
         ItemStackHandler outItems = new ItemStackHandler(4);
         FluidTankList outFluids = new FluidTankList(false, new FluidTank(10000));

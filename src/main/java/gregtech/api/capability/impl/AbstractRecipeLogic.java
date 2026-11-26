@@ -640,8 +640,8 @@ public abstract class AbstractRecipeLogic extends MTETrait
         // Phase 2: Energy draw & non-condition progress check
         boolean energyOk = drawEnergy(recipeEUt, true);
         if (canRecipeProgress && energyOk) {
-            if (this.isPaused) {
-                this.isPaused = false;
+            this.isPaused = false;
+            if (!this.whyFailed.isEmpty()) {
                 this.whyFailed = "";
             }
             drawEnergy(recipeEUt, false);
@@ -663,6 +663,9 @@ public abstract class AbstractRecipeLogic extends MTETrait
                 // only set hasNotEnoughEnergy if this recipe is consuming recipe
                 // generators always have enough energy
                 this.hasNotEnoughEnergy = true;
+                if (this.isPaused) {
+                    this.whyFailed = "";
+                }
             }
             if (energyShortage || (!canRecipeProgress && recipeEUt > 0)) {
                 boolean pause = false;
