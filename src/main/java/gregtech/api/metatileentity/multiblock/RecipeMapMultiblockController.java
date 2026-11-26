@@ -369,12 +369,13 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
                 new TextComponentTranslation(TextFormattingUtil.formatNumbers(energyContainer.getEnergyCapacity()))
                         .setStyle(new Style().setColor(TextFormatting.YELLOW))));
 
-        if (recipeMapWorkable.getRecipeEUt() > 0) {
+        long infoEUt = recipeMapWorkable.getInfoProviderEUt();
+        if (infoEUt > 0) {
             list.add(new TextComponentTranslation("behavior.tricorder.workable_consumption",
-                    new TextComponentTranslation(TextFormattingUtil.formatNumbers(recipeMapWorkable.getRecipeEUt()))
+                    new TextComponentTranslation(TextFormattingUtil.formatNumbers(infoEUt))
                             .setStyle(new Style().setColor(TextFormatting.RED)),
                     new TextComponentTranslation(
-                            TextFormattingUtil.formatNumbers(recipeMapWorkable.getRecipeEUt() == 0 ? 0 : 1))
+                            TextFormattingUtil.formatNumbers(1))
                             .setStyle(new Style().setColor(TextFormatting.RED))));
         }
 

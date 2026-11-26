@@ -269,10 +269,12 @@ public class CrossRecipeParallelScheduler {
      *       progressing while sibling slots continue normally; otherwise progress is decreased/reset per
      *       {@link RecipeSlot#decreaseProgress()} (calling {@link IRecipeCondition#onInvalidate} and removing
      *       the slot on reset).</li>
-     *   <li>Draws aggregate EU/t for all runnable slots. If energy draw fails, sets {@code hasNotEnoughEnergy = true};
-     *       when {@code conditions} is empty, runnable slots pause (preserving legacy scheduler behavior);
-     *       when {@code conditions} is non-empty, {@link IRecipeCondition#onTickFailed(RecipeExecutionContext, boolean)}
-     *       with {@code energyShortage = true} is consulted per runnable slot (pausing if any returns {@code PAUSE},
+     *   <li>Draws aggregate EU/t for all runnable slots. If energy draw fails, sets {@code hasNotEnoughEnergy = true}
+     *       and marks every runnable slot as paused (so active power readouts drop to {@code 0 EU/t});
+     *       when no condition has {@link IRecipeCondition#handlesEnergyShortage()} returning {@code true},
+     *       runnable slots freeze without losing progress (preserving legacy scheduler behavior);
+     *       otherwise {@link IRecipeCondition#onTickFailed(RecipeExecutionContext, boolean)} with
+     *       {@code energyShortage = true} is consulted per runnable slot (pausing if any returns {@code PAUSE},
      *       otherwise decreasing/resetting progress).</li>
      *   <li>Commits {@link IRecipeCondition#consumeTick} and {@link RecipeSlot#tick()} for each runnable slot,
      *       exporting results and firing {@link IRecipeCondition#onRecipeComplete} upon commit.</li>
@@ -341,6 +343,7 @@ public class CrossRecipeParallelScheduler {
                             pause = true;
                         }
                     }
+                    slot.setPaused(true);
                     if (!pause && slot.decreaseProgress()) {
                         for (IRecipeCondition cond : conditions) {
                             cond.onInvalidate(ctx);
@@ -366,23 +369,29 @@ public class CrossRecipeParallelScheduler {
                 hasNotEnoughEnergy = false;
             } else {
                 hasNotEnoughEnergy = true;
-                if (hasConditions) {
-                    for (int i = 0; i < runnableSlots.size(); i++) {
-                        RecipeSlot slot = runnableSlots.get(i);
-                        RecipeExecutionContext ctx = runnableContexts.get(i);
-                        boolean pause = false;
+                for (int i = 0; i < runnableSlots.size(); i++) {
+                    RecipeSlot slot = runnableSlots.get(i);
+                    slot.setPaused(true);
+                    if (!hasConditions) continue;
+                    RecipeExecutionContext ctx = runnableContexts.get(i);
+                    boolean hasEnergyHandler = false;
+                    boolean pause = false;
+                    for (IRecipeCondition cond : conditions) {
+                        if (!cond.handlesEnergyShortage()) continue;
+                        hasEnergyHandler = true;
+                        if (cond.onTickFailed(ctx, true) == IRecipeCondition.TickFailureAction.PAUSE) {
+                            pause = true;
+                        }
+                    }
+                    if (!hasEnergyHandler) {
+                        continue;
+                    }
+                    if (!pause && slot.decreaseProgress()) {
                         for (IRecipeCondition cond : conditions) {
-                            if (cond.onTickFailed(ctx, true) == IRecipeCondition.TickFailureAction.PAUSE) {
-                                pause = true;
-                            }
+                            cond.onInvalidate(ctx);
                         }
-                        if (!pause && slot.decreaseProgress()) {
-                            for (IRecipeCondition cond : conditions) {
-                                cond.onInvalidate(ctx);
-                            }
-                            activeSlots.remove(slot);
-                            returnSlotToPool(slot);
-                        }
+                        activeSlots.remove(slot);
+                        returnSlotToPool(slot);
                     }
                 }
                 return completedParallel;
@@ -394,6 +403,7 @@ public class CrossRecipeParallelScheduler {
         // Phase 3: Commit condition tick consumption and advance running slots
         for (int i = 0; i < runnableSlots.size(); i++) {
             RecipeSlot slot = runnableSlots.get(i);
+            slot.setPaused(false);
             RecipeExecutionContext ctx = hasConditions ? runnableContexts.get(i) : null;
             if (ctx != null) {
                 for (IRecipeCondition cond : conditions) {
@@ -422,9 +432,22 @@ public class CrossRecipeParallelScheduler {
     // ==================== Query Methods ====================
 
     /**
-     * @return the total EU/t being consumed by all active slots
+     * @return the total EU/t actively being consumed by unpaused running slots
      */
     public long getTotalEnergyConsumption() {
+        long total = 0;
+        for (RecipeSlot slot : activeSlots) {
+            if (slot.isRunning() && !slot.isPaused()) {
+                total += slot.getRecipeEUt();
+            }
+        }
+        return total;
+    }
+
+    /**
+     * @return the total scheduled EU/t across all running slots (including temporarily paused slots)
+     */
+    public long getTotalScheduledEUt() {
         long total = 0;
         for (RecipeSlot slot : activeSlots) {
             if (slot.isRunning()) {
@@ -432,6 +455,18 @@ public class CrossRecipeParallelScheduler {
             }
         }
         return total;
+    }
+
+    /**
+     * @return true if at least one running slot is actively progressing (not paused)
+     */
+    public boolean hasWorkingSlots() {
+        for (RecipeSlot slot : activeSlots) {
+            if (slot.isRunning() && !slot.isPaused()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -628,6 +663,7 @@ public class CrossRecipeParallelScheduler {
 
             String name = slot.getRecipeDisplayName();
             int maxProg = slot.getMaxProgressTime();
+            long effectiveEUt = slot.isPaused() ? 0L : slot.getRecipeEUt();
             boolean merged = false;
 
             for (int i = 0; i < result.size(); i++) {
@@ -640,7 +676,7 @@ public class CrossRecipeParallelScheduler {
                             existing.totalOperations + slot.getTotalOperations(),
                             Math.max(existing.progress, slot.getProgressTime()),
                             existing.maxProgress,
-                            existing.totalEUt + slot.getRecipeEUt()));
+                            existing.totalEUt + effectiveEUt));
                     merged = true;
                     break;
                 }
@@ -654,7 +690,7 @@ public class CrossRecipeParallelScheduler {
                         slot.getTotalOperations(),
                         slot.getProgressTime(),
                         maxProg,
-                        slot.getRecipeEUt()));
+                        effectiveEUt));
             }
         }
 

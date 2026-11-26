@@ -87,6 +87,24 @@ public interface IRecipeCondition {
     default void consumeTick(@NotNull RecipeExecutionContext context) {}
 
     /**
+     * Whether this condition participates in {@link #onTickFailed(RecipeExecutionContext, boolean)}
+     * when {@code energyShortage == true}. Passive property checks return {@code false} so ordinary
+     * recipes keep baseline scheduler power-loss semantics.
+     */
+    default boolean handlesEnergyShortage() {
+        return true;
+    }
+
+    /**
+     * Whether this condition should also be checked by {@link gregtech.api.capability.impl.AbstractRecipeLogic#canProgressRecipe()}
+     * for legacy subclasses that override {@code updateRecipeProgress()} directly instead of running
+     * the standard {@link IRecipeCondition} tick loop. Must be side-effect free during {@link #testTick}.
+     */
+    default boolean checksLegacyProgress() {
+        return false;
+    }
+
+    /**
      * Invoked when a tick fails either because energy draw failed ({@code energyShortage == true})
      * or because this condition's {@link #testTick(RecipeExecutionContext)} returned {@code false}.
      *

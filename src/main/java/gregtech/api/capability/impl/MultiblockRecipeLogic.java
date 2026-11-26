@@ -297,6 +297,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         this.hasNotEnoughEnergy = scheduler.isHasNotEnoughEnergy();
+        boolean wasPaused = this.isPaused;
+        if (wasPaused && (scheduler.hasWorkingSlots() || completedParallel > 0 || this.hasNotEnoughEnergy)) {
+            this.whyFailed = "";
+        }
 
         // If scheduler can accept more recipes (has remaining parallel budget), try to fill
         if (usesParallelScheduler() && scheduler.canAcceptMoreRecipes()) {
@@ -310,6 +314,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // Update active state based on whether any slots are still running
         if (!scheduler.hasActiveSlots()) {
             crossRecipeSchedulerActive = false;
+            this.isPaused = false;
+            this.canRecipeProgress = true;
             this.progressTime = 0;
             setMaxProgress(0);
             this.recipeEUt = 0;
@@ -317,6 +323,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             this.wasActiveAndNeedsUpdate = true;
         } else {
             crossRecipeSchedulerActive = true;
+            boolean workingNow = scheduler.hasWorkingSlots();
+            this.isPaused = !this.hasNotEnoughEnergy && !workingNow;
             // Keep progressTime > 0 so the main loop continues calling updateRecipeProgress()
             this.progressTime = 1;
         }
@@ -983,7 +991,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return true;
         }
 
-        long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getTotalEnergyConsumption();
+        long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getTotalScheduledEUt();
         long totalEUt = saturatingAdd(runningEUt, candidateEUt);
         if (drawEnergy(totalEUt, true)) {
             this.hasNotEnoughEnergy = false;
@@ -1171,6 +1179,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected boolean canProgressRecipe() {
+        if (crossRecipeSchedulerActive) {
+            return !((IMultiblockController) metaTileEntity).isStructureObstructed();
+        }
         return super.canProgressRecipe() && !((IMultiblockController) metaTileEntity).isStructureObstructed();
     }
 
@@ -1814,9 +1825,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected void activateSchedulerIfFilled(@NotNull CrossRecipeParallelScheduler scheduler, int filled) {
         if (filled > 0) {
             this.progressTime = 1;
+            this.canRecipeProgress = true;
             setMaxProgress(Integer.MAX_VALUE);
             this.recipeEUt = scheduler.getTotalEnergyConsumption();
             this.parallelRecipesPerformed = scheduler.getTotalParallelCount();
+            this.isPaused = !scheduler.hasWorkingSlots();
+            this.whyFailed = "";
             crossRecipeSchedulerActive = true;
             if (this.wasActiveAndNeedsUpdate) {
                 this.wasActiveAndNeedsUpdate = false;
@@ -2153,7 +2167,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             holder.checkRecipe(recipe, true);
             IItemHandlerModifiable checkInv = activeCheckInventory != null ? activeCheckInventory : getInputInventory();
             IMultipleTankHandler checkFluids = activeCheckFluids != null ? activeCheckFluids : getInputTank();
-            return checkCleanroomRequirement(recipe) && checkDimensionRequirement(recipe) &&
+            return checkDimensionRequirement(recipe) &&
                     canStartConditions(recipe, checkInv, checkFluids);
         }
         return false;

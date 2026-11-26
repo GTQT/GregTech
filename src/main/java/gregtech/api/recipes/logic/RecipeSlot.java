@@ -44,6 +44,7 @@ public class RecipeSlot {
     private int maxProgressTime;
     private long recipeEUt;
     private long powerReservation;
+    private boolean paused;
 
     // --- Outputs to produce on completion ---
     @NotNull
@@ -125,6 +126,7 @@ public class RecipeSlot {
         this.maxProgressTime = duration;
         this.recipeEUt = eut;
         this.powerReservation = Math.max(0L, powerReservation);
+        this.paused = false;
         this.itemOutputs = new ArrayList<>(itemOutputs);
         this.fluidOutputs = new ArrayList<>(fluidOutputs);
         this.parallelCount = parallelCount;
@@ -176,6 +178,7 @@ public class RecipeSlot {
         this.maxProgressTime = 0;
         this.recipeEUt = 0;
         this.powerReservation = 0;
+        this.paused = false;
         this.itemOutputs = Collections.emptyList();
         this.fluidOutputs = Collections.emptyList();
         this.sourceRecipe = null;
@@ -236,6 +239,14 @@ public class RecipeSlot {
     @Nullable
     public Recipe getSourceRecipe() {
         return sourceRecipe;
+    }
+
+    public boolean isPaused() {
+        return paused;
+    }
+
+    public void setPaused(boolean paused) {
+        this.paused = paused;
     }
 
     @NotNull
@@ -309,6 +320,7 @@ public class RecipeSlot {
         this.state = State.values()[tag.getInteger("state")];
         this.parallelCount = tag.getInteger("parallelCount");
         this.totalOperations = tag.getInteger("totalOperations");
+        this.paused = false;
 
         if (state == State.RUNNING || state == State.COMPLETED) {
             this.progressTime = tag.getInteger("progressTime");
