@@ -24,6 +24,7 @@ import gregtech.api.recipes.ingredients.GTRecipeFluidInput;
 import gregtech.api.recipes.ingredients.GTRecipeInput;
 import gregtech.api.recipes.ingredients.GTRecipeItemInput;
 import gregtech.api.recipes.logic.CrossRecipeParallelScheduler;
+import gregtech.api.recipes.logic.IRecipeCondition;
 import gregtech.api.recipes.properties.RecipePropertyStorageImpl;
 import gregtech.api.unification.material.Material;
 import gregtech.api.unification.material.Materials;
@@ -616,6 +617,164 @@ class MultiblockColorChannelTest {
         IItemHandlerModifiable failRegisteredBus = failCtrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0);
         assertTrue(failLogic.isBusInvalidated(failRegisteredBus),
                 "Public bus should be invalidated once all color channels fail");
+    }
+
+    @Test
+    void paintedChannelConditionRecoveryAutoStartsWithoutInputTouch() {
+        boolean[] conditionReady = { false };
+        // 1. Single-slot painted channel: items arrive before condition is ready
+        TestController singleCtrl = new TestController(TEST_RECIPE_MAP);
+        TestMultiblockRecipeLogic singleLogic = singleCtrl.getTestLogic();
+        singleLogic.setAllowOverclocking(false);
+        singleLogic.addRecipeCondition(new IRecipeCondition() {
+
+            @Override
+            public String getConditionId() {
+                return "test:gate";
+            }
+
+            @Override
+            public boolean canStart(Recipe recipe, IItemHandlerModifiable inv, IMultipleTankHandler fluids) {
+                if (!conditionReady[0]) {
+                    singleLogic.setWhyFailed("等待外部条件就绪");
+                    return false;
+                }
+                return true;
+            }
+        });
+
+        MetaTileEntityItemBus redBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_cond_red_single"), 1, false);
+        redBus.setPaintingColor(EnumDyeColor.RED, null);
+        redBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+        singleCtrl.addPart(redBus);
+
+        singleLogic.updateWorkable();
+        assertFalse(singleLogic.isActive());
+        assertFalse(singleLogic.isInvalidInputsForRecipes(), "Condition rejection must not mark valid inputs invalid");
+        assertEquals("等待外部条件就绪", singleLogic.getWhyFailed());
+        assertEquals(1, countItem(redBus.getImportItems(), Items.IRON_INGOT));
+
+        conditionReady[0] = true;
+        singleLogic.updateWorkable();
+        assertTrue(singleLogic.isActive(), "Painted channel must auto-start once condition becomes satisfied");
+        assertEquals(0, countItem(redBus.getImportItems(), Items.IRON_INGOT));
+
+        // 2. Distinct parallel scheduler painted channel: bus must not be added to invalidatedInputList on condition miss
+        conditionReady[0] = false;
+        TestController schedCtrl = new TestController(TEST_RECIPE_MAP);
+        schedCtrl.setDistinct(true);
+        TestMultiblockRecipeLogic schedLogic = schedCtrl.getTestLogic();
+        schedLogic.setAllowOverclocking(false);
+        schedLogic.setParallelLimit(4);
+        schedLogic.addRecipeCondition(new IRecipeCondition() {
+
+            @Override
+            public String getConditionId() {
+                return "test:sched_gate";
+            }
+
+            @Override
+            public boolean canStart(Recipe recipe, IItemHandlerModifiable inv, IMultipleTankHandler fluids) {
+                return conditionReady[0];
+            }
+        });
+
+        MetaTileEntityItemBus schedRedBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_cond_red_sched"), 1, false);
+        schedRedBus.setPaintingColor(EnumDyeColor.RED, null);
+        schedRedBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 2));
+        schedCtrl.addPart(schedRedBus);
+
+        schedLogic.updateWorkable();
+        IItemHandlerModifiable registeredBus = schedCtrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0);
+        assertFalse(schedLogic.isBusInvalidated(registeredBus));
+
+        conditionReady[0] = true;
+        schedLogic.updateWorkable();
+        assertNotNull(schedLogic.getCrossRecipeScheduler());
+        assertEquals(1, schedLogic.getCrossRecipeScheduler().getActiveSlotCount());
+        assertEquals(0, countItem(schedRedBus.getImportItems(), Items.IRON_INGOT));
+    }
+
+    @Test
+    void notifyConditionInputChangedClearsInvalidationWithoutResettingColorRotation() {
+        TestController controller = new TestController(TEST_RECIPE_MAP);
+        controller.setDistinct(true);
+        TestMultiblockRecipeLogic logic = controller.getTestLogic();
+
+        MetaTileEntityItemBus whiteBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_notify_white"), 1, false);
+        whiteBus.setPaintingColor(EnumDyeColor.WHITE, null);
+        whiteBus.getImportItems().setStackInSlot(0, new ItemStack(Items.STICK, 1));
+        controller.addPart(whiteBus);
+
+        logic.setLastColorChannel(EnumDyeColor.WHITE.getMetadata());
+        logic.setInvalidInputsForRecipes(true);
+        logic.trySearchNewRecipePublic();
+        IItemHandlerModifiable registeredBus = controller.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0);
+        assertTrue(logic.isBusInvalidated(registeredBus));
+
+        logic.notifyConditionInputChanged();
+        assertFalse(logic.isInvalidInputsForRecipes());
+        assertFalse(logic.isBusInvalidated(registeredBus));
+        assertEquals(EnumDyeColor.WHITE.getMetadata(), logic.getLastColorChannel(),
+                "notifyConditionInputChanged must preserve lastColorChannel rotation");
+    }
+
+    @Test
+    void distinctPublicBusPairedWithMultiColorFluidsRetriesWhenConditionRecovers() {
+        for (int parallelLimit : new int[] { 1, 4 }) {
+            boolean[] conditionReady = { false };
+            TestController ctrl = new TestController(TEST_RECIPE_MAP);
+            ctrl.setDistinct(true);
+            TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setParallelLimit(parallelLimit);
+            logic.addRecipeCondition(new IRecipeCondition() {
+
+                @Override
+                public String getConditionId() {
+                    return "test:pub_channel_gate";
+                }
+
+                @Override
+                public boolean canStart(Recipe recipe, IItemHandlerModifiable inv, IMultipleTankHandler fluids) {
+                    return conditionReady[0];
+                }
+            });
+
+            MetaTileEntityItemBus publicBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_pub_retry_bus_" + parallelLimit), 1, false);
+            publicBus.getImportItems().setStackInSlot(0, new ItemStack(Items.STICK, 2));
+            MetaTileEntityFluidHatch whiteFluid = new MetaTileEntityFluidHatch(
+                    new ResourceLocation("gregtech", "test_pub_retry_white_" + parallelLimit), 1, false);
+            whiteFluid.setPaintingColor(EnumDyeColor.WHITE, null);
+            MetaTileEntityFluidHatch redFluid = new MetaTileEntityFluidHatch(
+                    new ResourceLocation("gregtech", "test_pub_retry_red_" + parallelLimit), 1, false);
+            redFluid.setPaintingColor(EnumDyeColor.RED, null);
+            redFluid.getImportFluids().getTankAt(0).fill(new FluidStack(FluidRegistry.WATER, 500), true);
+
+            ctrl.addPart(publicBus);
+            ctrl.addPart(whiteFluid);
+            ctrl.addPart(redFluid);
+            ctrl.getNotifiedItemInputList().clear();
+            ctrl.getNotifiedFluidInputList().clear();
+
+            // WHITE has no fluid, RED matches stick+water but condition is false -> publicBus must NOT be invalidated
+            logic.updateWorkable();
+            IItemHandlerModifiable registeredBus = ctrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0);
+            assertFalse(logic.isBusInvalidated(registeredBus));
+
+            // Flip condition without touching any hatch -> starts automatically and consumes expected sticks & water
+            conditionReady[0] = true;
+            logic.updateWorkable();
+            assertTrue(logic.isActive());
+            int expectedRemainingSticks = parallelLimit == 1 ? 1 : 0;
+            int expectedRemainingWater = parallelLimit == 1 ? 400 : 300;
+            assertEquals(expectedRemainingSticks, countItem(publicBus.getImportItems(), Items.STICK));
+            assertEquals(expectedRemainingWater, redFluid.getImportFluids().getTankAt(0).getFluidAmount());
+        }
     }
 
     private static List<Object> abilityOf(IMultiblockAbilityPart<?> part, MultiblockAbility<?> ability) {

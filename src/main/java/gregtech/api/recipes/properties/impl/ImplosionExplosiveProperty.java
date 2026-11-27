@@ -43,6 +43,11 @@ public final class ImplosionExplosiveProperty extends RecipeProperty<ItemStack> 
     }
 
     @Override
+    public @NotNull ItemStack copyValue(@NotNull ItemStack value) {
+        return value.copy();
+    }
+
+    @Override
     @SideOnly(Side.CLIENT)
     public void drawInfo(Minecraft minecraft, int x, int y, int color, Object value) {
         minecraft.fontRenderer.drawString(I18n.format("gregtech.recipe.explosive",

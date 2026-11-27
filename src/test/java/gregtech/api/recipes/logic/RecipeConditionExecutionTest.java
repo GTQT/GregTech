@@ -1051,6 +1051,50 @@ class RecipeConditionExecutionTest {
         }
     }
 
+    @Test
+    void singleRecipe_advanceRecipeProgressHookSupportsVariableStepCompletion() {
+        TestMetaTileEntity mte = new TestMetaTileEntity(4);
+        TestEnergyContainer energy = new TestEnergyContainer(10_000L, 10_000L, 128L);
+        int[] fluxConsumed = { 0 };
+        TestSingleRecipeLogic logic = new TestSingleRecipeLogic(mte, energy) {
+
+            @Override
+            protected void advanceRecipeProgress() {
+                if (fluxConsumed[0] >= maxProgressTime) {
+                    completeRecipe();
+                } else {
+                    this.progressTime = Math.max(1, fluxConsumed[0]);
+                }
+            }
+        };
+        logic.addRecipeCondition(new IRecipeCondition() {
+
+            @Override
+            public @NotNull String getConditionId() {
+                return "test:flux";
+            }
+
+            @Override
+            public void consumeTick(@NotNull RecipeExecutionContext context) {
+                fluxConsumed[0] += 50;
+            }
+        });
+
+        Recipe recipe = createTestRecipe(new ItemStack(Items.IRON_INGOT, 1), new ItemStack(Items.GOLD_INGOT, 1),
+                100, 16L);
+        mte.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+        assertTrue(logic.prepareRecipe(recipe));
+        assertEquals(100, logic.getMaxProgress());
+
+        logic.tickProgress();
+        assertTrue(logic.isActive());
+        assertEquals(50, logic.getProgress());
+
+        logic.tickProgress();
+        assertEquals(0, logic.getProgress());
+        assertEquals(1, mte.getExportItems().getStackInSlot(0).getCount());
+    }
+
     // ==================== Minimal Headless Test Doubles ====================
 
     private static final class TestEnergyPool implements CrossRecipeParallelScheduler.EnergyDrawer {
@@ -1135,7 +1179,7 @@ class RecipeConditionExecutionTest {
         }
     }
 
-    private static final class TestSingleRecipeLogic extends AbstractRecipeLogic {
+    private static class TestSingleRecipeLogic extends AbstractRecipeLogic {
 
         private final IEnergyContainer energyContainer;
 
