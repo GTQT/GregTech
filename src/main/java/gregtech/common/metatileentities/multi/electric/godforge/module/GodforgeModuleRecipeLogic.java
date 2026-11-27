@@ -121,7 +121,7 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
         if (uuid == null) return 0;
         WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
         if (service == null) return 0;
-        BigInteger eu = service.getView(uuid).getStored();
+        BigInteger eu = service.getView(uuid).getStored().add(BigInteger.valueOf(getRefillEnergyCredit()));
         long clamped = eu.min(BigInteger.valueOf(Long.MAX_VALUE)).longValue();
         return Math.max(clamped, 0);
     }
@@ -144,7 +144,8 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
 
         if (simulate) {
             WirelessNetworkView view = service.getView(uuid);
-            return view.getStored().compareTo(BigInteger.valueOf(recipeEUt)) >= 0;
+            BigInteger available = view.getStored().add(BigInteger.valueOf(getRefillEnergyCredit()));
+            return available.compareTo(BigInteger.valueOf(recipeEUt)) >= 0;
         }
 
         TransferResult result = service.extract(uuid, recipeEUt, TransferContext.MACHINE);

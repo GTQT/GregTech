@@ -40,6 +40,8 @@ class SchedulerTelemetryIsolationTest {
     private static Recipe RECIPE_IRON;
     private static Recipe RECIPE_COAL;
     private static Recipe RECIPE_CLAY_30EUT;
+    private static Recipe RECIPE_QUARTZ_30EUT;
+    private static Recipe RECIPE_HV_480EUT;
     private static Recipe RECIPE_ZERO_EUT;
     private static Recipe RECIPE_STERILE_REDSTONE;
 
@@ -53,6 +55,10 @@ class SchedulerTelemetryIsolationTest {
                 TEST_MAP, Items.COAL, Items.DIAMOND, 4, 16L);
         RECIPE_CLAY_30EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
                 TEST_MAP, Items.CLAY_BALL, Items.BRICK, 4, 30L);
+        RECIPE_QUARTZ_30EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                TEST_MAP, Items.QUARTZ, Items.PRISMARINE_SHARD, 4, 30L);
+        RECIPE_HV_480EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                TEST_MAP, Items.GOLD_NUGGET, Items.NETHER_STAR, 4, 480L);
         RECIPE_ZERO_EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
                 TEST_MAP, Items.FLINT, Items.GUNPOWDER, 4, 0L);
 
@@ -692,6 +698,134 @@ class SchedulerTelemetryIsolationTest {
             assertEquals(RECIPE_ZERO_EUT.getEUt(), 0L);
         } finally {
             ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
+    }
+
+    @Test
+    void singleRecipeVoltageCapMatchesAcrossModesAndWakesDormantInputsOnVoltageRaise() {
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setThreadLimit(2);
+        logic.setMaxVoltage(128L);
+        logic.setTotalPowerBudget(512L);
+
+        MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_volt_wake_in"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_volt_wake_out"), 2, true);
+        ctrl.addPart(inBus);
+        ctrl.addPart(outBus);
+
+        // 128 V x 4 A (maxVoltage=128, powerBudget=512): 480 EU/t recipe rejected in BOTH Combined and Distinct
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.GOLD_NUGGET, 1));
+        logic.updateWorkable();
+        assertTrue(logic.invalidInputsForRecipes);
+        assertEquals("NoneRecipes", logic.getWhyFailed());
+        assertEquals(1, inBus.getImportItems().getStackInSlot(0).getCount());
+
+        ctrl.setDistinct(true);
+        logic.updateWorkable();
+        assertTrue(logic.invalidatedInputList.contains(ctrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0)));
+        assertEquals(1, inBus.getImportItems().getStackInSlot(0).getCount());
+
+        // Raising working voltage to 512 V wakes dormant Combined inputs without re-inserting items
+        ctrl.setDistinct(false);
+        logic.updateWorkable();
+        assertTrue(logic.invalidInputsForRecipes);
+        logic.setMaxVoltage(512L);
+        for (int t = 0; t < 5; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(0, inBus.getImportItems().getStackInSlot(0).getCount());
+        assertEquals(1, outBus.getExportItems().getStackInSlot(0).getCount());
+
+        // Raising working voltage to 512 V also wakes dormant Distinct buses without re-inserting items
+        logic.setMaxVoltage(128L);
+        ctrl.setDistinct(true);
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.GOLD_NUGGET, 1));
+        logic.updateWorkable();
+        assertTrue(logic.invalidatedInputList.contains(ctrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0)));
+        logic.setMaxVoltage(512L);
+        for (int t = 0; t < 5; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(RECIPE_HV_480EUT.getEUt(), 480L);
+        assertEquals(2, outBus.getExportItems().getStackInSlot(0).getCount());
+    }
+
+    @Test
+    void discountedAggregateRefillRejectsUnderfundedSecondSlotAndFullOutputReportsImmediately() {
+        boolean prevClean = ConfigHolder.machines.cleanMultiblocks;
+        ConfigHolder.machines.cleanMultiblocks = false;
+        try {
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+            ctrl.setCleanroom(uncleanSterileProvider());
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setThreadLimit(2);
+            logic.setParallelLimit(1);
+            logic.setEnergyEfficiency(0.75);
+
+            MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_disc_refill_a"), 1, false);
+            MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_disc_refill_b"), 1, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_disc_refill_out"), 1, true);
+            ctrl.addPart(busA);
+            ctrl.addPart(busB);
+            ctrl.addPart(outBus);
+            ctrl.setDistinct(true);
+
+            MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer energy =
+                    (MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer) ctrl.getEnergyContainer();
+            energy.changeEnergy(-energy.getEnergyStored() + 44L);
+
+            // Slot 0 (30 EU/t -> 22 EU at 0.75x) starts; two slots need floor(60 * 0.75) = 45 EU > 44 EU
+            busA.getImportItems().setStackInSlot(0, new ItemStack(Items.CLAY_BALL, 1));
+            logic.updateWorkable();
+            assertEquals(1, logic.getCrossRecipeScheduler().getActiveSlotCount());
+
+            energy.changeEnergy(-energy.getEnergyStored() + 44L);
+            busB.getImportItems().setStackInSlot(0, new ItemStack(Items.QUARTZ, 1));
+            logic.updateWorkable();
+            assertEquals(1, logic.getCrossRecipeScheduler().getActiveSlotCount(),
+                    "44 EU/t cannot sustain aggregate floor(60 * 0.75) = 45 EU/t; second slot must wait");
+            assertEquals(1, busB.getImportItems().getStackInSlot(0).getCount());
+            assertTrue(logic.isWorking());
+            assertFalse(logic.isHasNotEnoughEnergy());
+
+            // Raising per-tick energy to 45 EU admits staggered second 30 EU/t slot cleanly
+            energy.changeEnergy(-energy.getEnergyStored() + 45L);
+            logic.updateWorkable();
+            assertEquals(RECIPE_QUARTZ_30EUT.getEUt(), 30L);
+            assertEquals(2, logic.getCrossRecipeScheduler().getActiveSlotCount());
+            assertEquals(0, busB.getImportItems().getStackInSlot(0).getCount());
+
+            // Let both finish, then verify full-output transition tick immediately reports output-full whyFailed
+            energy.changeEnergy(500L);
+            for (int t = 0; t < 5; t++) {
+                logic.updateWorkable();
+            }
+            for (int s = 0; s < outBus.getExportItems().getSlots(); s++) {
+                outBus.getExportItems().setStackInSlot(s, ItemStack.EMPTY);
+            }
+            busA.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            busB.getImportItems().setStackInSlot(0, new ItemStack(Items.REDSTONE, 1));
+            logic.updateWorkable();
+            for (int s = 0; s < outBus.getExportItems().getSlots(); s++) {
+                outBus.getExportItems().setStackInSlot(s, new ItemStack(Items.STICK, 64));
+            }
+            for (int t = 0; t < 4; t++) {
+                logic.updateWorkable();
+            }
+            assertFalse(logic.isWorking());
+            assertEquals("输出仓已满，产物无法继续输出（清空或设置销毁产物）", logic.getWhyFailed());
+        } finally {
+            ConfigHolder.machines.cleanMultiblocks = prevClean;
         }
     }
 

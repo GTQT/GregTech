@@ -53,6 +53,7 @@ import net.minecraftforge.items.IItemHandlerModifiable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
@@ -103,6 +104,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected boolean crossRecipeSchedulerActive = false;
     private transient boolean preserveAbortWhyFailed = false;
     private transient boolean deferAbortWhyFailedClearOnce = false;
+    private transient long refillEnergyCredit = 0L;
+    private transient boolean hasSearchVoltageSnapshot = false;
+    private transient long lastSearchMaxVoltage = 0L;
+    private transient long lastSearchPowerBudget = 0L;
     @Nullable
     private transient AllocationBudget lastCombinedAllocationBudget;
 
@@ -283,10 +288,21 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         IMultipleTankHandler outputTank = getOutputTank();
 
         this.whyFailed = "";
+        long[] actualPaidInTick = { 0L };
         int completedParallel = scheduler.tickSlots(
                 getOutputInventory(),
                 outputTank,
-                (amount, simulate) -> drawEnergy(amount, simulate),
+                (amount, simulate) -> {
+                    if (simulate) {
+                        return drawEnergy(amount, true);
+                    }
+                    long storedBefore = getEnergyStored();
+                    boolean drawn = drawEnergy(amount, false);
+                    if (drawn && consumesEnergy()) {
+                        actualPaidInTick[0] = Math.max(0L, storedBefore - getEnergyStored());
+                    }
+                    return drawn;
+                },
                 metaTileEntity.canVoidRecipeItemOutputs(),
                 metaTileEntity.canVoidRecipeFluidOutputs(),
                 getRecipeConditions(),
@@ -307,17 +323,20 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         boolean inFlightLowEnergy = scheduler.isHasNotEnoughEnergy();
         String inFlightWhyFailed = this.whyFailed;
         if (inFlightWhyFailed.isEmpty() && !inFlightLowEnergy &&
-                !workedInTick && !scheduler.hasWorkingSlots() && scheduler.hasOutputBlockedSlots()) {
+                !scheduler.hasWorkingSlots() && scheduler.hasOutputBlockedSlots()) {
             inFlightWhyFailed = "输出仓已满，产物无法继续输出（清空或设置销毁产物）";
         }
 
         // If scheduler can accept more recipes (has remaining parallel budget), try to fill
         this.whyFailed = "";
+        this.refillEnergyCredit = computeStillRunningPaidCredit(
+                actualPaidInTick[0], consumedEUtInTick, scheduler.getPaidStillRunningEUt());
         try {
             if (!inFlightLowEnergy && usesParallelScheduler() && scheduler.canAcceptMoreRecipes()) {
                 refillScheduler(scheduler);
             }
         } finally {
+            this.refillEnergyCredit = 0L;
             scheduler.clearPaidStillRunningEUt();
         }
         String candidateWhyFailed = this.whyFailed;
@@ -490,10 +509,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             }
             routedRecipeMap = recipeMap;
             long maxVoltage = getMaxVoltage();
-            Recipe recipe = findRecipe(recipeMap, budget.remainingBasePower, bus, busFluidTank);
+            long searchVoltage = Math.min(maxVoltage, budget.remainingBasePower);
+            Recipe recipe = findRecipe(recipeMap, searchVoltage, bus, busFluidTank);
             boolean skippedDuplicate = false;
             boolean blockedByConditionOrBudget = false;
-            if (recipe == null && budget.remainingBasePower < maxVoltage &&
+            if (recipe == null && searchVoltage < maxVoltage &&
                     findRecipe(recipeMap, maxVoltage, bus, busFluidTank) != null) {
                 blockedByConditionOrBudget = true;
             } else if (recipe != null) {
@@ -1107,6 +1127,34 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         return value * multiplier;
     }
 
+    protected final long getRefillEnergyCredit() {
+        return refillEnergyCredit;
+    }
+
+    @Override
+    protected long getEnergyStored() {
+        long base = super.getEnergyStored();
+        if (refillEnergyCredit <= 0L) {
+            return base;
+        }
+        return Math.min(getEnergyCapacity(), saturatingAdd(base, refillEnergyCredit));
+    }
+
+    private static long computeStillRunningPaidCredit(long actualPaidEU,
+                                                      long totalNominalPaidEUt,
+                                                      long stillRunningNominalEUt) {
+        if (actualPaidEU <= 0L || totalNominalPaidEUt <= 0L || stillRunningNominalEUt <= 0L) {
+            return 0L;
+        }
+        if (stillRunningNominalEUt >= totalNominalPaidEUt) {
+            return actualPaidEU;
+        }
+        return BigInteger.valueOf(actualPaidEU)
+                .multiply(BigInteger.valueOf(stillRunningNominalEUt))
+                .divide(BigInteger.valueOf(totalNominalPaidEUt))
+                .longValue();
+    }
+
     /**
      * Verifies that the shared energy source can support the existing running slots and this candidate slot together.
      * The check intentionally mirrors the aggregate draw performed by {@link CrossRecipeParallelScheduler#tickSlots}
@@ -1117,7 +1165,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return true;
         }
 
-        long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getUnpaidScheduledEUt();
+        long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getTotalScheduledEUt();
         long totalEUt = saturatingAdd(runningEUt, candidateEUt);
         if (drawEnergy(totalEUt, true)) {
             return true;
@@ -1315,10 +1363,30 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         this.deferAbortWhyFailedClearOnce = false;
     }
 
+    private void captureSearchVoltageSnapshot() {
+        this.lastSearchMaxVoltage = getMaxVoltage();
+        this.lastSearchPowerBudget = usesParallelScheduler() ? getTotalPowerBudget() : this.lastSearchMaxVoltage;
+        this.hasSearchVoltageSnapshot = true;
+    }
+
+    private void refreshInvalidatedInputsOnVoltageChange() {
+        if (!this.hasSearchVoltageSnapshot ||
+                (!this.invalidInputsForRecipes && this.invalidatedInputList.isEmpty())) {
+            return;
+        }
+        long currentMaxVoltage = getMaxVoltage();
+        long currentPowerBudget = usesParallelScheduler() ? getTotalPowerBudget() : currentMaxVoltage;
+        if (currentMaxVoltage != this.lastSearchMaxVoltage ||
+                currentPowerBudget != this.lastSearchPowerBudget) {
+            resetInvalidatedInputs();
+        }
+    }
+
     @Override
     protected void resetInvalidatedInputs() {
         super.resetInvalidatedInputs();
         this.invalidatedInputList.clear();
+        this.hasSearchVoltageSnapshot = false;
         clearPreservedAbortReason();
     }
 
@@ -1350,6 +1418,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         lastCrossRecipe = null;
         routedRecipeMap = null;
         previousDistinctRecipeMap = null;
+        hasSearchVoltageSnapshot = false;
         clearPreservedAbortReason();
     }
 
@@ -1530,6 +1599,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected boolean canWorkWithInputs() {
+        refreshInvalidatedInputsOnVoltageChange();
         if (this.preserveAbortWhyFailed && this.progressTime == 0 && !this.crossRecipeSchedulerActive &&
                 hasNotifiedInputs()) {
             if (this.deferAbortWhyFailedClearOnce) {
@@ -1605,6 +1675,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 controller.getNumMaintenanceProblems() > 5) {
             return;
         }
+        captureSearchVoltageSnapshot();
 
         if (shouldUseDistinctInputBuses()) {
             short mask = getHatchColorsMask();
@@ -1831,6 +1902,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     private transient boolean matchedChannelRecipe;
 
     private void runIdleSchedulerSearch(@NotNull ToIntFunction<CrossRecipeParallelScheduler> filler) {
+        captureSearchVoltageSnapshot();
         String retainedAbortReason = this.preserveAbortWhyFailed ? this.whyFailed : "";
         this.whyFailed = "";
         this.lastCombinedAllocationBudget = null;

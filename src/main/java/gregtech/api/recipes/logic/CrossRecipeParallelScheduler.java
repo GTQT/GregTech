@@ -590,11 +590,11 @@ public class CrossRecipeParallelScheduler {
     }
 
     /**
-     * @return scheduled EU/t across active running slots that have NOT already paid energy during the current tick's
-     *         {@link #tickSlots} execution (paused slots plus slots started during the current refill pass)
+     * @return nominal scheduled EU/t across slots that already paid energy in the current tick's {@link #tickSlots}
+     *         call and remain {@code RUNNING} after tick progression
      */
-    public long getUnpaidScheduledEUt() {
-        return Math.max(0L, getTotalScheduledEUt() - paidStillRunningEUt);
+    public long getPaidStillRunningEUt() {
+        return paidStillRunningEUt;
     }
 
     /**

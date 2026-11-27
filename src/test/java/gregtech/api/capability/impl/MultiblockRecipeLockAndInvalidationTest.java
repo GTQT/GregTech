@@ -954,6 +954,7 @@ class MultiblockRecipeLockAndInvalidationTest {
     static final class TestMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
         private boolean crossRecipeEnabled = false;
+        private long maxVoltage = 128L;
         private long totalPowerBudget = 1024L;
 
         TestMultiblockRecipeLogic(RecipeMapMultiblockController controller) {
@@ -962,6 +963,10 @@ class MultiblockRecipeLockAndInvalidationTest {
 
         void setCrossRecipeParallelEnabled(boolean enabled) {
             this.crossRecipeEnabled = enabled;
+        }
+
+        void setMaxVoltage(long maxVoltage) {
+            this.maxVoltage = maxVoltage;
         }
 
         void setTotalPowerBudget(long totalPowerBudget) {
@@ -975,17 +980,17 @@ class MultiblockRecipeLockAndInvalidationTest {
 
         @Override
         public long getMaxVoltage() {
-            return 128L;
+            return maxVoltage;
         }
 
         @Override
         public long getMaximumOverclockVoltage() {
-            return 128L;
+            return maxVoltage;
         }
 
         @Override
         protected long getMaxParallelVoltage() {
-            return 128L;
+            return maxVoltage;
         }
 
         @Override
