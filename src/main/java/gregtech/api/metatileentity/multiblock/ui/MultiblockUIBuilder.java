@@ -648,7 +648,7 @@ public class MultiblockUIBuilder {
 
         int totalParallel = getSyncer().syncInt(scheduler == null ? 0 : scheduler.getTotalParallelCount());
         int parallelLimit = getSyncer().syncInt(scheduler == null ? 0 : scheduler.getParallelLimit());
-        long totalEUt = getSyncer().syncLong(scheduler == null ? 0 : scheduler.getTotalEnergyConsumption());
+        long totalEUt = getSyncer().syncLong(scheduler == null ? 0 : logic.getInfoProviderEUt());
 
         addKey(KeyUtil.lang(TextFormatting.AQUA,
                 "gregtech.multiblock.cross_recipe_parallel.status",

@@ -109,6 +109,8 @@ public class CrossRecipeParallelScheduler {
 
     // --- State tracking ---
     private boolean hasNotEnoughEnergy = false;
+    private boolean workedThisTick = false;
+    private long lastTickConsumedEUt = 0L;
 
     public CrossRecipeParallelScheduler(int parallelLimit) {
         this.parallelLimit = parallelLimit;
@@ -289,6 +291,8 @@ public class CrossRecipeParallelScheduler {
                          @Nullable FluidOutputHandler fluidOutputHandler) {
         int completedParallel = 0;
         boolean hasConditions = !conditions.isEmpty();
+        this.workedThisTick = false;
+        this.lastTickConsumedEUt = 0L;
 
         List<RecipeSlot> runnableSlots = new ArrayList<>(activeSlots.size());
         List<RecipeExecutionContext> runnableContexts = hasConditions ? new ArrayList<>(activeSlots.size()) : null;
@@ -367,6 +371,7 @@ public class CrossRecipeParallelScheduler {
             if (energyDrawer.drawEnergy(totalEUt, true)) {
                 energyDrawer.drawEnergy(totalEUt, false);
                 hasNotEnoughEnergy = false;
+                this.lastTickConsumedEUt = totalEUt;
             } else {
                 hasNotEnoughEnergy = true;
                 for (int i = 0; i < runnableSlots.size(); i++) {
@@ -401,6 +406,9 @@ public class CrossRecipeParallelScheduler {
         }
 
         // Phase 3: Commit condition tick consumption and advance running slots
+        if (!runnableSlots.isEmpty()) {
+            this.workedThisTick = true;
+        }
         for (int i = 0; i < runnableSlots.size(); i++) {
             RecipeSlot slot = runnableSlots.get(i);
             slot.setPaused(false);
@@ -561,6 +569,20 @@ public class CrossRecipeParallelScheduler {
 
     public boolean isHasNotEnoughEnergy() {
         return hasNotEnoughEnergy;
+    }
+
+    /**
+     * @return true if at least one runnable slot executed and advanced during the most recent {@link #tickSlots} call
+     */
+    public boolean hasWorkedThisTick() {
+        return workedThisTick;
+    }
+
+    /**
+     * @return aggregate EU/t actually drawn during the most recent {@link #tickSlots} call
+     */
+    public long getLastTickConsumedEUt() {
+        return lastTickConsumedEUt;
     }
 
     public int getParallelLimit() {
@@ -800,6 +822,8 @@ public class CrossRecipeParallelScheduler {
         }
         activeSlots.clear();
         hasNotEnoughEnergy = false;
+        workedThisTick = false;
+        lastTickConsumedEUt = 0L;
     }
 
     // ==================== Serialization ====================

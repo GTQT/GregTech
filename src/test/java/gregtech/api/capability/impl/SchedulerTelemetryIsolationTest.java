@@ -237,7 +237,178 @@ class SchedulerTelemetryIsolationTest {
         }
     }
 
+    @Test
+    void abortTickDoesNotDropConcurrentDistinctBusInputNotification() {
+        boolean prevClean = ConfigHolder.machines.cleanMultiblocks;
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.cleanMultiblocks = false;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = true;
+        try {
+            AtomicBoolean clean = new AtomicBoolean(true);
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+            ctrl.setCleanroom(sterileProvider(clean));
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setThreadLimit(2);
+            logic.setParallelLimit(1);
+
+            MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_abort_notif_a"), 1, false);
+            MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_abort_notif_b"), 1, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_abort_notif_out"), 2, true);
+            ctrl.addPart(busA);
+            ctrl.addPart(busB);
+            ctrl.addPart(outBus);
+            ctrl.setDistinct(true);
+
+            // Empty search puts Bus B into invalidatedInputList; then start sterile recipe from Bus A
+            logic.updateWorkable();
+            busA.getImportItems().setStackInSlot(0, new ItemStack(Items.REDSTONE, 1));
+            logic.updateWorkable();
+            assertTrue(logic.isActive());
+
+            // Same tick: Cleanroom becomes unclean (aborting Slot A) AND Bus B receives 1 item + notification
+            clean.set(false);
+            busB.getImportItems().setStackInSlot(0, new ItemStack(Items.REDSTONE, 1));
+            assertFalse(ctrl.getNotifiedItemInputList().isEmpty());
+            logic.updateWorkable();
+            assertEquals(CleanroomRecipeCondition.MISSING_CLEANROOM_REASON, logic.getWhyFailed());
+
+            // Next tick processes Bus B's notification while still unclean; restoring Cleanroom must auto-start Bus B
+            logic.updateWorkable();
+            clean.set(true);
+            for (int t = 0; t < 6; t++) {
+                logic.updateWorkable();
+            }
+            assertEquals(0, busB.getImportItems().getStackInSlot(0).getCount());
+            assertEquals(1, outBus.getExportItems().getStackInSlot(0).getCount());
+        } finally {
+            ConfigHolder.machines.cleanMultiblocks = prevClean;
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
+    }
+
+    @Test
+    void energyShortageOnSiblingSlotPreservesPausedSlotWhyFailed() {
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = false;
+        try {
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setCrossRecipeParallelEnabled(true);
+            logic.setParallelLimit(2);
+
+            AtomicBoolean specialFluidPresent = new AtomicBoolean(true);
+            logic.addRecipeCondition(new IRecipeCondition() {
+
+                @Override
+                public @NotNull String getConditionId() {
+                    return "test:sibling_special_fluid";
+                }
+
+                @Override
+                public boolean testTick(@NotNull RecipeExecutionContext context) {
+                    return context.getRecipe() != RECIPE_IRON || specialFluidPresent.get();
+                }
+
+                @Override
+                public @NotNull TickFailureAction onTickFailed(@NotNull RecipeExecutionContext context,
+                                                               boolean energyShortage) {
+                    if (!energyShortage) {
+                        logic.setWhyFailed("缺少专用流体");
+                    }
+                    return TickFailureAction.PAUSE;
+                }
+            });
+
+            MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_sib_low_a"), 1, false);
+            MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_sib_low_b"), 1, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_sib_low_out"), 2, true);
+            ctrl.addPart(busA);
+            ctrl.addPart(busB);
+            ctrl.addPart(outBus);
+            ctrl.setDistinct(true);
+
+            busA.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            busB.getImportItems().setStackInSlot(0, new ItemStack(Items.COAL, 1));
+            logic.updateWorkable();
+            assertEquals(2, logic.getCrossRecipeScheduler().getActiveSlotCount());
+
+            // Drain special fluid (Slot 0 pauses) AND drain energy to 0 (Slot 1 hits low power)
+            specialFluidPresent.set(false);
+            MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer energy =
+                    (MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer) ctrl.getEnergyContainer();
+            energy.changeEnergy(-energy.getEnergyStored());
+
+            for (int t = 0; t < 2; t++) {
+                logic.updateWorkable();
+                assertTrue(logic.isHasNotEnoughEnergy());
+                assertEquals(0L, logic.getInfoProviderEUt());
+                assertEquals("缺少专用流体", logic.getWhyFailed());
+            }
+        } finally {
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
+    }
+
+    @Test
+    void alternatingOneTickRecipesReportActualConsumedEUtEachTick() {
+        RecipeMap<SimpleRecipeBuilder> oneTickMap = new RecipeMap<>(
+                "test_sched_one_tick_eut_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
+        MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                oneTickMap, Items.IRON_INGOT, Items.GOLD_INGOT, 1, 8L);
+        MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                oneTickMap, Items.COAL, Items.DIAMOND, 1, 32L);
+
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(oneTickMap);
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setParallelLimit(2);
+
+        MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_1t_alt_in"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_1t_alt_out"), 2, true);
+        ctrl.addPart(inBus);
+        ctrl.addPart(outBus);
+
+        MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer energy =
+                (MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer) ctrl.getEnergyContainer();
+
+        // Prime first 8 EU/t 1-tick recipe
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+        logic.updateWorkable();
+        assertTrue(logic.isWorking());
+
+        // Alternate queuing next 32 EU/t / 8 EU/t item while current 1-tick slot executes and completes
+        for (int step = 0; step < 8; step++) {
+            boolean expect8EUt = (step % 2 == 0);
+            inBus.getImportItems().setStackInSlot(0,
+                    new ItemStack(expect8EUt ? Items.COAL : Items.IRON_INGOT, 1));
+            long before = energy.getEnergyStored();
+            logic.updateWorkable();
+            long drawn = before - energy.getEnergyStored();
+            long expected = expect8EUt ? 8L : 32L;
+            assertEquals(expected, drawn);
+            assertEquals(expected, logic.getInfoProviderEUt(),
+                    "Displayed EU/t must match the slot executed this tick rather than the newly queued refill slot");
+        }
+    }
+
     private static ICleanroomProvider uncleanSterileProvider() {
+        return sterileProvider(new AtomicBoolean(false));
+    }
+
+    private static ICleanroomProvider sterileProvider(AtomicBoolean cleanFlag) {
         return new ICleanroomProvider() {
 
             @Override
@@ -253,7 +424,7 @@ class SchedulerTelemetryIsolationTest {
 
             @Override
             public boolean isClean() {
-                return false;
+                return cleanFlag.get();
             }
 
             @Override

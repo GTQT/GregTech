@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.ToIntFunction;
 
 import static gregtech.api.recipes.logic.OverclockingLogic.subTickParallelOC;
 
@@ -100,6 +101,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Nullable
     protected CrossRecipeParallelScheduler crossRecipeScheduler;
     protected boolean crossRecipeSchedulerActive = false;
+    private transient boolean preserveAbortWhyFailed = false;
 
     // Cached last successful recipe for "same recipe first" strategy
     @Nullable
@@ -297,10 +299,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             onCrossRecipeSlotsCompleted(completedParallel);
         }
 
+        boolean workedInTick = scheduler.hasWorkedThisTick();
+        long consumedEUtInTick = scheduler.getLastTickConsumedEUt();
         boolean inFlightLowEnergy = scheduler.isHasNotEnoughEnergy();
         String inFlightWhyFailed = this.whyFailed;
         if (inFlightWhyFailed.isEmpty() && !inFlightLowEnergy &&
-                !scheduler.hasWorkingSlots() && scheduler.hasOutputBlockedSlots()) {
+                !workedInTick && !scheduler.hasWorkingSlots() && scheduler.hasOutputBlockedSlots()) {
             inFlightWhyFailed = "输出仓已满，产物无法继续输出（清空或设置销毁产物）";
         }
 
@@ -315,7 +319,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // cannot mark working slots as low-power or overwrite an in-flight paused slot's failure reason.
         boolean workingNow = scheduler.hasWorkingSlots();
         this.hasNotEnoughEnergy = !workingNow && inFlightLowEnergy;
-        this.recipeEUt = scheduler.getTotalEnergyConsumption();
+        this.recipeEUt = !workingNow ? 0L :
+                (workedInTick ? consumedEUtInTick : scheduler.getTotalEnergyConsumption());
         this.parallelRecipesPerformed = scheduler.getTotalParallelCount();
 
         // Update active state based on whether any slots are still running
@@ -330,20 +335,23 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             this.wasActiveAndNeedsUpdate = true;
             if (!inFlightWhyFailed.isEmpty()) {
                 this.whyFailed = inFlightWhyFailed;
-                metaTileEntity.getNotifiedItemInputList().clear();
-                metaTileEntity.getNotifiedFluidInputList().clear();
+                this.preserveAbortWhyFailed = true;
             } else {
                 this.whyFailed = candidateWhyFailed;
+                this.preserveAbortWhyFailed = false;
             }
         } else {
             crossRecipeSchedulerActive = true;
+            this.preserveAbortWhyFailed = false;
             this.isPaused = !this.hasNotEnoughEnergy && !workingNow;
             // Keep progressTime > 0 so the main loop continues calling updateRecipeProgress()
             this.progressTime = 1;
-            if (workingNow || this.hasNotEnoughEnergy) {
+            if (workingNow) {
                 this.whyFailed = "";
             } else if (!inFlightWhyFailed.isEmpty()) {
                 this.whyFailed = inFlightWhyFailed;
+            } else if (this.hasNotEnoughEnergy) {
+                this.whyFailed = "";
             } else {
                 this.whyFailed = candidateWhyFailed;
             }
@@ -1257,6 +1265,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         lastCrossRecipe = null;
         routedRecipeMap = null;
         previousDistinctRecipeMap = null;
+        preserveAbortWhyFailed = false;
     }
 
     public void onDistinctChanged() {
@@ -1435,14 +1444,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected boolean canWorkWithInputs() {
-        if (this.progressTime == 0 && !this.crossRecipeSchedulerActive && hasNotifiedInputs()) {
-            this.whyFailed = "";
-        }
         if (shouldUseDistinctInputBuses()) {
                 boolean canWork = false;
                 if (invalidatedInputList.isEmpty()) {
-                    metaTileEntity.getNotifiedFluidInputList().clear();
-                    metaTileEntity.getNotifiedItemInputList().clear();
                     return true;
                 }
                 if (!metaTileEntity.getNotifiedFluidInputList().isEmpty()) {
@@ -1730,14 +1734,27 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     private transient boolean matchedChannelRecipe;
 
+    private void runIdleSchedulerSearch(@NotNull ToIntFunction<CrossRecipeParallelScheduler> filler) {
+        String retainedAbortReason = this.preserveAbortWhyFailed ? this.whyFailed : "";
+        this.whyFailed = "";
+        CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
+        int filled = filler.applyAsInt(scheduler);
+        if (filled > 0) {
+            this.preserveAbortWhyFailed = false;
+            activateSchedulerIfFilled(scheduler, filled);
+        } else if (!this.whyFailed.isEmpty()) {
+            this.preserveAbortWhyFailed = false;
+        } else if (!retainedAbortReason.isEmpty()) {
+            this.whyFailed = retainedAbortReason;
+        }
+    }
+
     /**
      * 按颜色掩码逐通道查找,每通道只使用同色(含未染色)仓的输入,第一个成功启动的通道即返回。
      */
     protected void trySearchNewRecipeByColorChannels(short mask) {
         if (usesParallelScheduler()) {
-            CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
-            int filled = fillSchedulerSlotsByColorChannels(scheduler, mask);
-            activateSchedulerIfFilled(scheduler, filled);
+            runIdleSchedulerSearch(scheduler -> fillSchedulerSlotsByColorChannels(scheduler, mask));
             return;
         }
         long maxVoltage = getMaxVoltage();
@@ -1806,9 +1823,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      */
     protected void trySearchNewRecipeDistinctByColorChannels(short mask) {
         if (usesParallelScheduler()) {
-            CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
-            int filled = fillSchedulerSlotsDistinctByColorChannels(scheduler, mask, true);
-            activateSchedulerIfFilled(scheduler, filled);
+            runIdleSchedulerSearch(scheduler -> fillSchedulerSlotsDistinctByColorChannels(scheduler, mask, true));
             return;
         }
         long maxVoltage = getMaxVoltage();
@@ -1892,6 +1907,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             this.progressTime = 1;
             this.canRecipeProgress = true;
             this.hasNotEnoughEnergy = false;
+            this.preserveAbortWhyFailed = false;
             setMaxProgress(Integer.MAX_VALUE);
             this.recipeEUt = scheduler.getTotalEnergyConsumption();
             this.parallelRecipesPerformed = scheduler.getTotalParallelCount();
@@ -1912,9 +1928,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      */
     protected void trySearchNewRecipeCombined() {
         if (usesParallelScheduler()) {
-            CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
-            int filled = fillSchedulerSlots(scheduler);
-            activateSchedulerIfFilled(scheduler, filled);
+            runIdleSchedulerSearch(this::fillSchedulerSlots);
             return;
         }
 
@@ -1998,9 +2012,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      * Cross-recipe parallel version of distinct bus recipe search.
      */
     protected void trySearchNewRecipeDistinctCrossRecipe() {
-        CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
-        int totalFilled = fillSchedulerSlotsDistinctInternal(scheduler, true);
-        activateSchedulerIfFilled(scheduler, totalFilled);
+        runIdleSchedulerSearch(scheduler -> fillSchedulerSlotsDistinctInternal(scheduler, true));
     }
 
     @Override
@@ -2275,6 +2287,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     public void deserializeNBT(@NotNull NBTTagCompound compound) {
         super.deserializeNBT(compound);
+        this.preserveAbortWhyFailed = false;
         this.crossRecipeSchedulerActive = compound.getBoolean("crossRecipeActive");
         if (crossRecipeSchedulerActive && compound.hasKey("crossRecipeScheduler")) {
             crossRecipeScheduler = new CrossRecipeParallelScheduler(getParallelLimit());
