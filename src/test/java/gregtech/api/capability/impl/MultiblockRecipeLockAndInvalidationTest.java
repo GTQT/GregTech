@@ -840,19 +840,27 @@ class MultiblockRecipeLockAndInvalidationTest {
 
     // ==================== Headless Test Doubles ====================
 
-    static final class TestController extends RecipeMapMultiblockController {
+    static class TestController extends RecipeMapMultiblockController {
 
         private final List<IMultiblockPart> parts = new ArrayList<>();
         private final Map<MultiblockAbility<?>, List<Object>> abilities = new HashMap<>();
         private final net.minecraftforge.items.ItemStackHandler fallbackExportInv = new net.minecraftforge.items.ItemStackHandler(
                 8);
         private final FluidTankList exportFluidsList = new FluidTankList(false);
-        private final TestEnergyContainer energy = new TestEnergyContainer(100_000L, 100_000L, 128L);
+        private IEnergyContainer energy = new TestEnergyContainer(100_000L, 100_000L, 128L);
 
         TestController(RecipeMap<?> recipeMap) {
             super(new ResourceLocation("gregtech", "test_lock_controller"), recipeMap);
             new TestMetaTileEntityHolder(this);
             this.recipeMapWorkable = new TestMultiblockRecipeLogic(this);
+        }
+
+        void setLogic(MultiblockRecipeLogic logic) {
+            this.recipeMapWorkable = logic;
+        }
+
+        void setEnergyContainer(IEnergyContainer energy) {
+            this.energy = energy;
         }
 
         void addPart(MetaTileEntity partMte) {

@@ -32,6 +32,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -43,6 +45,7 @@ class SchedulerTelemetryIsolationTest {
     private static Recipe RECIPE_IRON;
     private static Recipe RECIPE_COAL;
     private static Recipe RECIPE_CLAY_30EUT;
+    private static Recipe RECIPE_MUTTON_30EUT_6T;
     private static Recipe RECIPE_QUARTZ_30EUT;
     private static Recipe RECIPE_APPLE_32EUT;
     private static Recipe RECIPE_POTATO_32EUT;
@@ -60,6 +63,8 @@ class SchedulerTelemetryIsolationTest {
                 TEST_MAP, Items.COAL, Items.DIAMOND, 4, 16L);
         RECIPE_CLAY_30EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
                 TEST_MAP, Items.CLAY_BALL, Items.BRICK, 4, 30L);
+        RECIPE_MUTTON_30EUT_6T = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                TEST_MAP, Items.MUTTON, Items.COOKED_MUTTON, 6, 30L);
         RECIPE_QUARTZ_30EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
                 TEST_MAP, Items.QUARTZ, Items.PRISMARINE_SHARD, 4, 30L);
         RECIPE_APPLE_32EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
@@ -945,6 +950,236 @@ class SchedulerTelemetryIsolationTest {
         budgetBus.getImportItems().setStackInSlot(0, new ItemStack(Items.GOLD_NUGGET, 1));
         budgetLogic.updateWorkable();
         assertEquals("电力不足，无法满足当前配方的运行需求", budgetLogic.getWhyFailed());
+    }
+
+    @Test
+    void budgetBlockedDiagnosticDoesNotTriggerCheckRecipeOrHolderConsumeSideEffects() {
+        // 1. NodeFusionReactor-style overridden checkRecipe(Recipe) deducting startup heat
+        RecipeMap<SimpleRecipeBuilder> fusionMap = new RecipeMap<>(
+                "test_sched_fusion_heat_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
+        Recipe fusionA = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                fusionMap, Items.IRON_INGOT, Items.GOLD_INGOT, 4, 24_576L);
+        Recipe fusionB = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                fusionMap, Items.COAL, Items.DIAMOND, 4, 24_576L);
+
+        AtomicLong reactorHeat = new AtomicLong(0L);
+        MultiblockRecipeLockAndInvalidationTest.TestController fusionCtrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(fusionMap);
+        MultiblockRecipeLogic fusionLogic = new MultiblockRecipeLogic(fusionCtrl) {
+
+            @Override
+            public long getMaxVoltage() {
+                return 32_768L;
+            }
+
+            @Override
+            public long getMaximumOverclockVoltage() {
+                return 32_768L;
+            }
+
+            @Override
+            protected long getTotalPowerBudget() {
+                return 32_768L;
+            }
+
+            @Override
+            public boolean checkRecipe(@NotNull Recipe recipe) {
+                if (!super.checkRecipe(recipe)) return false;
+                long requiredHeat = recipe == fusionA ? 140_000_000L : 150_000_000L;
+                long diff = requiredHeat - reactorHeat.get();
+                if (diff > 0L) {
+                    if (getEnergyContainer().getEnergyStored() < diff) return false;
+                    getEnergyContainer().changeEnergy(-diff);
+                    reactorHeat.set(diff);
+                }
+                return true;
+            }
+        };
+        fusionCtrl.setLogic(fusionLogic);
+        fusionLogic.setAllowOverclocking(false);
+        fusionLogic.setThreadLimit(1);
+        fusionLogic.setParallelLimit(2);
+
+        MetaTileEntityItemBus fBusA = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_fusion_bus_a"), 1, false);
+        MetaTileEntityItemBus fBusB = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_fusion_bus_b"), 1, false);
+        MetaTileEntityItemBus fOut = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_fusion_out"), 2, true);
+        fusionCtrl.addPart(fBusA);
+        fusionCtrl.addPart(fBusB);
+        fusionCtrl.addPart(fOut);
+        fusionCtrl.setDistinct(true);
+
+        MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer fEnergy =
+                new MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer(160_000_000L, 200_000_000L, 32_768L);
+        fusionCtrl.setEnergyContainer(fEnergy);
+
+        fBusA.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+        fBusB.getImportItems().setStackInSlot(0, new ItemStack(Items.COAL, 1));
+        fusionLogic.updateWorkable();
+
+        assertEquals(20_000_000L, fEnergy.getEnergyStored(),
+                "Unallocated second fusion recipe must not trigger startup heat deduction in checkRecipe");
+        assertEquals(140_000_000L, reactorHeat.get());
+        assertEquals(1, fBusB.getImportItems().getStackInSlot(0).getCount());
+
+        // 2. Controller holder.checkRecipe(recipe, true) consuming auxiliary catalyst only when actually starting
+        AtomicInteger redstoneCatalyst = new AtomicInteger(8);
+        MultiblockRecipeLockAndInvalidationTest.TestController catCtrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP) {
+
+                    @Override
+                    public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
+                        if (redstoneCatalyst.get() <= 0) return false;
+                        if (consumeIfSuccess) {
+                            redstoneCatalyst.decrementAndGet();
+                        }
+                        return true;
+                    }
+                };
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic catLogic = catCtrl.getTestLogic();
+        catLogic.setAllowOverclocking(false);
+        catLogic.setThreadLimit(2);
+        catLogic.setMaxVoltage(512L);
+        catLogic.setTotalPowerBudget(256L);
+
+        MetaTileEntityItemBus catBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_cat_bus"), 1, false);
+        MetaTileEntityItemBus catOut = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_cat_out"), 1, true);
+        catCtrl.addPart(catBus);
+        catCtrl.addPart(catOut);
+        catCtrl.setDistinct(true);
+
+        catBus.getImportItems().setStackInSlot(0, new ItemStack(Items.GOLD_NUGGET, 1));
+        for (int t = 0; t < 8; t++) {
+            catLogic.updateWorkable();
+        }
+        assertEquals(8, redstoneCatalyst.get(),
+                "Budget-blocked distinct recipe must not consume holder catalyst across stalled ticks");
+        assertEquals("电力不足，无法满足当前配方的运行需求", catLogic.getWhyFailed());
+
+        catLogic.setTotalPowerBudget(512L);
+        catLogic.updateWorkable();
+        assertEquals(7, redstoneCatalyst.get());
+        assertEquals(fusionB.getEUt(), 24_576L);
+    }
+
+    @Test
+    void customDrawEnergyDiscountQuotesExactSplitCompletionAt70And69EU() {
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = true;
+        try {
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+            MultiblockRecipeLogic logic = new MultiblockRecipeLogic(ctrl) {
+
+                @Override
+                public long getMaxVoltage() {
+                    return 128L;
+                }
+
+                @Override
+                public long getMaximumOverclockVoltage() {
+                    return 128L;
+                }
+
+                @Override
+                protected long getTotalPowerBudget() {
+                    return 1024L;
+                }
+
+                @Override
+                protected boolean drawEnergy(long recipeEUt, boolean simulate) {
+                    long finalRecipeEUt = (long) (recipeEUt * 0.75);
+                    long resultEnergy = this.getEnergyStored() - finalRecipeEUt;
+                    if (resultEnergy >= 0L && resultEnergy <= this.getEnergyCapacity()) {
+                        if (!simulate) {
+                            this.getEnergyContainer().changeEnergy(-finalRecipeEUt);
+                        }
+                        return true;
+                    }
+                    return false;
+                }
+            };
+            ctrl.setLogic(logic);
+            logic.setAllowOverclocking(false);
+            logic.setThreadLimit(2);
+            logic.setParallelLimit(1);
+
+            MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_cust_disc_a"), 1, false);
+            MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_cust_disc_b"), 1, false);
+            MetaTileEntityItemBus busC = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_cust_disc_c"), 1, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_cust_disc_out"), 4, true);
+            ctrl.addPart(busA);
+            ctrl.addPart(busB);
+            ctrl.addPart(busC);
+            ctrl.addPart(outBus);
+            ctrl.setDistinct(true);
+
+            MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer energy =
+                    (MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer) ctrl.getEnergyContainer();
+
+            // Case 1 (70 EU): 30 EU/t short completes, 32 EU/t long continues, 32 EU/t candidate starts immediately
+            busA.getImportItems().setStackInSlot(0, new ItemStack(Items.CLAY_BALL, 1));
+            logic.updateWorkable();
+            busB.getImportItems().setStackInSlot(0, new ItemStack(Items.APPLE, 1));
+            logic.updateWorkable();
+            logic.updateWorkable();
+            logic.updateWorkable();
+            energy.changeEnergy(-energy.getEnergyStored() + 70L);
+            busC.getImportItems().setStackInSlot(0, new ItemStack(Items.POTATO, 1));
+            logic.updateWorkable();
+            assertEquals(2, logic.getCrossRecipeScheduler().getActiveSlotCount());
+            assertEquals(0, busC.getImportItems().getStackInSlot(0).getCount());
+
+            energy.changeEnergy(500L);
+            for (int t = 0; t < 5; t++) {
+                logic.updateWorkable();
+            }
+
+            // Case 2 (69 EU swapped): 32 EU/t short (4t) completes, 30 EU/t long (6t) continues, 32 EU/t candidate MUST wait
+            busA.getImportItems().setStackInSlot(0, new ItemStack(Items.APPLE, 1));
+            logic.updateWorkable();
+            busB.getImportItems().setStackInSlot(0, new ItemStack(Items.MUTTON, 1));
+            logic.updateWorkable();
+            logic.updateWorkable();
+            logic.updateWorkable();
+            energy.changeEnergy(-energy.getEnergyStored() + 69L);
+            busC.getImportItems().setStackInSlot(0, new ItemStack(Items.POTATO, 1));
+            logic.updateWorkable();
+            assertEquals(RECIPE_MUTTON_30EUT_6T.getDuration(), 6);
+            assertEquals(1, logic.getCrossRecipeScheduler().getActiveSlotCount(),
+                    "At 69 EU, completed 32 EU/t cost 24 EU leaving 45 EU < 46 EU needed for (30 + 32) EU/t; candidate must wait");
+            assertEquals(1, busC.getImportItems().getStackInSlot(0).getCount());
+
+            // Next tick with 45 EU: long 30 EU/t (6t) slot draws 22 EU and stays active without power-loss wipe
+            energy.changeEnergy(-energy.getEnergyStored() + 45L);
+            logic.updateWorkable();
+            assertEquals(1, logic.getCrossRecipeScheduler().getActiveSlotCount());
+
+            // Next tick with 48 EU: candidate starts alongside still-running long slot and both finish cleanly
+            energy.changeEnergy(-energy.getEnergyStored() + 48L);
+            logic.updateWorkable();
+            assertEquals(2, logic.getCrossRecipeScheduler().getActiveSlotCount());
+            assertEquals(0, busC.getImportItems().getStackInSlot(0).getCount());
+            energy.changeEnergy(500L);
+            for (int t = 0; t < 6; t++) {
+                logic.updateWorkable();
+            }
+            int totalOutputs = 0;
+            for (int s = 0; s < outBus.getExportItems().getSlots(); s++) {
+                totalOutputs += outBus.getExportItems().getStackInSlot(s).getCount();
+            }
+            assertEquals(6, totalOutputs);
+        } finally {
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
     }
 
     private static ICleanroomProvider uncleanSterileProvider() {
