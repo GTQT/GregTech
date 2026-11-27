@@ -128,7 +128,7 @@ class MultiblockRecipeLockAndInvalidationTest {
         RECIPE_COAL_TO_DIAMOND = compileSimpleRecipe(TEST_MAP, Items.COAL, Items.DIAMOND, 4, 16L);
     }
 
-    private static Recipe compileSimpleRecipe(RecipeMap<SimpleRecipeBuilder> map, Item input, Item output,
+    static Recipe compileSimpleRecipe(RecipeMap<SimpleRecipeBuilder> map, Item input, Item output,
                                               int duration, long eut) {
         Recipe recipe = new Recipe(
                 Collections.singletonList(new GTRecipeItemInput(new ItemStack(input, 1))),
@@ -840,7 +840,7 @@ class MultiblockRecipeLockAndInvalidationTest {
 
     // ==================== Headless Test Doubles ====================
 
-    private static final class TestController extends RecipeMapMultiblockController {
+    static final class TestController extends RecipeMapMultiblockController {
 
         private final List<IMultiblockPart> parts = new ArrayList<>();
         private final Map<MultiblockAbility<?>, List<Object>> abilities = new HashMap<>();
@@ -951,7 +951,7 @@ class MultiblockRecipeLockAndInvalidationTest {
         }
     }
 
-    private static final class TestMultiblockRecipeLogic extends MultiblockRecipeLogic {
+    static final class TestMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
         private boolean crossRecipeEnabled = false;
 
@@ -1085,7 +1085,7 @@ class MultiblockRecipeLockAndInvalidationTest {
         }
     }
 
-    private static final class TestEnergyContainer implements IEnergyContainer {
+    static final class TestEnergyContainer implements IEnergyContainer {
 
         private long stored;
         private final long capacity;

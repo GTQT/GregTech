@@ -277,6 +277,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
         IMultipleTankHandler outputTank = getOutputTank();
 
+        this.whyFailed = "";
         int completedParallel = scheduler.tickSlots(
                 getOutputInventory(),
                 outputTank,
@@ -296,18 +297,24 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             onCrossRecipeSlotsCompleted(completedParallel);
         }
 
-        this.hasNotEnoughEnergy = scheduler.isHasNotEnoughEnergy();
-        boolean wasPaused = this.isPaused;
-        if (wasPaused && (scheduler.hasWorkingSlots() || completedParallel > 0 || this.hasNotEnoughEnergy)) {
-            this.whyFailed = "";
+        boolean inFlightLowEnergy = scheduler.isHasNotEnoughEnergy();
+        String inFlightWhyFailed = this.whyFailed;
+        if (inFlightWhyFailed.isEmpty() && !inFlightLowEnergy &&
+                !scheduler.hasWorkingSlots() && scheduler.hasOutputBlockedSlots()) {
+            inFlightWhyFailed = "输出仓已满，产物无法继续输出（清空或设置销毁产物）";
         }
 
         // If scheduler can accept more recipes (has remaining parallel budget), try to fill
+        this.whyFailed = "";
         if (usesParallelScheduler() && scheduler.canAcceptMoreRecipes()) {
             refillScheduler(scheduler);
         }
+        String candidateWhyFailed = this.whyFailed;
 
-        // Update the parent's recipeEUt to reflect current total consumption (for display purposes)
+        // Reconcile whole-machine telemetry from actual in-flight slot states so candidate refill rejections
+        // cannot mark working slots as low-power or overwrite an in-flight paused slot's failure reason.
+        boolean workingNow = scheduler.hasWorkingSlots();
+        this.hasNotEnoughEnergy = !workingNow && inFlightLowEnergy;
         this.recipeEUt = scheduler.getTotalEnergyConsumption();
         this.parallelRecipesPerformed = scheduler.getTotalParallelCount();
 
@@ -321,12 +328,25 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             this.recipeEUt = 0;
             this.parallelRecipesPerformed = 0;
             this.wasActiveAndNeedsUpdate = true;
+            if (!inFlightWhyFailed.isEmpty()) {
+                this.whyFailed = inFlightWhyFailed;
+                metaTileEntity.getNotifiedItemInputList().clear();
+                metaTileEntity.getNotifiedFluidInputList().clear();
+            } else {
+                this.whyFailed = candidateWhyFailed;
+            }
         } else {
             crossRecipeSchedulerActive = true;
-            boolean workingNow = scheduler.hasWorkingSlots();
             this.isPaused = !this.hasNotEnoughEnergy && !workingNow;
             // Keep progressTime > 0 so the main loop continues calling updateRecipeProgress()
             this.progressTime = 1;
+            if (workingNow || this.hasNotEnoughEnergy) {
+                this.whyFailed = "";
+            } else if (!inFlightWhyFailed.isEmpty()) {
+                this.whyFailed = inFlightWhyFailed;
+            } else {
+                this.whyFailed = candidateWhyFailed;
+            }
         }
     }
 
@@ -810,6 +830,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 metaTileEntity.canVoidRecipeFluidOutputs());
         if (outputParallel == 0) {
             this.isOutputsFull = true;
+            if (this.whyFailed.isEmpty()) {
+                this.whyFailed = "输出仓已满，产物无法继续输出（清空或设置销毁产物）";
+            }
             return null;
         }
         inputParallel = outputParallel;
@@ -898,6 +921,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         subTickGroups = Math.min(subTickGroups, outputOperations / inputParallel);
         if (subTickGroups <= 0) {
             this.isOutputsFull = true;
+            if (this.whyFailed.isEmpty()) {
+                this.whyFailed = "输出仓已满，产物无法继续输出（清空或设置销毁产物）";
+            }
             return false;
         }
 
@@ -1008,11 +1034,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getTotalScheduledEUt();
         long totalEUt = saturatingAdd(runningEUt, candidateEUt);
         if (drawEnergy(totalEUt, true)) {
-            this.hasNotEnoughEnergy = false;
             return true;
         }
 
-        this.hasNotEnoughEnergy = true;
+        this.whyFailed = "电力不足，无法满足当前配方的运行需求";
         return false;
     }
 
@@ -1410,9 +1435,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected boolean canWorkWithInputs() {
+        if (this.progressTime == 0 && !this.crossRecipeSchedulerActive && hasNotifiedInputs()) {
+            this.whyFailed = "";
+        }
         if (shouldUseDistinctInputBuses()) {
                 boolean canWork = false;
                 if (invalidatedInputList.isEmpty()) {
+                    metaTileEntity.getNotifiedFluidInputList().clear();
+                    metaTileEntity.getNotifiedItemInputList().clear();
                     return true;
                 }
                 if (!metaTileEntity.getNotifiedFluidInputList().isEmpty()) {
@@ -1861,6 +1891,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (filled > 0) {
             this.progressTime = 1;
             this.canRecipeProgress = true;
+            this.hasNotEnoughEnergy = false;
             setMaxProgress(Integer.MAX_VALUE);
             this.recipeEUt = scheduler.getTotalEnergyConsumption();
             this.parallelRecipesPerformed = scheduler.getTotalParallelCount();

@@ -470,6 +470,18 @@ public class CrossRecipeParallelScheduler {
     }
 
     /**
+     * @return true if at least one slot has completed processing and is waiting for output space
+     */
+    public boolean hasOutputBlockedSlots() {
+        for (RecipeSlot slot : activeSlots) {
+            if (slot.isCompleted()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * @return the total Phase 1 power reservation held by all active slots
      */
     public long getTotalPowerReservation() {
