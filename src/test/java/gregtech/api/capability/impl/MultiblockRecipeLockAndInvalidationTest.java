@@ -123,9 +123,11 @@ class MultiblockRecipeLockAndInvalidationTest {
             };
         }
 
-        TEST_MAP = new RecipeMap<>("test_lock_invalid_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
-        RECIPE_IRON_TO_GOLD = compileSimpleRecipe(TEST_MAP, Items.IRON_INGOT, Items.GOLD_INGOT, 4, 16L);
-        RECIPE_COAL_TO_DIAMOND = compileSimpleRecipe(TEST_MAP, Items.COAL, Items.DIAMOND, 4, 16L);
+        if (TEST_MAP == null) {
+            TEST_MAP = new RecipeMap<>("test_lock_invalid_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
+            RECIPE_IRON_TO_GOLD = compileSimpleRecipe(TEST_MAP, Items.IRON_INGOT, Items.GOLD_INGOT, 4, 16L);
+            RECIPE_COAL_TO_DIAMOND = compileSimpleRecipe(TEST_MAP, Items.COAL, Items.DIAMOND, 4, 16L);
+        }
     }
 
     static Recipe compileSimpleRecipe(RecipeMap<SimpleRecipeBuilder> map, Item input, Item output,
