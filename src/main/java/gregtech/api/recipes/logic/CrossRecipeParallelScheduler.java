@@ -111,6 +111,7 @@ public class CrossRecipeParallelScheduler {
     private boolean hasNotEnoughEnergy = false;
     private boolean workedThisTick = false;
     private long lastTickConsumedEUt = 0L;
+    private long paidStillRunningEUt = 0L;
 
     public CrossRecipeParallelScheduler(int parallelLimit) {
         this.parallelLimit = parallelLimit;
@@ -293,6 +294,7 @@ public class CrossRecipeParallelScheduler {
         boolean hasConditions = !conditions.isEmpty();
         this.workedThisTick = false;
         this.lastTickConsumedEUt = 0L;
+        this.paidStillRunningEUt = 0L;
 
         List<RecipeSlot> runnableSlots = new ArrayList<>(activeSlots.size());
         List<RecipeExecutionContext> runnableContexts = hasConditions ? new ArrayList<>(activeSlots.size()) : null;
@@ -432,6 +434,8 @@ public class CrossRecipeParallelScheduler {
                     activeSlots.remove(slot);
                     returnSlotToPool(slot);
                 }
+            } else if (slot.isRunning()) {
+                this.paidStillRunningEUt += slot.getRecipeEUt();
             }
         }
         return completedParallel;
@@ -583,6 +587,21 @@ public class CrossRecipeParallelScheduler {
      */
     public long getLastTickConsumedEUt() {
         return lastTickConsumedEUt;
+    }
+
+    /**
+     * @return scheduled EU/t across active running slots that have NOT already paid energy during the current tick's
+     *         {@link #tickSlots} execution (paused slots plus slots started during the current refill pass)
+     */
+    public long getUnpaidScheduledEUt() {
+        return Math.max(0L, getTotalScheduledEUt() - paidStillRunningEUt);
+    }
+
+    /**
+     * Clears the in-tick paid EUt credit once post-tick refill admission finishes.
+     */
+    public void clearPaidStillRunningEUt() {
+        this.paidStillRunningEUt = 0L;
     }
 
     public int getParallelLimit() {
@@ -824,6 +843,7 @@ public class CrossRecipeParallelScheduler {
         hasNotEnoughEnergy = false;
         workedThisTick = false;
         lastTickConsumedEUt = 0L;
+        paidStillRunningEUt = 0L;
     }
 
     // ==================== Serialization ====================

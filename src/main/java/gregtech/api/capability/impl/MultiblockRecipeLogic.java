@@ -102,6 +102,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected CrossRecipeParallelScheduler crossRecipeScheduler;
     protected boolean crossRecipeSchedulerActive = false;
     private transient boolean preserveAbortWhyFailed = false;
+    private transient boolean deferAbortWhyFailedClearOnce = false;
+    @Nullable
+    private transient AllocationBudget lastCombinedAllocationBudget;
 
     // Cached last successful recipe for "same recipe first" strategy
     @Nullable
@@ -310,8 +313,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         // If scheduler can accept more recipes (has remaining parallel budget), try to fill
         this.whyFailed = "";
-        if (usesParallelScheduler() && scheduler.canAcceptMoreRecipes()) {
-            refillScheduler(scheduler);
+        try {
+            if (!inFlightLowEnergy && usesParallelScheduler() && scheduler.canAcceptMoreRecipes()) {
+                refillScheduler(scheduler);
+            }
+        } finally {
+            scheduler.clearPaidStillRunningEUt();
         }
         String candidateWhyFailed = this.whyFailed;
 
@@ -326,6 +333,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // Update active state based on whether any slots are still running
         if (!scheduler.hasActiveSlots()) {
             crossRecipeSchedulerActive = false;
+            this.hasNotEnoughEnergy = false;
             this.isPaused = false;
             this.canRecipeProgress = true;
             this.progressTime = 0;
@@ -336,13 +344,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             if (!inFlightWhyFailed.isEmpty()) {
                 this.whyFailed = inFlightWhyFailed;
                 this.preserveAbortWhyFailed = true;
+                this.deferAbortWhyFailedClearOnce = hasNotifiedInputs();
             } else {
                 this.whyFailed = candidateWhyFailed;
-                this.preserveAbortWhyFailed = false;
+                clearPreservedAbortReason();
             }
         } else {
             crossRecipeSchedulerActive = true;
-            this.preserveAbortWhyFailed = false;
+            clearPreservedAbortReason();
             this.isPaused = !this.hasNotEnoughEnergy && !workingNow;
             // Keep progressTime > 0 so the main loop continues calling updateRecipeProgress()
             this.progressTime = 1;
@@ -363,6 +372,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         long remainingBasePower;
         int remainingParallel;
         boolean exhausted;
+        boolean hasAnyInput;
+        boolean matchedAnyRecipe;
         final List<SlotAllocation> allocations = new ArrayList<>();
         final Set<Recipe> allAllocatedRecipes = new HashSet<>();
         final Set<IItemHandlerModifiable> allocatedPublicBuses = new HashSet<>();
@@ -478,14 +489,19 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 continue;
             }
             routedRecipeMap = recipeMap;
+            long maxVoltage = getMaxVoltage();
             Recipe recipe = findRecipe(recipeMap, budget.remainingBasePower, bus, busFluidTank);
             boolean skippedDuplicate = false;
-            boolean blockedByCondition = false;
-            if (recipe != null) {
+            boolean blockedByConditionOrBudget = false;
+            if (recipe == null && budget.remainingBasePower < maxVoltage &&
+                    findRecipe(recipeMap, maxVoltage, bus, busFluidTank) != null) {
+                blockedByConditionOrBudget = true;
+            } else if (recipe != null) {
                 if (colorChannel == NO_CHANNEL && budget.allAllocatedRecipes.contains(recipe)) {
                     skippedDuplicate = true;
                 } else if (!checkRecipe(recipe, bus, busFluidTank)) {
-                    blockedByCondition = true;
+                    ensureConditionFailureReason();
+                    blockedByConditionOrBudget = true;
                 } else if (!channelUsedRecipes.add(recipe)) {
                     skippedDuplicate = true;
                 } else {
@@ -495,9 +511,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                         routedRecipeMap = null;
                         break;
                     }
+                    boolean wasOutputsFull = this.isOutputsFull;
+                    this.isOutputsFull = false;
                     SlotAllocation alloc = allocateSlotParallel(slot, recipe, recipeMap, bus, busFluidTank,
                             budget.remainingBasePower, budget.remainingParallel, scheduler.getPerSlotParallelCap());
                     if (alloc != null) {
+                        this.isOutputsFull = wasOutputsFull;
                         alloc.colorChannel = colorChannel;
                         budget.allocations.add(alloc);
                         budget.allAllocatedRecipes.add(recipe);
@@ -511,6 +530,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                         this.previousDistinctRecipeMap = recipeMap;
                         lastCrossRecipe = recipe;
                     } else {
+                        boolean failedByFullOutput = this.isOutputsFull;
+                        this.isOutputsFull = wasOutputsFull || failedByFullOutput;
+                        if (!failedByFullOutput) {
+                            blockedByConditionOrBudget = true;
+                        }
                         scheduler.releaseSlot(slot);
                     }
                 }
@@ -518,7 +542,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             routedRecipeMap = null;
 
             if (!foundFromBus && skipInvalidated) {
-                if (blockedByCondition || skippedDuplicate) {
+                if (blockedByConditionOrBudget || skippedDuplicate) {
                     if (isPublicBus) {
                         budget.conditionBlockedPublicBuses.add(bus);
                     }
@@ -534,6 +558,28 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
     }
 
+    private void ensureConditionFailureReason() {
+        if (this.whyFailed.isEmpty()) {
+            this.whyFailed = "配方的特殊条件不满足（例如温度，算力等额外条件）";
+        }
+    }
+
+    private static boolean hasAnyHandlerInput(@NotNull IItemHandlerModifiable importInventory,
+                                              @NotNull IMultipleTankHandler importFluids) {
+        for (int i = 0; i < importInventory.getSlots(); i++) {
+            if (!importInventory.getStackInSlot(i).isEmpty()) {
+                return true;
+            }
+        }
+        for (IMultipleTankHandler.ITankEntry tank : importFluids.getFluidTanks()) {
+            FluidStack fluid = tank.getFluid();
+            if (fluid != null && fluid.amount > 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * Fills scheduler with recipes from the combined input inventory using two-phase allocation.
      */
@@ -543,6 +589,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         long totalPowerBudget = scheduler.getRemainingPowerBudget();
         AllocationBudget budget = new AllocationBudget(totalPowerBudget, scheduler.getRemainingParallelBudget());
+        this.lastCombinedAllocationBudget = budget;
         collectSchedulerAllocations(scheduler, recipeMap, getInputInventory(), getInputTank(),
                 null, null, UNTRACKED_CHANNEL, budget);
         return distributeAndOverclock(budget.allocations, totalPowerBudget, scheduler);
@@ -558,6 +605,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         long totalPowerBudget = scheduler.getRemainingPowerBudget();
         AllocationBudget budget = new AllocationBudget(totalPowerBudget, scheduler.getRemainingParallelBudget());
+        this.lastCombinedAllocationBudget = budget;
+        if (totalPowerBudget <= 0 || budget.remainingParallel <= 0) {
+            budget.hasAnyInput = hasAnyHandlerInput(getInputInventory(), getInputTank());
+            return 0;
+        }
         IItemHandlerModifiable publicInventory = new ItemHandlerList(getInputBusesForColor(NO_CHANNEL));
         IMultipleTankHandler publicFluids = getInputTankForColor(NO_CHANNEL);
         int[] channelOrder = getChannelOrder(mask);
@@ -587,8 +639,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                                              @Nullable IMultipleTankHandler publicFluids,
                                              int colorChannel,
                                              @NotNull AllocationBudget budget) {
+        if (hasAnyHandlerInput(importInventory, importFluids)) {
+            budget.hasAnyInput = true;
+        }
         if (budget.remainingParallel <= 0 || budget.remainingBasePower <= 0) return;
 
+        long maxVoltage = getMaxVoltage();
         Set<Recipe> channelUsedRecipes = new HashSet<>();
         if (colorChannel == NO_CHANNEL) {
             channelUsedRecipes.addAll(budget.allAllocatedRecipes);
@@ -597,31 +653,36 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         Recipe locked = getLockedRecipe();
         if (locked != null) {
             if (recipeMap.ownsRecipe(locked) &&
-                    !channelUsedRecipes.contains(locked) &&
-                    !(isPublicSharedRecipe(locked, publicInventory, publicFluids) &&
-                            budget.allocatedPublicRecipes.contains(locked)) &&
-                    locked.getEUt() <= budget.remainingBasePower &&
-                    locked.matches(false, importInventory, importFluids) &&
-                    checkRecipe(locked, importInventory, importFluids)) {
-                RecipeSlot slot = scheduler.acquireSlot();
-                if (slot != null) {
-                    SlotAllocation alloc = allocateSlotParallel(slot, locked, recipeMap,
-                            importInventory, importFluids, budget.remainingBasePower, budget.remainingParallel,
-                            scheduler.getPerSlotParallelCap());
-                    if (alloc != null) {
-                        alloc.colorChannel = colorChannel;
-                        budget.allocations.add(alloc);
-                        budget.allAllocatedRecipes.add(locked);
-                        if (isPublicSharedRecipe(locked, publicInventory, publicFluids)) {
-                            budget.allocatedPublicRecipes.add(locked);
+                    locked.getEUt() <= maxVoltage &&
+                    locked.matches(false, importInventory, importFluids)) {
+                budget.matchedAnyRecipe = true;
+                if (!channelUsedRecipes.contains(locked) &&
+                        !(isPublicSharedRecipe(locked, publicInventory, publicFluids) &&
+                                budget.allocatedPublicRecipes.contains(locked))) {
+                    if (!checkRecipe(locked, importInventory, importFluids)) {
+                        ensureConditionFailureReason();
+                    } else if (locked.getEUt() <= budget.remainingBasePower) {
+                        RecipeSlot slot = scheduler.acquireSlot();
+                        if (slot != null) {
+                            SlotAllocation alloc = allocateSlotParallel(slot, locked, recipeMap,
+                                    importInventory, importFluids, budget.remainingBasePower, budget.remainingParallel,
+                                    scheduler.getPerSlotParallelCap());
+                            if (alloc != null) {
+                                alloc.colorChannel = colorChannel;
+                                budget.allocations.add(alloc);
+                                budget.allAllocatedRecipes.add(locked);
+                                if (isPublicSharedRecipe(locked, publicInventory, publicFluids)) {
+                                    budget.allocatedPublicRecipes.add(locked);
+                                }
+                                channelUsedRecipes.add(locked);
+                                budget.remainingBasePower -= alloc.basePowerDemand;
+                                budget.remainingParallel -= alloc.inputParallel;
+                                this.previousRecipe = locked;
+                                lastCrossRecipe = locked;
+                            } else {
+                                scheduler.releaseSlot(slot);
+                            }
                         }
-                        channelUsedRecipes.add(locked);
-                        budget.remainingBasePower -= alloc.basePowerDemand;
-                        budget.remainingParallel -= alloc.inputParallel;
-                        this.previousRecipe = locked;
-                        lastCrossRecipe = locked;
-                    } else {
-                        scheduler.releaseSlot(slot);
                     }
                 }
             }
@@ -631,33 +692,39 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // Phase 1a: Try cached recipe first (fast path, avoids full recipe search)
         if (lastCrossRecipe != null &&
                 recipeMap.ownsRecipe(lastCrossRecipe) &&
-                !channelUsedRecipes.contains(lastCrossRecipe) &&
-                !(isPublicSharedRecipe(lastCrossRecipe, publicInventory, publicFluids) &&
-                        budget.allocatedPublicRecipes.contains(lastCrossRecipe)) &&
-                lastCrossRecipe.getEUt() <= budget.remainingBasePower &&
-                lastCrossRecipe.matches(false, importInventory, importFluids) &&
-                checkRecipe(lastCrossRecipe, importInventory, importFluids)) {
-            RecipeSlot slot = scheduler.acquireSlot();
-            if (slot != null) {
-                SlotAllocation alloc = allocateSlotParallel(slot, lastCrossRecipe, recipeMap,
-                        importInventory, importFluids, budget.remainingBasePower, budget.remainingParallel,
-                        scheduler.getPerSlotParallelCap());
-                if (alloc != null) {
-                    alloc.colorChannel = colorChannel;
-                    budget.allocations.add(alloc);
-                    budget.allAllocatedRecipes.add(lastCrossRecipe);
-                    if (isPublicSharedRecipe(lastCrossRecipe, publicInventory, publicFluids)) {
-                        budget.allocatedPublicRecipes.add(lastCrossRecipe);
-                    }
+                lastCrossRecipe.getEUt() <= maxVoltage &&
+                lastCrossRecipe.matches(false, importInventory, importFluids)) {
+            budget.matchedAnyRecipe = true;
+            if (!channelUsedRecipes.contains(lastCrossRecipe) &&
+                    !(isPublicSharedRecipe(lastCrossRecipe, publicInventory, publicFluids) &&
+                            budget.allocatedPublicRecipes.contains(lastCrossRecipe))) {
+                if (!checkRecipe(lastCrossRecipe, importInventory, importFluids)) {
+                    ensureConditionFailureReason();
                     channelUsedRecipes.add(lastCrossRecipe);
-                    budget.remainingBasePower -= alloc.basePowerDemand;
-                    budget.remainingParallel -= alloc.inputParallel;
-                    this.previousRecipe = lastCrossRecipe;
-                    if (isRecipeLockEnable()) {
-                        return;
+                } else if (lastCrossRecipe.getEUt() <= budget.remainingBasePower) {
+                    RecipeSlot slot = scheduler.acquireSlot();
+                    if (slot != null) {
+                        SlotAllocation alloc = allocateSlotParallel(slot, lastCrossRecipe, recipeMap,
+                                importInventory, importFluids, budget.remainingBasePower, budget.remainingParallel,
+                                scheduler.getPerSlotParallelCap());
+                        if (alloc != null) {
+                            alloc.colorChannel = colorChannel;
+                            budget.allocations.add(alloc);
+                            budget.allAllocatedRecipes.add(lastCrossRecipe);
+                            if (isPublicSharedRecipe(lastCrossRecipe, publicInventory, publicFluids)) {
+                                budget.allocatedPublicRecipes.add(lastCrossRecipe);
+                            }
+                            channelUsedRecipes.add(lastCrossRecipe);
+                            budget.remainingBasePower -= alloc.basePowerDemand;
+                            budget.remainingParallel -= alloc.inputParallel;
+                            this.previousRecipe = lastCrossRecipe;
+                            if (isRecipeLockEnable()) {
+                                return;
+                            }
+                        } else {
+                            scheduler.releaseSlot(slot);
+                        }
                     }
-                } else {
-                    scheduler.releaseSlot(slot);
                 }
             }
         }
@@ -671,9 +738,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             List<FluidStack> filteredFluids = fluids.stream()
                     .filter(f -> f != null && f.amount != 0).collect(java.util.stream.Collectors.toList());
 
-            final long powerBudgetSnapshot = budget.remainingBasePower;
             RecipeIterator iterator = recipeMap.findRecipeIterator(filteredItems, filteredFluids,
-                    recipe -> recipe.getEUt() <= powerBudgetSnapshot &&
+                    recipe -> recipe.getEUt() <= maxVoltage &&
                             !channelUsedRecipes.contains(recipe) &&
                             !(isPublicSharedRecipe(recipe, publicInventory, publicFluids) &&
                                     budget.allocatedPublicRecipes.contains(recipe)) &&
@@ -690,12 +756,18 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 while (iterator.hasNext() && budget.remainingParallel > 0 && budget.remainingBasePower > 0) {
                     Recipe recipe = iterator.next();
                     if (recipe == null || !channelUsedRecipes.add(recipe)) continue;
+                    budget.matchedAnyRecipe = true;
                     if (isPublicSharedRecipe(recipe, publicInventory, publicFluids) &&
                             budget.allocatedPublicRecipes.contains(recipe)) {
                         iterator.exclude(recipe);
                         continue;
                     }
                     if (!checkRecipe(recipe, importInventory, importFluids)) {
+                        ensureConditionFailureReason();
+                        iterator.exclude(recipe);
+                        continue;
+                    }
+                    if (recipe.getEUt() > budget.remainingBasePower) {
                         iterator.exclude(recipe);
                         continue;
                     }
@@ -795,9 +867,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         // Trim recipe outputs
         Recipe trimmed = Recipe.trimRecipeOutputs(recipe, recipeMap, metaTileEntity.getItemOutputLimit(),
                 metaTileEntity.getFluidOutputLimit());
-        if (trimmed == null) return null;
+        if (trimmed == null) {
+            whyFailed = "配方输出数量超过机器限制（物品输出槽:" + metaTileEntity.getItemOutputLimit() +
+                    ", 流体输出槽:" + metaTileEntity.getFluidOutputLimit() + "）";
+            return null;
+        }
 
         if (!canStartConditions(trimmed, importInventory, importFluids)) {
+            ensureConditionFailureReason();
             return null;
         }
 
@@ -979,6 +1056,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         if (!canStartConditions(trimmed, alloc.importInventory, alloc.importFluids)) {
+            ensureConditionFailureReason();
             return false;
         }
 
@@ -1039,7 +1117,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return true;
         }
 
-        long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getTotalScheduledEUt();
+        long runningEUt = crossRecipeScheduler == null ? 0L : crossRecipeScheduler.getUnpaidScheduledEUt();
         long totalEUt = saturatingAdd(runningEUt, candidateEUt);
         if (drawEnergy(totalEUt, true)) {
             return true;
@@ -1232,16 +1310,23 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         return super.canProgressRecipe() && !((IMultiblockController) metaTileEntity).isStructureObstructed();
     }
 
+    private void clearPreservedAbortReason() {
+        this.preserveAbortWhyFailed = false;
+        this.deferAbortWhyFailedClearOnce = false;
+    }
+
     @Override
     protected void resetInvalidatedInputs() {
         super.resetInvalidatedInputs();
         this.invalidatedInputList.clear();
+        clearPreservedAbortReason();
     }
 
     @Override
     public void forceRecipeRecheck() {
         this.lastCrossRecipe = null;
         this.previousDistinctRecipeMap = null;
+        clearPreservedAbortReason();
         super.forceRecipeRecheck();
     }
 
@@ -1265,11 +1350,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         lastCrossRecipe = null;
         routedRecipeMap = null;
         previousDistinctRecipeMap = null;
-        preserveAbortWhyFailed = false;
+        clearPreservedAbortReason();
     }
 
     public void onDistinctChanged() {
         this.lastRecipeIndex = 0;
+        resetInvalidatedInputs();
     }
 
     /**
@@ -1444,9 +1530,19 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected boolean canWorkWithInputs() {
+        if (this.preserveAbortWhyFailed && this.progressTime == 0 && !this.crossRecipeSchedulerActive &&
+                hasNotifiedInputs()) {
+            if (this.deferAbortWhyFailedClearOnce) {
+                this.deferAbortWhyFailedClearOnce = false;
+            } else {
+                clearPreservedAbortReason();
+            }
+        }
         if (shouldUseDistinctInputBuses()) {
                 boolean canWork = false;
                 if (invalidatedInputList.isEmpty()) {
+                    metaTileEntity.getNotifiedFluidInputList().clear();
+                    metaTileEntity.getNotifiedItemInputList().clear();
                     return true;
                 }
                 if (!metaTileEntity.getNotifiedFluidInputList().isEmpty()) {
@@ -1737,13 +1833,32 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     private void runIdleSchedulerSearch(@NotNull ToIntFunction<CrossRecipeParallelScheduler> filler) {
         String retainedAbortReason = this.preserveAbortWhyFailed ? this.whyFailed : "";
         this.whyFailed = "";
+        this.lastCombinedAllocationBudget = null;
         CrossRecipeParallelScheduler scheduler = getOrCreateScheduler();
         int filled = filler.applyAsInt(scheduler);
+        AllocationBudget combinedBudget = this.lastCombinedAllocationBudget;
+        this.lastCombinedAllocationBudget = null;
+
         if (filled > 0) {
-            this.preserveAbortWhyFailed = false;
+            clearPreservedAbortReason();
             activateSchedulerIfFilled(scheduler, filled);
-        } else if (!this.whyFailed.isEmpty()) {
-            this.preserveAbortWhyFailed = false;
+            return;
+        }
+
+        if (combinedBudget != null) {
+            if (!combinedBudget.matchedAnyRecipe) {
+                this.invalidInputsForRecipes = true;
+                if (combinedBudget.hasAnyInput && retainedAbortReason.isEmpty()) {
+                    this.whyFailed = getLockedRecipe() != null ? "无法运行锁定的配方" : "NoneRecipes";
+                    return;
+                }
+            } else if (this.whyFailed.isEmpty()) {
+                ensureConditionFailureReason();
+            }
+        }
+
+        if (!this.whyFailed.isEmpty()) {
+            clearPreservedAbortReason();
         } else if (!retainedAbortReason.isEmpty()) {
             this.whyFailed = retainedAbortReason;
         }
@@ -1907,7 +2022,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             this.progressTime = 1;
             this.canRecipeProgress = true;
             this.hasNotEnoughEnergy = false;
-            this.preserveAbortWhyFailed = false;
+            clearPreservedAbortReason();
             setMaxProgress(Integer.MAX_VALUE);
             this.recipeEUt = scheduler.getTotalEnergyConsumption();
             this.parallelRecipesPerformed = scheduler.getTotalParallelCount();
@@ -2287,7 +2402,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     public void deserializeNBT(@NotNull NBTTagCompound compound) {
         super.deserializeNBT(compound);
-        this.preserveAbortWhyFailed = false;
+        clearPreservedAbortReason();
         this.crossRecipeSchedulerActive = compound.getBoolean("crossRecipeActive");
         if (crossRecipeSchedulerActive && compound.hasKey("crossRecipeScheduler")) {
             crossRecipeScheduler = new CrossRecipeParallelScheduler(getParallelLimit());

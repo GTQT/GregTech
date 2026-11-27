@@ -954,6 +954,7 @@ class MultiblockRecipeLockAndInvalidationTest {
     static final class TestMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
         private boolean crossRecipeEnabled = false;
+        private long totalPowerBudget = 1024L;
 
         TestMultiblockRecipeLogic(RecipeMapMultiblockController controller) {
             super(controller);
@@ -961,6 +962,10 @@ class MultiblockRecipeLockAndInvalidationTest {
 
         void setCrossRecipeParallelEnabled(boolean enabled) {
             this.crossRecipeEnabled = enabled;
+        }
+
+        void setTotalPowerBudget(long totalPowerBudget) {
+            this.totalPowerBudget = totalPowerBudget;
         }
 
         @Override
@@ -985,7 +990,7 @@ class MultiblockRecipeLockAndInvalidationTest {
 
         @Override
         public long getTotalPowerBudget() {
-            return 1024L;
+            return totalPowerBudget;
         }
 
         @Override

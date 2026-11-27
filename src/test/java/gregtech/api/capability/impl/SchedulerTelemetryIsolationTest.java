@@ -3,6 +3,7 @@ package gregtech.api.capability.impl;
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.metatileentity.multiblock.CleanroomType;
 import gregtech.api.metatileentity.multiblock.ICleanroomProvider;
+import gregtech.api.metatileentity.multiblock.MultiblockAbility;
 import gregtech.api.recipes.Recipe;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.builders.SimpleRecipeBuilder;
@@ -38,6 +39,8 @@ class SchedulerTelemetryIsolationTest {
     private static RecipeMap<SimpleRecipeBuilder> TEST_MAP;
     private static Recipe RECIPE_IRON;
     private static Recipe RECIPE_COAL;
+    private static Recipe RECIPE_CLAY_30EUT;
+    private static Recipe RECIPE_ZERO_EUT;
     private static Recipe RECIPE_STERILE_REDSTONE;
 
     @BeforeAll
@@ -48,6 +51,10 @@ class SchedulerTelemetryIsolationTest {
                 TEST_MAP, Items.IRON_INGOT, Items.GOLD_INGOT, 4, 16L);
         RECIPE_COAL = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
                 TEST_MAP, Items.COAL, Items.DIAMOND, 4, 16L);
+        RECIPE_CLAY_30EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                TEST_MAP, Items.CLAY_BALL, Items.BRICK, 4, 30L);
+        RECIPE_ZERO_EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                TEST_MAP, Items.FLINT, Items.GUNPOWDER, 4, 0L);
 
         RecipePropertyStorage sterileProps = new RecipePropertyStorageImpl();
         sterileProps.store(CleanroomProperty.getInstance(), CleanroomType.STERILE_CLEANROOM);
@@ -401,6 +408,290 @@ class SchedulerTelemetryIsolationTest {
             assertEquals(expected, drawn);
             assertEquals(expected, logic.getInfoProviderEUt(),
                     "Displayed EU/t must match the slot executed this tick rather than the newly queued refill slot");
+        }
+    }
+
+    @Test
+    void postAbortConditionOrInputChangeClearsPreservedWhyFailed() {
+        boolean prevClean = ConfigHolder.machines.cleanMultiblocks;
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.cleanMultiblocks = false;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = true;
+        try {
+            AtomicBoolean clean = new AtomicBoolean(true);
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+            ctrl.setCleanroom(sterileProvider(clean));
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setParallelLimit(2);
+
+            MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_abort_clear_in"), 1, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_abort_clear_out"), 1, true);
+            ctrl.addPart(inBus);
+            ctrl.addPart(outBus);
+
+            // Abort 1 -> cleared via notifyConditionInputChanged()
+            inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.REDSTONE, 1));
+            logic.updateWorkable();
+            clean.set(false);
+            logic.updateWorkable();
+            logic.updateWorkable();
+            assertEquals(CleanroomRecipeCondition.MISSING_CLEANROOM_REASON, logic.getWhyFailed());
+            clean.set(true);
+            logic.notifyConditionInputChanged();
+            logic.updateWorkable();
+            assertEquals("", logic.getWhyFailed());
+
+            // Abort 2 -> cleared via subsequent non-matching input edit and removal
+            inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.REDSTONE, 1));
+            logic.updateWorkable();
+            clean.set(false);
+            logic.updateWorkable();
+            logic.updateWorkable();
+            assertEquals(CleanroomRecipeCondition.MISSING_CLEANROOM_REASON, logic.getWhyFailed());
+            inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.STICK, 1));
+            logic.updateWorkable();
+            assertEquals("NoneRecipes", logic.getWhyFailed());
+            inBus.getImportItems().setStackInSlot(0, ItemStack.EMPTY);
+            logic.updateWorkable();
+            assertEquals("", logic.getWhyFailed());
+        } finally {
+            ConfigHolder.machines.cleanMultiblocks = prevClean;
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
+    }
+
+    @Test
+    void energyShortageAbortToIdleClearsHasNotEnoughEnergy() {
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = true;
+        try {
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setParallelLimit(2);
+            logic.addRecipeCondition(new IRecipeCondition() {
+
+                @Override
+                public @NotNull String getConditionId() {
+                    return "test:energy_abort";
+                }
+
+                @Override
+                public boolean handlesEnergyShortage() {
+                    return true;
+                }
+
+                @Override
+                public @NotNull TickFailureAction onTickFailed(@NotNull RecipeExecutionContext context,
+                                                               boolean energyShortage) {
+                    return TickFailureAction.DECREASE_PROGRESS;
+                }
+            });
+
+            MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_energy_abort_in"), 1, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_energy_abort_out"), 1, true);
+            ctrl.addPart(inBus);
+            ctrl.addPart(outBus);
+
+            inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            logic.updateWorkable();
+            assertTrue(logic.isActive());
+
+            MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer energy =
+                    (MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer) ctrl.getEnergyContainer();
+            energy.changeEnergy(-energy.getEnergyStored());
+            logic.updateWorkable();
+            assertFalse(logic.isActive());
+            assertFalse(logic.isHasNotEnoughEnergy(),
+                    "Returning to idle after energy-shortage slot destruction must clear hasNotEnoughEnergy");
+        } finally {
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
+        }
+    }
+
+    @Test
+    void distinctBudgetExhaustionKeepsValidBusActiveAndSetsSilentConditionFallback() {
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setTotalPowerBudget(128L);
+        logic.setParallelLimit(8);
+        logic.setThreadLimit(2);
+
+        MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_dist_budget_a"), 1, false);
+        MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_dist_budget_b"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_dist_budget_out"), 2, true);
+        ctrl.addPart(busA);
+        ctrl.addPart(busB);
+        ctrl.addPart(outBus);
+        ctrl.setDistinct(true);
+
+        MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer energy =
+                (MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer) ctrl.getEnergyContainer();
+        energy.changeEnergy(-energy.getEnergyStored());
+
+        // Bus A reserves 7 * 16 = 112 EU/t (leaving 16 EU/t < 30 EU/t for Bus B), Phase 2 fails on 0 stored EU
+        busA.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 7));
+        busB.getImportItems().setStackInSlot(0, new ItemStack(Items.CLAY_BALL, 1));
+        logic.updateWorkable();
+        IItemHandlerModifiable registeredBusB = ctrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(1);
+        assertFalse(logic.invalidatedInputList.contains(registeredBusB),
+                "Valid recipe blocked only by remaining base power budget must not invalidate the distinct bus");
+
+        // Removing Bus A and restoring power must run Bus B without touching Bus B
+        busA.getImportItems().setStackInSlot(0, ItemStack.EMPTY);
+        energy.changeEnergy(512L);
+        for (int t = 0; t < 5; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(1, outBus.getExportItems().getStackInSlot(0).getCount());
+
+        // Silent IRecipeCondition#canStart rejection populates fallback whyFailed
+        logic.addRecipeCondition(new IRecipeCondition() {
+
+            @Override
+            public @NotNull String getConditionId() {
+                return "test:silent_reject";
+            }
+
+            @Override
+            public boolean canStart(@NotNull Recipe recipe, @NotNull IItemHandlerModifiable inputs,
+                                    @NotNull IMultipleTankHandler fluids) {
+                return false;
+            }
+        });
+        busA.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+        logic.updateWorkable();
+        assertEquals("配方的特殊条件不满足（例如温度，算力等额外条件）", logic.getWhyFailed());
+    }
+
+    @Test
+    void combinedSchedulerSetsInvalidInputsAndReportsLockedOrNoneRecipes() {
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setParallelLimit(2);
+
+        MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_comb_inv_in"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_comb_inv_out"), 2, true);
+        ctrl.addPart(inBus);
+        ctrl.addPart(outBus);
+
+        logic.updateWorkable();
+        assertTrue(logic.invalidInputsForRecipes);
+        assertEquals("", logic.getWhyFailed());
+
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.STICK, 1));
+        logic.updateWorkable();
+        assertTrue(logic.invalidInputsForRecipes);
+        assertEquals("NoneRecipes", logic.getWhyFailed());
+
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+        for (int t = 0; t < 5; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(RECIPE_IRON, logic.getPreviousRecipe());
+        logic.setRecipeLockEnable(true);
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.COAL, 1));
+        logic.updateWorkable();
+        assertTrue(logic.invalidInputsForRecipes);
+        assertEquals("无法运行锁定的配方", logic.getWhyFailed());
+    }
+
+    @Test
+    void staggeredRefillDoesNotDoubleCountPaidRunningSlotEUt() {
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setParallelLimit(2);
+        logic.setThreadLimit(2);
+
+        MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_stag_in_a"), 1, false);
+        MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_stag_in_b"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_stag_out"), 2, true);
+        ctrl.addPart(busA);
+        ctrl.addPart(busB);
+        ctrl.addPart(outBus);
+        ctrl.setDistinct(true);
+
+        MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer energy =
+                (MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer) ctrl.getEnergyContainer();
+        energy.changeEnergy(-energy.getEnergyStored() + 32L);
+
+        busA.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+        logic.updateWorkable();
+        assertEquals(1, logic.getCrossRecipeScheduler().getActiveSlotCount());
+
+        // Steady 32 EU/t supply: Slot 0 pays 16 EU in tickSlots, leaving 16 EU to immediately admit staggered Slot 1
+        energy.changeEnergy(-energy.getEnergyStored() + 32L);
+        busB.getImportItems().setStackInSlot(0, new ItemStack(Items.COAL, 1));
+        logic.updateWorkable();
+        assertEquals(2, logic.getCrossRecipeScheduler().getActiveSlotCount());
+        assertEquals(0, busB.getImportItems().getStackInSlot(0).getCount());
+        assertTrue(logic.isWorking());
+        assertFalse(logic.isHasNotEnoughEnergy());
+    }
+
+    @Test
+    void lowEnergyTickSkipsZeroEUtRefillCandidate() {
+        boolean prevReset = ConfigHolder.machines.resetRecipeOnPowerLoss;
+        ConfigHolder.machines.resetRecipeOnPowerLoss = false;
+        try {
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setParallelLimit(2);
+            logic.setThreadLimit(2);
+
+            MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_low_zero_a"), 1, false);
+            MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_low_zero_b"), 1, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_low_zero_out"), 2, true);
+            ctrl.addPart(busA);
+            ctrl.addPart(busB);
+            ctrl.addPart(outBus);
+            ctrl.setDistinct(true);
+
+            busA.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            logic.updateWorkable();
+            assertEquals(1, logic.getCrossRecipeScheduler().getActiveSlotCount());
+
+            MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer energy =
+                    (MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer) ctrl.getEnergyContainer();
+            energy.changeEnergy(-energy.getEnergyStored());
+            busB.getImportItems().setStackInSlot(0, new ItemStack(Items.FLINT, 1));
+            logic.updateWorkable();
+
+            assertEquals(1, logic.getCrossRecipeScheduler().getActiveSlotCount(),
+                    "Refill must be skipped while in-flight slots are frozen by low energy");
+            assertTrue(logic.isHasNotEnoughEnergy());
+            assertFalse(logic.isWorking());
+            assertEquals(1, busB.getImportItems().getStackInSlot(0).getCount());
+            assertEquals(RECIPE_CLAY_30EUT.getEUt(), 30L);
+            assertEquals(RECIPE_ZERO_EUT.getEUt(), 0L);
+        } finally {
+            ConfigHolder.machines.resetRecipeOnPowerLoss = prevReset;
         }
     }
 
