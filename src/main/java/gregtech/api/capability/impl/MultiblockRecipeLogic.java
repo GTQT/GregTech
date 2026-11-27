@@ -49,6 +49,7 @@ import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.IFluidTank;
 import net.minecraftforge.items.IItemHandler;
 import net.minecraftforge.items.IItemHandlerModifiable;
+import net.minecraftforge.items.ItemHandlerHelper;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -1129,12 +1130,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         // --- Consume inputs ---
-        if (ParallelLogic.getMaxRecipeMultiplier(trimmed, alloc.importInventory,
-                alloc.importFluids, totalOperations) < totalOperations) {
-            return false;
-        }
         IRecipeMapHolder holder = (IRecipeMapHolder) metaTileEntity;
-        if (!holder.checkRecipe(trimmed, false) || !holder.checkRecipe(trimmed, true)) {
+        if (!holder.checkRecipe(trimmed, false)) {
             ensureConditionFailureReason();
             return false;
         }
@@ -1403,64 +1400,157 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                                           @NotNull IItemHandlerModifiable importInventory,
                                           @NotNull IMultipleTankHandler importFluids,
                                           int parallelCount) {
-        if (parallelCount <= 0) return false;
+        return commitInputsAndHolderCheck(recipe, importInventory, importFluids, parallelCount);
+    }
 
-        // For single parallel, just use the standard matches(true) which handles consumption
-        if (parallelCount == 1) {
-            return recipe.matches(true, importInventory, importFluids);
-        }
-
-        // Verify the complete operation count before the first real extraction. The former single-recipe check
-        // allowed a sub-tick OC to consume a partial pattern-buffer batch and then fail after the buffer was empty.
-        if (ParallelLogic.getMaxRecipeMultiplier(recipe, importInventory, importFluids, parallelCount) < parallelCount ||
-                !recipe.matches(false, importInventory, importFluids)) {
+    private boolean commitInputsAndHolderCheck(@NotNull Recipe recipe,
+                                               @NotNull IItemHandlerModifiable importInventory,
+                                               @NotNull IMultipleTankHandler importFluids,
+                                               int parallelCount) {
+        if (parallelCount <= 0 || !recipe.matches(false, importInventory, importFluids)) {
             return false;
         }
 
-        // Consume item inputs: parallelCount × each input's amount
+        int slotCount = importInventory.getSlots();
+        int[] originalSlotCounts = new int[slotCount];
+        int[] availableSlotCounts = new int[slotCount];
+        ItemStack[] slotSnapshots = new ItemStack[slotCount];
+        for (int i = 0; i < slotCount; i++) {
+            ItemStack stack = importInventory.getStackInSlot(i);
+            slotSnapshots[i] = stack;
+            int count = stack.isEmpty() ? 0 : stack.getCount();
+            originalSlotCounts[i] = count;
+            availableSlotCounts[i] = count;
+        }
+
+        int[] itemExtractPlan = new int[slotCount];
         for (GTRecipeInput recipeInput : recipe.getInputs()) {
             if (recipeInput.isNonConsumable()) {
                 continue;
             }
-            int totalRequired = recipeInput.getAmount() * parallelCount;
-            int remaining = totalRequired;
-
-            for (int i = 0; i < importInventory.getSlots() && remaining > 0; i++) {
-                ItemStack stackInSlot = importInventory.getStackInSlot(i);
-                if (stackInSlot.isEmpty()) continue;
-                if (!recipeInput.acceptsStack(stackInSlot)) continue;
-
-                int toExtract = Math.min(remaining, stackInSlot.getCount());
-                importInventory.extractItem(i, toExtract, false);
-                remaining -= toExtract;
+            long remaining = (long) recipeInput.getAmount() * parallelCount;
+            for (int i = 0; i < slotCount && remaining > 0L; i++) {
+                if (availableSlotCounts[i] <= 0) continue;
+                ItemStack stackInSlot = slotSnapshots[i];
+                if (stackInSlot.isEmpty() || !recipeInput.acceptsStack(stackInSlot)) continue;
+                int toTake = (int) Math.min(remaining, availableSlotCounts[i]);
+                availableSlotCounts[i] -= toTake;
+                itemExtractPlan[i] += toTake;
+                remaining -= toTake;
             }
-
-            if (remaining > 0) return false; // Should not happen since getMaxRecipeMultiplier passed
+            if (remaining > 0L) {
+                return false;
+            }
+        }
+        for (int i = 0; i < slotCount; i++) {
+            if (itemExtractPlan[i] > 0 &&
+                    importInventory.extractItem(i, itemExtractPlan[i], true).getCount() < itemExtractPlan[i]) {
+                return false;
+            }
         }
 
-        // Consume fluid inputs: parallelCount × each fluid input's amount
+        List<IMultipleTankHandler.ITankEntry> tanks = importFluids.getFluidTanks();
+        int tankCount = tanks.size();
+        int[] availableTankAmounts = new int[tankCount];
+        FluidStack[] tankSnapshots = new FluidStack[tankCount];
+        for (int t = 0; t < tankCount; t++) {
+            FluidStack fluid = tanks.get(t).getFluid();
+            tankSnapshots[t] = fluid;
+            availableTankAmounts[t] = fluid == null ? 0 : Math.max(0, fluid.amount);
+        }
+
+        int[] fluidDrainPlan = new int[tankCount];
         for (GTRecipeInput recipeFluidInput : recipe.getFluidInputs()) {
             if (recipeFluidInput.isNonConsumable()) {
                 continue;
             }
-            int totalRequired = recipeFluidInput.getAmount() * parallelCount;
-            int remaining = totalRequired;
-
-            for (IMultipleTankHandler.ITankEntry tank : importFluids.getFluidTanks()) {
-                if (remaining <= 0) break;
-                FluidStack fluidInTank = tank.getFluid();
-                if (fluidInTank == null) continue;
-                if (!recipeFluidInput.acceptsFluid(fluidInTank)) continue;
-
-                int toDrain = Math.min(remaining, fluidInTank.amount);
-                tank.drain(toDrain, true);
+            long remaining = (long) recipeFluidInput.getAmount() * parallelCount;
+            for (int t = 0; t < tankCount && remaining > 0L; t++) {
+                if (availableTankAmounts[t] <= 0) continue;
+                FluidStack fluidInTank = tankSnapshots[t];
+                if (fluidInTank == null || !recipeFluidInput.acceptsFluid(fluidInTank)) continue;
+                int toDrain = (int) Math.min(remaining, availableTankAmounts[t]);
+                availableTankAmounts[t] -= toDrain;
+                fluidDrainPlan[t] += toDrain;
                 remaining -= toDrain;
             }
-
-            if (remaining > 0) return false; // Should not happen since getMaxRecipeMultiplier passed
+            if (remaining > 0L) {
+                return false;
+            }
+        }
+        for (int t = 0; t < tankCount; t++) {
+            if (fluidDrainPlan[t] > 0) {
+                FluidStack simulated = tanks.get(t).drain(fluidDrainPlan[t], false);
+                if (simulated == null || simulated.amount < fluidDrainPlan[t]) {
+                    return false;
+                }
+            }
         }
 
+        ItemStack[] extractedItems = new ItemStack[slotCount];
+        FluidStack[] drainedFluids = new FluidStack[tankCount];
+        boolean extractFailed = false;
+        for (int i = 0; i < slotCount; i++) {
+            if (itemExtractPlan[i] <= 0) continue;
+            ItemStack extracted = importInventory.extractItem(i, itemExtractPlan[i], false);
+            extractedItems[i] = extracted;
+            if (extracted.getCount() < itemExtractPlan[i]) {
+                extractFailed = true;
+                break;
+            }
+        }
+        if (!extractFailed) {
+            for (int t = 0; t < tankCount; t++) {
+                if (fluidDrainPlan[t] <= 0) continue;
+                FluidStack drained = tanks.get(t).drain(fluidDrainPlan[t], true);
+                drainedFluids[t] = drained;
+                if (drained == null || drained.amount < fluidDrainPlan[t]) {
+                    extractFailed = true;
+                    break;
+                }
+            }
+        }
+
+        if (extractFailed || !((IRecipeMapHolder) metaTileEntity).checkRecipe(recipe, true)) {
+            rollbackExtractedInputs(importInventory, originalSlotCounts, extractedItems, tanks, drainedFluids);
+            if (!extractFailed) {
+                ensureConditionFailureReason();
+            }
+            return false;
+        }
         return true;
+    }
+
+    private static void rollbackExtractedInputs(@NotNull IItemHandlerModifiable importInventory,
+                                                @NotNull int[] originalSlotCounts,
+                                                @NotNull ItemStack[] extractedItems,
+                                                @NotNull List<IMultipleTankHandler.ITankEntry> tanks,
+                                                @NotNull FluidStack[] drainedFluids) {
+        for (int i = 0; i < extractedItems.length; i++) {
+            ItemStack extracted = extractedItems[i];
+            if (extracted == null || extracted.isEmpty()) continue;
+            ItemStack currentAfter = importInventory.getStackInSlot(i);
+            if (!currentAfter.isEmpty() && currentAfter.getCount() >= originalSlotCounts[i]) {
+                continue;
+            }
+            ItemStack remainder = importInventory.insertItem(i, extracted.copy(), false);
+            if (!remainder.isEmpty()) {
+                ItemStack current = importInventory.getStackInSlot(i);
+                if (current.isEmpty()) {
+                    importInventory.setStackInSlot(i, remainder);
+                } else if (ItemHandlerHelper.canItemStacksStack(current, remainder) &&
+                        current.getCount() < originalSlotCounts[i]) {
+                    ItemStack merged = current.copy();
+                    merged.setCount(Math.min(originalSlotCounts[i], current.getCount() + remainder.getCount()));
+                    importInventory.setStackInSlot(i, merged);
+                }
+            }
+        }
+        for (int t = 0; t < drainedFluids.length; t++) {
+            FluidStack drained = drainedFluids[t];
+            if (drained == null || drained.amount <= 0) continue;
+            tanks.get(t).fill(drained.copy(), true);
+        }
     }
 
     @Override
@@ -2542,14 +2632,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected boolean consumeSingleRecipeInputs(@NotNull Recipe recipe,
                                                 @NotNull IItemHandlerModifiable importInventory,
                                                 @NotNull IMultipleTankHandler importFluids) {
-        if (!recipe.matches(false, importInventory, importFluids)) {
-            return false;
-        }
-        if (!((IRecipeMapHolder) metaTileEntity).checkRecipe(recipe, true)) {
-            ensureConditionFailureReason();
-            return false;
-        }
-        return super.consumeSingleRecipeInputs(recipe, importInventory, importFluids);
+        return commitInputsAndHolderCheck(recipe, importInventory, importFluids, 1);
     }
 
     @Override

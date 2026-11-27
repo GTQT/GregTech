@@ -135,14 +135,6 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
     }
 
     @Override
-    protected long quoteEnergyDraw(long recipeEUt, long maxQuoteEU) {
-        if (!consumesEnergy() || recipeEUt <= 0L || maxQuoteEU <= 0L) {
-            return 0L;
-        }
-        return Math.min(maxQuoteEU, Math.max(0L, appendEfficiency(recipeEUt)));
-    }
-
-    @Override
     protected boolean drawEnergy(long recipeEUt, boolean simulate) {
         recipeEUt = appendEfficiency(recipeEUt);
         if (!consumesEnergy()) return true;

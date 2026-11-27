@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1395,6 +1396,238 @@ class SchedulerTelemetryIsolationTest {
         assertEquals(1, feeLogic.getCrossRecipeScheduler().getActiveSlotCount(),
                 "73 EU available vs 74 EU needed must reject candidate instead of over-crediting");
         assertEquals(1, fBusC.getImportItems().getStackInSlot(0).getCount());
+    }
+
+    @Test
+    void overlappingMainInputsAndSharedBusCatalystNeverLoseCatalystOrPartialInputs() {
+        // 1. Overlapping ingredient (1x Iron + 1x (Gold|Iron)) with [1x Gold, 2x Iron] at parallelLimit=2 + 1 Redstone in aux
+        RecipeMap<SimpleRecipeBuilder> overlapMap = new RecipeMap<>(
+                "test_sched_overlap_cat_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
+        Recipe overlapRecipe = new Recipe(
+                Arrays.asList(
+                        new GTRecipeItemInput(new ItemStack(Items.IRON_INGOT, 1)),
+                        new GTRecipeItemInput(new ItemStack[] {
+                                new ItemStack(Items.GOLD_INGOT, 1),
+                                new ItemStack(Items.IRON_INGOT, 1)
+                        }, 1)),
+                Collections.singletonList(new ItemStack(Items.DIAMOND, 1)),
+                ChancedOutputList.empty(), Collections.emptyList(), Collections.emptyList(),
+                ChancedOutputList.empty(), Collections.emptyList(),
+                4, 30L, false, new RecipePropertyStorageImpl(), overlapMap.getPrimaryRecipeCategory());
+        overlapMap.compileRecipe(overlapRecipe);
+
+        AtomicInteger auxRedstone = new AtomicInteger(1);
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(overlapMap) {
+
+                    @Override
+                    public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
+                        if (auxRedstone.get() <= 0) return false;
+                        if (consumeIfSuccess) {
+                            return auxRedstone.getAndUpdate(v -> v > 0 ? v - 1 : 0) > 0;
+                        }
+                        return true;
+                    }
+                };
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setParallelLimit(2);
+
+        MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_overlap_in"), 2, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_overlap_out"), 2, true);
+        ctrl.addPart(inBus);
+        ctrl.addPart(outBus);
+
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.GOLD_INGOT, 1));
+        inBus.getImportItems().setStackInSlot(1, new ItemStack(Items.IRON_INGOT, 2));
+        for (int t = 0; t < 8; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(1, auxRedstone.get(), "Failed parallel extraction must never consume auxiliary catalyst");
+        assertEquals(1, inBus.getImportItems().getStackInSlot(0).getCount());
+        assertEquals(2, inBus.getImportItems().getStackInSlot(1).getCount());
+
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.GOLD_INGOT, 2));
+        ctrl.addNotifiedInput(inBus.getImportItems());
+        for (int t = 0; t < 6; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(0, auxRedstone.get());
+        assertEquals(2, outBus.getExportItems().getStackInSlot(0).getCount());
+
+        // 2. Same-bus Redstone needed by BOTH recipe (1x Redstone + 1x Iron) AND holder.checkRecipe(recipe, true)
+        RecipeMap<SimpleRecipeBuilder> sameBusMap = new RecipeMap<>(
+                "test_sched_same_bus_cat_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
+        Recipe sameBusRecipe = new Recipe(
+                Arrays.asList(
+                        new GTRecipeItemInput(new ItemStack(Items.REDSTONE, 1)),
+                        new GTRecipeItemInput(new ItemStack(Items.IRON_INGOT, 1))),
+                Collections.singletonList(new ItemStack(Items.EMERALD, 1)),
+                ChancedOutputList.empty(), Collections.emptyList(), Collections.emptyList(),
+                ChancedOutputList.empty(), Collections.emptyList(),
+                4, 16L, false, new RecipePropertyStorageImpl(), sameBusMap.getPrimaryRecipeCategory());
+        sameBusMap.compileRecipe(sameBusRecipe);
+
+        for (int parallelLimit : new int[] { 1, 2 }) {
+            MultiblockRecipeLockAndInvalidationTest.TestController sbCtrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(sameBusMap) {
+
+                        @Override
+                        public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
+                            IItemHandlerModifiable inv = getInputInventory();
+                            for (int i = 0; i < inv.getSlots(); i++) {
+                                ItemStack s = inv.getStackInSlot(i);
+                                if (!s.isEmpty() && s.getItem() == Items.REDSTONE) {
+                                    if (consumeIfSuccess) {
+                                        return inv.extractItem(i, 1, false).getCount() == 1;
+                                    }
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                    };
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic sbLogic = sbCtrl.getTestLogic();
+            sbLogic.setAllowOverclocking(false);
+            sbLogic.setParallelLimit(parallelLimit);
+            MetaTileEntityItemBus sbIn = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_sb_in_" + parallelLimit), 2, false);
+            MetaTileEntityItemBus sbOut = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_sb_out_" + parallelLimit), 2, true);
+            sbCtrl.addPart(sbIn);
+            sbCtrl.addPart(sbOut);
+
+            // Only 1 Redstone + 1 Iron (needs 2 Redstone total): must rollback cleanly without losing Redstone
+            sbIn.getImportItems().setStackInSlot(0, new ItemStack(Items.REDSTONE, 1));
+            sbIn.getImportItems().setStackInSlot(1, new ItemStack(Items.IRON_INGOT, 1));
+            for (int t = 0; t < 4; t++) {
+                sbLogic.updateWorkable();
+            }
+            assertEquals(1, sbIn.getImportItems().getStackInSlot(0).getCount());
+            assertEquals(1, sbIn.getImportItems().getStackInSlot(1).getCount());
+            assertEquals(0, sbOut.getExportItems().getStackInSlot(0).getCount());
+
+            // Supplying 2 Redstone + 1 Iron runs cleanly and delivers 1 Emerald
+            sbIn.getImportItems().setStackInSlot(0, new ItemStack(Items.REDSTONE, 2));
+            sbCtrl.addNotifiedInput(sbIn.getImportItems());
+            for (int t = 0; t < 6; t++) {
+                sbLogic.updateWorkable();
+            }
+            assertEquals(0, sbIn.getImportItems().getStackInSlot(0).getCount());
+            assertEquals(0, sbIn.getImportItems().getStackInSlot(1).getCount());
+            assertEquals(1, sbOut.getExportItems().getStackInSlot(0).getCount());
+        }
+    }
+
+    @Test
+    void godforgeSubclassOverridingOnlyDrawEnergyUsesSimulatedProbeQuote() {
+        RecipeMap<SimpleRecipeBuilder> gfMap = new RecipeMap<>(
+                "test_sched_gf_fee_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
+        MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(gfMap, Items.CLAY_BALL, Items.BRICK, 4, 30L);
+        MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(gfMap, Items.APPLE, Items.GOLDEN_APPLE, 6, 32L);
+        Recipe candidate40 = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                gfMap, Items.POTATO, Items.BAKED_POTATO, 4, 40L);
+
+        AtomicLong wirelessPool = new AtomicLong(500L);
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(gfMap);
+
+        // Base logic mirrors GodforgeModuleRecipeLogic (honors isQuotingEnergyDraw() without overriding quoteEnergyDraw),
+        // and child overrides ONLY drawEnergy(n, simulate) -> super.drawEnergy(n + 10, simulate)
+        class WirelessBaseLogic extends MultiblockRecipeLogic {
+
+            WirelessBaseLogic(MultiblockRecipeLockAndInvalidationTest.TestController c) {
+                super(c);
+            }
+
+            @Override
+            public long getMaxVoltage() {
+                return 128L;
+            }
+
+            @Override
+            public long getMaximumOverclockVoltage() {
+                return 128L;
+            }
+
+            @Override
+            protected long getTotalPowerBudget() {
+                return 1024L;
+            }
+
+            @Override
+            protected long getEnergyStored() {
+                if (isQuotingEnergyDraw()) {
+                    return getQuotedStoredProbe();
+                }
+                return Math.max(0L, wirelessPool.get() + getRefillEnergyCredit());
+            }
+
+            @Override
+            protected boolean drawEnergy(long recipeEUt, boolean simulate) {
+                long discounted = appendEfficiency(recipeEUt);
+                if (simulate && isQuotingEnergyDraw()) {
+                    return getQuotedStoredProbe() >= discounted;
+                }
+                if (simulate) {
+                    return wirelessPool.get() + getRefillEnergyCredit() >= discounted;
+                }
+                if (wirelessPool.get() < discounted) return false;
+                wirelessPool.addAndGet(-discounted);
+                return true;
+            }
+        }
+
+        MultiblockRecipeLogic legacyFeeChild = new WirelessBaseLogic(ctrl) {
+
+            @Override
+            protected boolean drawEnergy(long recipeEUt, boolean simulate) {
+                return super.drawEnergy(recipeEUt + 10L, simulate);
+            }
+        };
+        ctrl.setLogic(legacyFeeChild);
+        legacyFeeChild.setAllowOverclocking(false);
+        legacyFeeChild.setThreadLimit(2);
+        legacyFeeChild.setParallelLimit(1);
+
+        MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_gf_child_a"), 1, false);
+        MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_gf_child_b"), 1, false);
+        MetaTileEntityItemBus busC = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_gf_child_c"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_gf_child_out"), 2, true);
+        ctrl.addPart(busA);
+        ctrl.addPart(busB);
+        ctrl.addPart(busC);
+        ctrl.addPart(outBus);
+        ctrl.setDistinct(true);
+
+        busA.getImportItems().setStackInSlot(0, new ItemStack(Items.CLAY_BALL, 1));
+        legacyFeeChild.updateWorkable();
+        busB.getImportItems().setStackInSlot(0, new ItemStack(Items.APPLE, 1));
+        legacyFeeChild.updateWorkable();
+        legacyFeeChild.updateWorkable();
+        legacyFeeChild.updateWorkable();
+
+        // 112 EU - (62 + 10) = 40 EU left; quote(30) via simulated drawEnergy = 40 -> credit = 32 -> 72 EU < 82 EU (32+40+10)
+        wirelessPool.set(112L);
+        busC.getImportItems().setStackInSlot(0, new ItemStack(Items.POTATO, 1));
+        legacyFeeChild.updateWorkable();
+        assertEquals(candidate40.getEUt(), 40L);
+        assertEquals(40L, wirelessPool.get());
+        assertEquals(1, legacyFeeChild.getCrossRecipeScheduler().getActiveSlotCount(),
+                "Legacy subclass overriding only drawEnergy must quote 40 EU (with +10 fee) and wait at 112 EU");
+        assertEquals(1, busC.getImportItems().getStackInSlot(0).getCount());
+
+        // Next tick with 81 EU: long 32 EU/t slot pays 42 EU and advances without stalling
+        wirelessPool.set(81L);
+        legacyFeeChild.updateWorkable();
+        assertEquals(39L, wirelessPool.get());
+        assertTrue(legacyFeeChild.isWorking());
     }
 
     private static ICleanroomProvider uncleanSterileProvider() {
