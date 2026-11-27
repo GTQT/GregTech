@@ -456,6 +456,14 @@ public abstract class AbstractRecipeLogic extends MTETrait
     }
 
     /**
+     * Wakes up recipe search when an external machine condition or auxiliary hatch state changes,
+     * without resetting color-channel round-robin rotation.
+     */
+    public void notifyConditionInputChanged() {
+        resetInvalidatedInputs();
+    }
+
+    /**
      * @return true if recipes should be searched for
      */
     protected boolean shouldSearchForRecipes() {
@@ -650,10 +658,7 @@ public abstract class AbstractRecipeLogic extends MTETrait
                     cond.consumeTick(ctx);
                 }
             }
-            // as recipe starts with progress on 1 this has to be > only not => to compensate for it
-            if (++progressTime > maxProgressTime) {
-                completeRecipe();
-            }
+            advanceRecipeProgress();
             if (this.hasNotEnoughEnergy && getEnergyInputPerSecond() > 19L * recipeEUt) {
                 this.hasNotEnoughEnergy = false;
             }
@@ -682,6 +687,17 @@ public abstract class AbstractRecipeLogic extends MTETrait
                     decreaseProgress(energyShortage);
                 }
             }
+        }
+    }
+
+    /**
+     * Advances the active single-recipe progress after energy draw and {@link IRecipeCondition#consumeTick}
+     * have succeeded for the current tick, completing the recipe once {@link #maxProgressTime} is exceeded.
+     */
+    protected void advanceRecipeProgress() {
+        // as recipe starts with progress on 1 this has to be > only not => to compensate for it
+        if (++progressTime > maxProgressTime) {
+            completeRecipe();
         }
     }
 

@@ -47,7 +47,18 @@ public final class RecipePropertyStorageImpl implements RecipePropertyStorage {
 
     @Override
     public @NotNull RecipePropertyStorage copy() {
-        return new RecipePropertyStorageImpl(new Object2ObjectArrayMap<>(this.map));
+        Object2ObjectArrayMap<RecipeProperty<?>, Object> copied = new Object2ObjectArrayMap<>(this.map.size());
+        for (Map.Entry<RecipeProperty<?>, Object> entry : this.map.entrySet()) {
+            copied.put(entry.getKey(), copyPropertyValue(entry.getKey(), entry.getValue()));
+        }
+        return new RecipePropertyStorageImpl(copied);
+    }
+
+    private static <T> @Nullable Object copyPropertyValue(@NotNull RecipeProperty<T> property, @Nullable Object value) {
+        if (value == null) {
+            return null;
+        }
+        return property.copyValue(property.castValue(value));
     }
 
     @Override
