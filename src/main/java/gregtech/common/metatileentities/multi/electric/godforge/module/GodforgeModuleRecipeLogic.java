@@ -117,6 +117,9 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
 
     @Override
     protected long getEnergyStored() {
+        if (isQuotingEnergyDraw()) {
+            return getQuotedStoredProbe();
+        }
         UUID uuid = module.getOwnerGT();
         if (uuid == null) return 0;
         WirelessEnergyService service = WirelessEnergyServiceImpl.getService();
@@ -143,6 +146,9 @@ public class GodforgeModuleRecipeLogic extends MultiblockRecipeLogic {
     protected boolean drawEnergy(long recipeEUt, boolean simulate) {
         recipeEUt = appendEfficiency(recipeEUt);
         if (!consumesEnergy()) return true;
+        if (simulate && isQuotingEnergyDraw()) {
+            return getQuotedStoredProbe() >= recipeEUt;
+        }
 
         UUID uuid = module.getOwnerGT();
         if (uuid == null) return false;

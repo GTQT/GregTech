@@ -1182,6 +1182,221 @@ class SchedulerTelemetryIsolationTest {
         }
     }
 
+    @Test
+    void twoSlotsCompetingForLastSharedCatalystPreserveSecondSlotInputs() {
+        AtomicInteger sharedRedstone = new AtomicInteger(1);
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP) {
+
+                    @Override
+                    public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
+                        if (sharedRedstone.get() <= 0) return false;
+                        if (consumeIfSuccess) {
+                            return sharedRedstone.getAndUpdate(v -> v > 0 ? v - 1 : 0) > 0;
+                        }
+                        return true;
+                    }
+                };
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setThreadLimit(2);
+        logic.setParallelLimit(1);
+        logic.setTotalPowerBudget(256L);
+
+        MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_cat_race_a"), 1, false);
+        MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_cat_race_b"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_cat_race_out"), 2, true);
+        ctrl.addPart(busA);
+        ctrl.addPart(busB);
+        ctrl.addPart(outBus);
+        ctrl.setDistinct(true);
+
+        busA.getImportItems().setStackInSlot(0, new ItemStack(Items.CLAY_BALL, 1));
+        busB.getImportItems().setStackInSlot(0, new ItemStack(Items.APPLE, 1));
+        logic.updateWorkable();
+
+        assertEquals(0, sharedRedstone.get());
+        assertEquals(1, logic.getCrossRecipeScheduler().getActiveSlotCount(),
+                "Only one slot may start when only 1 shared catalyst exists");
+        assertEquals(0, busA.getImportItems().getStackInSlot(0).getCount());
+        assertEquals(1, busB.getImportItems().getStackInSlot(0).getCount(),
+                "Second slot must retain its main input when shared catalyst commit fails");
+
+        // Supplying a second catalyst allows the waiting second bus to start and deliver both outputs
+        sharedRedstone.set(1);
+        for (int t = 0; t < 6; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(0, busB.getImportItems().getStackInSlot(0).getCount());
+        assertEquals(2,
+                outBus.getExportItems().getStackInSlot(0).getCount() +
+                        outBus.getExportItems().getStackInSlot(1).getCount());
+    }
+
+    @Test
+    void quoteEnergyDrawHookAlwaysInvokedFirstForWirelessDiscountAndFixedFee() {
+        // 1. Wireless-style drawEnergy bypassing super.getEnergyStored(), overriding quoteEnergyDraw with 0.75x at 70 EU
+        AtomicLong wirelessBalance = new AtomicLong(500L);
+        AtomicInteger quoteCalls = new AtomicInteger(0);
+        MultiblockRecipeLockAndInvalidationTest.TestController wlCtrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+        MultiblockRecipeLogic wlLogic = new MultiblockRecipeLogic(wlCtrl) {
+
+            @Override
+            public long getMaxVoltage() {
+                return 128L;
+            }
+
+            @Override
+            public long getMaximumOverclockVoltage() {
+                return 128L;
+            }
+
+            @Override
+            protected long getTotalPowerBudget() {
+                return 1024L;
+            }
+
+            @Override
+            protected long getEnergyStored() {
+                return Math.max(0L, wirelessBalance.get() + getRefillEnergyCredit());
+            }
+
+            @Override
+            protected long quoteEnergyDraw(long recipeEUt, long maxQuoteEU) {
+                quoteCalls.incrementAndGet();
+                return Math.min(maxQuoteEU, Math.max(0L, appendEfficiency(recipeEUt)));
+            }
+
+            @Override
+            protected boolean drawEnergy(long recipeEUt, boolean simulate) {
+                long discounted = appendEfficiency(recipeEUt);
+                if (simulate) {
+                    return wirelessBalance.get() + getRefillEnergyCredit() >= discounted;
+                }
+                if (wirelessBalance.get() < discounted) return false;
+                wirelessBalance.addAndGet(-discounted);
+                return true;
+            }
+        };
+        wlCtrl.setLogic(wlLogic);
+        wlLogic.setAllowOverclocking(false);
+        wlLogic.setThreadLimit(2);
+        wlLogic.setParallelLimit(1);
+        wlLogic.setEnergyEfficiency(0.75);
+
+        MetaTileEntityItemBus wBusA = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_wl_quote_a"), 1, false);
+        MetaTileEntityItemBus wBusB = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_wl_quote_b"), 1, false);
+        MetaTileEntityItemBus wBusC = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_wl_quote_c"), 1, false);
+        MetaTileEntityItemBus wOut = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_wl_quote_out"), 2, true);
+        wlCtrl.addPart(wBusA);
+        wlCtrl.addPart(wBusB);
+        wlCtrl.addPart(wBusC);
+        wlCtrl.addPart(wOut);
+        wlCtrl.setDistinct(true);
+
+        wBusA.getImportItems().setStackInSlot(0, new ItemStack(Items.CLAY_BALL, 1));
+        wlLogic.updateWorkable();
+        wBusB.getImportItems().setStackInSlot(0, new ItemStack(Items.APPLE, 1));
+        wlLogic.updateWorkable();
+        wlLogic.updateWorkable();
+        wlLogic.updateWorkable();
+
+        wirelessBalance.set(70L);
+        wBusC.getImportItems().setStackInSlot(0, new ItemStack(Items.POTATO, 1));
+        wlLogic.updateWorkable();
+        assertTrue(quoteCalls.get() > 0, "quoteEnergyDraw hook must be called directly before probe fallback");
+        assertEquals(24L, wirelessBalance.get());
+        assertEquals(2, wlLogic.getCrossRecipeScheduler().getActiveSlotCount(),
+                "70 EU wireless balance with 0.75x efficiency must admit 32 EU/t candidate on the completion tick");
+
+        // 2. Wireless fixed-fee (+10 EU per draw): 113 EU leaves 73 EU available < 74 EU needed for (32+32)+10 -> must wait
+        AtomicLong feeBalance = new AtomicLong(500L);
+        AtomicInteger feeQuoteCalls = new AtomicInteger(0);
+        MultiblockRecipeLockAndInvalidationTest.TestController feeCtrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+        MultiblockRecipeLogic feeLogic = new MultiblockRecipeLogic(feeCtrl) {
+
+            @Override
+            public long getMaxVoltage() {
+                return 128L;
+            }
+
+            @Override
+            public long getMaximumOverclockVoltage() {
+                return 128L;
+            }
+
+            @Override
+            protected long getTotalPowerBudget() {
+                return 1024L;
+            }
+
+            @Override
+            protected long getEnergyStored() {
+                return Math.max(0L, feeBalance.get() + getRefillEnergyCredit());
+            }
+
+            @Override
+            protected long quoteEnergyDraw(long recipeEUt, long maxQuoteEU) {
+                feeQuoteCalls.incrementAndGet();
+                return recipeEUt <= 0L ? 0L : Math.min(maxQuoteEU, recipeEUt + 10L);
+            }
+
+            @Override
+            protected boolean drawEnergy(long recipeEUt, boolean simulate) {
+                long cost = recipeEUt <= 0L ? 0L : recipeEUt + 10L;
+                if (simulate) {
+                    return feeBalance.get() + getRefillEnergyCredit() >= cost;
+                }
+                if (feeBalance.get() < cost) return false;
+                feeBalance.addAndGet(-cost);
+                return true;
+            }
+        };
+        feeCtrl.setLogic(feeLogic);
+        feeLogic.setAllowOverclocking(false);
+        feeLogic.setThreadLimit(2);
+        feeLogic.setParallelLimit(1);
+
+        MetaTileEntityItemBus fBusA = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_fee_quote_a"), 1, false);
+        MetaTileEntityItemBus fBusB = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_fee_quote_b"), 1, false);
+        MetaTileEntityItemBus fBusC = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_fee_quote_c"), 1, false);
+        MetaTileEntityItemBus fOut = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_fee_quote_out"), 2, true);
+        feeCtrl.addPart(fBusA);
+        feeCtrl.addPart(fBusB);
+        feeCtrl.addPart(fBusC);
+        feeCtrl.addPart(fOut);
+        feeCtrl.setDistinct(true);
+
+        fBusA.getImportItems().setStackInSlot(0, new ItemStack(Items.CLAY_BALL, 1));
+        feeLogic.updateWorkable();
+        fBusB.getImportItems().setStackInSlot(0, new ItemStack(Items.APPLE, 1));
+        feeLogic.updateWorkable();
+        feeLogic.updateWorkable();
+        feeLogic.updateWorkable();
+
+        // 113 EU - (62 + 10) = 41 EU left; quote(30) = 40 -> credit = 32 -> 41 + 32 = 73 EU < 74 EU needed for (64 + 10)
+        feeBalance.set(113L);
+        fBusC.getImportItems().setStackInSlot(0, new ItemStack(Items.POTATO, 1));
+        feeLogic.updateWorkable();
+        assertEquals(1, feeQuoteCalls.get());
+        assertEquals(1, feeLogic.getCrossRecipeScheduler().getActiveSlotCount(),
+                "73 EU available vs 74 EU needed must reject candidate instead of over-crediting");
+        assertEquals(1, fBusC.getImportItems().getStackInSlot(0).getCount());
+    }
+
     private static ICleanroomProvider uncleanSterileProvider() {
         return sterileProvider(new AtomicBoolean(false));
     }

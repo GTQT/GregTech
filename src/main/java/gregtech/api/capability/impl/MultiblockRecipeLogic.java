@@ -1129,10 +1129,18 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
 
         // --- Consume inputs ---
+        if (ParallelLogic.getMaxRecipeMultiplier(trimmed, alloc.importInventory,
+                alloc.importFluids, totalOperations) < totalOperations) {
+            return false;
+        }
+        IRecipeMapHolder holder = (IRecipeMapHolder) metaTileEntity;
+        if (!holder.checkRecipe(trimmed, false) || !holder.checkRecipe(trimmed, true)) {
+            ensureConditionFailureReason();
+            return false;
+        }
         if (!consumeRecipeInputs(trimmed, alloc.importInventory, alloc.importFluids, totalOperations)) {
             return false;
         }
-        ((IRecipeMapHolder) metaTileEntity).checkRecipe(trimmed, true);
         this.metaTileEntity.addNotifiedInput(alloc.importInventory);
         this.isOutputsFull = false;
 
@@ -1180,6 +1188,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         return refillEnergyCredit;
     }
 
+    protected final boolean isQuotingEnergyDraw() {
+        return quotingEnergyDraw;
+    }
+
+    protected final long getQuotedStoredProbe() {
+        return quotedStoredProbe;
+    }
+
     @Override
     protected long getEnergyStored() {
         if (quotingEnergyDraw) {
@@ -1194,9 +1210,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     /**
      * Side-effect-free quote of how much actual EU {@link #drawEnergy(long, boolean)} requires for {@code recipeEUt},
-     * bounded above by {@code maxQuoteEU}. Subclasses with custom {@code drawEnergy} discounts that read
-     * {@link #getEnergyStored()} are quoted automatically via simulation probes; subclasses that bypass
-     * {@link #getEnergyStored()} may override this method directly.
+     * bounded above by {@code maxQuoteEU}. Always invoked first when splitting in-tick paid energy between completed
+     * and still-running slots; default implementation probes {@link #drawEnergy(long, boolean)} via virtual
+     * {@link #getEnergyStored()} and conservatively returns {@code maxQuoteEU} (zero credit) if {@code drawEnergy}
+     * bypasses {@link #getEnergyStored()} without overriding this hook.
      */
     protected long quoteEnergyDraw(long recipeEUt, long maxQuoteEU) {
         if (!consumesEnergy() || recipeEUt <= 0L || maxQuoteEU <= 0L) {
@@ -1246,19 +1263,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return actualPaidEU;
         }
         long completedNominalEUt = totalNominalPaidEUt - stillRunningNominalEUt;
-        if (actualPaidEU == totalNominalPaidEUt) {
-            return stillRunningNominalEUt;
-        }
-        if (!probeDrawEnergy(completedNominalEUt, -1L)) {
-            long completedPaidEU = quoteEnergyDraw(completedNominalEUt, actualPaidEU);
-            return Math.max(0L, actualPaidEU - completedPaidEU);
-        }
-        long conservativeCompletedEU = BigInteger.valueOf(actualPaidEU)
-                .multiply(BigInteger.valueOf(completedNominalEUt))
-                .add(BigInteger.valueOf(totalNominalPaidEUt - 1L))
-                .divide(BigInteger.valueOf(totalNominalPaidEUt))
-                .longValue();
-        return Math.max(0L, actualPaidEU - conservativeCompletedEU);
+        long completedPaidEU = Math.min(actualPaidEU,
+                Math.max(0L, quoteEnergyDraw(completedNominalEUt, actualPaidEU)));
+        return Math.max(0L, actualPaidEU - completedPaidEU);
     }
 
     /**
@@ -2535,11 +2542,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected boolean consumeSingleRecipeInputs(@NotNull Recipe recipe,
                                                 @NotNull IItemHandlerModifiable importInventory,
                                                 @NotNull IMultipleTankHandler importFluids) {
-        if (!super.consumeSingleRecipeInputs(recipe, importInventory, importFluids)) {
+        if (!recipe.matches(false, importInventory, importFluids)) {
             return false;
         }
-        ((IRecipeMapHolder) metaTileEntity).checkRecipe(recipe, true);
-        return true;
+        if (!((IRecipeMapHolder) metaTileEntity).checkRecipe(recipe, true)) {
+            ensureConditionFailureReason();
+            return false;
+        }
+        return super.consumeSingleRecipeInputs(recipe, importInventory, importFluids);
     }
 
     @Override
