@@ -12,14 +12,17 @@ import gregtech.api.recipes.ingredients.GTRecipeItemInput;
 import gregtech.api.recipes.logic.CleanroomRecipeCondition;
 import gregtech.api.recipes.logic.IRecipeCondition;
 import gregtech.api.recipes.logic.RecipeExecutionContext;
+import gregtech.api.recipes.machines.RecipeMapFurnace;
 import gregtech.api.recipes.properties.RecipePropertyStorage;
 import gregtech.api.recipes.properties.RecipePropertyStorageImpl;
 import gregtech.api.recipes.properties.impl.CleanroomProperty;
 import gregtech.common.ConfigHolder;
 import gregtech.common.metatileentities.multi.multiblockpart.MetaTileEntityItemBus;
 
+import net.minecraft.init.Blocks;
 import net.minecraft.init.Items;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.crafting.FurnaceRecipes;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.items.IItemHandlerModifiable;
 
@@ -41,6 +44,8 @@ class SchedulerTelemetryIsolationTest {
     private static Recipe RECIPE_COAL;
     private static Recipe RECIPE_CLAY_30EUT;
     private static Recipe RECIPE_QUARTZ_30EUT;
+    private static Recipe RECIPE_APPLE_32EUT;
+    private static Recipe RECIPE_POTATO_32EUT;
     private static Recipe RECIPE_HV_480EUT;
     private static Recipe RECIPE_ZERO_EUT;
     private static Recipe RECIPE_STERILE_REDSTONE;
@@ -57,6 +62,10 @@ class SchedulerTelemetryIsolationTest {
                 TEST_MAP, Items.CLAY_BALL, Items.BRICK, 4, 30L);
         RECIPE_QUARTZ_30EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
                 TEST_MAP, Items.QUARTZ, Items.PRISMARINE_SHARD, 4, 30L);
+        RECIPE_APPLE_32EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                TEST_MAP, Items.APPLE, Items.GOLDEN_APPLE, 4, 32L);
+        RECIPE_POTATO_32EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
+                TEST_MAP, Items.POTATO, Items.BAKED_POTATO, 4, 32L);
         RECIPE_HV_480EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
                 TEST_MAP, Items.GOLD_NUGGET, Items.NETHER_STAR, 4, 480L);
         RECIPE_ZERO_EUT = MultiblockRecipeLockAndInvalidationTest.compileSimpleRecipe(
@@ -827,6 +836,115 @@ class SchedulerTelemetryIsolationTest {
         } finally {
             ConfigHolder.machines.cleanMultiblocks = prevClean;
         }
+    }
+
+    @Test
+    void dynamicFurnaceFallbackHonorsVoltageCapAcrossCombinedDistinctAndSingleSlot() {
+        if (FurnaceRecipes.instance().getSmeltingResult(new ItemStack(Blocks.SAND)).isEmpty()) {
+            FurnaceRecipes.instance().addSmeltingRecipeForBlock(Blocks.SAND, new ItemStack(Blocks.GLASS), 0.1f);
+        }
+        RecipeMapFurnace furnaceMap = new RecipeMapFurnace(
+                "test_sched_furnace_fallback_map", new SimpleRecipeBuilder(), r -> null);
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(furnaceMap);
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setMaxVoltage(2L);
+        logic.setTotalPowerBudget(8L);
+
+        MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_furnace_cap_in"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_furnace_cap_out"), 1, true);
+        ctrl.addPart(inBus);
+        ctrl.addPart(outBus);
+
+        // 1. Single-slot at 2 V: vanilla 4 EU/t smelting must be rejected
+        inBus.getImportItems().setStackInSlot(0, new ItemStack(Blocks.SAND, 1));
+        logic.updateWorkable();
+        assertEquals(1, inBus.getImportItems().getStackInSlot(0).getCount());
+
+        // 2. Parallel scheduler Combined & Distinct at 2 V x 4 A (maxVoltage=2, budget=8): both must reject 4 EU/t
+        logic.setThreadLimit(2);
+        ctrl.addNotifiedInput(inBus.getImportItems());
+        logic.updateWorkable();
+        assertTrue(logic.invalidInputsForRecipes);
+        assertEquals(1, inBus.getImportItems().getStackInSlot(0).getCount());
+
+        ctrl.setDistinct(true);
+        logic.updateWorkable();
+        assertTrue(logic.invalidatedInputList.contains(ctrl.getAbilities(MultiblockAbility.IMPORT_ITEMS).get(0)));
+        assertEquals(1, inBus.getImportItems().getStackInSlot(0).getCount());
+
+        // 3. Raising maxVoltage to 4 V wakes dormant Distinct bus and smelts Sand -> Glass
+        logic.setMaxVoltage(4L);
+        for (int t = 0; t < 130; t++) {
+            logic.updateWorkable();
+        }
+        assertEquals(0, inBus.getImportItems().getStackInSlot(0).getCount());
+        assertEquals(1, outBus.getExportItems().getStackInSlot(0).getCount());
+    }
+
+    @Test
+    void discountedSplitCompletionCreditsStillRunningSlotWithoutOneTickDelay() {
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setThreadLimit(2);
+        logic.setParallelLimit(1);
+        logic.setEnergyEfficiency(0.75);
+
+        MetaTileEntityItemBus busA = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_split_disc_a"), 1, false);
+        MetaTileEntityItemBus busB = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_split_disc_b"), 1, false);
+        MetaTileEntityItemBus busC = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_split_disc_c"), 1, false);
+        MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_split_disc_out"), 2, true);
+        ctrl.addPart(busA);
+        ctrl.addPart(busB);
+        ctrl.addPart(busC);
+        ctrl.addPart(outBus);
+        ctrl.setDistinct(true);
+
+        // Start 30 EU/t slot on T0, then 32 EU/t slot on T1 so 30 EU/t completes 1 tick before 32 EU/t
+        busA.getImportItems().setStackInSlot(0, new ItemStack(Items.CLAY_BALL, 1));
+        logic.updateWorkable();
+        busB.getImportItems().setStackInSlot(0, new ItemStack(Items.APPLE, 1));
+        logic.updateWorkable();
+        logic.updateWorkable();
+        logic.updateWorkable();
+
+        // On completion tick of 30 EU/t slot: 70 EU stored - 46 EU (floor(62*0.75)) = 24 EU left;
+        // still-running 32 EU/t slot gets 46 - 22 = 24 EU credit -> 48 EU >= floor(64*0.75)=48 EU, admitting 32 EU/t slot immediately
+        MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer energy =
+                (MultiblockRecipeLockAndInvalidationTest.TestEnergyContainer) ctrl.getEnergyContainer();
+        energy.changeEnergy(-energy.getEnergyStored() + 70L);
+        busC.getImportItems().setStackInSlot(0, new ItemStack(Items.POTATO, 1));
+        logic.updateWorkable();
+
+        assertEquals(RECIPE_APPLE_32EUT.getEUt(), 32L);
+        assertEquals(RECIPE_POTATO_32EUT.getEUt(), 32L);
+        assertEquals(2, logic.getCrossRecipeScheduler().getActiveSlotCount(),
+                "Candidate 32 EU/t slot must start on the exact tick the 30 EU/t sibling completes");
+        assertEquals(0, busC.getImportItems().getStackInSlot(0).getCount());
+
+        // Also verify Combined power-budget shortage (maxVoltage=512, totalPowerBudget=256, 480 EU/t recipe) reports power shortage
+        MultiblockRecipeLockAndInvalidationTest.TestController budgetCtrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic budgetLogic = budgetCtrl.getTestLogic();
+        budgetLogic.setAllowOverclocking(false);
+        budgetLogic.setThreadLimit(2);
+        budgetLogic.setMaxVoltage(512L);
+        budgetLogic.setTotalPowerBudget(256L);
+        MetaTileEntityItemBus budgetBus = new MetaTileEntityItemBus(
+                new ResourceLocation("gregtech", "test_comb_budget_in"), 1, false);
+        budgetCtrl.addPart(budgetBus);
+        budgetBus.getImportItems().setStackInSlot(0, new ItemStack(Items.GOLD_NUGGET, 1));
+        budgetLogic.updateWorkable();
+        assertEquals("电力不足，无法满足当前配方的运行需求", budgetLogic.getWhyFailed());
     }
 
     private static ICleanroomProvider uncleanSterileProvider() {

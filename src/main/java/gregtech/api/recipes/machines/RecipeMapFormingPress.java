@@ -38,7 +38,7 @@ public class RecipeMapFormingPress extends RecipeMap<SimpleRecipeBuilder> {
         Recipe recipe = super.findRecipe(voltage, inputs, fluidInputs, exactVoltage);
 
         // Item Mold renaming - min of 2 inputs required
-        if (recipe == null && inputs.size() > 1) {
+        if (recipe == null && inputs.size() > 1 && (exactVoltage ? voltage == 4 : voltage >= 4)) {
             // cache name mold target comparison stack so a new one is not made every lookup
             // cannot statically initialize as RecipeMaps are registered before items, throwing a NullPointer
             if (NAME_MOLD.isEmpty()) {

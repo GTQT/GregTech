@@ -513,9 +513,16 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             Recipe recipe = findRecipe(recipeMap, searchVoltage, bus, busFluidTank);
             boolean skippedDuplicate = false;
             boolean blockedByConditionOrBudget = false;
-            if (recipe == null && searchVoltage < maxVoltage &&
-                    findRecipe(recipeMap, maxVoltage, bus, busFluidTank) != null) {
-                blockedByConditionOrBudget = true;
+            if (recipe == null && searchVoltage < maxVoltage) {
+                Recipe fullVoltageRecipe = findRecipe(recipeMap, maxVoltage, bus, busFluidTank);
+                if (fullVoltageRecipe != null) {
+                    if (!checkRecipe(fullVoltageRecipe, bus, busFluidTank)) {
+                        ensureConditionFailureReason();
+                    } else {
+                        ensurePowerBudgetFailureReason();
+                    }
+                    blockedByConditionOrBudget = true;
+                }
             } else if (recipe != null) {
                 if (colorChannel == NO_CHANNEL && budget.allAllocatedRecipes.contains(recipe)) {
                     skippedDuplicate = true;
@@ -581,6 +588,12 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     private void ensureConditionFailureReason() {
         if (this.whyFailed.isEmpty()) {
             this.whyFailed = "配方的特殊条件不满足（例如温度，算力等额外条件）";
+        }
+    }
+
+    private void ensurePowerBudgetFailureReason() {
+        if (this.whyFailed.isEmpty()) {
+            this.whyFailed = "电力不足，无法满足当前配方的运行需求";
         }
     }
 
@@ -681,7 +694,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                                 budget.allocatedPublicRecipes.contains(locked))) {
                     if (!checkRecipe(locked, importInventory, importFluids)) {
                         ensureConditionFailureReason();
-                    } else if (locked.getEUt() <= budget.remainingBasePower) {
+                    } else if (locked.getEUt() > budget.remainingBasePower) {
+                        ensurePowerBudgetFailureReason();
+                    } else {
                         RecipeSlot slot = scheduler.acquireSlot();
                         if (slot != null) {
                             SlotAllocation alloc = allocateSlotParallel(slot, locked, recipeMap,
@@ -721,7 +736,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 if (!checkRecipe(lastCrossRecipe, importInventory, importFluids)) {
                     ensureConditionFailureReason();
                     channelUsedRecipes.add(lastCrossRecipe);
-                } else if (lastCrossRecipe.getEUt() <= budget.remainingBasePower) {
+                } else if (lastCrossRecipe.getEUt() > budget.remainingBasePower) {
+                    ensurePowerBudgetFailureReason();
+                } else {
                     RecipeSlot slot = scheduler.acquireSlot();
                     if (slot != null) {
                         SlotAllocation alloc = allocateSlotParallel(slot, lastCrossRecipe, recipeMap,
@@ -788,6 +805,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                         continue;
                     }
                     if (recipe.getEUt() > budget.remainingBasePower) {
+                        ensurePowerBudgetFailureReason();
                         iterator.exclude(recipe);
                         continue;
                     }
@@ -902,7 +920,10 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         int baseDuration = trimmed.getDuration();
 
         // Power check: remaining base power must be enough for at least 1 recipe
-        if (remainingBasePower < baseEUt) return null;
+        if (remainingBasePower < baseEUt) {
+            ensurePowerBudgetFailureReason();
+            return null;
+        }
 
         int effectiveParallelLimit = Math.min(
                 Math.max(1, getEffectiveParallelLimit(trimmed, importInventory, importFluids)),
@@ -1140,19 +1161,28 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         return Math.min(getEnergyCapacity(), saturatingAdd(base, refillEnergyCredit));
     }
 
-    private static long computeStillRunningPaidCredit(long actualPaidEU,
-                                                      long totalNominalPaidEUt,
-                                                      long stillRunningNominalEUt) {
+    private long computeStillRunningPaidCredit(long actualPaidEU,
+                                               long totalNominalPaidEUt,
+                                               long stillRunningNominalEUt) {
         if (actualPaidEU <= 0L || totalNominalPaidEUt <= 0L || stillRunningNominalEUt <= 0L) {
             return 0L;
         }
         if (stillRunningNominalEUt >= totalNominalPaidEUt) {
             return actualPaidEU;
         }
-        return BigInteger.valueOf(actualPaidEU)
-                .multiply(BigInteger.valueOf(stillRunningNominalEUt))
-                .divide(BigInteger.valueOf(totalNominalPaidEUt))
-                .longValue();
+        long completedNominalEUt = totalNominalPaidEUt - stillRunningNominalEUt;
+        long completedPaidEU;
+        if (actualPaidEU == totalNominalPaidEUt) {
+            completedPaidEU = completedNominalEUt;
+        } else if (actualPaidEU == appendEfficiency(totalNominalPaidEUt)) {
+            completedPaidEU = appendEfficiency(completedNominalEUt);
+        } else {
+            completedPaidEU = BigInteger.valueOf(actualPaidEU)
+                    .multiply(BigInteger.valueOf(completedNominalEUt))
+                    .divide(BigInteger.valueOf(totalNominalPaidEUt))
+                    .longValue();
+        }
+        return Math.max(0L, actualPaidEU - completedPaidEU);
     }
 
     /**
