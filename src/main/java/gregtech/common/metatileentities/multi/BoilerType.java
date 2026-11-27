@@ -21,7 +21,7 @@ public enum BoilerType implements IBoilerType {
             Textures.BRONZE_FIREBOX,
             Textures.BRONZE_FIREBOX_ACTIVE,
             Textures.LARGE_BRONZE_BOILER,
-            0.01,
+            200.0D,
             GTGuiTheme.BRONZE),
 
     STEEL("steel", 1800, 1800,
@@ -32,7 +32,7 @@ public enum BoilerType implements IBoilerType {
             Textures.STEEL_FIREBOX,
             Textures.STEEL_FIREBOX_ACTIVE,
             Textures.LARGE_STEEL_BOILER,
-            0.012,
+            400.0D,
             GTGuiTheme.STEEL),
 
     TITANIUM("titanium", 3200, 2400,
@@ -43,7 +43,7 @@ public enum BoilerType implements IBoilerType {
             Textures.TITANIUM_FIREBOX,
             Textures.TITANIUM_FIREBOX_ACTIVE,
             Textures.LARGE_TITANIUM_BOILER,
-            0.015,
+            800.0D,
             GTGuiTheme.STANDARD),
 
     TUNGSTENSTEEL("tungstensteel", 6400, 3000,
@@ -54,7 +54,7 @@ public enum BoilerType implements IBoilerType {
             Textures.TUNGSTENSTEEL_FIREBOX,
             Textures.TUNGSTENSTEEL_FIREBOX_ACTIVE,
             Textures.LARGE_TUNGSTENSTEEL_BOILER,
-            0.02,
+            1600.0D,
             GTGuiTheme.STANDARD);
 
     public final IBlockState casingState;
@@ -67,14 +67,14 @@ public enum BoilerType implements IBoilerType {
     private final String name;
     private final int steamPerTick;
     private final int ticksToBoiling;
-    private final double pollutionAmount;
+    private final double pollutionPerSecond;
     private final GTGuiTheme uiTheme;
 
     BoilerType(String name, int steamPerTick, int ticksToBoiling,
                IBlockState casingState, IBlockState fireboxState, IBlockState pipeState,
                ICubeRenderer casingRenderer, ICubeRenderer fireboxIdleRenderer,
                ICubeRenderer fireboxActiveRenderer, ICubeRenderer frontOverlay,
-               double pollutionAmount, GTGuiTheme uiTheme) {
+               double pollutionPerSecond, GTGuiTheme uiTheme) {
         this.name = name;
         this.steamPerTick = steamPerTick;
         this.ticksToBoiling = ticksToBoiling;
@@ -85,7 +85,7 @@ public enum BoilerType implements IBoilerType {
         this.fireboxIdleRenderer = fireboxIdleRenderer;
         this.fireboxActiveRenderer = fireboxActiveRenderer;
         this.frontOverlay = frontOverlay;
-        this.pollutionAmount = pollutionAmount;
+        this.pollutionPerSecond = pollutionPerSecond;
         this.uiTheme = uiTheme;
     }
 
@@ -122,7 +122,7 @@ public enum BoilerType implements IBoilerType {
     public ICubeRenderer getFrontOverlay() {return frontOverlay;}
 
     @Override
-    public double getPollutionAmount() {return pollutionAmount;}
+    public double getPollutionPerSecond() {return pollutionPerSecond;}
 
     @Override
     public GTGuiTheme getUITheme() {return uiTheme;}

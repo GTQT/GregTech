@@ -22,4 +22,12 @@ public interface IMufflerHatch {
     boolean isMufflerFull();
 
     boolean mufflerWaste();
+
+    /**
+     * Fraction of pollution that passes through this hatch (0..1).
+     * LV is 1.0, MV 0.875, ... UHV 0.0, matching GTNH's muffler table.
+     */
+    default double getPollutionReduction() {
+        return 1.0D;
+    }
 }

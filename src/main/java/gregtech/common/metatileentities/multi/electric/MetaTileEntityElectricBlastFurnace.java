@@ -166,6 +166,19 @@ public class MetaTileEntityElectricBlastFurnace extends RecipeMapMultiblockContr
     }
 
     @Override
+    public void update() {
+        super.update();
+        if (isActive() && !getWorld().isRemote) {
+            pollution(getPollutionPerSecond());
+        }
+    }
+
+    @Override
+    public double getPollutionPerSecond() {
+        return 400.0D;
+    }
+
+    @Override
     public SoundEvent getBreakdownSound() {
         return GTSoundEvents.BREAKDOWN_ELECTRICAL;
     }

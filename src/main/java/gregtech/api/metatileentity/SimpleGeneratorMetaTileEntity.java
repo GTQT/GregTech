@@ -117,16 +117,14 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
     @Override
     public void update() {
         super.update();
-        if (this.isActive()) {
-            if (getWorld().isRemote) {
-                pollution(this.getPollutionAmount(), this.getPollutionTicks());
-            }
+        if (this.isActive() && !getWorld().isRemote) {
+            pollution(this.getPollutionPerSecond());
         }
     }
 
     @Override
-    public double getPollutionAmount() {
-        return getTier() * 0.001;
+    public double getPollutionPerSecond() {
+        return 10.0D * Math.max(1, getTier());
     }
 
     @Override
@@ -154,7 +152,7 @@ public class SimpleGeneratorMetaTileEntity extends WorkableTieredMetaTileEntity 
     @Override
     public void addInformation(ItemStack stack, @Nullable World player, @NotNull List<String> tooltip,
                                boolean advanced) {
-        TooltipBuilder.create().addPollution(getPollutionAmount(), getPollutionTicks()).build(this, tooltip);
+        TooltipBuilder.create().addPollution(getPollutionPerSecond()).build(this, tooltip);
 
         String key = this.metaTileEntityId.getPath().split("\\.")[0];
         String mainKey = String.format("gregtech.machine.%s.tooltip", key);

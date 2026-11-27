@@ -180,7 +180,28 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     public void update() {}
 
     public void updateWorkable() {
+        if (this.metaTileEntity instanceof MultiblockWithDisplayBase) {
+            setEnergyEfficiency(((MultiblockWithDisplayBase) this.metaTileEntity).getFluxContaminationPenalty());
+        }
         super.update();
+    }
+
+    @Override
+    protected void outputRecipeOutputs() {
+        if (this.metaTileEntity instanceof MultiblockWithDisplayBase) {
+            MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) this.metaTileEntity;
+            double loss = controller.getFluxOutputLoss();
+            if (loss > 0.0D) {
+                for (ItemStack stack : this.itemOutputs) {
+                    if (stack.isEmpty()) {
+                        continue;
+                    }
+                    int count = (int) Math.floor(stack.getCount() * (1.0D - loss));
+                    stack.setCount(Math.max(0, count));
+                }
+            }
+        }
+        super.outputRecipeOutputs();
     }
 
     /**

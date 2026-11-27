@@ -192,15 +192,13 @@ public class MetaTileEntityCokeOven extends RecipeMapPrimitiveMultiblockControll
     @Override
     public void update() {
         super.update();
-        if (this.isActive()) {
-            if (getWorld().isRemote) {
-                pollution(this.getPollutionAmount(), this.getPollutionTicks());
-            }
+        if (this.isActive() && !getWorld().isRemote) {
+            pollution(this.getPollutionPerSecond());
         }
     }
 
     @Override
-    public double getPollutionAmount() {
-        return 0.005;
+    public double getPollutionPerSecond() {
+        return 10.0D;
     }
 }

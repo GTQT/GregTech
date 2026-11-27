@@ -7929,10 +7929,11 @@ gregtech.multiblock.heat_multiblock.tooltip.2=Recipe minimum heat requirement is
 gregtech.multiblock.require_heat_parts=Requires only Heat Exchangers to input heat, no need to consume steam or electricity!
 
 gregtech.tooltip.pollution_mte_available=-Pollution Mechanism:
-gregtech.multiblock.pollution_multiblock.tooltip=%s pollution is emitted per %s tick during operation
+gregtech.multiblock.pollution_multiblock.tooltip=Emits %s pollution/s (about %s flux/s) during operation
 
-gregtech.multiblock.pollution_hatch.tooltip.1=The amount and interval of pollution emissions are determined by the controller. If not specified by the controller, the default is to emit 0.001 pollution every 20 ticks during operation
-gregtech.multiblock.pollution_hatch.tooltip.2=The muffler hatch tier determines the actual pollution emission amount, with each tier of muffler reducing 10%% of pollution
+gregtech.multiblock.pollution_hatch.tooltip.1=The pollution rate is defined by the controller in pollution/s; mufflers batch it into flux pulses.
+gregtech.multiblock.pollution_hatch.tooltip.2=Higher-tier mufflers pass less pollution: LV 100%%, MV 87.5%%, HV 75%%, ... UHV 0%%.
+gregtech.multiblock.flux_contamination=Flux Contamination: %s%%
 
 gregtech.machine.maintenance_hatch.name=Maintenance Hatch
 gregtech.machine.maintenance_hatch.tooltip=For maintaining Multiblocks

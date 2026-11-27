@@ -11,7 +11,6 @@ import net.minecraft.util.EnumHand;
 import net.minecraftforge.fml.relauncher.Side;
 import net.minecraftforge.fml.relauncher.SideOnly;
 
-import codechicken.lib.raytracer.CuboidRayTraceResult;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -25,7 +24,7 @@ final class MultiblockControllerClientHooks {
     static void addInformation(@NotNull MultiblockControllerBase controller,
                                @NotNull List<String> tooltip) {
         TooltipBuilder.createDefault().build(controller, tooltip);
-        TooltipBuilder.create().addPollution(controller.getPollutionAmount(), controller.getPollutionTicks())
+        TooltipBuilder.create().addPollution(controller.getPollutionPerSecond())
                 .build(controller, tooltip);
     }
 

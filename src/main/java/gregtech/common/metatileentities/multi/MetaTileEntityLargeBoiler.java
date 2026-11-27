@@ -163,14 +163,14 @@ public class MetaTileEntityLargeBoiler extends MultiblockWithDisplayBase impleme
             if (getWorld().isRemote) {
                 VanillaParticleEffects.PBF_SMOKE.runEffect(this);
             } else {
-                pollution(this.getPollutionAmount(), this.getPollutionTicks());
+                pollution(this.getPollutionPerSecond());
             }
         }
     }
 
     @Override
-    public double getPollutionAmount() {
-        return boilerType.getPollutionAmount();
+    public double getPollutionPerSecond() {
+        return boilerType.getPollutionPerSecond();
     }
 
     @Override

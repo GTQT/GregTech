@@ -1140,27 +1140,12 @@ public abstract class MetaTileEntity implements ISyncedTileEntity, CoverHolder, 
     /**
      * 如果是要写污染的附属自己mixin这个方法实现
      * ConfigHolder.machines.enablePollution 是污染开关
-     * @param amount 污染的量
-     * @param ticks 污染的触发间隔
+     * 机器请覆写 {@link #getPollutionPerSecond()} 并调用 {@link #pollution(double)}
+     * @param amount 一个周期内排放的污染点
+     * @param ticks  周期长度
      */
     @Override
     public void pollution(double amount , int ticks) {
-    }
-
-    /**
-     * 自己定义污染的量，默认是0（没有污染）
-     */
-    @Override
-    public double getPollutionAmount() {
-        return 0;
-    }
-
-    /**
-     * 获取污染的触发间隔，默认一秒触发一次
-     */
-    @Override
-    public int getPollutionTicks() {
-        return 20;
     }
 
     protected boolean shouldUpdate(MTETrait trait) {
