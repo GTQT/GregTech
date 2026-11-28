@@ -109,6 +109,9 @@ public class CrossRecipeParallelScheduler {
 
     // --- State tracking ---
     private boolean hasNotEnoughEnergy = false;
+    private boolean workedThisTick = false;
+    private long lastTickConsumedEUt = 0L;
+    private long paidStillRunningEUt = 0L;
 
     public CrossRecipeParallelScheduler(int parallelLimit) {
         this.parallelLimit = parallelLimit;
@@ -289,6 +292,9 @@ public class CrossRecipeParallelScheduler {
                          @Nullable FluidOutputHandler fluidOutputHandler) {
         int completedParallel = 0;
         boolean hasConditions = !conditions.isEmpty();
+        this.workedThisTick = false;
+        this.lastTickConsumedEUt = 0L;
+        this.paidStillRunningEUt = 0L;
 
         List<RecipeSlot> runnableSlots = new ArrayList<>(activeSlots.size());
         List<RecipeExecutionContext> runnableContexts = hasConditions ? new ArrayList<>(activeSlots.size()) : null;
@@ -367,6 +373,7 @@ public class CrossRecipeParallelScheduler {
             if (energyDrawer.drawEnergy(totalEUt, true)) {
                 energyDrawer.drawEnergy(totalEUt, false);
                 hasNotEnoughEnergy = false;
+                this.lastTickConsumedEUt = totalEUt;
             } else {
                 hasNotEnoughEnergy = true;
                 for (int i = 0; i < runnableSlots.size(); i++) {
@@ -401,6 +408,9 @@ public class CrossRecipeParallelScheduler {
         }
 
         // Phase 3: Commit condition tick consumption and advance running slots
+        if (!runnableSlots.isEmpty()) {
+            this.workedThisTick = true;
+        }
         for (int i = 0; i < runnableSlots.size(); i++) {
             RecipeSlot slot = runnableSlots.get(i);
             slot.setPaused(false);
@@ -424,6 +434,8 @@ public class CrossRecipeParallelScheduler {
                     activeSlots.remove(slot);
                     returnSlotToPool(slot);
                 }
+            } else if (slot.isRunning()) {
+                this.paidStillRunningEUt += slot.getRecipeEUt();
             }
         }
         return completedParallel;
@@ -463,6 +475,18 @@ public class CrossRecipeParallelScheduler {
     public boolean hasWorkingSlots() {
         for (RecipeSlot slot : activeSlots) {
             if (slot.isRunning() && !slot.isPaused()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @return true if at least one slot has completed processing and is waiting for output space
+     */
+    public boolean hasOutputBlockedSlots() {
+        for (RecipeSlot slot : activeSlots) {
+            if (slot.isCompleted()) {
                 return true;
             }
         }
@@ -549,6 +573,35 @@ public class CrossRecipeParallelScheduler {
 
     public boolean isHasNotEnoughEnergy() {
         return hasNotEnoughEnergy;
+    }
+
+    /**
+     * @return true if at least one runnable slot executed and advanced during the most recent {@link #tickSlots} call
+     */
+    public boolean hasWorkedThisTick() {
+        return workedThisTick;
+    }
+
+    /**
+     * @return aggregate EU/t actually drawn during the most recent {@link #tickSlots} call
+     */
+    public long getLastTickConsumedEUt() {
+        return lastTickConsumedEUt;
+    }
+
+    /**
+     * @return nominal scheduled EU/t across slots that already paid energy in the current tick's {@link #tickSlots}
+     *         call and remain {@code RUNNING} after tick progression
+     */
+    public long getPaidStillRunningEUt() {
+        return paidStillRunningEUt;
+    }
+
+    /**
+     * Clears the in-tick paid EUt credit once post-tick refill admission finishes.
+     */
+    public void clearPaidStillRunningEUt() {
+        this.paidStillRunningEUt = 0L;
     }
 
     public int getParallelLimit() {
@@ -788,6 +841,9 @@ public class CrossRecipeParallelScheduler {
         }
         activeSlots.clear();
         hasNotEnoughEnergy = false;
+        workedThisTick = false;
+        lastTickConsumedEUt = 0L;
+        paidStillRunningEUt = 0L;
     }
 
     // ==================== Serialization ====================

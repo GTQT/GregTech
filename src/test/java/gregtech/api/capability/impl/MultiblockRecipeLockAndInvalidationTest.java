@@ -123,12 +123,14 @@ class MultiblockRecipeLockAndInvalidationTest {
             };
         }
 
-        TEST_MAP = new RecipeMap<>("test_lock_invalid_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
-        RECIPE_IRON_TO_GOLD = compileSimpleRecipe(TEST_MAP, Items.IRON_INGOT, Items.GOLD_INGOT, 4, 16L);
-        RECIPE_COAL_TO_DIAMOND = compileSimpleRecipe(TEST_MAP, Items.COAL, Items.DIAMOND, 4, 16L);
+        if (TEST_MAP == null) {
+            TEST_MAP = new RecipeMap<>("test_lock_invalid_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 1, 1);
+            RECIPE_IRON_TO_GOLD = compileSimpleRecipe(TEST_MAP, Items.IRON_INGOT, Items.GOLD_INGOT, 4, 16L);
+            RECIPE_COAL_TO_DIAMOND = compileSimpleRecipe(TEST_MAP, Items.COAL, Items.DIAMOND, 4, 16L);
+        }
     }
 
-    private static Recipe compileSimpleRecipe(RecipeMap<SimpleRecipeBuilder> map, Item input, Item output,
+    static Recipe compileSimpleRecipe(RecipeMap<SimpleRecipeBuilder> map, Item input, Item output,
                                               int duration, long eut) {
         Recipe recipe = new Recipe(
                 Collections.singletonList(new GTRecipeItemInput(new ItemStack(input, 1))),
@@ -840,19 +842,29 @@ class MultiblockRecipeLockAndInvalidationTest {
 
     // ==================== Headless Test Doubles ====================
 
-    private static final class TestController extends RecipeMapMultiblockController {
+    static class TestController extends RecipeMapMultiblockController {
 
         private final List<IMultiblockPart> parts = new ArrayList<>();
         private final Map<MultiblockAbility<?>, List<Object>> abilities = new HashMap<>();
         private final net.minecraftforge.items.ItemStackHandler fallbackExportInv = new net.minecraftforge.items.ItemStackHandler(
                 8);
         private final FluidTankList exportFluidsList = new FluidTankList(false);
-        private final TestEnergyContainer energy = new TestEnergyContainer(100_000L, 100_000L, 128L);
+        private IEnergyContainer energy = new TestEnergyContainer(100_000L, 100_000L, 128L);
 
         TestController(RecipeMap<?> recipeMap) {
             super(new ResourceLocation("gregtech", "test_lock_controller"), recipeMap);
             new TestMetaTileEntityHolder(this);
             this.recipeMapWorkable = new TestMultiblockRecipeLogic(this);
+            this.inputInventory = new ItemHandlerList(Collections.emptyList());
+            this.inputFluidInventory = new FluidTankList(false);
+        }
+
+        void setLogic(MultiblockRecipeLogic logic) {
+            this.recipeMapWorkable = logic;
+        }
+
+        void setEnergyContainer(IEnergyContainer energy) {
+            this.energy = energy;
         }
 
         void addPart(MetaTileEntity partMte) {
@@ -871,6 +883,10 @@ class MultiblockRecipeLockAndInvalidationTest {
                     }
                 }
             }
+            this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
+            this.inputFluidInventory = new FluidTankList(false, getAbilities(MultiblockAbility.IMPORT_FLUIDS));
+            this.outputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.EXPORT_ITEMS));
+            this.outputFluidInventory = new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS));
         }
 
         TestMultiblockRecipeLogic getTestLogic() {
@@ -910,24 +926,15 @@ class MultiblockRecipeLockAndInvalidationTest {
         }
 
         @Override
-        public IItemHandlerModifiable getInputInventory() {
-            return new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        }
-
-        @Override
         public IItemHandlerModifiable getOutputInventory() {
             List<IItemHandlerModifiable> exports = getAbilities(MultiblockAbility.EXPORT_ITEMS);
-            return exports.isEmpty() ? fallbackExportInv : new ItemHandlerList(exports);
+            return exports.isEmpty() ? fallbackExportInv : super.getOutputInventory();
         }
 
         @Override
         public IMultipleTankHandler getOutputFluidInventory() {
-            return exportFluidsList;
-        }
-
-        @Override
-        public IMultipleTankHandler getInputFluidInventory() {
-            return new FluidTankList(false, getAbilities(MultiblockAbility.IMPORT_FLUIDS));
+            List<?> exports = getAbilities(MultiblockAbility.EXPORT_FLUIDS);
+            return exports.isEmpty() ? exportFluidsList : super.getOutputFluidInventory();
         }
 
         @Override
@@ -951,9 +958,11 @@ class MultiblockRecipeLockAndInvalidationTest {
         }
     }
 
-    private static final class TestMultiblockRecipeLogic extends MultiblockRecipeLogic {
+    static final class TestMultiblockRecipeLogic extends MultiblockRecipeLogic {
 
         private boolean crossRecipeEnabled = false;
+        private long maxVoltage = 128L;
+        private long totalPowerBudget = 1024L;
 
         TestMultiblockRecipeLogic(RecipeMapMultiblockController controller) {
             super(controller);
@@ -963,6 +972,14 @@ class MultiblockRecipeLockAndInvalidationTest {
             this.crossRecipeEnabled = enabled;
         }
 
+        void setMaxVoltage(long maxVoltage) {
+            this.maxVoltage = maxVoltage;
+        }
+
+        void setTotalPowerBudget(long totalPowerBudget) {
+            this.totalPowerBudget = totalPowerBudget;
+        }
+
         @Override
         public boolean isCrossRecipeParallelEnabled() {
             return crossRecipeEnabled;
@@ -970,22 +987,22 @@ class MultiblockRecipeLockAndInvalidationTest {
 
         @Override
         public long getMaxVoltage() {
-            return 128L;
+            return maxVoltage;
         }
 
         @Override
         public long getMaximumOverclockVoltage() {
-            return 128L;
+            return maxVoltage;
         }
 
         @Override
         protected long getMaxParallelVoltage() {
-            return 128L;
+            return maxVoltage;
         }
 
         @Override
         public long getTotalPowerBudget() {
-            return 1024L;
+            return totalPowerBudget;
         }
 
         @Override
@@ -1085,7 +1102,7 @@ class MultiblockRecipeLockAndInvalidationTest {
         }
     }
 
-    private static final class TestEnergyContainer implements IEnergyContainer {
+    static final class TestEnergyContainer implements IEnergyContainer {
 
         private long stored;
         private final long capacity;

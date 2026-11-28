@@ -59,7 +59,9 @@ public class RecipeMapScanner extends RecipeMap<SimpleRecipeBuilder> implements 
 
         for (ICustomScannerLogic logic : CUSTOM_SCANNER_LOGICS) {
             recipe = logic.createCustomRecipe(voltage, inputs, fluidInputs, exactVoltage);
-            if (recipe != null) return recipe;
+            if (recipe != null && recipe.getEUt() <= voltage && (!exactVoltage || recipe.getEUt() == voltage)) {
+                return recipe;
+            }
         }
         return null;
     }

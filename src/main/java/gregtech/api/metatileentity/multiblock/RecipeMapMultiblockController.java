@@ -48,6 +48,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 public abstract class RecipeMapMultiblockController extends MultiblockWithDisplayBase implements IDataInfoProvider,
                                                                                                  ICleanroomReceiver,
@@ -166,6 +167,33 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     @Override
     public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
         return true;
+    }
+
+    /**
+     * Invokes {@link #checkRecipe(Recipe, boolean)} while temporarily masking main-recipe input reservations
+     * from {@link #inputInventory} and {@link #inputFluidInventory}.
+     */
+    public boolean checkRecipeWithReservedInputs(@NotNull Recipe recipe,
+                                                 boolean consumeIfSuccess,
+                                                 @Nullable UnaryOperator<IItemHandlerModifiable> itemMask,
+                                                 @Nullable UnaryOperator<IMultipleTankHandler> fluidMask) {
+        if (itemMask == null && fluidMask == null) {
+            return checkRecipe(recipe, consumeIfSuccess);
+        }
+        IItemHandlerModifiable prevItems = this.inputInventory;
+        IMultipleTankHandler prevFluids = this.inputFluidInventory;
+        if (itemMask != null && prevItems != null) {
+            this.inputInventory = itemMask.apply(prevItems);
+        }
+        if (fluidMask != null && prevFluids != null) {
+            this.inputFluidInventory = fluidMask.apply(prevFluids);
+        }
+        try {
+            return checkRecipe(recipe, consumeIfSuccess);
+        } finally {
+            this.inputInventory = prevItems;
+            this.inputFluidInventory = prevFluids;
+        }
     }
 
     @Override

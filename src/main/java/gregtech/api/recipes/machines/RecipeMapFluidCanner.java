@@ -34,6 +34,7 @@ public class RecipeMapFluidCanner extends RecipeMap<SimpleRecipeBuilder> {
     public Recipe findRecipe(long voltage, List<ItemStack> inputs, List<FluidStack> fluidInputs, boolean exactVoltage) {
         Recipe recipe = super.findRecipe(voltage, inputs, fluidInputs, exactVoltage);
         if (recipe != null) return recipe;
+        if (exactVoltage ? voltage != 4 : voltage < 4) return null;
 
         for (ItemStack input : inputs) {
             if (input != null && input != ItemStack.EMPTY &&

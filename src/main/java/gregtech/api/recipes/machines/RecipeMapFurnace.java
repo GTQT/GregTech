@@ -43,6 +43,9 @@ public class RecipeMapFurnace extends RecipeMap<SimpleRecipeBuilder> {
         Recipe normalRecipe = super.findRecipe(voltage, inputs, fluidInputs, exactVoltage);
         if (normalRecipe != null || inputs.isEmpty())
             return normalRecipe;
+        if (exactVoltage ? voltage != RECIPE_EUT : voltage < RECIPE_EUT) {
+            return null;
+        }
 
         return findVanillaFurnaceRecipe(inputs, null);
     }
