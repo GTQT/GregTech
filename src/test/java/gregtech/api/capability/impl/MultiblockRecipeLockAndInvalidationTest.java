@@ -855,6 +855,8 @@ class MultiblockRecipeLockAndInvalidationTest {
             super(new ResourceLocation("gregtech", "test_lock_controller"), recipeMap);
             new TestMetaTileEntityHolder(this);
             this.recipeMapWorkable = new TestMultiblockRecipeLogic(this);
+            this.inputInventory = new ItemHandlerList(Collections.emptyList());
+            this.inputFluidInventory = new FluidTankList(false);
         }
 
         void setLogic(MultiblockRecipeLogic logic) {
@@ -881,6 +883,10 @@ class MultiblockRecipeLockAndInvalidationTest {
                     }
                 }
             }
+            this.inputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
+            this.inputFluidInventory = new FluidTankList(false, getAbilities(MultiblockAbility.IMPORT_FLUIDS));
+            this.outputInventory = new ItemHandlerList(getAbilities(MultiblockAbility.EXPORT_ITEMS));
+            this.outputFluidInventory = new FluidTankList(false, getAbilities(MultiblockAbility.EXPORT_FLUIDS));
         }
 
         TestMultiblockRecipeLogic getTestLogic() {
@@ -920,24 +926,15 @@ class MultiblockRecipeLockAndInvalidationTest {
         }
 
         @Override
-        public IItemHandlerModifiable getInputInventory() {
-            return new ItemHandlerList(getAbilities(MultiblockAbility.IMPORT_ITEMS));
-        }
-
-        @Override
         public IItemHandlerModifiable getOutputInventory() {
             List<IItemHandlerModifiable> exports = getAbilities(MultiblockAbility.EXPORT_ITEMS);
-            return exports.isEmpty() ? fallbackExportInv : new ItemHandlerList(exports);
+            return exports.isEmpty() ? fallbackExportInv : super.getOutputInventory();
         }
 
         @Override
         public IMultipleTankHandler getOutputFluidInventory() {
-            return exportFluidsList;
-        }
-
-        @Override
-        public IMultipleTankHandler getInputFluidInventory() {
-            return new FluidTankList(false, getAbilities(MultiblockAbility.IMPORT_FLUIDS));
+            List<?> exports = getAbilities(MultiblockAbility.EXPORT_FLUIDS);
+            return exports.isEmpty() ? exportFluidsList : super.getOutputFluidInventory();
         }
 
         @Override

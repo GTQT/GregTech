@@ -46,6 +46,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.nbt.NBTTagList;
 import net.minecraft.util.Tuple;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.common.util.Constants;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTankInfo;
@@ -63,6 +64,8 @@ import org.jetbrains.annotations.Nullable;
 import java.lang.ref.WeakReference;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.Iterator;
@@ -72,6 +75,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.ToIntFunction;
+import java.util.function.UnaryOperator;
 
 import static gregtech.api.recipes.logic.OverclockingLogic.subTickParallelOC;
 
@@ -120,6 +124,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     private transient long lastSearchPowerBudget = 0L;
     @Nullable
     private transient AllocationBudget lastCombinedAllocationBudget;
+    private transient int activeCommitColor = UNTRACKED_CHANNEL;
+    @Nullable
+    private transient UnaryOperator<IItemHandlerModifiable> activeHolderItemMask;
+    @Nullable
+    private transient UnaryOperator<IMultipleTankHandler> activeHolderFluidMask;
     private final List<PendingItemRollback> pendingRollbackItems = new ArrayList<>();
     private final List<PendingFluidRollback> pendingRollbackFluids = new ArrayList<>();
 
@@ -1145,7 +1154,15 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             ensureConditionFailureReason();
             return false;
         }
-        if (!consumeRecipeInputs(trimmed, alloc.importInventory, alloc.importFluids, totalOperations)) {
+        int prevCommitColor = this.activeCommitColor;
+        this.activeCommitColor = alloc.colorChannel;
+        boolean consumed;
+        try {
+            consumed = consumeRecipeInputs(trimmed, alloc.importInventory, alloc.importFluids, totalOperations);
+        } finally {
+            this.activeCommitColor = prevCommitColor;
+        }
+        if (!consumed) {
             return false;
         }
         this.metaTileEntity.addNotifiedInput(alloc.importInventory);
@@ -1413,6 +1430,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         return commitInputsAndHolderCheck(recipe, importInventory, importFluids, parallelCount);
     }
 
+    private static final byte ROLLBACK_SOURCE_RAW = 0;
+    private static final byte ROLLBACK_SOURCE_ABILITY = 1;
+    private static final byte ROLLBACK_SOURCE_DUAL_BUS = 2;
+    private static final byte ROLLBACK_SOURCE_CHANNEL_CUSTOM = 3;
+
     private static final class DeferredIngredientAmount {
 
         final GTRecipeInput input;
@@ -1424,31 +1446,190 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
     }
 
+    private static final class ReplannedItems {
+
+        final int[] counts;
+        final ItemStack[] expectedSnapshots;
+
+        ReplannedItems(@NotNull int[] counts, @NotNull ItemStack[] expectedSnapshots) {
+            this.counts = counts;
+            this.expectedSnapshots = expectedSnapshots;
+        }
+    }
+
+    private static final class ReplannedFluids {
+
+        final int[] amounts;
+        final FluidStack[] expectedSnapshots;
+
+        ReplannedFluids(@NotNull int[] amounts, @NotNull FluidStack[] expectedSnapshots) {
+            this.amounts = amounts;
+            this.expectedSnapshots = expectedSnapshots;
+        }
+    }
+
     private static final class PendingItemRollback {
 
         @Nullable
-        final WeakReference<IItemHandler> targetHandlerRef;
+        WeakReference<IItemHandler> targetHandlerRef;
+        final byte sourceKind;
+        final int sourceColor;
+        final int busIndex;
+        final int withinColorBusIndex;
         final int targetSlot;
+        @NotNull
+        final String ownerMteId;
+        final boolean hasOwnerPos;
+        final long ownerPosLong;
         @NotNull
         ItemStack stack;
 
-        PendingItemRollback(@Nullable IItemHandler targetHandler, int targetSlot, @NotNull ItemStack stack) {
+        PendingItemRollback(@Nullable IItemHandler targetHandler,
+                            byte sourceKind,
+                            int sourceColor,
+                            int busIndex,
+                            int withinColorBusIndex,
+                            int targetSlot,
+                            @NotNull String ownerMteId,
+                            boolean hasOwnerPos,
+                            long ownerPosLong,
+                            @NotNull ItemStack stack) {
             this.targetHandlerRef = targetHandler == null ? null : new WeakReference<>(targetHandler);
+            this.sourceKind = sourceKind;
+            this.sourceColor = sourceColor;
+            this.busIndex = busIndex;
+            this.withinColorBusIndex = withinColorBusIndex;
             this.targetSlot = targetSlot;
+            this.ownerMteId = ownerMteId;
+            this.hasOwnerPos = hasOwnerPos;
+            this.ownerPosLong = ownerPosLong;
             this.stack = stack;
+        }
+
+        NBTTagCompound writeToNBT() {
+            NBTTagCompound tag = new NBTTagCompound();
+            tag.setTag("stack", stack.writeToNBT(new NBTTagCompound()));
+            tag.setByte("sourceKind", sourceKind);
+            tag.setInteger("sourceColor", sourceColor);
+            tag.setInteger("busIndex", busIndex);
+            tag.setInteger("withinColorBusIndex", withinColorBusIndex);
+            tag.setInteger("targetSlot", targetSlot);
+            if (!ownerMteId.isEmpty()) {
+                tag.setString("ownerMteId", ownerMteId);
+            }
+            tag.setBoolean("hasOwnerPos", hasOwnerPos);
+            if (hasOwnerPos) {
+                tag.setLong("ownerPos", ownerPosLong);
+            }
+            return tag;
+        }
+
+        @Nullable
+        static PendingItemRollback readFromNBT(@NotNull NBTTagCompound tag) {
+            NBTTagCompound stackTag = tag.hasKey("stack", Constants.NBT.TAG_COMPOUND) ?
+                    tag.getCompoundTag("stack") : tag;
+            ItemStack loaded = new ItemStack(stackTag);
+            if (loaded.isEmpty()) {
+                return null;
+            }
+            byte kind = tag.hasKey("sourceKind") ? tag.getByte("sourceKind") : ROLLBACK_SOURCE_RAW;
+            int color = tag.hasKey("sourceColor") ? tag.getInteger("sourceColor") : NO_CHANNEL;
+            int busIdx = tag.hasKey("busIndex") ? tag.getInteger("busIndex") : -1;
+            int colorBusIdx = tag.hasKey("withinColorBusIndex") ? tag.getInteger("withinColorBusIndex") : -1;
+            int slot = tag.hasKey("targetSlot") ? tag.getInteger("targetSlot") : -1;
+            String ownerId = tag.getString("ownerMteId");
+            boolean hasPos = tag.getBoolean("hasOwnerPos");
+            long posLong = hasPos ? tag.getLong("ownerPos") : 0L;
+            return new PendingItemRollback(null, kind, color, busIdx, colorBusIdx, slot, ownerId, hasPos, posLong,
+                    loaded);
         }
     }
 
     private static final class PendingFluidRollback implements IFluidTank {
 
         @Nullable
-        final WeakReference<IFluidTank> targetTankRef;
+        WeakReference<IFluidTank> targetTankRef;
+        final byte sourceKind;
+        final int sourceColor;
+        final int busIndex;
+        final int tankIndex;
+        final int withinColorTankIndex;
+        @NotNull
+        final String ownerMteId;
+        final boolean hasOwnerPos;
+        final long ownerPosLong;
         @Nullable
         FluidStack fluid;
 
-        PendingFluidRollback(@Nullable IFluidTank targetTank, @NotNull FluidStack fluid) {
+        PendingFluidRollback(@Nullable IFluidTank targetTank,
+                             byte sourceKind,
+                             int sourceColor,
+                             int busIndex,
+                             int tankIndex,
+                             int withinColorTankIndex,
+                             @NotNull String ownerMteId,
+                             boolean hasOwnerPos,
+                             long ownerPosLong,
+                             @NotNull FluidStack fluid) {
             this.targetTankRef = targetTank == null ? null : new WeakReference<>(targetTank);
+            this.sourceKind = sourceKind;
+            this.sourceColor = sourceColor;
+            this.busIndex = busIndex;
+            this.tankIndex = tankIndex;
+            this.withinColorTankIndex = withinColorTankIndex;
+            this.ownerMteId = ownerMteId;
+            this.hasOwnerPos = hasOwnerPos;
+            this.ownerPosLong = ownerPosLong;
             this.fluid = fluid;
+        }
+
+        void addAmount(int amount, @NotNull FluidStack template) {
+            if (amount <= 0) return;
+            if (fluid == null || fluid.amount <= 0) {
+                fluid = GTUtility.copy(amount, template);
+            } else {
+                fluid.amount = saturatingIntAdd(fluid.amount, amount);
+            }
+        }
+
+        NBTTagCompound writeToNBT() {
+            NBTTagCompound tag = new NBTTagCompound();
+            if (fluid != null && fluid.amount > 0) {
+                tag.setTag("fluid", fluid.writeToNBT(new NBTTagCompound()));
+            }
+            tag.setByte("sourceKind", sourceKind);
+            tag.setInteger("sourceColor", sourceColor);
+            tag.setInteger("busIndex", busIndex);
+            tag.setInteger("tankIndex", tankIndex);
+            tag.setInteger("withinColorTankIndex", withinColorTankIndex);
+            if (!ownerMteId.isEmpty()) {
+                tag.setString("ownerMteId", ownerMteId);
+            }
+            tag.setBoolean("hasOwnerPos", hasOwnerPos);
+            if (hasOwnerPos) {
+                tag.setLong("ownerPos", ownerPosLong);
+            }
+            return tag;
+        }
+
+        @Nullable
+        static PendingFluidRollback readFromNBT(@NotNull NBTTagCompound tag) {
+            NBTTagCompound fluidTag = tag.hasKey("fluid", Constants.NBT.TAG_COMPOUND) ?
+                    tag.getCompoundTag("fluid") : tag;
+            FluidStack loaded = FluidStack.loadFluidStackFromNBT(fluidTag);
+            if (loaded == null || loaded.amount <= 0) {
+                return null;
+            }
+            byte kind = tag.hasKey("sourceKind") ? tag.getByte("sourceKind") : ROLLBACK_SOURCE_RAW;
+            int color = tag.hasKey("sourceColor") ? tag.getInteger("sourceColor") : NO_CHANNEL;
+            int busIdx = tag.hasKey("busIndex") ? tag.getInteger("busIndex") : -1;
+            int tankIdx = tag.hasKey("tankIndex") ? tag.getInteger("tankIndex") : 0;
+            int colorTankIdx = tag.hasKey("withinColorTankIndex") ? tag.getInteger("withinColorTankIndex") : -1;
+            String ownerId = tag.getString("ownerMteId");
+            boolean hasPos = tag.getBoolean("hasOwnerPos");
+            long posLong = hasPos ? tag.getLong("ownerPos") : 0L;
+            return new PendingFluidRollback(null, kind, color, busIdx, tankIdx, colorTankIdx, ownerId, hasPos, posLong,
+                    loaded);
         }
 
         @Override
@@ -1493,6 +1674,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
     }
 
+    private static int saturatingIntAdd(int a, int b) {
+        long sum = (long) a + b;
+        return sum > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) Math.max(0L, sum);
+    }
+
     private boolean commitInputsAndHolderCheck(@NotNull Recipe recipe,
                                                @NotNull IItemHandlerModifiable importInventory,
                                                @NotNull IMultipleTankHandler importFluids,
@@ -1504,135 +1690,146 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
         int slotCount = importInventory.getSlots();
         int[] originalSlotCounts = new int[slotCount];
-        int[] availableSlotCounts = new int[slotCount];
+        int[] extractableSlotCounts = new int[slotCount];
         ItemStack[] slotSnapshots = new ItemStack[slotCount];
-        byte[] slotRollbackState = new byte[slotCount];
         for (int i = 0; i < slotCount; i++) {
-            ItemStack stack = importInventory.getStackInSlot(i);
-            slotSnapshots[i] = stack.isEmpty() ? ItemStack.EMPTY : stack.copy();
-            int count = stack.isEmpty() ? 0 : stack.getCount();
-            originalSlotCounts[i] = count;
-            availableSlotCounts[i] = count;
+            ItemStack raw = importInventory.getStackInSlot(i);
+            int rawCount = raw.isEmpty() ? 0 : raw.getCount();
+            originalSlotCounts[i] = rawCount;
+            if (rawCount > 0) {
+                ItemStack simulated = importInventory.extractItem(i, rawCount, true);
+                if (!simulated.isEmpty() && ItemHandlerHelper.canItemStacksStack(raw, simulated)) {
+                    int extractable = Math.min(rawCount, simulated.getCount());
+                    extractableSlotCounts[i] = extractable;
+                    slotSnapshots[i] = simulated.copy();
+                } else {
+                    slotSnapshots[i] = ItemStack.EMPTY;
+                }
+            } else {
+                slotSnapshots[i] = ItemStack.EMPTY;
+            }
+        }
+
+        List<GTRecipeInput> consumableItemInputs = new ArrayList<>();
+        for (GTRecipeInput recipeInput : recipe.getInputs()) {
+            if (!recipeInput.isNonConsumable() && recipeInput.getAmount() > 0) {
+                consumableItemInputs.add(recipeInput);
+            }
+        }
+        long[][] itemAllocMatrix = allocateItemIngredientMatrix(
+                consumableItemInputs, parallelCount, slotSnapshots, extractableSlotCounts);
+        if (itemAllocMatrix == null) {
+            return false;
         }
 
         int[] phase1ItemPlan = new int[slotCount];
         int[] phase2ItemPlan = new int[slotCount];
-        List<DeferredIngredientAmount> deferredItemInputs = null;
-        for (GTRecipeInput recipeInput : recipe.getInputs()) {
-            if (recipeInput.isNonConsumable()) {
-                continue;
+        boolean[] slotRollbackable = new boolean[slotCount];
+        for (int i = 0; i < slotCount; i++) {
+            int totalForSlot = 0;
+            for (int k = 0; k < consumableItemInputs.size(); k++) {
+                totalForSlot += (int) itemAllocMatrix[k][i];
             }
-            long remaining = (long) recipeInput.getAmount() * parallelCount;
-            for (int i = 0; i < slotCount && remaining > 0L; i++) {
-                if (availableSlotCounts[i] <= 0) continue;
-                ItemStack stackInSlot = slotSnapshots[i];
-                if (stackInSlot.isEmpty() || !recipeInput.acceptsStack(stackInSlot)) continue;
-                if (slotRollbackState[i] == 0) {
-                    slotRollbackState[i] = canGuaranteeItemRollback(
-                            importInventory, i, stackInSlot, originalSlotCounts[i]) ? (byte) 1 : (byte) -1;
-                }
-                if (slotRollbackState[i] != 1) continue;
-                int toTake = (int) Math.min(remaining, availableSlotCounts[i]);
-                availableSlotCounts[i] -= toTake;
-                phase1ItemPlan[i] += toTake;
-                remaining -= toTake;
-            }
-            long deferredForInput = 0L;
-            for (int i = 0; i < slotCount && remaining > 0L; i++) {
-                if (availableSlotCounts[i] <= 0) continue;
-                ItemStack stackInSlot = slotSnapshots[i];
-                if (stackInSlot.isEmpty() || !recipeInput.acceptsStack(stackInSlot)) continue;
-                int toTake = (int) Math.min(remaining, availableSlotCounts[i]);
-                availableSlotCounts[i] -= toTake;
-                phase2ItemPlan[i] += toTake;
-                remaining -= toTake;
-                deferredForInput += toTake;
-            }
-            if (remaining > 0L) {
+            if (totalForSlot <= 0) continue;
+            ItemStack sim = importInventory.extractItem(i, totalForSlot, true);
+            if (sim.getCount() < totalForSlot || !ItemHandlerHelper.canItemStacksStack(sim, slotSnapshots[i])) {
                 return false;
+            }
+            slotRollbackable[i] = canGuaranteeItemRollback(
+                    importInventory, i, slotSnapshots[i], originalSlotCounts[i]);
+            if (slotRollbackable[i]) {
+                phase1ItemPlan[i] = totalForSlot;
+            } else {
+                phase2ItemPlan[i] = totalForSlot;
+            }
+        }
+        List<DeferredIngredientAmount> deferredItemInputs = null;
+        for (int k = 0; k < consumableItemInputs.size(); k++) {
+            long deferredForInput = 0L;
+            for (int i = 0; i < slotCount; i++) {
+                if (!slotRollbackable[i] && itemAllocMatrix[k][i] > 0L) {
+                    deferredForInput += itemAllocMatrix[k][i];
+                }
             }
             if (deferredForInput > 0L) {
                 if (deferredItemInputs == null) {
                     deferredItemInputs = new ArrayList<>();
                 }
-                deferredItemInputs.add(new DeferredIngredientAmount(recipeInput, deferredForInput));
-            }
-        }
-        for (int i = 0; i < slotCount; i++) {
-            int planned = phase1ItemPlan[i] + phase2ItemPlan[i];
-            if (planned > 0 && importInventory.extractItem(i, planned, true).getCount() < planned) {
-                return false;
+                deferredItemInputs.add(new DeferredIngredientAmount(consumableItemInputs.get(k), deferredForInput));
             }
         }
 
         List<IMultipleTankHandler.ITankEntry> tanks = importFluids.getFluidTanks();
         int tankCount = tanks.size();
         int[] originalTankAmounts = new int[tankCount];
-        int[] availableTankAmounts = new int[tankCount];
+        int[] drainableTankAmounts = new int[tankCount];
         FluidStack[] tankSnapshots = new FluidStack[tankCount];
-        byte[] tankRollbackState = new byte[tankCount];
         for (int t = 0; t < tankCount; t++) {
-            FluidStack fluid = tanks.get(t).getFluid();
-            int amount = fluid == null ? 0 : Math.max(0, fluid.amount);
-            tankSnapshots[t] = amount > 0 ? fluid.copy() : null;
-            originalTankAmounts[t] = amount;
-            availableTankAmounts[t] = amount;
+            FluidStack raw = tanks.get(t).getFluid();
+            int rawAmount = raw == null ? 0 : Math.max(0, raw.amount);
+            originalTankAmounts[t] = rawAmount;
+            if (rawAmount > 0) {
+                FluidStack simulated = tanks.get(t).drain(rawAmount, false);
+                if (simulated != null && simulated.amount > 0 && raw.isFluidEqual(simulated)) {
+                    int drainable = Math.min(rawAmount, simulated.amount);
+                    drainableTankAmounts[t] = drainable;
+                    tankSnapshots[t] = GTUtility.copy(drainable, simulated);
+                }
+            }
+        }
+
+        List<GTRecipeInput> consumableFluidInputs = new ArrayList<>();
+        for (GTRecipeInput recipeFluidInput : recipe.getFluidInputs()) {
+            if (!recipeFluidInput.isNonConsumable() && recipeFluidInput.getAmount() > 0) {
+                consumableFluidInputs.add(recipeFluidInput);
+            }
+        }
+        long[][] fluidAllocMatrix = allocateFluidIngredientMatrix(
+                consumableFluidInputs, parallelCount, tankSnapshots, drainableTankAmounts);
+        if (fluidAllocMatrix == null) {
+            return false;
         }
 
         int[] phase1FluidPlan = new int[tankCount];
         int[] phase2FluidPlan = new int[tankCount];
-        List<DeferredIngredientAmount> deferredFluidInputs = null;
-        for (GTRecipeInput recipeFluidInput : recipe.getFluidInputs()) {
-            if (recipeFluidInput.isNonConsumable()) {
-                continue;
+        boolean[] tankRollbackable = new boolean[tankCount];
+        for (int t = 0; t < tankCount; t++) {
+            int totalForTank = 0;
+            for (int k = 0; k < consumableFluidInputs.size(); k++) {
+                totalForTank += (int) fluidAllocMatrix[k][t];
             }
-            long remaining = (long) recipeFluidInput.getAmount() * parallelCount;
-            for (int t = 0; t < tankCount && remaining > 0L; t++) {
-                if (availableTankAmounts[t] <= 0) continue;
-                FluidStack fluidInTank = tankSnapshots[t];
-                if (fluidInTank == null || !recipeFluidInput.acceptsFluid(fluidInTank)) continue;
-                if (tankRollbackState[t] == 0) {
-                    tankRollbackState[t] = canGuaranteeFluidRollbackViaFill(
-                            tanks.get(t), fluidInTank) ? (byte) 1 : (byte) -1;
-                }
-                if (tankRollbackState[t] != 1) continue;
-                int toDrain = (int) Math.min(remaining, availableTankAmounts[t]);
-                availableTankAmounts[t] -= toDrain;
-                phase1FluidPlan[t] += toDrain;
-                remaining -= toDrain;
-            }
-            long deferredForInput = 0L;
-            for (int t = 0; t < tankCount && remaining > 0L; t++) {
-                if (availableTankAmounts[t] <= 0) continue;
-                FluidStack fluidInTank = tankSnapshots[t];
-                if (fluidInTank == null || !recipeFluidInput.acceptsFluid(fluidInTank)) continue;
-                int toDrain = (int) Math.min(remaining, availableTankAmounts[t]);
-                availableTankAmounts[t] -= toDrain;
-                phase2FluidPlan[t] += toDrain;
-                remaining -= toDrain;
-                deferredForInput += toDrain;
-            }
-            if (remaining > 0L) {
+            if (totalForTank <= 0) continue;
+            FluidStack sim = tanks.get(t).drain(totalForTank, false);
+            if (sim == null || sim.amount < totalForTank || tankSnapshots[t] == null ||
+                    !sim.isFluidEqual(tankSnapshots[t])) {
                 return false;
+            }
+            tankRollbackable[t] = canGuaranteeFluidRollbackViaFill(tanks.get(t), tankSnapshots[t]);
+            if (tankRollbackable[t]) {
+                phase1FluidPlan[t] = totalForTank;
+            } else {
+                phase2FluidPlan[t] = totalForTank;
+            }
+        }
+        List<DeferredIngredientAmount> deferredFluidInputs = null;
+        for (int k = 0; k < consumableFluidInputs.size(); k++) {
+            long deferredForInput = 0L;
+            for (int t = 0; t < tankCount; t++) {
+                if (!tankRollbackable[t] && fluidAllocMatrix[k][t] > 0L) {
+                    deferredForInput += fluidAllocMatrix[k][t];
+                }
             }
             if (deferredForInput > 0L) {
                 if (deferredFluidInputs == null) {
                     deferredFluidInputs = new ArrayList<>();
                 }
-                deferredFluidInputs.add(new DeferredIngredientAmount(recipeFluidInput, deferredForInput));
-            }
-        }
-        for (int t = 0; t < tankCount; t++) {
-            int planned = phase1FluidPlan[t] + phase2FluidPlan[t];
-            if (planned > 0) {
-                FluidStack simulated = tanks.get(t).drain(planned, false);
-                if (simulated == null || simulated.amount < planned) {
-                    return false;
-                }
+                deferredFluidInputs.add(new DeferredIngredientAmount(consumableFluidInputs.get(k), deferredForInput));
             }
         }
 
         // Phase 1: extract only inputs whose rollback can be guaranteed before holder.checkRecipe(..., true)
+        List<IItemHandlerModifiable> preItemNotifs = new ArrayList<>(metaTileEntity.getNotifiedItemInputList());
+        List<IFluidHandler> preFluidNotifs = new ArrayList<>(metaTileEntity.getNotifiedFluidInputList());
         ItemStack[] extractedItems = new ItemStack[slotCount];
         FluidStack[] drainedFluids = new FluidStack[tankCount];
         boolean extractFailed = false;
@@ -1640,7 +1837,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             if (phase1ItemPlan[i] <= 0) continue;
             ItemStack extracted = importInventory.extractItem(i, phase1ItemPlan[i], false);
             extractedItems[i] = extracted;
-            if (extracted.getCount() < phase1ItemPlan[i]) {
+            if (extracted.getCount() < phase1ItemPlan[i] ||
+                    !ItemHandlerHelper.canItemStacksStack(extracted, slotSnapshots[i])) {
                 extractFailed = true;
                 break;
             }
@@ -1650,57 +1848,103 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 if (phase1FluidPlan[t] <= 0) continue;
                 FluidStack drained = tanks.get(t).drain(phase1FluidPlan[t], true);
                 drainedFluids[t] = drained;
-                if (drained == null || drained.amount < phase1FluidPlan[t]) {
+                if (drained == null || drained.amount < phase1FluidPlan[t] ||
+                        tankSnapshots[t] == null || !drained.isFluidEqual(tankSnapshots[t])) {
                     extractFailed = true;
                     break;
                 }
             }
         }
 
-        if (extractFailed || !((IRecipeMapHolder) metaTileEntity).checkRecipe(recipe, true)) {
+        if (extractFailed || !invokeHolderCommitCheck(recipe, importInventory, phase2ItemPlan, slotSnapshots,
+                tanks, phase2FluidPlan, tankSnapshots)) {
             rollbackExtractedInputs(importInventory, originalSlotCounts, extractedItems,
                     importFluids, tanks, originalTankAmounts, drainedFluids);
+            restorePreCommitInputNotifications(preItemNotifs, preFluidNotifs);
             if (!extractFailed) {
                 ensureConditionFailureReason();
             }
             return false;
         }
 
-        // Phase 2: holder auxiliary commit succeeded; now extract deferred drain-only / non-refillable inputs
+        // Phase 2: holder auxiliary commit succeeded; re-verify planned item/fluid identity + NBT before extracting
         if (deferredItemInputs != null) {
-            int[] activePhase2Items = canSimulateItemPlan(importInventory, phase2ItemPlan) ?
-                    phase2ItemPlan : replanDeferredItems(importInventory, deferredItemInputs);
-            if (activePhase2Items == null) {
+            ReplannedItems activeItems = canSimulateItemPlan(importInventory, phase2ItemPlan, slotSnapshots) ?
+                    new ReplannedItems(phase2ItemPlan, slotSnapshots) :
+                    replanDeferredItems(importInventory, deferredItemInputs);
+            if (activeItems == null) {
+                boolean lost = recordAbortedHolderLosses(importInventory, originalSlotCounts, slotSnapshots,
+                        phase1ItemPlan, phase2ItemPlan, extractedItems, tanks, originalTankAmounts, tankSnapshots,
+                        phase1FluidPlan, phase2FluidPlan, drainedFluids);
                 rollbackExtractedInputs(importInventory, originalSlotCounts, extractedItems,
                         importFluids, tanks, originalTankAmounts, drainedFluids);
+                restorePreCommitInputNotifications(preItemNotifs, preFluidNotifs);
+                if (lost) {
+                    markHolderLossInputInvalidated(importInventory);
+                }
                 return false;
             }
             for (int i = 0; i < slotCount; i++) {
-                if (activePhase2Items[i] <= 0) continue;
-                ItemStack extracted = importInventory.extractItem(i, activePhase2Items[i], false);
-                mergeExtractedItem(extractedItems, i, extracted);
-                if (extracted.getCount() < activePhase2Items[i]) {
+                if (activeItems.counts[i] <= 0) continue;
+                ItemStack expected = activeItems.expectedSnapshots[i];
+                ItemStack extracted = importInventory.extractItem(i, activeItems.counts[i], false);
+                boolean matchesExpected = !expected.isEmpty() &&
+                        ItemHandlerHelper.canItemStacksStack(extracted, expected);
+                if (!matchesExpected) {
+                    returnUnexpectedExtractedItem(importInventory, i, extracted);
+                } else {
+                    mergeExtractedItem(extractedItems, i, extracted);
+                }
+                if (!matchesExpected || extracted.getCount() < activeItems.counts[i]) {
+                    boolean lost = recordAbortedHolderLosses(importInventory, originalSlotCounts, slotSnapshots,
+                            phase1ItemPlan, phase2ItemPlan, extractedItems, tanks, originalTankAmounts, tankSnapshots,
+                            phase1FluidPlan, phase2FluidPlan, drainedFluids);
                     rollbackExtractedInputs(importInventory, originalSlotCounts, extractedItems,
                             importFluids, tanks, originalTankAmounts, drainedFluids);
+                    restorePreCommitInputNotifications(preItemNotifs, preFluidNotifs);
+                    if (lost) {
+                        markHolderLossInputInvalidated(importInventory);
+                    }
                     return false;
                 }
             }
         }
         if (deferredFluidInputs != null) {
-            int[] activePhase2Fluids = canSimulateFluidPlan(tanks, phase2FluidPlan) ?
-                    phase2FluidPlan : replanDeferredFluids(tanks, deferredFluidInputs);
-            if (activePhase2Fluids == null) {
+            ReplannedFluids activeFluids = canSimulateFluidPlan(tanks, phase2FluidPlan, tankSnapshots) ?
+                    new ReplannedFluids(phase2FluidPlan, tankSnapshots) :
+                    replanDeferredFluids(tanks, deferredFluidInputs);
+            if (activeFluids == null) {
+                boolean lost = recordAbortedHolderLosses(importInventory, originalSlotCounts, slotSnapshots,
+                        phase1ItemPlan, phase2ItemPlan, extractedItems, tanks, originalTankAmounts, tankSnapshots,
+                        phase1FluidPlan, phase2FluidPlan, drainedFluids);
                 rollbackExtractedInputs(importInventory, originalSlotCounts, extractedItems,
                         importFluids, tanks, originalTankAmounts, drainedFluids);
+                restorePreCommitInputNotifications(preItemNotifs, preFluidNotifs);
+                if (lost) {
+                    markHolderLossInputInvalidated(importInventory);
+                }
                 return false;
             }
             for (int t = 0; t < tankCount; t++) {
-                if (activePhase2Fluids[t] <= 0) continue;
-                FluidStack drained = tanks.get(t).drain(activePhase2Fluids[t], true);
-                mergeDrainedFluid(drainedFluids, t, drained);
-                if (drained == null || drained.amount < activePhase2Fluids[t]) {
+                if (activeFluids.amounts[t] <= 0) continue;
+                FluidStack expected = activeFluids.expectedSnapshots[t];
+                FluidStack drained = tanks.get(t).drain(activeFluids.amounts[t], true);
+                boolean matchesExpected = drained != null && expected != null && drained.isFluidEqual(expected);
+                if (!matchesExpected) {
+                    returnUnexpectedDrainedFluid(importFluids, tanks.get(t), drained);
+                } else {
+                    mergeDrainedFluid(drainedFluids, t, drained);
+                }
+                if (!matchesExpected || drained.amount < activeFluids.amounts[t]) {
+                    boolean lost = recordAbortedHolderLosses(importInventory, originalSlotCounts, slotSnapshots,
+                            phase1ItemPlan, phase2ItemPlan, extractedItems, tanks, originalTankAmounts, tankSnapshots,
+                            phase1FluidPlan, phase2FluidPlan, drainedFluids);
                     rollbackExtractedInputs(importInventory, originalSlotCounts, extractedItems,
                             importFluids, tanks, originalTankAmounts, drainedFluids);
+                    restorePreCommitInputNotifications(preItemNotifs, preFluidNotifs);
+                    if (lost) {
+                        markHolderLossInputInvalidated(importInventory);
+                    }
                     return false;
                 }
             }
@@ -1708,51 +1952,273 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         return true;
     }
 
-    private static boolean canSimulateItemPlan(@NotNull IItemHandlerModifiable importInventory, @NotNull int[] plan) {
-        for (int i = 0; i < plan.length; i++) {
-            if (plan[i] > 0 && importInventory.extractItem(i, plan[i], true).getCount() < plan[i]) {
+    @Nullable
+    private static long[][] allocateItemIngredientMatrix(@NotNull List<GTRecipeInput> inputs,
+                                                         int parallelCount,
+                                                         @NotNull ItemStack[] snapshots,
+                                                         @NotNull int[] extractableCounts) {
+        int m = inputs.size();
+        int slotCount = snapshots.length;
+        long[][] matrix = new long[m][slotCount];
+        if (m == 0) {
+            return matrix;
+        }
+        int[] naturalOrder = new int[m];
+        for (int k = 0; k < m; k++) naturalOrder[k] = k;
+        if (tryAllocateItemsByOrder(inputs, parallelCount, snapshots, extractableCounts, naturalOrder, matrix)) {
+            return matrix;
+        }
+        if (m > 1) {
+            List<Integer> constrainedOrder = new ArrayList<>(m);
+            for (int k = 0; k < m; k++) constrainedOrder.add(k);
+            constrainedOrder.sort(Comparator
+                    .comparingInt((Integer k) -> countMatchingItemSlots(inputs.get(k), snapshots, extractableCounts))
+                    .thenComparingLong(k -> sumMatchingItemCount(inputs.get(k), snapshots, extractableCounts)));
+            int[] retryOrder = new int[m];
+            for (int idx = 0; idx < m; idx++) retryOrder[idx] = constrainedOrder.get(idx);
+            matrix = new long[m][slotCount];
+            if (tryAllocateItemsByOrder(inputs, parallelCount, snapshots, extractableCounts, retryOrder, matrix)) {
+                return matrix;
+            }
+        }
+        return null;
+    }
+
+    private static boolean tryAllocateItemsByOrder(@NotNull List<GTRecipeInput> inputs,
+                                                   int parallelCount,
+                                                   @NotNull ItemStack[] snapshots,
+                                                   @NotNull int[] extractableCounts,
+                                                   @NotNull int[] inputOrder,
+                                                   @NotNull long[][] outMatrix) {
+        int[] available = extractableCounts.clone();
+        for (int k : inputOrder) {
+            GTRecipeInput input = inputs.get(k);
+            long remaining = (long) input.getAmount() * parallelCount;
+            for (int i = 0; i < snapshots.length && remaining > 0L; i++) {
+                if (available[i] <= 0) continue;
+                ItemStack s = snapshots[i];
+                if (s.isEmpty() || !input.acceptsStack(s)) continue;
+                int toTake = (int) Math.min(remaining, available[i]);
+                available[i] -= toTake;
+                outMatrix[k][i] += toTake;
+                remaining -= toTake;
+            }
+            if (remaining > 0L) {
                 return false;
             }
         }
         return true;
     }
 
+    private static int countMatchingItemSlots(@NotNull GTRecipeInput input,
+                                              @NotNull ItemStack[] snapshots,
+                                              @NotNull int[] available) {
+        int matches = 0;
+        for (int i = 0; i < snapshots.length; i++) {
+            if (available[i] > 0 && !snapshots[i].isEmpty() && input.acceptsStack(snapshots[i])) {
+                matches++;
+            }
+        }
+        return matches;
+    }
+
+    private static long sumMatchingItemCount(@NotNull GTRecipeInput input,
+                                             @NotNull ItemStack[] snapshots,
+                                             @NotNull int[] available) {
+        long sum = 0L;
+        for (int i = 0; i < snapshots.length; i++) {
+            if (available[i] > 0 && !snapshots[i].isEmpty() && input.acceptsStack(snapshots[i])) {
+                sum += available[i];
+            }
+        }
+        return sum;
+    }
+
     @Nullable
-    private static int[] replanDeferredItems(@NotNull IItemHandlerModifiable importInventory,
-                                             @NotNull List<DeferredIngredientAmount> deferredInputs) {
+    private static long[][] allocateFluidIngredientMatrix(@NotNull List<GTRecipeInput> inputs,
+                                                          int parallelCount,
+                                                          @NotNull FluidStack[] snapshots,
+                                                          @NotNull int[] drainableAmounts) {
+        int m = inputs.size();
+        int tankCount = snapshots.length;
+        long[][] matrix = new long[m][tankCount];
+        if (m == 0) {
+            return matrix;
+        }
+        int[] naturalOrder = new int[m];
+        for (int k = 0; k < m; k++) naturalOrder[k] = k;
+        if (tryAllocateFluidsByOrder(inputs, parallelCount, snapshots, drainableAmounts, naturalOrder, matrix)) {
+            return matrix;
+        }
+        if (m > 1) {
+            List<Integer> constrainedOrder = new ArrayList<>(m);
+            for (int k = 0; k < m; k++) constrainedOrder.add(k);
+            constrainedOrder.sort(Comparator
+                    .comparingInt((Integer k) -> countMatchingFluidTanks(inputs.get(k), snapshots, drainableAmounts))
+                    .thenComparingLong(k -> sumMatchingFluidAmount(inputs.get(k), snapshots, drainableAmounts)));
+            int[] retryOrder = new int[m];
+            for (int idx = 0; idx < m; idx++) retryOrder[idx] = constrainedOrder.get(idx);
+            matrix = new long[m][tankCount];
+            if (tryAllocateFluidsByOrder(inputs, parallelCount, snapshots, drainableAmounts, retryOrder, matrix)) {
+                return matrix;
+            }
+        }
+        return null;
+    }
+
+    private static boolean tryAllocateFluidsByOrder(@NotNull List<GTRecipeInput> inputs,
+                                                    int parallelCount,
+                                                    @NotNull FluidStack[] snapshots,
+                                                    @NotNull int[] drainableAmounts,
+                                                    @NotNull int[] inputOrder,
+                                                    @NotNull long[][] outMatrix) {
+        int[] available = drainableAmounts.clone();
+        for (int k : inputOrder) {
+            GTRecipeInput input = inputs.get(k);
+            long remaining = (long) input.getAmount() * parallelCount;
+            for (int t = 0; t < snapshots.length && remaining > 0L; t++) {
+                if (available[t] <= 0) continue;
+                FluidStack f = snapshots[t];
+                if (f == null || !input.acceptsFluid(f)) continue;
+                int toDrain = (int) Math.min(remaining, available[t]);
+                available[t] -= toDrain;
+                outMatrix[k][t] += toDrain;
+                remaining -= toDrain;
+            }
+            if (remaining > 0L) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static int countMatchingFluidTanks(@NotNull GTRecipeInput input,
+                                               @NotNull FluidStack[] snapshots,
+                                               @NotNull int[] available) {
+        int matches = 0;
+        for (int t = 0; t < snapshots.length; t++) {
+            if (available[t] > 0 && snapshots[t] != null && input.acceptsFluid(snapshots[t])) {
+                matches++;
+            }
+        }
+        return matches;
+    }
+
+    private static long sumMatchingFluidAmount(@NotNull GTRecipeInput input,
+                                              @NotNull FluidStack[] snapshots,
+                                              @NotNull int[] available) {
+        long sum = 0L;
+        for (int t = 0; t < snapshots.length; t++) {
+            if (available[t] > 0 && snapshots[t] != null && input.acceptsFluid(snapshots[t])) {
+                sum += available[t];
+            }
+        }
+        return sum;
+    }
+
+    private static boolean canSimulateItemPlan(@NotNull IItemHandlerModifiable importInventory,
+                                               @NotNull int[] plan,
+                                               @NotNull ItemStack[] expectedSnapshots) {
+        for (int i = 0; i < plan.length; i++) {
+            if (plan[i] > 0) {
+                ItemStack expected = expectedSnapshots[i];
+                if (expected == null || expected.isEmpty()) return false;
+                ItemStack current = importInventory.getStackInSlot(i);
+                if (current.isEmpty() || !ItemHandlerHelper.canItemStacksStack(current, expected)) {
+                    return false;
+                }
+                ItemStack simulated = importInventory.extractItem(i, plan[i], true);
+                if (simulated.getCount() < plan[i] || !ItemHandlerHelper.canItemStacksStack(simulated, expected)) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    @Nullable
+    private static ReplannedItems replanDeferredItems(@NotNull IItemHandlerModifiable importInventory,
+                                                      @NotNull List<DeferredIngredientAmount> deferredInputs) {
         int slotCount = importInventory.getSlots();
-        int[] available = new int[slotCount];
+        int[] extractable = new int[slotCount];
         ItemStack[] snapshots = new ItemStack[slotCount];
         for (int i = 0; i < slotCount; i++) {
-            ItemStack s = importInventory.getStackInSlot(i);
-            snapshots[i] = s;
-            available[i] = s.isEmpty() ? 0 : s.getCount();
+            ItemStack raw = importInventory.getStackInSlot(i);
+            int rawCount = raw.isEmpty() ? 0 : raw.getCount();
+            if (rawCount > 0) {
+                ItemStack sim = importInventory.extractItem(i, rawCount, true);
+                if (!sim.isEmpty() && ItemHandlerHelper.canItemStacksStack(raw, sim)) {
+                    extractable[i] = Math.min(rawCount, sim.getCount());
+                    snapshots[i] = sim.copy();
+                } else {
+                    snapshots[i] = ItemStack.EMPTY;
+                }
+            } else {
+                snapshots[i] = ItemStack.EMPTY;
+            }
+        }
+        int m = deferredInputs.size();
+        List<GTRecipeInput> inputs = new ArrayList<>(m);
+        for (DeferredIngredientAmount d : deferredInputs) inputs.add(d.input);
+        long[][] matrix = new long[m][slotCount];
+        int[] order = new int[m];
+        for (int k = 0; k < m; k++) order[k] = k;
+        if (!tryAllocateDeferredItems(deferredInputs, snapshots, extractable, order, matrix)) {
+            if (m <= 1) return null;
+            List<Integer> constrained = new ArrayList<>(m);
+            for (int k = 0; k < m; k++) constrained.add(k);
+            constrained.sort(Comparator
+                    .comparingInt((Integer k) -> countMatchingItemSlots(inputs.get(k), snapshots, extractable))
+                    .thenComparingLong(k -> sumMatchingItemCount(inputs.get(k), snapshots, extractable)));
+            for (int idx = 0; idx < m; idx++) order[idx] = constrained.get(idx);
+            matrix = new long[m][slotCount];
+            if (!tryAllocateDeferredItems(deferredInputs, snapshots, extractable, order, matrix)) {
+                return null;
+            }
         }
         int[] plan = new int[slotCount];
-        for (DeferredIngredientAmount deferred : deferredInputs) {
+        for (int i = 0; i < slotCount; i++) {
+            for (int k = 0; k < m; k++) plan[i] += (int) matrix[k][i];
+        }
+        return canSimulateItemPlan(importInventory, plan, snapshots) ? new ReplannedItems(plan, snapshots) : null;
+    }
+
+    private static boolean tryAllocateDeferredItems(@NotNull List<DeferredIngredientAmount> deferredInputs,
+                                                    @NotNull ItemStack[] snapshots,
+                                                    @NotNull int[] extractable,
+                                                    @NotNull int[] order,
+                                                    @NotNull long[][] outMatrix) {
+        int[] available = extractable.clone();
+        for (int k : order) {
+            DeferredIngredientAmount deferred = deferredInputs.get(k);
             long remaining = deferred.amount;
-            for (int i = 0; i < slotCount && remaining > 0L; i++) {
+            for (int i = 0; i < snapshots.length && remaining > 0L; i++) {
                 if (available[i] <= 0) continue;
                 ItemStack s = snapshots[i];
                 if (s.isEmpty() || !deferred.input.acceptsStack(s)) continue;
                 int toTake = (int) Math.min(remaining, available[i]);
                 available[i] -= toTake;
-                plan[i] += toTake;
+                outMatrix[k][i] += toTake;
                 remaining -= toTake;
             }
-            if (remaining > 0L) {
-                return null;
-            }
+            if (remaining > 0L) return false;
         }
-        return canSimulateItemPlan(importInventory, plan) ? plan : null;
+        return true;
     }
 
     private static boolean canSimulateFluidPlan(@NotNull List<IMultipleTankHandler.ITankEntry> tanks,
-                                                @NotNull int[] plan) {
+                                                @NotNull int[] plan,
+                                                @NotNull FluidStack[] expectedSnapshots) {
         for (int t = 0; t < plan.length; t++) {
             if (plan[t] > 0) {
+                FluidStack expected = expectedSnapshots[t];
+                if (expected == null || expected.amount <= 0) return false;
+                FluidStack current = tanks.get(t).getFluid();
+                if (current == null || !current.isFluidEqual(expected)) {
+                    return false;
+                }
                 FluidStack simulated = tanks.get(t).drain(plan[t], false);
-                if (simulated == null || simulated.amount < plan[t]) {
+                if (simulated == null || simulated.amount < plan[t] || !simulated.isFluidEqual(expected)) {
                     return false;
                 }
             }
@@ -1761,33 +2227,163 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     @Nullable
-    private static int[] replanDeferredFluids(@NotNull List<IMultipleTankHandler.ITankEntry> tanks,
-                                              @NotNull List<DeferredIngredientAmount> deferredInputs) {
+    private static ReplannedFluids replanDeferredFluids(@NotNull List<IMultipleTankHandler.ITankEntry> tanks,
+                                                        @NotNull List<DeferredIngredientAmount> deferredInputs) {
         int tankCount = tanks.size();
-        int[] available = new int[tankCount];
+        int[] drainable = new int[tankCount];
         FluidStack[] snapshots = new FluidStack[tankCount];
         for (int t = 0; t < tankCount; t++) {
-            FluidStack f = tanks.get(t).getFluid();
-            snapshots[t] = f;
-            available[t] = f == null ? 0 : Math.max(0, f.amount);
+            FluidStack raw = tanks.get(t).getFluid();
+            int rawAmount = raw == null ? 0 : Math.max(0, raw.amount);
+            if (rawAmount > 0) {
+                FluidStack sim = tanks.get(t).drain(rawAmount, false);
+                if (sim != null && sim.amount > 0 && raw.isFluidEqual(sim)) {
+                    int amt = Math.min(rawAmount, sim.amount);
+                    drainable[t] = amt;
+                    snapshots[t] = GTUtility.copy(amt, sim);
+                }
+            }
+        }
+        int m = deferredInputs.size();
+        List<GTRecipeInput> inputs = new ArrayList<>(m);
+        for (DeferredIngredientAmount d : deferredInputs) inputs.add(d.input);
+        long[][] matrix = new long[m][tankCount];
+        int[] order = new int[m];
+        for (int k = 0; k < m; k++) order[k] = k;
+        if (!tryAllocateDeferredFluids(deferredInputs, snapshots, drainable, order, matrix)) {
+            if (m <= 1) return null;
+            List<Integer> constrained = new ArrayList<>(m);
+            for (int k = 0; k < m; k++) constrained.add(k);
+            constrained.sort(Comparator
+                    .comparingInt((Integer k) -> countMatchingFluidTanks(inputs.get(k), snapshots, drainable))
+                    .thenComparingLong(k -> sumMatchingFluidAmount(inputs.get(k), snapshots, drainable)));
+            for (int idx = 0; idx < m; idx++) order[idx] = constrained.get(idx);
+            matrix = new long[m][tankCount];
+            if (!tryAllocateDeferredFluids(deferredInputs, snapshots, drainable, order, matrix)) {
+                return null;
+            }
         }
         int[] plan = new int[tankCount];
-        for (DeferredIngredientAmount deferred : deferredInputs) {
+        for (int t = 0; t < tankCount; t++) {
+            for (int k = 0; k < m; k++) plan[t] += (int) matrix[k][t];
+        }
+        return canSimulateFluidPlan(tanks, plan, snapshots) ? new ReplannedFluids(plan, snapshots) : null;
+    }
+
+    private static boolean tryAllocateDeferredFluids(@NotNull List<DeferredIngredientAmount> deferredInputs,
+                                                     @NotNull FluidStack[] snapshots,
+                                                     @NotNull int[] drainable,
+                                                     @NotNull int[] order,
+                                                     @NotNull long[][] outMatrix) {
+        int[] available = drainable.clone();
+        for (int k : order) {
+            DeferredIngredientAmount deferred = deferredInputs.get(k);
             long remaining = deferred.amount;
-            for (int t = 0; t < tankCount && remaining > 0L; t++) {
+            for (int t = 0; t < snapshots.length && remaining > 0L; t++) {
                 if (available[t] <= 0) continue;
                 FluidStack f = snapshots[t];
                 if (f == null || !deferred.input.acceptsFluid(f)) continue;
                 int toDrain = (int) Math.min(remaining, available[t]);
                 available[t] -= toDrain;
-                plan[t] += toDrain;
+                outMatrix[k][t] += toDrain;
                 remaining -= toDrain;
             }
-            if (remaining > 0L) {
-                return null;
+            if (remaining > 0L) return false;
+        }
+        return true;
+    }
+
+    private boolean recordAbortedHolderLosses(@NotNull IItemHandlerModifiable importInventory,
+                                              @NotNull int[] originalSlotCounts,
+                                              @NotNull ItemStack[] slotSnapshots,
+                                              @NotNull int[] phase1ItemPlan,
+                                              @NotNull int[] phase2ItemPlan,
+                                              @NotNull ItemStack[] extractedItems,
+                                              @NotNull List<IMultipleTankHandler.ITankEntry> tanks,
+                                              @NotNull int[] originalTankAmounts,
+                                              @NotNull FluidStack[] tankSnapshots,
+                                              @NotNull int[] phase1FluidPlan,
+                                              @NotNull int[] phase2FluidPlan,
+                                              @NotNull FluidStack[] drainedFluids) {
+        boolean anyLost = false;
+        for (int i = 0; i < phase2ItemPlan.length; i++) {
+            if (phase2ItemPlan[i] <= 0 || slotSnapshots[i] == null || slotSnapshots[i].isEmpty()) continue;
+            int alreadyTracked = extractedItems[i] == null ? 0 : extractedItems[i].getCount();
+            ItemStack now = importInventory.getStackInSlot(i);
+            int nowMatching = (!now.isEmpty() && ItemHandlerHelper.canItemStacksStack(now, slotSnapshots[i])) ?
+                    now.getCount() : 0;
+            int expectedBeforePhase2 = Math.max(0, originalSlotCounts[i] - phase1ItemPlan[i]);
+            int lostToHolder = Math.min(phase2ItemPlan[i],
+                    Math.max(0, expectedBeforePhase2 - nowMatching - Math.max(0, alreadyTracked - phase1ItemPlan[i])));
+            if (lostToHolder > 0) {
+                mergeExtractedItem(extractedItems, i, ItemHandlerHelper.copyStackWithSize(slotSnapshots[i], lostToHolder));
+                anyLost = true;
             }
         }
-        return canSimulateFluidPlan(tanks, plan) ? plan : null;
+        for (int t = 0; t < phase2FluidPlan.length; t++) {
+            if (phase2FluidPlan[t] <= 0 || tankSnapshots[t] == null || tankSnapshots[t].amount <= 0) continue;
+            int alreadyTracked = drainedFluids[t] == null ? 0 : drainedFluids[t].amount;
+            FluidStack now = tanks.get(t).getFluid();
+            int nowMatching = (now != null && now.isFluidEqual(tankSnapshots[t])) ? Math.max(0, now.amount) : 0;
+            int expectedBeforePhase2 = Math.max(0, originalTankAmounts[t] - phase1FluidPlan[t]);
+            int lostToHolder = Math.min(phase2FluidPlan[t],
+                    Math.max(0, expectedBeforePhase2 - nowMatching - Math.max(0, alreadyTracked - phase1FluidPlan[t])));
+            if (lostToHolder > 0) {
+                mergeDrainedFluid(drainedFluids, t, GTUtility.copy(lostToHolder, tankSnapshots[t]));
+                anyLost = true;
+            }
+        }
+        return anyLost;
+    }
+
+    private void restorePreCommitInputNotifications(@NotNull List<IItemHandlerModifiable> preItemNotifs,
+                                                    @NotNull List<IFluidHandler> preFluidNotifs) {
+        List<IItemHandlerModifiable> itemNotifs = metaTileEntity.getNotifiedItemInputList();
+        itemNotifs.clear();
+        itemNotifs.addAll(preItemNotifs);
+        List<IFluidHandler> fluidNotifs = metaTileEntity.getNotifiedFluidInputList();
+        fluidNotifs.clear();
+        fluidNotifs.addAll(preFluidNotifs);
+    }
+
+    private void markHolderLossInputInvalidated(@NotNull IItemHandlerModifiable importInventory) {
+        if (shouldUseDistinctInputBuses()) {
+            IItemHandlerModifiable bus = currentDistinctInputBus != null ? currentDistinctInputBus : importInventory;
+            if (!invalidatedInputList.contains(bus)) {
+                invalidatedInputList.add(bus);
+            }
+        } else {
+            this.invalidInputsForRecipes = true;
+        }
+        ensureConditionFailureReason();
+    }
+
+    private void returnUnexpectedExtractedItem(@NotNull IItemHandlerModifiable importInventory,
+                                               int slot,
+                                               @NotNull ItemStack unexpected) {
+        if (unexpected.isEmpty()) return;
+        ItemStack rem = importInventory.insertItem(slot, unexpected.copy(), false);
+        if (!rem.isEmpty()) {
+            rem = ItemHandlerHelper.insertItemStacked(importInventory, rem, false);
+        }
+        if (!rem.isEmpty()) {
+            Tuple<IItemHandler, Integer> leaf = resolveLeafItemSlot(importInventory, slot);
+            enqueuePendingItemRollback(leaf.getFirst(), leaf.getSecond(), rem);
+        }
+    }
+
+    private void returnUnexpectedDrainedFluid(@NotNull IMultipleTankHandler importFluids,
+                                              @NotNull IMultipleTankHandler.ITankEntry tank,
+                                              @Nullable FluidStack unexpected) {
+        if (unexpected == null || unexpected.amount <= 0) return;
+        int filled = tank.fill(unexpected.copy(), true);
+        int rem = unexpected.amount - Math.max(0, filled);
+        if (rem > 0) {
+            rem -= Math.max(0, importFluids.fill(GTUtility.copy(rem, unexpected), true));
+        }
+        if (rem > 0) {
+            enqueuePendingFluidRollback(unwrapFluidTank(tank), GTUtility.copy(rem, unexpected));
+        }
     }
 
     private static void mergeExtractedItem(@NotNull ItemStack[] extractedItems, int slot, @NotNull ItemStack added) {
@@ -1812,11 +2408,370 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
     }
 
+    private boolean invokeHolderCommitCheck(@NotNull Recipe recipe,
+                                            @NotNull IItemHandlerModifiable importInventory,
+                                            @NotNull int[] phase2ItemPlan,
+                                            @NotNull ItemStack[] slotSnapshots,
+                                            @NotNull List<IMultipleTankHandler.ITankEntry> tanks,
+                                            @NotNull int[] phase2FluidPlan,
+                                            @NotNull FluidStack[] tankSnapshots) {
+        IdentityHashMap<IItemHandler, Map<Integer, ItemStack>> reservedItems = null;
+        for (int i = 0; i < phase2ItemPlan.length; i++) {
+            if (phase2ItemPlan[i] <= 0 || slotSnapshots[i] == null || slotSnapshots[i].isEmpty()) continue;
+            Tuple<IItemHandler, Integer> leaf = resolveLeafItemSlot(importInventory, i);
+            if (reservedItems == null) {
+                reservedItems = new IdentityHashMap<>();
+            }
+            Map<Integer, ItemStack> slotMap = reservedItems.computeIfAbsent(leaf.getFirst(), k -> new HashMap<>());
+            ItemStack prev = slotMap.get(leaf.getSecond());
+            int newReserved = prev == null ? phase2ItemPlan[i] : saturatingIntAdd(prev.getCount(), phase2ItemPlan[i]);
+            slotMap.put(leaf.getSecond(), ItemHandlerHelper.copyStackWithSize(slotSnapshots[i], newReserved));
+        }
+
+        IdentityHashMap<IFluidTank, FluidStack> reservedFluids = null;
+        for (int t = 0; t < phase2FluidPlan.length; t++) {
+            if (phase2FluidPlan[t] <= 0 || tankSnapshots[t] == null || tankSnapshots[t].amount <= 0) continue;
+            IFluidTank leaf = unwrapFluidTank(tanks.get(t));
+            if (reservedFluids == null) {
+                reservedFluids = new IdentityHashMap<>();
+            }
+            FluidStack prev = reservedFluids.get(leaf);
+            int newReserved = prev == null ? phase2FluidPlan[t] : saturatingIntAdd(prev.amount, phase2FluidPlan[t]);
+            reservedFluids.put(leaf, GTUtility.copy(newReserved, tankSnapshots[t]));
+        }
+
+        final IdentityHashMap<IItemHandler, Map<Integer, ItemStack>> finalItemReservations = reservedItems;
+        final IdentityHashMap<IFluidTank, FluidStack> finalFluidReservations = reservedFluids;
+        UnaryOperator<IItemHandlerModifiable> itemMask = finalItemReservations == null ? null :
+                base -> maskReservedItemSlots(base, finalItemReservations);
+        UnaryOperator<IMultipleTankHandler> fluidMask = finalFluidReservations == null ? null :
+                base -> maskReservedFluidTanks(base, finalFluidReservations);
+
+        UnaryOperator<IItemHandlerModifiable> prevItemMask = this.activeHolderItemMask;
+        UnaryOperator<IMultipleTankHandler> prevFluidMask = this.activeHolderFluidMask;
+        this.activeHolderItemMask = itemMask;
+        this.activeHolderFluidMask = fluidMask;
+        try {
+            if (metaTileEntity instanceof RecipeMapMultiblockController controller) {
+                return controller.checkRecipeWithReservedInputs(recipe, itemMask, fluidMask);
+            }
+            return ((IRecipeMapHolder) metaTileEntity).checkRecipe(recipe, true);
+        } finally {
+            this.activeHolderItemMask = prevItemMask;
+            this.activeHolderFluidMask = prevFluidMask;
+        }
+    }
+
+    private static IItemHandlerModifiable maskReservedItemSlots(
+            @NotNull IItemHandlerModifiable base,
+            @NotNull IdentityHashMap<IItemHandler, Map<Integer, ItemStack>> reservedByLeaf) {
+        if (containsReservedItemView(base)) {
+            return base;
+        }
+        return new ReservedItemHandlerView(base, reservedByLeaf);
+    }
+
+    private static boolean containsReservedItemView(@NotNull IItemHandler handler) {
+        if (handler instanceof ReservedItemHandlerView) {
+            return true;
+        }
+        if (handler instanceof DualHandler dual) {
+            return containsReservedItemView(dual.getItemDelegate());
+        }
+        if (handler instanceof ItemHandlerList list) {
+            for (IItemHandler sub : list.getBackingHandlers()) {
+                if (containsReservedItemView(sub)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    private static IMultipleTankHandler maskReservedFluidTanks(
+            @NotNull IMultipleTankHandler base,
+            @NotNull IdentityHashMap<IFluidTank, FluidStack> reservedByLeaf) {
+        List<IMultipleTankHandler.ITankEntry> entries = base.getFluidTanks();
+        List<IFluidTank> wrapped = null;
+        for (int i = 0; i < entries.size(); i++) {
+            IMultipleTankHandler.ITankEntry entry = entries.get(i);
+            if (isAlreadyReservedFluidEntry(entry)) {
+                if (wrapped != null) {
+                    wrapped.add(entry);
+                }
+                continue;
+            }
+            IFluidTank leaf = unwrapFluidTank(entry);
+            FluidStack reserved = reservedByLeaf.get(leaf);
+            if (reserved != null && reserved.amount > 0) {
+                if (wrapped == null) {
+                    wrapped = new ArrayList<>(entries.size());
+                    for (int j = 0; j < i; j++) {
+                        wrapped.add(entries.get(j));
+                    }
+                }
+                wrapped.add(new ReservedFluidTank(entry, reserved));
+            } else if (wrapped != null) {
+                wrapped.add(entry);
+            }
+        }
+        return wrapped == null ? base : new FluidTankList(base.allowSameFluidFill(), wrapped);
+    }
+
+    private static boolean isAlreadyReservedFluidEntry(@NotNull IFluidTank tank) {
+        IFluidTank cur = tank;
+        while (true) {
+            if (cur instanceof ReservedFluidTank) {
+                return true;
+            }
+            if (cur instanceof IMultipleTankHandler.ITankEntry entry) {
+                IFluidTank next = entry.getDelegate();
+                if (next == cur) return false;
+                cur = next;
+                continue;
+            }
+            return false;
+        }
+    }
+
+    private static final class ReservedItemHandlerView implements IItemHandlerModifiable {
+
+        private final IItemHandlerModifiable delegate;
+        private final IdentityHashMap<IItemHandler, Map<Integer, ItemStack>> reservedByLeaf;
+
+        ReservedItemHandlerView(@NotNull IItemHandlerModifiable delegate,
+                                @NotNull IdentityHashMap<IItemHandler, Map<Integer, ItemStack>> reservedByLeaf) {
+            this.delegate = delegate;
+            this.reservedByLeaf = reservedByLeaf;
+        }
+
+        @Nullable
+        private ItemStack reservedForSlot(int slot) {
+            Tuple<IItemHandler, Integer> leaf = resolveLeafItemSlot(delegate, slot);
+            Map<Integer, ItemStack> slots = reservedByLeaf.get(leaf.getFirst());
+            return slots == null ? null : slots.get(leaf.getSecond());
+        }
+
+        @Override
+        public int getSlots() {
+            return delegate.getSlots();
+        }
+
+        @NotNull
+        @Override
+        public ItemStack getStackInSlot(int slot) {
+            ItemStack actual = delegate.getStackInSlot(slot);
+            ItemStack reserved = reservedForSlot(slot);
+            if (reserved == null || reserved.isEmpty() || actual.isEmpty() ||
+                    !ItemHandlerHelper.canItemStacksStack(actual, reserved)) {
+                return actual;
+            }
+            int avail = Math.max(0, actual.getCount() - reserved.getCount());
+            return avail <= 0 ? ItemStack.EMPTY : ItemHandlerHelper.copyStackWithSize(actual, avail);
+        }
+
+        @NotNull
+        @Override
+        public ItemStack insertItem(int slot, @NotNull ItemStack stack, boolean simulate) {
+            return delegate.insertItem(slot, stack, simulate);
+        }
+
+        @NotNull
+        @Override
+        public ItemStack extractItem(int slot, int amount, boolean simulate) {
+            if (amount <= 0) return ItemStack.EMPTY;
+            ItemStack actual = delegate.getStackInSlot(slot);
+            ItemStack reserved = reservedForSlot(slot);
+            if (reserved != null && !reserved.isEmpty() && !actual.isEmpty() &&
+                    ItemHandlerHelper.canItemStacksStack(actual, reserved)) {
+                int cap = Math.min(amount, Math.max(0, actual.getCount() - reserved.getCount()));
+                return cap <= 0 ? ItemStack.EMPTY : delegate.extractItem(slot, cap, simulate);
+            }
+            return delegate.extractItem(slot, amount, simulate);
+        }
+
+        @Override
+        public int getSlotLimit(int slot) {
+            return delegate.getSlotLimit(slot);
+        }
+
+        @Override
+        public boolean isItemValid(int slot, @NotNull ItemStack stack) {
+            return delegate.isItemValid(slot, stack);
+        }
+
+        @Override
+        public void setStackInSlot(int slot, @NotNull ItemStack stack) {
+            ItemStack actual = delegate.getStackInSlot(slot);
+            ItemStack reserved = reservedForSlot(slot);
+            if (reserved != null && !reserved.isEmpty() && !actual.isEmpty() &&
+                    ItemHandlerHelper.canItemStacksStack(actual, reserved)) {
+                int floor = Math.min(actual.getCount(), reserved.getCount());
+                if (stack.isEmpty()) {
+                    delegate.setStackInSlot(slot, ItemHandlerHelper.copyStackWithSize(actual, floor));
+                    return;
+                }
+                if (ItemHandlerHelper.canItemStacksStack(stack, reserved)) {
+                    delegate.setStackInSlot(slot,
+                            ItemHandlerHelper.copyStackWithSize(stack, saturatingIntAdd(stack.getCount(), floor)));
+                    return;
+                }
+            }
+            delegate.setStackInSlot(slot, stack);
+        }
+    }
+
+    private static final class ReservedFluidTank implements IFluidTank, IFluidHandler {
+
+        final IMultipleTankHandler.ITankEntry delegate;
+        private final FluidStack reserved;
+
+        ReservedFluidTank(@NotNull IMultipleTankHandler.ITankEntry delegate, @NotNull FluidStack reserved) {
+            this.delegate = delegate;
+            this.reserved = reserved;
+        }
+
+        @Nullable
+        private FluidStack availableStack() {
+            FluidStack actual = delegate.getFluid();
+            if (actual == null || actual.amount <= 0) {
+                return null;
+            }
+            if (!actual.isFluidEqual(reserved)) {
+                return actual.copy();
+            }
+            int avail = Math.max(0, actual.amount - reserved.amount);
+            return avail <= 0 ? null : GTUtility.copy(avail, actual);
+        }
+
+        @Nullable
+        @Override
+        public FluidStack getFluid() {
+            return availableStack();
+        }
+
+        @Override
+        public int getFluidAmount() {
+            FluidStack avail = availableStack();
+            return avail == null ? 0 : avail.amount;
+        }
+
+        @Override
+        public int getCapacity() {
+            return delegate.getCapacity();
+        }
+
+        @Override
+        public FluidTankInfo getInfo() {
+            return new FluidTankInfo(getFluid(), getCapacity());
+        }
+
+        @Override
+        public IFluidTankProperties[] getTankProperties() {
+            IFluidTankProperties[] rawProps = delegate.getTankProperties();
+            boolean canFill = false;
+            boolean canDrain = false;
+            if (rawProps != null) {
+                for (IFluidTankProperties p : rawProps) {
+                    if (p != null) {
+                        canFill |= p.canFill();
+                        canDrain |= p.canDrain();
+                    }
+                }
+            }
+            final boolean fCanFill = canFill;
+            final boolean fCanDrain = canDrain;
+            return new IFluidTankProperties[] {
+                    new IFluidTankProperties() {
+
+                        @Nullable
+                        @Override
+                        public FluidStack getContents() {
+                            return getFluid();
+                        }
+
+                        @Override
+                        public int getCapacity() {
+                            return delegate.getCapacity();
+                        }
+
+                        @Override
+                        public boolean canFill() {
+                            return fCanFill;
+                        }
+
+                        @Override
+                        public boolean canDrain() {
+                            return fCanDrain;
+                        }
+
+                        @Override
+                        public boolean canFillFluidType(FluidStack fluidStack) {
+                            if (rawProps == null) return false;
+                            for (IFluidTankProperties p : rawProps) {
+                                if (p != null && p.canFillFluidType(fluidStack)) return true;
+                            }
+                            return false;
+                        }
+
+                        @Override
+                        public boolean canDrainFluidType(FluidStack fluidStack) {
+                            if (rawProps == null) return false;
+                            for (IFluidTankProperties p : rawProps) {
+                                if (p != null && p.canDrainFluidType(fluidStack)) return true;
+                            }
+                            return false;
+                        }
+                    }
+            };
+        }
+
+        @Override
+        public int fill(FluidStack resource, boolean doFill) {
+            return delegate.fill(resource, doFill);
+        }
+
+        @Nullable
+        @Override
+        public FluidStack drain(FluidStack resource, boolean doDrain) {
+            if (resource == null || resource.amount <= 0) return null;
+            FluidStack actual = delegate.getFluid();
+            if (actual == null || actual.amount <= 0) return null;
+            if (actual.isFluidEqual(reserved)) {
+                if (!actual.isFluidEqual(resource)) return null;
+                int cap = Math.min(resource.amount, Math.max(0, actual.amount - reserved.amount));
+                return cap <= 0 ? null : delegate.drain(GTUtility.copy(cap, resource), doDrain);
+            }
+            return delegate.drain(resource, doDrain);
+        }
+
+        @Nullable
+        @Override
+        public FluidStack drain(int maxDrain, boolean doDrain) {
+            if (maxDrain <= 0) return null;
+            FluidStack actual = delegate.getFluid();
+            if (actual == null || actual.amount <= 0) return null;
+            if (actual.isFluidEqual(reserved)) {
+                int cap = Math.min(maxDrain, Math.max(0, actual.amount - reserved.amount));
+                return cap <= 0 ? null : delegate.drain(cap, doDrain);
+            }
+            return delegate.drain(maxDrain, doDrain);
+        }
+    }
+
     private static IFluidTank unwrapFluidTank(@NotNull IFluidTank tank) {
-        while (tank instanceof IMultipleTankHandler.ITankEntry entry) {
-            IFluidTank delegate = entry.getDelegate();
-            if (delegate == tank) break;
-            tank = delegate;
+        while (true) {
+            if (tank instanceof ReservedFluidTank reservedTank) {
+                tank = reservedTank.delegate;
+                continue;
+            }
+            if (tank instanceof IMultipleTankHandler.ITankEntry entry) {
+                IFluidTank delegate = entry.getDelegate();
+                if (delegate == tank) break;
+                tank = delegate;
+                continue;
+            }
+            break;
         }
         return tank;
     }
@@ -1827,6 +2782,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             return false;
         }
         IFluidTank leaf = unwrapFluidTank(tank);
+        if (leaf instanceof PendingFluidRollback) {
+            return true;
+        }
         if (leaf instanceof IFluidHandler) {
             IFluidTankProperties[] props = tank.getTankProperties();
             if (props == null || props.length == 0) {
@@ -1911,7 +2869,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             ItemStack extracted = extractedItems[i];
             if (extracted == null || extracted.isEmpty()) continue;
             ItemStack currentAfter = importInventory.getStackInSlot(i);
-            int currentCount = currentAfter.isEmpty() ? 0 : currentAfter.getCount();
+            int currentCount = (!currentAfter.isEmpty() &&
+                    ItemHandlerHelper.canItemStacksStack(currentAfter, extracted)) ? currentAfter.getCount() : 0;
             int missing = Math.min(extracted.getCount(), Math.max(0, originalSlotCounts[i] - currentCount));
             if (missing <= 0) {
                 continue;
@@ -1947,14 +2906,28 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 remainder = ItemHandlerHelper.insertItemStacked(importInventory, remainder, false);
             }
             if (!remainder.isEmpty()) {
-                pendingRollbackItems.add(new PendingItemRollback(leaf.getFirst(), leaf.getSecond(), remainder.copy()));
+                enqueuePendingItemRollback(leaf.getFirst(), leaf.getSecond(), remainder);
             }
         }
         for (int t = 0; t < drainedFluids.length; t++) {
             FluidStack drained = drainedFluids[t];
             if (drained == null || drained.amount <= 0) continue;
             IMultipleTankHandler.ITankEntry tank = tanks.get(t);
-            int currentAmount = tank.getFluidAmount();
+            IFluidTank leaf = unwrapFluidTank(tank);
+            if (leaf instanceof PendingFluidRollback existingPending) {
+                int currentAmount = existingPending.getFluidAmount();
+                int missing = Math.min(drained.amount, Math.max(0, originalTankAmounts[t] - currentAmount));
+                if (missing > 0) {
+                    existingPending.addAmount(missing, drained);
+                    if (!pendingRollbackFluids.contains(existingPending)) {
+                        pendingRollbackFluids.add(existingPending);
+                    }
+                }
+                continue;
+            }
+            FluidStack currentFluid = tank.getFluid();
+            int currentAmount = (currentFluid != null && currentFluid.isFluidEqual(drained)) ?
+                    Math.max(0, currentFluid.amount) : 0;
             int missing = Math.min(drained.amount, Math.max(0, originalTankAmounts[t] - currentAmount));
             if (missing <= 0) {
                 continue;
@@ -1962,14 +2935,403 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             int filled = tank.fill(GTUtility.copy(missing, drained), true);
             int unreturned = missing - Math.max(0, filled);
             if (unreturned > 0) {
-                int filledElsewhere = importFluids.fill(GTUtility.copy(unreturned, drained), true);
+                int filledElsewhere = fillSameColorOtherTank(importFluids, leaf, GTUtility.copy(unreturned, drained));
                 unreturned -= Math.max(0, filledElsewhere);
             }
             if (unreturned > 0) {
-                pendingRollbackFluids.add(new PendingFluidRollback(
-                        unwrapFluidTank(tank), GTUtility.copy(unreturned, drained)));
+                enqueuePendingFluidRollback(leaf, GTUtility.copy(unreturned, drained));
             }
         }
+    }
+
+    private int fillSameColorOtherTank(@NotNull IMultipleTankHandler importFluids,
+                                       @NotNull IFluidTank originLeaf,
+                                       @NotNull FluidStack resource) {
+        int originColor = colorIndexOf(originLeaf);
+        int remaining = resource.amount;
+        for (IMultipleTankHandler.ITankEntry entry : importFluids.getFluidTanks()) {
+            IFluidTank candidate = unwrapFluidTank(entry);
+            if (candidate == originLeaf || candidate instanceof PendingFluidRollback) continue;
+            if (colorIndexOf(candidate) != originColor) continue;
+            int filled = entry.fill(GTUtility.copy(remaining, resource), true);
+            if (filled > 0) {
+                remaining -= Math.min(remaining, filled);
+                if (remaining <= 0) {
+                    break;
+                }
+            }
+        }
+        return resource.amount - remaining;
+    }
+
+    private void enqueuePendingItemRollback(@NotNull IItemHandler leafHandler,
+                                            int leafSlot,
+                                            @NotNull ItemStack remainder) {
+        if (remainder.isEmpty()) return;
+        for (PendingItemRollback existing : pendingRollbackItems) {
+            IItemHandler existingTarget = existing.targetHandlerRef == null ? null : existing.targetHandlerRef.get();
+            if (existingTarget == leafHandler && existing.targetSlot == leafSlot &&
+                    ItemHandlerHelper.canItemStacksStack(existing.stack, remainder)) {
+                existing.stack.grow(remainder.getCount());
+                return;
+            }
+        }
+        MetaTileEntity owner = ownerOf(leafHandler);
+        int detectedColor = colorIndexOf(leafHandler);
+        byte kind = ROLLBACK_SOURCE_RAW;
+        int busIdx = -1;
+        int withinColorIdx = -1;
+        if (metaTileEntity instanceof MultiblockControllerBase controller) {
+            List<IItemHandlerModifiable> buses = controller.getAbilities(MultiblockAbility.IMPORT_ITEMS);
+            for (int b = 0; b < buses.size(); b++) {
+                IItemHandlerModifiable bus = buses.get(b);
+                IItemHandler unwrappedBus = bus instanceof DualHandler dual ? dual.getItemDelegate() : bus;
+                if (bus == leafHandler || unwrappedBus == leafHandler) {
+                    kind = ROLLBACK_SOURCE_ABILITY;
+                    busIdx = b;
+                    detectedColor = colorIndexOf(bus);
+                    int ord = 0;
+                    for (int prev = 0; prev < b; prev++) {
+                        if (colorIndexOf(buses.get(prev)) == detectedColor) {
+                            ord++;
+                        }
+                    }
+                    withinColorIdx = ord;
+                    if (owner == null) owner = ownerOf(bus);
+                    break;
+                }
+            }
+        }
+        int effectiveColor = detectedColor >= 0 ? detectedColor :
+                (owner == null && kind == ROLLBACK_SOURCE_RAW && activeCommitColor >= 0 ?
+                        activeCommitColor : NO_CHANNEL);
+        String ownerId = owner != null && owner.metaTileEntityId != null ? owner.metaTileEntityId.toString() : "";
+        BlockPos pos = owner != null ? owner.getPos() : null;
+        pendingRollbackItems.add(new PendingItemRollback(
+                leafHandler, kind, effectiveColor, busIdx, withinColorIdx, leafSlot,
+                ownerId, pos != null, pos != null ? pos.toLong() : 0L, remainder.copy()));
+    }
+
+    private void enqueuePendingFluidRollback(@NotNull IFluidTank leafTank, @NotNull FluidStack unreturned) {
+        if (unreturned.amount <= 0) return;
+        for (PendingFluidRollback existing : pendingRollbackFluids) {
+            IFluidTank existingTarget = existing.targetTankRef == null ? null : existing.targetTankRef.get();
+            if (existingTarget == leafTank && existing.fluid != null && existing.fluid.isFluidEqual(unreturned)) {
+                existing.addAmount(unreturned.amount, unreturned);
+                return;
+            }
+        }
+        MetaTileEntity owner = ownerOf(leafTank);
+        int detectedColor = colorIndexOf(leafTank);
+        byte kind = ROLLBACK_SOURCE_RAW;
+        int busIdx = -1;
+        int tankIdx = 0;
+        int withinColorIdx = -1;
+
+        if (metaTileEntity instanceof MultiblockControllerBase controller) {
+            List<IFluidTank> flatAbilityTanks = flattenImportFluidAbilities(controller);
+            int foundIdx = -1;
+            for (int t = 0; t < flatAbilityTanks.size(); t++) {
+                IFluidTank candidate = flatAbilityTanks.get(t);
+                if (candidate == leafTank) {
+                    foundIdx = t;
+                    detectedColor = colorIndexOf(candidate);
+                    int ord = 0;
+                    for (int prev = 0; prev < t; prev++) {
+                        if (colorIndexOf(flatAbilityTanks.get(prev)) == detectedColor) {
+                            ord++;
+                        }
+                    }
+                    withinColorIdx = ord;
+                    break;
+                }
+            }
+            if (foundIdx >= 0) {
+                kind = ROLLBACK_SOURCE_ABILITY;
+                tankIdx = foundIdx;
+            } else {
+                List<IItemHandlerModifiable> buses = controller.getAbilities(MultiblockAbility.IMPORT_ITEMS);
+                for (int b = 0; b < buses.size() && kind == ROLLBACK_SOURCE_RAW; b++) {
+                    IItemHandlerModifiable bus = buses.get(b);
+                    if (!(bus instanceof IMultipleTankHandler dualHandler)) continue;
+                    List<IMultipleTankHandler.ITankEntry> dualTanks = dualHandler.getFluidTanks();
+                    for (int dt = 0; dt < dualTanks.size(); dt++) {
+                        if (unwrapFluidTank(dualTanks.get(dt)) == leafTank) {
+                            kind = ROLLBACK_SOURCE_DUAL_BUS;
+                            busIdx = b;
+                            tankIdx = dt;
+                            detectedColor = colorIndexOf(bus);
+                            int ord = 0;
+                            for (int prev = 0; prev < b; prev++) {
+                                IItemHandlerModifiable prevBus = buses.get(prev);
+                                if (prevBus instanceof IMultipleTankHandler &&
+                                        colorIndexOf(prevBus) == detectedColor) {
+                                    ord++;
+                                }
+                            }
+                            withinColorIdx = ord;
+                            if (owner == null) owner = ownerOf(bus);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (kind == ROLLBACK_SOURCE_RAW) {
+            List<IMultipleTankHandler.ITankEntry> rawEntries = getRawInputTank().getFluidTanks();
+            int rawIdx = indexOfLeafTank(rawEntries, leafTank);
+            if (rawIdx >= 0) {
+                tankIdx = rawIdx;
+            } else if (activeCommitColor >= 0) {
+                List<IMultipleTankHandler.ITankEntry> chEntries = getRawInputTankForColor(activeCommitColor)
+                        .getFluidTanks();
+                int chIdx = indexOfLeafTank(chEntries, leafTank);
+                if (chIdx >= 0) {
+                    kind = ROLLBACK_SOURCE_CHANNEL_CUSTOM;
+                    tankIdx = chIdx;
+                    detectedColor = activeCommitColor;
+                }
+            }
+        }
+
+        int effectiveColor = detectedColor >= 0 ? detectedColor :
+                (owner == null && kind == ROLLBACK_SOURCE_CHANNEL_CUSTOM && activeCommitColor >= 0 ?
+                        activeCommitColor : NO_CHANNEL);
+        String ownerId = owner != null && owner.metaTileEntityId != null ? owner.metaTileEntityId.toString() : "";
+        BlockPos pos = owner != null ? owner.getPos() : null;
+        pendingRollbackFluids.add(new PendingFluidRollback(
+                leafTank, kind, effectiveColor, busIdx, tankIdx, withinColorIdx,
+                ownerId, pos != null, pos != null ? pos.toLong() : 0L, unreturned.copy()));
+    }
+
+    private static List<IFluidTank> flattenImportFluidAbilities(@NotNull MultiblockControllerBase controller) {
+        List<IFluidTank> result = new ArrayList<>();
+        for (Object tankObj : controller.getAbilities(MultiblockAbility.IMPORT_FLUIDS)) {
+            if (tankObj instanceof IMultipleTankHandler multiTank) {
+                for (IMultipleTankHandler.ITankEntry entry : multiTank.getFluidTanks()) {
+                    IFluidTank leaf = unwrapFluidTank(entry);
+                    if (!(leaf instanceof PendingFluidRollback)) {
+                        result.add(leaf);
+                    }
+                }
+            } else if (tankObj instanceof IFluidTank tank) {
+                IFluidTank leaf = unwrapFluidTank(tank);
+                if (!(leaf instanceof PendingFluidRollback)) {
+                    result.add(leaf);
+                }
+            }
+        }
+        return result;
+    }
+
+    private static int indexOfLeafTank(@NotNull List<IMultipleTankHandler.ITankEntry> entries,
+                                       @NotNull IFluidTank target) {
+        for (int i = 0; i < entries.size(); i++) {
+            if (unwrapFluidTank(entries.get(i)) == target) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
+    private boolean matchesOwnerMetadata(@Nullable Object handler,
+                                         @NotNull String expectedOwnerId,
+                                         boolean checkPos,
+                                         long expectedPosLong) {
+        if (expectedOwnerId.isEmpty() && !checkPos) {
+            return true;
+        }
+        MetaTileEntity owner = ownerOf(handler);
+        if (owner == null) {
+            return expectedOwnerId.isEmpty() && !checkPos;
+        }
+        if (!expectedOwnerId.isEmpty()) {
+            String actualId = owner.metaTileEntityId != null ? owner.metaTileEntityId.toString() : "";
+            if (!expectedOwnerId.equals(actualId)) {
+                return false;
+            }
+        }
+        if (checkPos) {
+            BlockPos pos = owner.getPos();
+            if (pos == null || pos.toLong() != expectedPosLong) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    @Nullable
+    private IItemHandler resolvePendingItemTarget(@NotNull PendingItemRollback pending) {
+        if (pending.targetHandlerRef != null) {
+            IItemHandler live = pending.targetHandlerRef.get();
+            if (live != null) {
+                return live;
+            }
+        }
+        IItemHandler rebound = null;
+        if (pending.sourceKind == ROLLBACK_SOURCE_ABILITY &&
+                metaTileEntity instanceof MultiblockControllerBase controller) {
+            List<IItemHandlerModifiable> buses = controller.getAbilities(MultiblockAbility.IMPORT_ITEMS);
+            if (pending.busIndex >= 0 && pending.busIndex < buses.size()) {
+                IItemHandlerModifiable atIdx = buses.get(pending.busIndex);
+                if (colorIndexOf(atIdx) == pending.sourceColor &&
+                        matchesOwnerMetadata(atIdx, pending.ownerMteId, false, 0L)) {
+                    rebound = atIdx instanceof DualHandler dual ? dual.getItemDelegate() : atIdx;
+                }
+            }
+            if (rebound == null) {
+                int colorOrdinal = 0;
+                for (IItemHandlerModifiable bus : buses) {
+                    if (colorIndexOf(bus) != pending.sourceColor) continue;
+                    if (pending.hasOwnerPos && pending.ownerPosLong != 0L &&
+                            matchesOwnerMetadata(bus, pending.ownerMteId, true, pending.ownerPosLong)) {
+                        rebound = bus instanceof DualHandler dual ? dual.getItemDelegate() : bus;
+                        break;
+                    }
+                    if (colorOrdinal == pending.withinColorBusIndex &&
+                            matchesOwnerMetadata(bus, pending.ownerMteId, false, 0L)) {
+                        rebound = bus instanceof DualHandler dual ? dual.getItemDelegate() : bus;
+                        break;
+                    }
+                    colorOrdinal++;
+                }
+            }
+            if (rebound == null) {
+                if (pending.busIndex >= 0 && pending.busIndex < buses.size() &&
+                        colorIndexOf(buses.get(pending.busIndex)) == pending.sourceColor) {
+                    IItemHandlerModifiable atIdx = buses.get(pending.busIndex);
+                    rebound = atIdx instanceof DualHandler dual ? dual.getItemDelegate() : atIdx;
+                } else {
+                    int colorOrdinal = 0;
+                    for (IItemHandlerModifiable bus : buses) {
+                        if (colorIndexOf(bus) != pending.sourceColor) continue;
+                        if (colorOrdinal == pending.withinColorBusIndex) {
+                            rebound = bus instanceof DualHandler dual ? dual.getItemDelegate() : bus;
+                            break;
+                        }
+                        colorOrdinal++;
+                    }
+                }
+            }
+        } else if (pending.sourceKind == ROLLBACK_SOURCE_RAW && pending.sourceColor < 0) {
+            IItemHandlerModifiable inv = getInputInventory();
+            if (inv.getSlots() > 0 && colorIndexOf(inv) < 0) {
+                rebound = inv;
+            }
+        }
+        if (rebound != null) {
+            pending.targetHandlerRef = new WeakReference<>(rebound);
+        }
+        return rebound;
+    }
+
+    @Nullable
+    private IFluidTank resolvePendingFluidTarget(@NotNull PendingFluidRollback pending) {
+        if (pending.targetTankRef != null) {
+            IFluidTank live = pending.targetTankRef.get();
+            if (live != null) {
+                return live;
+            }
+        }
+        IFluidTank rebound = null;
+        if (pending.sourceKind == ROLLBACK_SOURCE_ABILITY &&
+                metaTileEntity instanceof MultiblockControllerBase controller) {
+            List<IFluidTank> flat = flattenImportFluidAbilities(controller);
+            if (pending.tankIndex >= 0 && pending.tankIndex < flat.size()) {
+                IFluidTank atIdx = flat.get(pending.tankIndex);
+                if (colorIndexOf(atIdx) == pending.sourceColor &&
+                        matchesOwnerMetadata(atIdx, pending.ownerMteId, false, 0L)) {
+                    rebound = atIdx;
+                }
+            }
+            if (rebound == null) {
+                int colorOrdinal = 0;
+                for (IFluidTank candidate : flat) {
+                    if (colorIndexOf(candidate) != pending.sourceColor) continue;
+                    if (pending.hasOwnerPos && pending.ownerPosLong != 0L &&
+                            matchesOwnerMetadata(candidate, pending.ownerMteId, true, pending.ownerPosLong)) {
+                        rebound = candidate;
+                        break;
+                    }
+                    if (colorOrdinal == pending.withinColorTankIndex &&
+                            matchesOwnerMetadata(candidate, pending.ownerMteId, false, 0L)) {
+                        rebound = candidate;
+                        break;
+                    }
+                    colorOrdinal++;
+                }
+            }
+            if (rebound == null) {
+                if (pending.tankIndex >= 0 && pending.tankIndex < flat.size() &&
+                        colorIndexOf(flat.get(pending.tankIndex)) == pending.sourceColor) {
+                    rebound = flat.get(pending.tankIndex);
+                } else {
+                    int colorOrdinal = 0;
+                    for (IFluidTank candidate : flat) {
+                        if (colorIndexOf(candidate) != pending.sourceColor) continue;
+                        if (colorOrdinal == pending.withinColorTankIndex) {
+                            rebound = candidate;
+                            break;
+                        }
+                        colorOrdinal++;
+                    }
+                }
+            }
+        } else if (pending.sourceKind == ROLLBACK_SOURCE_DUAL_BUS &&
+                metaTileEntity instanceof MultiblockControllerBase controller) {
+            List<IItemHandlerModifiable> buses = controller.getAbilities(MultiblockAbility.IMPORT_ITEMS);
+            IItemHandlerModifiable matchedBus = null;
+            if (pending.busIndex >= 0 && pending.busIndex < buses.size()) {
+                IItemHandlerModifiable atIdx = buses.get(pending.busIndex);
+                if (atIdx instanceof IMultipleTankHandler && colorIndexOf(atIdx) == pending.sourceColor &&
+                        matchesOwnerMetadata(atIdx, pending.ownerMteId, false, 0L)) {
+                    matchedBus = atIdx;
+                }
+            }
+            if (matchedBus == null) {
+                int colorOrdinal = 0;
+                for (IItemHandlerModifiable bus : buses) {
+                    if (!(bus instanceof IMultipleTankHandler) || colorIndexOf(bus) != pending.sourceColor) continue;
+                    if ((pending.hasOwnerPos &&
+                            matchesOwnerMetadata(bus, pending.ownerMteId, true, pending.ownerPosLong)) ||
+                            (colorOrdinal == pending.withinColorTankIndex &&
+                                    matchesOwnerMetadata(bus, pending.ownerMteId, false, 0L))) {
+                        matchedBus = bus;
+                        break;
+                    }
+                    colorOrdinal++;
+                }
+            }
+            if (matchedBus instanceof IMultipleTankHandler dualHandler) {
+                List<IMultipleTankHandler.ITankEntry> dualTanks = dualHandler.getFluidTanks();
+                if (pending.tankIndex >= 0 && pending.tankIndex < dualTanks.size()) {
+                    rebound = unwrapFluidTank(dualTanks.get(pending.tankIndex));
+                }
+            }
+        } else if (pending.sourceKind == ROLLBACK_SOURCE_CHANNEL_CUSTOM && pending.sourceColor >= 0) {
+            List<IMultipleTankHandler.ITankEntry> entries = getRawInputTankForColor(pending.sourceColor).getFluidTanks();
+            if (pending.tankIndex >= 0 && pending.tankIndex < entries.size()) {
+                IFluidTank candidate = unwrapFluidTank(entries.get(pending.tankIndex));
+                int cColor = colorIndexOf(candidate);
+                if (cColor < 0 || cColor == pending.sourceColor) {
+                    rebound = candidate;
+                }
+            }
+        } else if (pending.sourceKind == ROLLBACK_SOURCE_RAW && pending.sourceColor < 0) {
+            List<IMultipleTankHandler.ITankEntry> entries = getRawInputTank().getFluidTanks();
+            if (pending.tankIndex >= 0 && pending.tankIndex < entries.size()) {
+                IFluidTank candidate = unwrapFluidTank(entries.get(pending.tankIndex));
+                if (colorIndexOf(candidate) < 0) {
+                    rebound = candidate;
+                }
+            }
+        }
+        if (rebound != null && !(rebound instanceof PendingFluidRollback)) {
+            pending.targetTankRef = new WeakReference<>(rebound);
+            return rebound;
+        }
+        return null;
     }
 
     protected void flushPendingRollbacks() {
@@ -1985,7 +3347,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 continue;
             }
             int before = pending.stack.getCount();
-            IItemHandler target = pending.targetHandlerRef == null ? null : pending.targetHandlerRef.get();
+            IItemHandler target = resolvePendingItemTarget(pending);
             if (target != null) {
                 if (pending.targetSlot >= 0 && pending.targetSlot < target.getSlots()) {
                     pending.stack = target.insertItem(pending.targetSlot, pending.stack, false);
@@ -1993,8 +3355,6 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 if (!pending.stack.isEmpty()) {
                     pending.stack = ItemHandlerHelper.insertItemStacked(target, pending.stack, false);
                 }
-            } else if (pending.targetHandlerRef == null) {
-                pending.stack = ItemHandlerHelper.insertItemStacked(getInputInventory(), pending.stack, false);
             }
             if (pending.stack.getCount() < before) {
                 restoredAny = true;
@@ -2011,11 +3371,9 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 continue;
             }
             int filled = 0;
-            IFluidTank target = pending.targetTankRef == null ? null : pending.targetTankRef.get();
+            IFluidTank target = resolvePendingFluidTarget(pending);
             if (target != null) {
                 filled = target.fill(pending.fluid.copy(), true);
-            } else if (pending.targetTankRef == null) {
-                filled = getRawInputTank().fill(pending.fluid.copy(), true);
             }
             if (filled > 0) {
                 pending.fluid.amount -= Math.min(pending.fluid.amount, filled);
@@ -2032,8 +3390,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         }
     }
 
-    private IMultipleTankHandler withPendingRollbackFluids(@NotNull IMultipleTankHandler base,
-                                                           boolean includeUnbound) {
+    private IMultipleTankHandler withPendingRollbackFluids(@NotNull IMultipleTankHandler base, int channelColor) {
         if (pendingRollbackFluids.isEmpty()) {
             return base;
         }
@@ -2046,8 +3403,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 iter.remove();
                 continue;
             }
-            IFluidTank target = pending.targetTankRef == null ? null : pending.targetTankRef.get();
-            boolean include = target == null ? includeUnbound : containsLeafTank(baseEntries, target);
+            if (containsLeafTank(baseEntries, pending)) {
+                continue;
+            }
+            IFluidTank target = resolvePendingFluidTarget(pending);
+            boolean include = target != null &&
+                    containsLeafTank(baseEntries, target) &&
+                    (pending.sourceColor < 0 || channelColor == pending.sourceColor ||
+                            channelColor == UNTRACKED_CHANNEL);
             if (include) {
                 if (matchingPending == null) {
                     matchingPending = new ArrayList<>();
@@ -2168,7 +3531,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     @Override
     protected IItemHandlerModifiable getInputInventory() {
         IRecipeMapHolder holder = (IRecipeMapHolder) metaTileEntity;
-        return holder.getInputInventory();
+        IItemHandlerModifiable inv = holder.getInputInventory();
+        return activeHolderItemMask != null ? activeHolderItemMask.apply(inv) : inv;
     }
 
     // Used for distinct bus recipe checking
@@ -2256,7 +3620,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
 
     @Override
     protected IMultipleTankHandler getInputTank() {
-        return withPendingRollbackFluids(getRawInputTank(), true);
+        IMultipleTankHandler tank = withPendingRollbackFluids(getRawInputTank(), UNTRACKED_CHANNEL);
+        return activeHolderFluidMask != null ? activeHolderFluidMask.apply(tank) : tank;
     }
 
     private IMultipleTankHandler getRawInputTank() {
@@ -2294,7 +3659,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             // A pattern buffer is a complete recipe transaction. Do not let it borrow a shared fluid hatch,
             // otherwise a second request may make an incomplete buffer appear runnable.
             if (items instanceof IMultipleTankHandler tankHandler) {
-                return tankHandler;
+                return withPendingRollbackFluids(tankHandler, colorIndexOf(items));
             }
             return new FluidTankList(false);
         }
@@ -2303,7 +3668,8 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (items instanceof IMultipleTankHandler tankHandler) {
             tanks.addAll(tankHandler.getFluidTanks());
         }
-        return new FluidTankList(baseInputTank.allowSameFluidFill(), tanks);
+        return withPendingRollbackFluids(new FluidTankList(baseInputTank.allowSameFluidFill(), tanks),
+                UNTRACKED_CHANNEL);
     }
 
     @Override
@@ -2602,6 +3968,11 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
      * 语义与 {@link #getInputTank()} 一致,仅把"全部仓"收缩为该通道的仓。
      */
     protected IMultipleTankHandler getInputTankForColor(int color) {
+        IMultipleTankHandler tank = withPendingRollbackFluids(getRawInputTankForColor(color), color);
+        return activeHolderFluidMask != null ? activeHolderFluidMask.apply(tank) : tank;
+    }
+
+    private IMultipleTankHandler getRawInputTankForColor(int color) {
         MultiblockControllerBase controller = (MultiblockControllerBase) metaTileEntity;
         boolean allowMerge = ((IRecipeMapHolder) metaTileEntity).getInputFluidInventory().allowSameFluidFill();
         List<IFluidTank> channelTanks = new ArrayList<>();
@@ -2624,7 +3995,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                 if (bus instanceof IMultipleTankHandler dualHandler) inputFluids.add(dualHandler);
             }
         }
-        return withPendingRollbackFluids(GTQTUtility.mergeTankHandlers(inputFluids, allowMerge), true);
+        return GTQTUtility.mergeTankHandlers(inputFluids, allowMerge);
     }
 
     private transient boolean matchedChannelRecipe;
@@ -2714,10 +4085,16 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (currentRecipe != null) {
             this.matchedChannelRecipe = true;
             this.previousRecipe = currentRecipe;
-            if (checkRecipe(currentRecipe, channelInventory, channelFluids) &&
-                    prepareRecipe(currentRecipe, channelInventory, channelFluids)) {
-                lastColorChannel = color;
-                return true;
+            int prevCommitColor = this.activeCommitColor;
+            this.activeCommitColor = color;
+            try {
+                if (checkRecipe(currentRecipe, channelInventory, channelFluids) &&
+                        prepareRecipe(currentRecipe, channelInventory, channelFluids)) {
+                    lastColorChannel = color;
+                    return true;
+                }
+            } finally {
+                this.activeCommitColor = prevCommitColor;
             }
         }
         return false;
@@ -2771,10 +4148,16 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
                     currentDistinctInputBus = bus;
                     this.previousRecipe = currentRecipe;
                     this.previousDistinctRecipeMap = recipeMap;
-                    if (checkRecipe(currentRecipe, bus, busFluids) &&
-                            prepareRecipeDistinct(currentRecipe, bus, busFluids)) {
-                        lastColorChannel = color;
-                        return;
+                    int prevCommitColor = this.activeCommitColor;
+                    this.activeCommitColor = color;
+                    try {
+                        if (checkRecipe(currentRecipe, bus, busFluids) &&
+                                prepareRecipeDistinct(currentRecipe, bus, busFluids)) {
+                            lastColorChannel = color;
+                            return;
+                        }
+                    } finally {
+                        this.activeCommitColor = prevCommitColor;
                     }
                     routedRecipeMap = null;
                 }
@@ -2806,13 +4189,16 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     protected IMultipleTankHandler getBusFluidsInChannel(IItemHandlerModifiable bus,
                                                          IMultipleTankHandler channelFluids) {
         if (bus instanceof IPatternBufferIsolatedHandler) {
-            if (bus instanceof IMultipleTankHandler tankHandler) return tankHandler;
+            if (bus instanceof IMultipleTankHandler tankHandler) {
+                return withPendingRollbackFluids(tankHandler, colorIndexOf(bus));
+            }
             return new FluidTankList(false);
         }
         if (bus instanceof IMultipleTankHandler tankHandler) {
             var tanks = new ArrayList<>(channelFluids.getFluidTanks());
             tanks.addAll(tankHandler.getFluidTanks());
-            return new FluidTankList(channelFluids.allowSameFluidFill(), tanks);
+            return withPendingRollbackFluids(new FluidTankList(channelFluids.allowSameFluidFill(), tanks),
+                    colorIndexOf(bus));
         }
         return channelFluids;
     }
@@ -3222,7 +4608,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             NBTTagList itemList = new NBTTagList();
             for (PendingItemRollback pending : pendingRollbackItems) {
                 if (!pending.stack.isEmpty()) {
-                    itemList.appendTag(pending.stack.writeToNBT(new NBTTagCompound()));
+                    itemList.appendTag(pending.writeToNBT());
                 }
             }
             if (itemList.tagCount() > 0) {
@@ -3233,7 +4619,7 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
             NBTTagList fluidList = new NBTTagList();
             for (PendingFluidRollback pending : pendingRollbackFluids) {
                 if (pending.fluid != null && pending.fluid.amount > 0) {
-                    fluidList.appendTag(pending.fluid.writeToNBT(new NBTTagCompound()));
+                    fluidList.appendTag(pending.writeToNBT());
                 }
             }
             if (fluidList.tagCount() > 0) {
@@ -3253,18 +4639,18 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         if (compound.hasKey("pendingRollbackItems", Constants.NBT.TAG_LIST)) {
             NBTTagList itemList = compound.getTagList("pendingRollbackItems", Constants.NBT.TAG_COMPOUND);
             for (int i = 0; i < itemList.tagCount(); i++) {
-                ItemStack stack = new ItemStack(itemList.getCompoundTagAt(i));
-                if (!stack.isEmpty()) {
-                    pendingRollbackItems.add(new PendingItemRollback(null, -1, stack));
+                PendingItemRollback loaded = PendingItemRollback.readFromNBT(itemList.getCompoundTagAt(i));
+                if (loaded != null) {
+                    pendingRollbackItems.add(loaded);
                 }
             }
         }
         if (compound.hasKey("pendingRollbackFluids", Constants.NBT.TAG_LIST)) {
             NBTTagList fluidList = compound.getTagList("pendingRollbackFluids", Constants.NBT.TAG_COMPOUND);
             for (int i = 0; i < fluidList.tagCount(); i++) {
-                FluidStack fluid = FluidStack.loadFluidStackFromNBT(fluidList.getCompoundTagAt(i));
-                if (fluid != null && fluid.amount > 0) {
-                    pendingRollbackFluids.add(new PendingFluidRollback(null, fluid));
+                PendingFluidRollback loaded = PendingFluidRollback.readFromNBT(fluidList.getCompoundTagAt(i));
+                if (loaded != null) {
+                    pendingRollbackFluids.add(loaded);
                 }
             }
         }
