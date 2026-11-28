@@ -24,6 +24,7 @@ import net.minecraft.item.EnumDyeColor;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.BlockPos;
 import net.minecraftforge.fluids.FluidRegistry;
 import net.minecraftforge.fluids.FluidStack;
 import net.minecraftforge.fluids.FluidTank;
@@ -48,6 +49,8 @@ class MultiblockInputRollbackTest {
 
     private static RecipeMap<SimpleRecipeBuilder> WATER_REDSTONE_MAP;
     private static RecipeMap<SimpleRecipeBuilder> IRON_WATER_MAP;
+    private static RecipeMap<SimpleRecipeBuilder> IRON_ANY_WATER_MAP;
+    private static RecipeMap<SimpleRecipeBuilder> IRON_250_WATER_MAP;
     private static RecipeMap<SimpleRecipeBuilder> DUAL_WATER_NBT_MAP;
     private static RecipeMap<SimpleRecipeBuilder> RED_BLUE_WATER_MAP;
 
@@ -75,6 +78,28 @@ class MultiblockInputRollbackTest {
                 Collections.singletonList(new GTRecipeFluidInput(new FluidStack(FluidRegistry.WATER, 1000))),
                 Collections.emptyList(), ChancedOutputList.empty(), Collections.emptyList(),
                 4, 30L, false, new RecipePropertyStorageImpl(), IRON_WATER_MAP.getPrimaryRecipeCategory()));
+
+        IRON_ANY_WATER_MAP = new RecipeMap<>(
+                "test_input_rollback_iron_any_water_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 3, 1);
+        GTRecipeFluidInput singleAnyWater = new GTRecipeFluidInput(new FluidStack(FluidRegistry.WATER, 1000));
+        singleAnyWater.setNBTMatchingCondition(NBTMatcher.ANY, NBTCondition.ANY);
+        IRON_ANY_WATER_MAP.compileRecipe(new Recipe(
+                Collections.singletonList(new GTRecipeItemInput(new ItemStack(Items.IRON_INGOT, 1))),
+                Collections.singletonList(new ItemStack(Items.DIAMOND, 1)),
+                ChancedOutputList.empty(),
+                Collections.singletonList(singleAnyWater),
+                Collections.emptyList(), ChancedOutputList.empty(), Collections.emptyList(),
+                4, 30L, false, new RecipePropertyStorageImpl(), IRON_ANY_WATER_MAP.getPrimaryRecipeCategory()));
+
+        IRON_250_WATER_MAP = new RecipeMap<>(
+                "test_input_rollback_iron_250_water_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 2, 1);
+        IRON_250_WATER_MAP.compileRecipe(new Recipe(
+                Collections.singletonList(new GTRecipeItemInput(new ItemStack(Items.IRON_INGOT, 1))),
+                Collections.singletonList(new ItemStack(Items.DIAMOND, 1)),
+                ChancedOutputList.empty(),
+                Collections.singletonList(new GTRecipeFluidInput(new FluidStack(FluidRegistry.WATER, 250))),
+                Collections.emptyList(), ChancedOutputList.empty(), Collections.emptyList(),
+                4, 30L, false, new RecipePropertyStorageImpl(), IRON_250_WATER_MAP.getPrimaryRecipeCategory()));
 
         DUAL_WATER_NBT_MAP = new RecipeMap<>(
                 "test_input_rollback_dual_water_nbt_map", new SimpleRecipeBuilder(), r -> null, 2, 2, 3, 1);
@@ -123,18 +148,30 @@ class MultiblockInputRollbackTest {
             implements IMultiblockAbilityPart<IFluidTank> {
 
         final IFluidTank tank;
+        @Nullable
+        private final BlockPos customPos;
 
         TestPaintableFluidHatchPart(String id, IFluidTank tank, @Nullable EnumDyeColor color) {
+            this(id, tank, color, null);
+        }
+
+        TestPaintableFluidHatchPart(String id, IFluidTank tank, @Nullable EnumDyeColor color, @Nullable BlockPos pos) {
             super(new ResourceLocation("gregtech", id), 1);
             this.tank = tank;
+            this.customPos = pos;
             if (color != null) {
                 setPaintingColor(color.getColorValue());
             }
         }
 
         @Override
+        public BlockPos getPos() {
+            return customPos != null ? customPos : super.getPos();
+        }
+
+        @Override
         public MetaTileEntity createMetaTileEntity(IGregTechTileEntity tileEntity) {
-            return new TestPaintableFluidHatchPart(metaTileEntityId.getPath(), tank, null);
+            return new TestPaintableFluidHatchPart(metaTileEntityId.getPath(), tank, null, customPos);
         }
 
         @Override
@@ -663,6 +700,320 @@ class MultiblockInputRollbackTest {
             assertEquals(1, reloadBlueBus.getImportItems().getStackInSlot(0).getCount());
             assertEquals(Items.DIAMOND, reloadOutBus.getExportItems().getStackInSlot(0).getItem());
             assertEquals(1, reloadOutBus.getExportItems().getStackInSlot(0).getCount());
+        }
+    }
+
+    @Test
+    void jointPlanningLeavesCleanWaterForAuxiliaryRegardlessOfTankOrder() {
+        for (int threads : new int[] { 1, 2 }) {
+            for (boolean cleanFirst : new boolean[] { true, false }) {
+                FluidTank cleanDrainOnly = new FluidTank(cleanWater(1000), 1000);
+                cleanDrainOnly.setCanFill(false);
+                FluidTank plainRefillable = new FluidTank(new FluidStack(FluidRegistry.WATER, 1000), 1000);
+
+                MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                        new MultiblockRecipeLockAndInvalidationTest.TestController(IRON_ANY_WATER_MAP) {
+
+                            @Override
+                            public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
+                                FluidStack req = cleanWater(1000);
+                                FluidStack sim = getInputFluidInventory().drain(req, false);
+                                if (sim == null || sim.amount < 1000 || !sim.isFluidEqual(req)) {
+                                    return false;
+                                }
+                                if (consumeIfSuccess) {
+                                    FluidStack drained = getInputFluidInventory().drain(req, true);
+                                    return drained != null && drained.amount == 1000 && drained.isFluidEqual(req);
+                                }
+                                return true;
+                            }
+                        };
+                MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+                logic.setAllowOverclocking(false);
+                logic.setThreadLimit(threads);
+                String tag = threads + "_" + cleanFirst;
+                MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                        new ResourceLocation("gregtech", "test_rb_joint_in_" + tag), 1, false);
+                MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                        new ResourceLocation("gregtech", "test_rb_joint_out_" + tag), 1, true);
+                ctrl.addPart(inBus);
+                ctrl.addPart(outBus);
+                if (cleanFirst) {
+                    ctrl.addPart(new TestPaintableFluidHatchPart("test_rb_joint_h0_" + tag, cleanDrainOnly, null));
+                    ctrl.addPart(new TestPaintableFluidHatchPart("test_rb_joint_h1_" + tag, plainRefillable, null));
+                } else {
+                    ctrl.addPart(new TestPaintableFluidHatchPart("test_rb_joint_h0_" + tag, plainRefillable, null));
+                    ctrl.addPart(new TestPaintableFluidHatchPart("test_rb_joint_h1_" + tag, cleanDrainOnly, null));
+                }
+                long startEnergy = ctrl.getEnergyContainer().getEnergyStored();
+
+                inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+                for (int t = 0; t < 6; t++) {
+                    logic.updateWorkable();
+                }
+                assertEquals(0, cleanDrainOnly.getFluidAmount());
+                assertEquals(0, plainRefillable.getFluidAmount());
+                assertEquals(0, inBus.getImportItems().getStackInSlot(0).getCount());
+                assertEquals(1, outBus.getExportItems().getStackInSlot(0).getCount());
+                assertEquals(startEnergy - 120L, ctrl.getEnergyContainer().getEnergyStored());
+            }
+        }
+    }
+
+    @Test
+    void legacyDirectDeductionOnAbortRestoresFullFluidAndSeparateSlotAuxiliaryItem() {
+        for (int threads : new int[] { 1, 2 }) {
+            FluidTank drainOnly = new FluidTank(new FluidStack(FluidRegistry.WATER, 1000), 2000);
+            drainOnly.setCanFill(false);
+            MetaTileEntityItemBus inBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_rb_leg250_in_" + threads), 2, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_rb_leg250_out_" + threads), 2, true);
+
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(IRON_250_WATER_MAP) {
+
+                        @Override
+                        public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
+                            FluidStack req = new FluidStack(FluidRegistry.WATER, 1000);
+                            FluidStack simFluid = drainOnly.drain(req, false);
+                            if (simFluid == null || simFluid.amount < 1000) return false;
+                            IItemHandlerModifiable rawBus = inBus.getImportItems();
+                            int redstoneSlot = -1;
+                            for (int i = 0; i < rawBus.getSlots(); i++) {
+                                ItemStack s = rawBus.getStackInSlot(i);
+                                if (!s.isEmpty() && s.getItem() == Items.REDSTONE) {
+                                    redstoneSlot = i;
+                                    break;
+                                }
+                            }
+                            if (redstoneSlot < 0) return false;
+                            if (consumeIfSuccess) {
+                                FluidStack d = drainOnly.drain(req, true);
+                                ItemStack r = rawBus.extractItem(redstoneSlot, 1, false);
+                                return d != null && d.amount == 1000 && r.getCount() == 1;
+                            }
+                            return true;
+                        }
+                    };
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setThreadLimit(threads);
+            ctrl.addPart(inBus);
+            ctrl.addPart(outBus);
+            ctrl.addPart(new TestPaintableFluidHatchPart("test_rb_leg250_h_" + threads, drainOnly, null));
+            long startEnergy = ctrl.getEnergyContainer().getEnergyStored();
+
+            // 1,000 mB supplied (needs 250 main + 1,000 auxiliary = 1,250 mB):
+            // Redstone in slot 1 is restored and all 1,000 mB Water is retained in pending rollback
+            inBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            inBus.getImportItems().setStackInSlot(1, new ItemStack(Items.REDSTONE, 1));
+            for (int t = 0; t < 11; t++) {
+                logic.updateWorkable();
+            }
+            assertEquals(1, inBus.getImportItems().getStackInSlot(0).getCount());
+            assertEquals(1, inBus.getImportItems().getStackInSlot(1).getCount());
+            assertEquals(0, drainOnly.getFluidAmount());
+            assertEquals(1000, logic.getInputTank().getTankAt(0).getFluidAmount());
+            assertEquals(0, outBus.getExportItems().getStackInSlot(0).getCount());
+            assertEquals(startEnergy, ctrl.getEnergyContainer().getEnergyStored());
+
+            // Sufficient 1,250 mB control case produces 1 Diamond and spends 120 EU
+            FluidTank sufficientTank = new FluidTank(new FluidStack(FluidRegistry.WATER, 1250), 2000);
+            sufficientTank.setCanFill(false);
+            MetaTileEntityItemBus sufIn = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_rb_leg1250_in_" + threads), 2, false);
+            MetaTileEntityItemBus sufOut = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_rb_leg1250_out_" + threads), 2, true);
+            MultiblockRecipeLockAndInvalidationTest.TestController sufCtrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(IRON_250_WATER_MAP) {
+
+                        @Override
+                        public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
+                            FluidStack req = new FluidStack(FluidRegistry.WATER, 1000);
+                            FluidStack simFluid = sufficientTank.drain(req, false);
+                            if (simFluid == null || simFluid.amount < 1000) return false;
+                            IItemHandlerModifiable rawBus = sufIn.getImportItems();
+                            for (int i = 0; i < rawBus.getSlots(); i++) {
+                                ItemStack s = rawBus.getStackInSlot(i);
+                                if (!s.isEmpty() && s.getItem() == Items.REDSTONE) {
+                                    if (consumeIfSuccess) {
+                                        FluidStack d = sufficientTank.drain(req, true);
+                                        ItemStack r = rawBus.extractItem(i, 1, false);
+                                        return d != null && d.amount == 1000 && r.getCount() == 1;
+                                    }
+                                    return true;
+                                }
+                            }
+                            return false;
+                        }
+                    };
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic sufLogic = sufCtrl.getTestLogic();
+            sufLogic.setAllowOverclocking(false);
+            sufLogic.setThreadLimit(threads);
+            sufCtrl.addPart(sufIn);
+            sufCtrl.addPart(sufOut);
+            sufCtrl.addPart(new TestPaintableFluidHatchPart("test_rb_leg1250_h_" + threads, sufficientTank, null));
+            long sufStart = sufCtrl.getEnergyContainer().getEnergyStored();
+
+            sufIn.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            sufIn.getImportItems().setStackInSlot(1, new ItemStack(Items.REDSTONE, 1));
+            for (int t = 0; t < 6; t++) {
+                sufLogic.updateWorkable();
+            }
+            assertEquals(0, sufficientTank.getFluidAmount());
+            assertEquals(0, sufIn.getImportItems().getStackInSlot(0).getCount());
+            assertEquals(0, sufIn.getImportItems().getStackInSlot(1).getCount());
+            assertEquals(1, sufOut.getExportItems().getStackInSlot(0).getCount());
+            assertEquals(sufStart - 120L, sufCtrl.getEnergyContainer().getEnergyStored());
+        }
+    }
+
+    @Test
+    void repaintedHatchAndReorderedSameColorHatchMatchAcrossLiveAndReload() {
+        // 1. Repainting original Red fluid hatch to Blue behaves identically without reload and with reload
+        for (boolean reloadBeforeNextTick : new boolean[] { false, true }) {
+            FluidTank redTank = new FluidTank(new FluidStack(FluidRegistry.WATER, 1000), 1000);
+            FluidTank blueTank = new FluidTank(1000);
+            MetaTileEntityItemBus redBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_rb_rep_red_" + reloadBeforeNextTick), 2, false);
+            MetaTileEntityItemBus blueBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_rb_rep_blue_" + reloadBeforeNextTick), 2, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_rb_rep_out_" + reloadBeforeNextTick), 2, true);
+            AtomicBoolean blockRed = new AtomicBoolean(true);
+
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(RED_BLUE_WATER_MAP) {
+
+                        @Override
+                        public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
+                            if (recipe.getInputs().size() != 2) return true;
+                            IItemHandlerModifiable redInv = redBus.getImportItems();
+                            for (int i = 0; i < redInv.getSlots(); i++) {
+                                ItemStack s = redInv.getStackInSlot(i);
+                                if (!s.isEmpty() && s.getItem() == Items.REDSTONE) {
+                                    if (consumeIfSuccess) {
+                                        return redInv.extractItem(i, 1, false).getCount() == 1;
+                                    }
+                                    return true;
+                                }
+                            }
+                            if (consumeIfSuccess && blockRed.get()) {
+                                redTank.setCanFill(false);
+                            }
+                            return false;
+                        }
+                    };
+            ctrl.setDistinct(true);
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setThreadLimit(2);
+            redBus.setPaintingColor(EnumDyeColor.RED.getColorValue());
+            blueBus.setPaintingColor(EnumDyeColor.BLUE.getColorValue());
+            TestPaintableFluidHatchPart redHatchPart = new TestPaintableFluidHatchPart(
+                    "test_rb_rep_rh_" + reloadBeforeNextTick, redTank, EnumDyeColor.RED, new BlockPos(10, 64, 10));
+            TestPaintableFluidHatchPart blueHatchPart = new TestPaintableFluidHatchPart(
+                    "test_rb_rep_bh_" + reloadBeforeNextTick, blueTank, EnumDyeColor.BLUE, new BlockPos(12, 64, 10));
+            ctrl.addPart(redBus);
+            ctrl.addPart(blueBus);
+            ctrl.addPart(redHatchPart);
+            ctrl.addPart(blueHatchPart);
+            ctrl.addPart(outBus);
+            long startEnergy = ctrl.getEnergyContainer().getEnergyStored();
+
+            redBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            redBus.getImportItems().setStackInSlot(1, new ItemStack(Items.REDSTONE, 1));
+            logic.updateWorkable();
+            assertEquals(0, redTank.getFluidAmount());
+
+            // Clear Red items, repaint original Red hatch to Blue and re-enable fill
+            redBus.getImportItems().setStackInSlot(0, ItemStack.EMPTY);
+            redBus.getImportItems().setStackInSlot(1, ItemStack.EMPTY);
+            redHatchPart.setPaintingColor(EnumDyeColor.BLUE.getColorValue());
+            redTank.setCanFill(true);
+            if (reloadBeforeNextTick) {
+                logic.deserializeNBT(logic.serializeNBT());
+            }
+
+            blueBus.getImportItems().setStackInSlot(0, new ItemStack(Items.COAL, 1));
+            ctrl.addNotifiedInput(blueBus.getImportItems());
+            for (int t = 0; t < 8; t++) {
+                logic.updateWorkable();
+            }
+            assertEquals(0, redTank.getFluidAmount());
+            assertEquals(0, blueTank.getFluidAmount());
+            assertEquals(1, blueBus.getImportItems().getStackInSlot(0).getCount());
+            assertEquals(0, outBus.getExportItems().getStackInSlot(0).getCount());
+            assertEquals(startEnergy, ctrl.getEnergyContainer().getEnergyStored());
+        }
+
+        // 2. Inserting a new same-model Red hatch ahead of the original Red hatch still returns fluid to original pos
+        for (boolean reloadBeforeFlush : new boolean[] { false, true }) {
+            FluidTank origRedTank = new FluidTank(new FluidStack(FluidRegistry.WATER, 1000), 1000);
+            MetaTileEntityItemBus redBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_rb_pos_red_" + reloadBeforeFlush), 2, false);
+            MetaTileEntityItemBus outBus = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_rb_pos_out_" + reloadBeforeFlush), 2, true);
+            AtomicBoolean blockRed = new AtomicBoolean(true);
+            MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(RED_BLUE_WATER_MAP) {
+
+                        @Override
+                        public boolean checkRecipe(@NotNull Recipe recipe, boolean consumeIfSuccess) {
+                            if (consumeIfSuccess && blockRed.get()) {
+                                origRedTank.setCanFill(false);
+                                return false;
+                            }
+                            return true;
+                        }
+                    };
+            ctrl.setDistinct(true);
+            MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+            logic.setAllowOverclocking(false);
+            logic.setThreadLimit(2);
+            redBus.setPaintingColor(EnumDyeColor.RED.getColorValue());
+            TestPaintableFluidHatchPart origRedHatch = new TestPaintableFluidHatchPart(
+                    "test_rb_pos_same_model", origRedTank, EnumDyeColor.RED, new BlockPos(20, 64, 20));
+            ctrl.addPart(redBus);
+            ctrl.addPart(origRedHatch);
+            ctrl.addPart(outBus);
+
+            redBus.getImportItems().setStackInSlot(0, new ItemStack(Items.IRON_INGOT, 1));
+            redBus.getImportItems().setStackInSlot(1, new ItemStack(Items.REDSTONE, 1));
+            logic.updateWorkable();
+            assertEquals(0, origRedTank.getFluidAmount());
+            NBTTagCompound saved = logic.serializeNBT();
+
+            // Rebuild controller with a NEW same-model Red hatch inserted BEFORE origRedHatch at original BlockPos
+            FluidTank newFrontRedTank = new FluidTank(1000);
+            FluidTank restoredOrigRedTank = new FluidTank(1000);
+            origRedTank.setCanFill(true);
+            MultiblockRecipeLockAndInvalidationTest.TestController reorderedCtrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(RED_BLUE_WATER_MAP);
+            reorderedCtrl.setDistinct(true);
+            reorderedCtrl.getTestLogic().setAllowOverclocking(false);
+            reorderedCtrl.getTestLogic().setThreadLimit(2);
+            reorderedCtrl.addPart(redBus);
+            reorderedCtrl.addPart(new TestPaintableFluidHatchPart(
+                    "test_rb_pos_same_model", newFrontRedTank, EnumDyeColor.RED, new BlockPos(19, 64, 20)));
+            reorderedCtrl.addPart(new TestPaintableFluidHatchPart(
+                    "test_rb_pos_same_model", reloadBeforeFlush ? restoredOrigRedTank : origRedTank,
+                    EnumDyeColor.RED, new BlockPos(20, 64, 20)));
+            reorderedCtrl.addPart(outBus);
+
+            if (reloadBeforeFlush) {
+                reorderedCtrl.getTestLogic().deserializeNBT(saved);
+                reorderedCtrl.getTestLogic().flushPendingRollbacks();
+                assertEquals(0, newFrontRedTank.getFluidAmount());
+                assertEquals(1000, restoredOrigRedTank.getFluidAmount());
+            } else {
+                // Also insert new hatch at front of original controller's ability list and flush live
+                ctrl.getAbilities(MultiblockAbility.IMPORT_FLUIDS).add(0, newFrontRedTank);
+                logic.flushPendingRollbacks();
+                assertEquals(0, newFrontRedTank.getFluidAmount());
+                assertEquals(1000, origRedTank.getFluidAmount());
+            }
         }
     }
 }

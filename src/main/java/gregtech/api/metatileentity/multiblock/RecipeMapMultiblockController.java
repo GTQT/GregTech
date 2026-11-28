@@ -170,14 +170,15 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
     }
 
     /**
-     * Invokes {@link #checkRecipe(Recipe, boolean)} with {@code consumeIfSuccess = true} while temporarily masking
-     * deferred main-recipe input reservations from {@link #inputInventory} and {@link #inputFluidInventory}.
+     * Invokes {@link #checkRecipe(Recipe, boolean)} while temporarily masking main-recipe input reservations
+     * from {@link #inputInventory} and {@link #inputFluidInventory}.
      */
     public boolean checkRecipeWithReservedInputs(@NotNull Recipe recipe,
+                                                 boolean consumeIfSuccess,
                                                  @Nullable UnaryOperator<IItemHandlerModifiable> itemMask,
                                                  @Nullable UnaryOperator<IMultipleTankHandler> fluidMask) {
         if (itemMask == null && fluidMask == null) {
-            return checkRecipe(recipe, true);
+            return checkRecipe(recipe, consumeIfSuccess);
         }
         IItemHandlerModifiable prevItems = this.inputInventory;
         IMultipleTankHandler prevFluids = this.inputFluidInventory;
@@ -188,7 +189,7 @@ public abstract class RecipeMapMultiblockController extends MultiblockWithDispla
             this.inputFluidInventory = fluidMask.apply(prevFluids);
         }
         try {
-            return checkRecipe(recipe, true);
+            return checkRecipe(recipe, consumeIfSuccess);
         } finally {
             this.inputInventory = prevItems;
             this.inputFluidInventory = prevFluids;
