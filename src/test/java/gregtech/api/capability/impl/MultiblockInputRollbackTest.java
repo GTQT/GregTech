@@ -144,7 +144,7 @@ class MultiblockInputRollbackTest {
         return new FluidStack(FluidRegistry.WATER, amount, tag);
     }
 
-    private static final class TestPaintableFluidHatchPart extends MetaTileEntityMultiblockPart
+    static final class TestPaintableFluidHatchPart extends MetaTileEntityMultiblockPart
             implements IMultiblockAbilityPart<IFluidTank> {
 
         final IFluidTank tank;

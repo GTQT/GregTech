@@ -43,6 +43,14 @@ public class Branch {
         return (nodes == null || nodes.isEmpty()) && (specialNodes == null || specialNodes.isEmpty());
     }
 
+    public boolean hasNodes() {
+        return nodes != null && !nodes.isEmpty();
+    }
+
+    public boolean hasSpecialNodes() {
+        return specialNodes != null && !specialNodes.isEmpty();
+    }
+
     @NotNull
     public Map<AbstractMapIngredient, Either<Recipe, Branch>> getNodes() {
         if (nodes == null) {

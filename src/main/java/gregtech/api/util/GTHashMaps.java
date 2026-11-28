@@ -18,6 +18,11 @@ public final class GTHashMaps {
 
     private GTHashMaps() {}
 
+    private static int saturatingAdd(int a, int b) {
+        long sum = (long) a + b;
+        return sum > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) Math.max(0L, sum);
+    }
+
     /**
      * Maps all items in the {@link IItemHandler} into a {@link ItemStack}, {@link Integer} value as amount
      *
@@ -46,7 +51,7 @@ public final class GTHashMaps {
             ItemStack stack = inputs.getStackInSlot(i);
             if (stack.isEmpty()) continue;
             if (map.containsKey(stack)) {
-                map.merge(stack, stack.getCount(), Integer::sum);
+                map.merge(stack, stack.getCount(), GTHashMaps::saturatingAdd);
             } else {
                 ItemStack key = GTUtility.copy(1, stack);
                 map.put(key, stack.getCount());
@@ -86,7 +91,7 @@ public final class GTHashMaps {
         for (ItemStack stack : inputs) {
             if (stack.isEmpty()) continue;
             if (map.containsKey(stack)) {
-                map.merge(stack, stack.getCount(), Integer::sum);
+                map.merge(stack, stack.getCount(), GTHashMaps::saturatingAdd);
             } else {
                 map.put(GTUtility.copy(1, stack), stack.getCount());
             }
@@ -144,7 +149,7 @@ public final class GTHashMaps {
                 continue;
 
             if (map.containsKey(fluidStack)) {
-                map.merge(fluidStack, fluidStack.amount, Integer::sum);
+                map.merge(fluidStack, fluidStack.amount, GTHashMaps::saturatingAdd);
             } else {
                 map.put(GTUtility.copy(1, fluidStack), fluidStack.amount);
             }
@@ -183,7 +188,7 @@ public final class GTHashMaps {
                 continue;
 
             if (map.containsKey(fluidStack)) {
-                map.merge(fluidStack, fluidStack.amount, Integer::sum);
+                map.merge(fluidStack, fluidStack.amount, GTHashMaps::saturatingAdd);
             } else {
                 map.put(GTUtility.copy(1, fluidStack), fluidStack.amount);
             }

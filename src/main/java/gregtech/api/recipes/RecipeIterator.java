@@ -80,11 +80,11 @@ public class RecipeIterator implements Iterator<Recipe> {
         while (index < ingredients.size()) {
             Recipe r = recipeMap.recurseIngredientTreeFindRecipe(
                     ingredients, recipeMap.getLookup(), filteredCanHandle, index, 0, (1L << index));
-            ++index;
             if (r != null) {
                 cachedNext = r;
                 return true;
             }
+            ++index;
         }
         return false;
     }
@@ -92,22 +92,12 @@ public class RecipeIterator implements Iterator<Recipe> {
     @Override
     @Nullable
     public Recipe next() {
-        if (cachedNext != null) {
-            Recipe r = cachedNext;
-            cachedNext = null;
-            return r;
+        if (!hasNext()) return null;
+        Recipe r = cachedNext;
+        cachedNext = null;
+        if (r != null) {
+            exclusionSet.add(r);
         }
-        if (ingredients == null) return null;
-
-        Predicate<Recipe> filteredCanHandle = recipe ->
-                !exclusionSet.contains(recipe) && canHandle.test(recipe);
-
-        while (index < ingredients.size()) {
-            Recipe r = recipeMap.recurseIngredientTreeFindRecipe(
-                    ingredients, recipeMap.getLookup(), filteredCanHandle, index, 0, (1L << index));
-            ++index;
-            if (r != null) return r;
-        }
-        return null;
+        return r;
     }
 }
