@@ -1630,6 +1630,33 @@ class SchedulerTelemetryIsolationTest {
         assertTrue(legacyFeeChild.isWorking());
     }
 
+    @Test
+    void fluxContaminationPenaltyCompoundsWithBaseEnergyEfficiencyWithoutOverwritingGetter() {
+        MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
+                new MultiblockRecipeLockAndInvalidationTest.TestController(TEST_MAP);
+        MultiblockRecipeLockAndInvalidationTest.TestMultiblockRecipeLogic logic = ctrl.getTestLogic();
+        logic.setAllowOverclocking(false);
+        logic.setEnergyEfficiency(0.75);
+        ctrl.setFluxContamination(50.0F); // penalty = 1.5x
+
+        logic.updateWorkable();
+        assertEquals(0.75, logic.getEnergyEfficiency());
+        // 40 * 0.75 = 30 -> 30 * 1.5 = 45 EU/t; overflow saturates to Long.MAX_VALUE
+        assertEquals(45L, logic.appendEfficiency(40L));
+        assertEquals(Long.MAX_VALUE, logic.appendEfficiency(Long.MAX_VALUE));
+
+        // Generator multiblocks (consumesEnergy() == false) must not gain bonus output from flux contamination
+        MultiblockRecipeLogic genLogic = new MultiblockRecipeLogic(ctrl) {
+
+            @Override
+            public boolean consumesEnergy() {
+                return false;
+            }
+        };
+        genLogic.setEnergyEfficiency(1.0);
+        assertEquals(40L, genLogic.appendEfficiency(40L));
+    }
+
     private static ICleanroomProvider uncleanSterileProvider() {
         return sterileProvider(new AtomicBoolean(false));
     }

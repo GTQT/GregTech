@@ -199,10 +199,14 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
     }
 
     @Override
-    public double getEnergyEfficiency() {
-        double base = super.getEnergyEfficiency();
-        if (this.metaTileEntity instanceof MultiblockWithDisplayBase displayBase) {
-            return base * displayBase.getFluxContaminationPenalty();
+    public long appendEfficiency(long recipeEUt) {
+        long base = super.appendEfficiency(recipeEUt);
+        if (consumesEnergy() && base > 0L && this.metaTileEntity instanceof MultiblockWithDisplayBase controller) {
+            double penalty = controller.getFluxContaminationPenalty();
+            if (penalty != 1.0D) {
+                double scaled = base * penalty;
+                return scaled >= Long.MAX_VALUE ? Long.MAX_VALUE : (long) scaled;
+            }
         }
         return base;
     }
