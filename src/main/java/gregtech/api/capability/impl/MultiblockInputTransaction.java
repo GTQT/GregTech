@@ -71,6 +71,10 @@ final class MultiblockInputTransaction {
     private final List<PendingItemRollback> pendingRollbackItems = new ArrayList<>();
     private final List<PendingFluidRollback> pendingRollbackFluids = new ArrayList<>();
 
+    private transient long lastPlanSignature = 0L;
+    private transient int resumeGroupLeafOffset = 0;
+    private transient int resumeLeafOffset = 0;
+
     @Nullable
     private transient UnaryOperator<IItemHandlerModifiable> activeHolderItemMask;
     @Nullable
@@ -423,9 +427,44 @@ final class MultiblockInputTransaction {
 
     private static final class PlanSearchState {
 
+        final int skipLeaves;
+        final int maxProbes;
+        int leavesVisited = 0;
         int probes = 0;
+        boolean hitProbeCap = false;
         @Nullable
         JointPlan accepted = null;
+
+        PlanSearchState(int skipLeaves, int maxProbes) {
+            this.skipLeaves = skipLeaves;
+            this.maxProbes = maxProbes;
+        }
+    }
+
+    private static final class ItemSlotGroup {
+
+        final ItemStack template;
+        final List<Integer> slots = new ArrayList<>();
+        long totalAvail;
+
+        ItemSlotGroup(@NotNull ItemStack template, int firstSlot, int avail) {
+            this.template = template;
+            this.slots.add(firstSlot);
+            this.totalAvail = avail;
+        }
+    }
+
+    private static final class FluidTankGroup {
+
+        final FluidStack template;
+        final List<Integer> tanks = new ArrayList<>();
+        long totalAvail;
+
+        FluidTankGroup(@NotNull FluidStack template, int firstTank, int avail) {
+            this.template = template;
+            this.tanks.add(firstTank);
+            this.totalAvail = avail;
+        }
     }
 
     @Nullable
@@ -447,7 +486,7 @@ final class MultiblockInputTransaction {
         int[] itemOrder = sortedItemInputOrder(itemInputs, slotSnapshots, extractableCounts);
         int[] fluidOrder = sortedFluidInputOrder(fluidInputs, tankSnapshots, drainableAmounts);
 
-        // Fast Path: single greedy pass in constrained ingredient order
+        // 1. Fast Path: single greedy pass in constrained ingredient order
         long[][] fastItems = new long[mItems][slotCount];
         long[][] fastFluids = new long[mFluids][tankCount];
         if (tryGreedyItems(itemInputs, parallelCount, slotSnapshots, extractableCounts, itemOrder, fastItems) &&
@@ -458,12 +497,59 @@ final class MultiblockInputTransaction {
                     canSimulateFluidPlan(tanks, fPlan, tankSnapshots) &&
                     invokeHolderCheckWithOverlay(recipe, false, importInventory, iPlan, slotSnapshots,
                             tanks, fPlan, tankSnapshots)) {
+                this.resumeGroupLeafOffset = 0;
+                this.resumeLeafOffset = 0;
                 return new JointPlan(fastItems, iPlan, fastFluids, fPlan);
+            }
+        } else {
+            this.resumeGroupLeafOffset = 0;
+            this.resumeLeafOffset = 0;
+            return null;
+        }
+
+        long sig = computePlanSignature(recipe, parallelCount, slotSnapshots, extractableCounts,
+                tankSnapshots, drainableAmounts);
+        boolean sameSignature = sig == this.lastPlanSignature;
+        int startGroupSkip = sameSignature ? this.resumeGroupLeafOffset : 0;
+        int startSkip = sameSignature ? this.resumeLeafOffset : 0;
+        int remainingProbes = MAX_PLAN_PROBES;
+
+        // 2. Equivalence-Group Backtracking: collapses multi-tank/multi-slot splits of identical stacks/fluids
+        List<ItemSlotGroup> itemGroups = buildItemSlotGroups(slotSnapshots, extractableCounts);
+        List<FluidTankGroup> fluidGroups = buildFluidTankGroups(tankSnapshots, drainableAmounts);
+        if (itemGroups.size() < countPositive(extractableCounts) ||
+                fluidGroups.size() < countPositive(drainableAmounts)) {
+            PlanSearchState groupState = new PlanSearchState(startGroupSkip, remainingProbes);
+            long[][] groupItemMatrix = new long[mItems][itemGroups.size()];
+            long[][] groupFluidMatrix = new long[mFluids][fluidGroups.size()];
+            long[] availItemGroups = new long[itemGroups.size()];
+            for (int g = 0; g < itemGroups.size(); g++) availItemGroups[g] = itemGroups.get(g).totalAvail;
+            long[] availFluidGroups = new long[fluidGroups.size()];
+            for (int g = 0; g < fluidGroups.size(); g++) availFluidGroups[g] = fluidGroups.get(g).totalAvail;
+
+            if (searchGroupedItems(recipe, parallelCount, importInventory, itemInputs, itemOrder, 0, 0, -1L,
+                    itemGroups, slotSnapshots, extractableCounts, availItemGroups, groupItemMatrix,
+                    tanks, fluidInputs, fluidOrder, fluidGroups, tankSnapshots, drainableAmounts,
+                    availFluidGroups, groupFluidMatrix, groupState) && groupState.accepted != null) {
+                this.resumeGroupLeafOffset = 0;
+                this.resumeLeafOffset = 0;
+                return groupState.accepted;
+            }
+            if (groupState.hitProbeCap) {
+                this.lastPlanSignature = sig;
+                this.resumeGroupLeafOffset = groupState.leavesVisited;
+                return null;
+            }
+            this.resumeGroupLeafOffset = 0;
+            remainingProbes = Math.max(0, MAX_PLAN_PROBES - groupState.probes);
+            if (remainingProbes == 0) {
+                this.lastPlanSignature = sig;
+                return null;
             }
         }
 
-        // Bounded Backtracking Search: explore alternative slot/tank assignments via maxTake / minTake branching
-        PlanSearchState state = new PlanSearchState();
+        // 3. Resumable Per-Slot / Per-Tank Backtracking: continues from last unprobed leaf when inputs are unchanged
+        PlanSearchState state = new PlanSearchState(startSkip, remainingProbes);
         long[][] workItemMatrix = new long[mItems][slotCount];
         long[][] workFluidMatrix = new long[mFluids][tankCount];
         int[] availItems = extractableCounts.clone();
@@ -473,7 +559,358 @@ final class MultiblockInputTransaction {
                 recipe, parallelCount,
                 importInventory, itemInputs, itemOrder, 0, 0, -1L, slotSnapshots, availItems, workItemMatrix,
                 tanks, fluidInputs, fluidOrder, tankSnapshots, availFluids, workFluidMatrix, state);
-        return state.accepted;
+        if (state.accepted != null) {
+            this.resumeGroupLeafOffset = 0;
+            this.resumeLeafOffset = 0;
+            return state.accepted;
+        }
+        if (state.hitProbeCap) {
+            this.lastPlanSignature = sig;
+            this.resumeLeafOffset = state.leavesVisited;
+        } else {
+            this.lastPlanSignature = sig;
+            this.resumeLeafOffset = 0;
+        }
+        return null;
+    }
+
+    private static int countPositive(@NotNull int[] values) {
+        int count = 0;
+        for (int v : values) {
+            if (v > 0) count++;
+        }
+        return count;
+    }
+
+    private static List<ItemSlotGroup> buildItemSlotGroups(@NotNull ItemStack[] snapshots, @NotNull int[] available) {
+        List<ItemSlotGroup> groups = new ArrayList<>();
+        for (int i = 0; i < snapshots.length; i++) {
+            if (available[i] <= 0 || snapshots[i].isEmpty()) continue;
+            ItemSlotGroup matched = null;
+            for (ItemSlotGroup g : groups) {
+                if (ItemHandlerHelper.canItemStacksStack(g.template, snapshots[i])) {
+                    matched = g;
+                    break;
+                }
+            }
+            if (matched == null) {
+                groups.add(new ItemSlotGroup(snapshots[i], i, available[i]));
+            } else {
+                matched.slots.add(i);
+                matched.totalAvail += available[i];
+            }
+        }
+        return groups;
+    }
+
+    private static List<FluidTankGroup> buildFluidTankGroups(@NotNull FluidStack[] snapshots,
+                                                             @NotNull int[] available) {
+        List<FluidTankGroup> groups = new ArrayList<>();
+        for (int t = 0; t < snapshots.length; t++) {
+            if (available[t] <= 0 || snapshots[t] == null) continue;
+            FluidTankGroup matched = null;
+            for (FluidTankGroup g : groups) {
+                if (g.template.isFluidEqual(snapshots[t])) {
+                    matched = g;
+                    break;
+                }
+            }
+            if (matched == null) {
+                groups.add(new FluidTankGroup(snapshots[t], t, available[t]));
+            } else {
+                matched.tanks.add(t);
+                matched.totalAvail += available[t];
+            }
+        }
+        return groups;
+    }
+
+    private boolean searchGroupedItems(@NotNull Recipe recipe,
+                                       int parallelCount,
+                                       @NotNull IItemHandlerModifiable importInventory,
+                                       @NotNull List<GTRecipeInput> itemInputs,
+                                       @NotNull int[] itemOrder,
+                                       int orderPos,
+                                       int groupIdx,
+                                       long remaining,
+                                       @NotNull List<ItemSlotGroup> itemGroups,
+                                       @NotNull ItemStack[] slotSnapshots,
+                                       @NotNull int[] extractableCounts,
+                                       @NotNull long[] availGroups,
+                                       @NotNull long[][] groupItemMatrix,
+                                       @NotNull List<IMultipleTankHandler.ITankEntry> tanks,
+                                       @NotNull List<GTRecipeInput> fluidInputs,
+                                       @NotNull int[] fluidOrder,
+                                       @NotNull List<FluidTankGroup> fluidGroups,
+                                       @NotNull FluidStack[] tankSnapshots,
+                                       @NotNull int[] drainableAmounts,
+                                       @NotNull long[] availFluidGroups,
+                                       @NotNull long[][] groupFluidMatrix,
+                                       @NotNull PlanSearchState state) {
+        if (state.probes >= state.maxProbes) {
+            state.hitProbeCap = true;
+            return false;
+        }
+        if (orderPos >= itemOrder.length) {
+            return searchGroupedFluids(recipe, parallelCount, importInventory, itemInputs.size(),
+                    itemGroups, slotSnapshots, extractableCounts, groupItemMatrix,
+                    tanks, fluidInputs, fluidOrder, 0, 0, -1L, fluidGroups, tankSnapshots, drainableAmounts,
+                    availFluidGroups, groupFluidMatrix, state);
+        }
+        int k = itemOrder[orderPos];
+        GTRecipeInput input = itemInputs.get(k);
+        long rem = remaining < 0L ? (long) input.getAmount() * parallelCount : remaining;
+        if (rem <= 0L) {
+            return searchGroupedItems(recipe, parallelCount, importInventory, itemInputs, itemOrder,
+                    orderPos + 1, 0, -1L, itemGroups, slotSnapshots, extractableCounts, availGroups, groupItemMatrix,
+                    tanks, fluidInputs, fluidOrder, fluidGroups, tankSnapshots, drainableAmounts,
+                    availFluidGroups, groupFluidMatrix, state);
+        }
+        int nextGroup = -1;
+        for (int g = groupIdx; g < itemGroups.size(); g++) {
+            if (availGroups[g] > 0L && input.acceptsStack(itemGroups.get(g).template)) {
+                nextGroup = g;
+                break;
+            }
+        }
+        if (nextGroup < 0) return false;
+
+        long suffixAfter = 0L;
+        for (int j = nextGroup + 1; j < itemGroups.size(); j++) {
+            if (availGroups[j] > 0L && input.acceptsStack(itemGroups.get(j).template)) {
+                suffixAfter += availGroups[j];
+            }
+        }
+        if (availGroups[nextGroup] + suffixAfter < rem) return false;
+
+        long maxTake = Math.min(rem, availGroups[nextGroup]);
+        long minTake = Math.max(0L, rem - suffixAfter);
+
+        availGroups[nextGroup] -= maxTake;
+        groupItemMatrix[k][nextGroup] += maxTake;
+        boolean ok = searchGroupedItems(recipe, parallelCount, importInventory, itemInputs, itemOrder,
+                orderPos, nextGroup + 1, rem - maxTake, itemGroups, slotSnapshots, extractableCounts, availGroups,
+                groupItemMatrix, tanks, fluidInputs, fluidOrder, fluidGroups, tankSnapshots, drainableAmounts,
+                availFluidGroups, groupFluidMatrix, state);
+        groupItemMatrix[k][nextGroup] -= maxTake;
+        availGroups[nextGroup] += maxTake;
+        if (ok) return true;
+
+        if (minTake < maxTake && state.probes < state.maxProbes) {
+            availGroups[nextGroup] -= minTake;
+            groupItemMatrix[k][nextGroup] += minTake;
+            ok = searchGroupedItems(recipe, parallelCount, importInventory, itemInputs, itemOrder,
+                    orderPos, nextGroup + 1, rem - minTake, itemGroups, slotSnapshots, extractableCounts, availGroups,
+                    groupItemMatrix, tanks, fluidInputs, fluidOrder, fluidGroups, tankSnapshots, drainableAmounts,
+                    availFluidGroups, groupFluidMatrix, state);
+            groupItemMatrix[k][nextGroup] -= minTake;
+            availGroups[nextGroup] += minTake;
+            return ok;
+        }
+        return false;
+    }
+
+    private boolean searchGroupedFluids(@NotNull Recipe recipe,
+                                        int parallelCount,
+                                        @NotNull IItemHandlerModifiable importInventory,
+                                        int mItems,
+                                        @NotNull List<ItemSlotGroup> itemGroups,
+                                        @NotNull ItemStack[] slotSnapshots,
+                                        @NotNull int[] extractableCounts,
+                                        @NotNull long[][] groupItemMatrix,
+                                        @NotNull List<IMultipleTankHandler.ITankEntry> tanks,
+                                        @NotNull List<GTRecipeInput> fluidInputs,
+                                        @NotNull int[] fluidOrder,
+                                        int orderPos,
+                                        int groupIdx,
+                                        long remaining,
+                                        @NotNull List<FluidTankGroup> fluidGroups,
+                                        @NotNull FluidStack[] tankSnapshots,
+                                        @NotNull int[] drainableAmounts,
+                                        @NotNull long[] availFluidGroups,
+                                        @NotNull long[][] groupFluidMatrix,
+                                        @NotNull PlanSearchState state) {
+        if (state.probes >= state.maxProbes) {
+            state.hitProbeCap = true;
+            return false;
+        }
+        if (orderPos >= fluidOrder.length) {
+            long[][] slotMatrix = materializeItemGroupMatrix(
+                    mItems, slotSnapshots.length, itemGroups, extractableCounts, groupItemMatrix);
+            long[][] tankMatrix = materializeFluidGroupMatrix(
+                    fluidInputs.size(), tankSnapshots.length, fluidGroups, drainableAmounts, groupFluidMatrix);
+            int[] iPlan = sumMatrixColumns(slotMatrix, mItems, slotSnapshots.length);
+            int[] fPlan = sumMatrixColumns(tankMatrix, fluidInputs.size(), tankSnapshots.length);
+            if (!canSimulateItemPlan(importInventory, iPlan, slotSnapshots) ||
+                    !canSimulateFluidPlan(tanks, fPlan, tankSnapshots)) {
+                return false;
+            }
+            state.leavesVisited++;
+            if (state.leavesVisited <= state.skipLeaves) {
+                return false;
+            }
+            state.probes++;
+            if (invokeHolderCheckWithOverlay(recipe, false, importInventory, iPlan, slotSnapshots,
+                    tanks, fPlan, tankSnapshots)) {
+                state.accepted = new JointPlan(slotMatrix, iPlan, tankMatrix, fPlan);
+                return true;
+            }
+            if (state.probes >= state.maxProbes) {
+                state.hitProbeCap = true;
+            }
+            return false;
+        }
+        int k = fluidOrder[orderPos];
+        GTRecipeInput input = fluidInputs.get(k);
+        long rem = remaining < 0L ? (long) input.getAmount() * parallelCount : remaining;
+        if (rem <= 0L) {
+            return searchGroupedFluids(recipe, parallelCount, importInventory, mItems, itemGroups, slotSnapshots,
+                    extractableCounts, groupItemMatrix, tanks, fluidInputs, fluidOrder, orderPos + 1, 0, -1L,
+                    fluidGroups, tankSnapshots, drainableAmounts, availFluidGroups, groupFluidMatrix, state);
+        }
+        int nextGroup = -1;
+        for (int g = groupIdx; g < fluidGroups.size(); g++) {
+            if (availFluidGroups[g] > 0L && input.acceptsFluid(fluidGroups.get(g).template)) {
+                nextGroup = g;
+                break;
+            }
+        }
+        if (nextGroup < 0) return false;
+
+        long suffixAfter = 0L;
+        for (int j = nextGroup + 1; j < fluidGroups.size(); j++) {
+            if (availFluidGroups[j] > 0L && input.acceptsFluid(fluidGroups.get(j).template)) {
+                suffixAfter += availFluidGroups[j];
+            }
+        }
+        if (availFluidGroups[nextGroup] + suffixAfter < rem) return false;
+
+        long maxTake = Math.min(rem, availFluidGroups[nextGroup]);
+        long minTake = Math.max(0L, rem - suffixAfter);
+
+        availFluidGroups[nextGroup] -= maxTake;
+        groupFluidMatrix[k][nextGroup] += maxTake;
+        boolean ok = searchGroupedFluids(recipe, parallelCount, importInventory, mItems, itemGroups, slotSnapshots,
+                extractableCounts, groupItemMatrix, tanks, fluidInputs, fluidOrder, orderPos, nextGroup + 1,
+                rem - maxTake, fluidGroups, tankSnapshots, drainableAmounts, availFluidGroups, groupFluidMatrix, state);
+        groupFluidMatrix[k][nextGroup] -= maxTake;
+        availFluidGroups[nextGroup] += maxTake;
+        if (ok) return true;
+
+        if (minTake < maxTake && state.probes < state.maxProbes) {
+            availFluidGroups[nextGroup] -= minTake;
+            groupFluidMatrix[k][nextGroup] += minTake;
+            ok = searchGroupedFluids(recipe, parallelCount, importInventory, mItems, itemGroups, slotSnapshots,
+                    extractableCounts, groupItemMatrix, tanks, fluidInputs, fluidOrder, orderPos, nextGroup + 1,
+                    rem - minTake, fluidGroups, tankSnapshots, drainableAmounts, availFluidGroups, groupFluidMatrix,
+                    state);
+            groupFluidMatrix[k][nextGroup] -= minTake;
+            availFluidGroups[nextGroup] += minTake;
+            return ok;
+        }
+        return false;
+    }
+
+    private static long[][] materializeItemGroupMatrix(int mItems,
+                                                       int slotCount,
+                                                       @NotNull List<ItemSlotGroup> groups,
+                                                       @NotNull int[] extractableCounts,
+                                                       @NotNull long[][] groupMatrix) {
+        long[][] out = new long[mItems][slotCount];
+        int[] remSlot = extractableCounts.clone();
+        for (int g = 0; g < groups.size(); g++) {
+            List<Integer> memberSlots = groups.get(g).slots;
+            for (int k = 0; k < mItems; k++) {
+                long need = groupMatrix[k][g];
+                for (int idx = 0; idx < memberSlots.size() && need > 0L; idx++) {
+                    int s = memberSlots.get(idx);
+                    if (remSlot[s] <= 0) continue;
+                    int take = (int) Math.min(need, remSlot[s]);
+                    remSlot[s] -= take;
+                    out[k][s] += take;
+                    need -= take;
+                }
+            }
+        }
+        return out;
+    }
+
+    private static long[][] materializeFluidGroupMatrix(int mFluids,
+                                                        int tankCount,
+                                                        @NotNull List<FluidTankGroup> groups,
+                                                        @NotNull int[] drainableAmounts,
+                                                        @NotNull long[][] groupMatrix) {
+        long[][] out = new long[mFluids][tankCount];
+        int[] remTank = drainableAmounts.clone();
+        for (int g = 0; g < groups.size(); g++) {
+            List<Integer> memberTanks = groups.get(g).tanks;
+            for (int k = 0; k < mFluids; k++) {
+                long need = groupMatrix[k][g];
+                for (int idx = 0; idx < memberTanks.size() && need > 0L; idx++) {
+                    int t = memberTanks.get(idx);
+                    if (remTank[t] <= 0) continue;
+                    int take = (int) Math.min(need, remTank[t]);
+                    remTank[t] -= take;
+                    out[k][t] += take;
+                    need -= take;
+                }
+            }
+        }
+        return out;
+    }
+
+    private static long computePlanSignature(@NotNull Recipe recipe,
+                                             int parallelCount,
+                                             @NotNull ItemStack[] slotSnapshots,
+                                             @NotNull int[] extractableCounts,
+                                             @NotNull FluidStack[] tankSnapshots,
+                                             @NotNull int[] drainableAmounts) {
+        long h = recipe.getEUt();
+        h = h * 31L + recipe.getDuration();
+        h = h * 31L + recipe.getInputs().size();
+        for (GTRecipeInput in : recipe.getInputs()) {
+            h = h * 31L + in.getAmount();
+            h = h * 31L + (in.isNonConsumable() ? 1L : 0L);
+        }
+        h = h * 31L + recipe.getFluidInputs().size();
+        for (GTRecipeInput fin : recipe.getFluidInputs()) {
+            h = h * 31L + fin.getAmount();
+            h = h * 31L + (fin.isNonConsumable() ? 1L : 0L);
+        }
+        for (ItemStack out : recipe.getOutputs()) {
+            if (!out.isEmpty()) {
+                h = h * 31L + System.identityHashCode(out.getItem());
+                h = h * 31L + out.getMetadata();
+                h = h * 31L + out.getCount();
+            }
+        }
+        for (FluidStack fout : recipe.getFluidOutputs()) {
+            if (fout != null) {
+                h = h * 31L + System.identityHashCode(fout.getFluid());
+                h = h * 31L + fout.amount;
+            }
+        }
+        h = h * 31L + parallelCount;
+        h = h * 31L + slotSnapshots.length;
+        for (int i = 0; i < slotSnapshots.length; i++) {
+            ItemStack s = slotSnapshots[i];
+            h = h * 31L + extractableCounts[i];
+            if (!s.isEmpty()) {
+                h = h * 31L + System.identityHashCode(s.getItem());
+                h = h * 31L + s.getMetadata();
+                h = h * 31L + (s.getTagCompound() == null ? 0 : s.getTagCompound().hashCode());
+            }
+        }
+        h = h * 31L + tankSnapshots.length;
+        for (int t = 0; t < tankSnapshots.length; t++) {
+            FluidStack f = tankSnapshots[t];
+            h = h * 31L + drainableAmounts[t];
+            if (f != null) {
+                h = h * 31L + System.identityHashCode(f.getFluid());
+                h = h * 31L + (f.tag == null ? 0 : f.tag.hashCode());
+            }
+        }
+        return h;
     }
 
     private boolean searchItemAllocations(@NotNull Recipe recipe,
@@ -494,7 +931,10 @@ final class MultiblockInputTransaction {
                                           @NotNull int[] availFluids,
                                           @NotNull long[][] fluidMatrix,
                                           @NotNull PlanSearchState state) {
-        if (state.probes >= MAX_PLAN_PROBES) return false;
+        if (state.probes >= state.maxProbes) {
+            state.hitProbeCap = true;
+            return false;
+        }
         if (orderPos >= itemOrder.length) {
             return searchFluidAllocations(
                     recipe, parallelCount,
@@ -542,7 +982,7 @@ final class MultiblockInputTransaction {
         availItems[nextSlot] += maxTake;
         if (ok) return true;
 
-        if (minTake < maxTake && state.probes < MAX_PLAN_PROBES) {
+        if (minTake < maxTake && state.probes < state.maxProbes) {
             availItems[nextSlot] -= minTake;
             itemMatrix[k][nextSlot] += minTake;
             ok = searchItemAllocations(recipe, parallelCount, importInventory, itemInputs, itemOrder,
@@ -571,12 +1011,19 @@ final class MultiblockInputTransaction {
                                            @NotNull int[] availFluids,
                                            @NotNull long[][] fluidMatrix,
                                            @NotNull PlanSearchState state) {
-        if (state.probes >= MAX_PLAN_PROBES) return false;
+        if (state.probes >= state.maxProbes) {
+            state.hitProbeCap = true;
+            return false;
+        }
         if (orderPos >= fluidOrder.length) {
             int[] iPlan = sumMatrixColumns(itemMatrix, mItems, slotSnapshots.length);
             int[] fPlan = sumMatrixColumns(fluidMatrix, fluidInputs.size(), tankSnapshots.length);
             if (!canSimulateItemPlan(importInventory, iPlan, slotSnapshots) ||
                     !canSimulateFluidPlan(tanks, fPlan, tankSnapshots)) {
+                return false;
+            }
+            state.leavesVisited++;
+            if (state.leavesVisited <= state.skipLeaves) {
                 return false;
             }
             state.probes++;
@@ -585,6 +1032,9 @@ final class MultiblockInputTransaction {
                 state.accepted = new JointPlan(
                         copyMatrix(itemMatrix), iPlan, copyMatrix(fluidMatrix), fPlan);
                 return true;
+            }
+            if (state.probes >= state.maxProbes) {
+                state.hitProbeCap = true;
             }
             return false;
         }
@@ -629,7 +1079,7 @@ final class MultiblockInputTransaction {
         availFluids[nextTank] += maxTake;
         if (ok) return true;
 
-        if (minTake < maxTake && state.probes < MAX_PLAN_PROBES) {
+        if (minTake < maxTake && state.probes < state.maxProbes) {
             availFluids[nextTank] -= minTake;
             fluidMatrix[k][nextTank] += minTake;
             ok = searchFluidAllocations(recipe, parallelCount, importInventory, mItems, slotSnapshots, itemMatrix,
@@ -1005,46 +1455,170 @@ final class MultiblockInputTransaction {
         }
     }
 
+    private static final class UniqueLeafItemSlot {
+
+        final int viewSlot;
+        final IItemHandler leafHandler;
+        final int leafSlot;
+        final int channelColor;
+        final ItemStack before;
+        final ItemStack after;
+
+        UniqueLeafItemSlot(int viewSlot, IItemHandler leafHandler, int leafSlot, int channelColor,
+                           ItemStack before, ItemStack after) {
+            this.viewSlot = viewSlot;
+            this.leafHandler = leafHandler;
+            this.leafSlot = leafSlot;
+            this.channelColor = channelColor;
+            this.before = before;
+            this.after = after;
+        }
+    }
+
+    private static final class NetItemBucket {
+
+        final int channelColor;
+        final ItemStack template;
+        long totalBefore;
+        long totalAfter;
+        long remainingToRestore;
+
+        NetItemBucket(int channelColor, ItemStack template) {
+            this.channelColor = channelColor;
+            this.template = template;
+        }
+    }
+
+    private static final class UniqueLeafFluidTank {
+
+        final IMultipleTankHandler.ITankEntry entry;
+        final IFluidTank leafTank;
+        final int channelColor;
+        @Nullable
+        final FluidStack before;
+        @Nullable
+        final FluidStack after;
+
+        UniqueLeafFluidTank(IMultipleTankHandler.ITankEntry entry, IFluidTank leafTank, int channelColor,
+                            @Nullable FluidStack before, @Nullable FluidStack after) {
+            this.entry = entry;
+            this.leafTank = leafTank;
+            this.channelColor = channelColor;
+            this.before = before;
+            this.after = after;
+        }
+    }
+
+    private static final class NetFluidBucket {
+
+        final int channelColor;
+        final FluidStack template;
+        long totalBefore;
+        long totalAfter;
+        long remainingToRestore;
+
+        NetFluidBucket(int channelColor, FluidStack template) {
+            this.channelColor = channelColor;
+            this.template = template;
+        }
+    }
+
     private void reconcileAndRollbackAll(@NotNull IItemHandlerModifiable importInventory,
                                          @NotNull ItemStack[] fullOriginalSlots,
                                          @NotNull IMultipleTankHandler importFluids,
                                          @NotNull List<IMultipleTankHandler.ITankEntry> tanks,
                                          @NotNull FluidStack[] fullOriginalTanks,
                                          int commitColor) {
-        // Pass 1: Compute exact missing diffs against full pre-commit snapshot deduplicated by leaf container
-        List<MissingItemRecord> missingItems = new ArrayList<>();
+        // Pass 1a: Collect all unique leaf item slots and compute net decrease per (channelColor, Item+NBT)
+        // so items merely moved to another slot within the same channel are never over-refunded.
+        List<UniqueLeafItemSlot> uniqueItemSlots = new ArrayList<>(fullOriginalSlots.length);
         IdentityHashMap<IItemHandler, Map<Integer, Boolean>> seenItemLeaves = new IdentityHashMap<>();
         for (int i = 0; i < fullOriginalSlots.length; i++) {
-            ItemStack orig = fullOriginalSlots[i];
-            if (orig == null || orig.isEmpty()) continue;
             Tuple<IItemHandler, Integer> leaf = resolveLeafItemSlot(importInventory, i);
             Map<Integer, Boolean> seenSlots = seenItemLeaves.computeIfAbsent(leaf.getFirst(), k -> new HashMap<>());
             if (seenSlots.putIfAbsent(leaf.getSecond(), Boolean.TRUE) != null) {
                 continue;
             }
+            ItemStack orig = fullOriginalSlots[i] == null ? ItemStack.EMPTY : fullOriginalSlots[i];
             ItemStack now = importInventory.getStackInSlot(i);
-            int nowMatching = (!now.isEmpty() && ItemHandlerHelper.canItemStacksStack(now, orig)) ? now.getCount() : 0;
-            int missing = Math.max(0, orig.getCount() - nowMatching);
-            if (missing > 0) {
-                missingItems.add(new MissingItemRecord(i, leaf.getFirst(), leaf.getSecond(), orig, missing));
+            uniqueItemSlots.add(new UniqueLeafItemSlot(
+                    i, leaf.getFirst(), leaf.getSecond(), logic.colorIndexOf(leaf.getFirst()),
+                    orig, now.isEmpty() ? ItemStack.EMPTY : now.copy()));
+        }
+
+        List<NetItemBucket> itemBuckets = new ArrayList<>();
+        for (UniqueLeafItemSlot u : uniqueItemSlots) {
+            if (!u.before.isEmpty()) {
+                NetItemBucket b = findOrCreateItemBucket(itemBuckets, u.channelColor, u.before);
+                b.totalBefore += u.before.getCount();
+            }
+            if (!u.after.isEmpty()) {
+                NetItemBucket b = findOrCreateItemBucket(itemBuckets, u.channelColor, u.after);
+                b.totalAfter += u.after.getCount();
+            }
+        }
+        for (NetItemBucket b : itemBuckets) {
+            b.remainingToRestore = Math.max(0L, b.totalBefore - b.totalAfter);
+        }
+
+        List<MissingItemRecord> missingItems = new ArrayList<>();
+        for (UniqueLeafItemSlot u : uniqueItemSlots) {
+            if (u.before.isEmpty()) continue;
+            NetItemBucket bucket = findOrCreateItemBucket(itemBuckets, u.channelColor, u.before);
+            if (bucket.remainingToRestore <= 0L) continue;
+            int nowMatching = (!u.after.isEmpty() && ItemHandlerHelper.canItemStacksStack(u.after, u.before)) ?
+                    u.after.getCount() : 0;
+            int slotMissing = Math.max(0, u.before.getCount() - nowMatching);
+            int cappedMissing = (int) Math.min(slotMissing, bucket.remainingToRestore);
+            if (cappedMissing > 0) {
+                bucket.remainingToRestore -= cappedMissing;
+                missingItems.add(new MissingItemRecord(
+                        u.viewSlot, u.leafHandler, u.leafSlot, u.before, cappedMissing));
             }
         }
 
-        List<MissingFluidRecord> missingFluids = new ArrayList<>();
+        // Pass 1b: Collect all unique leaf fluid tanks and compute net decrease per (channelColor, Fluid+NBT)
+        List<UniqueLeafFluidTank> uniqueFluidTanks = new ArrayList<>(fullOriginalTanks.length);
         IdentityHashMap<IFluidTank, Boolean> seenFluidLeaves = new IdentityHashMap<>();
         for (int t = 0; t < fullOriginalTanks.length; t++) {
-            FluidStack orig = fullOriginalTanks[t];
-            if (orig == null || orig.amount <= 0) continue;
             IMultipleTankHandler.ITankEntry entry = tanks.get(t);
             IFluidTank leaf = unwrapFluidTank(entry);
             if (seenFluidLeaves.putIfAbsent(leaf, Boolean.TRUE) != null) {
                 continue;
             }
+            int color = leaf instanceof PendingFluidRollback p ? p.sourceColor : logic.colorIndexOf(leaf);
+            FluidStack orig = fullOriginalTanks[t];
             FluidStack now = entry.getFluid();
-            int nowMatching = (now != null && now.isFluidEqual(orig)) ? Math.max(0, now.amount) : 0;
-            int missing = Math.max(0, orig.amount - nowMatching);
-            if (missing > 0) {
-                missingFluids.add(new MissingFluidRecord(entry, leaf, orig, missing));
+            uniqueFluidTanks.add(new UniqueLeafFluidTank(
+                    entry, leaf, color, orig, (now == null || now.amount <= 0) ? null : now.copy()));
+        }
+
+        List<NetFluidBucket> fluidBuckets = new ArrayList<>();
+        for (UniqueLeafFluidTank v : uniqueFluidTanks) {
+            if (v.before != null && v.before.amount > 0) {
+                NetFluidBucket b = findOrCreateFluidBucket(fluidBuckets, v.channelColor, v.before);
+                b.totalBefore += v.before.amount;
+            }
+            if (v.after != null && v.after.amount > 0) {
+                NetFluidBucket b = findOrCreateFluidBucket(fluidBuckets, v.channelColor, v.after);
+                b.totalAfter += v.after.amount;
+            }
+        }
+        for (NetFluidBucket b : fluidBuckets) {
+            b.remainingToRestore = Math.max(0L, b.totalBefore - b.totalAfter);
+        }
+
+        List<MissingFluidRecord> missingFluids = new ArrayList<>();
+        for (UniqueLeafFluidTank v : uniqueFluidTanks) {
+            if (v.before == null || v.before.amount <= 0) continue;
+            NetFluidBucket bucket = findOrCreateFluidBucket(fluidBuckets, v.channelColor, v.before);
+            if (bucket.remainingToRestore <= 0L) continue;
+            int nowMatching = (v.after != null && v.after.isFluidEqual(v.before)) ? Math.max(0, v.after.amount) : 0;
+            int tankMissing = Math.max(0, v.before.amount - nowMatching);
+            int cappedMissing = (int) Math.min(tankMissing, bucket.remainingToRestore);
+            if (cappedMissing > 0) {
+                bucket.remainingToRestore -= cappedMissing;
+                missingFluids.add(new MissingFluidRecord(v.entry, v.leafTank, v.before, cappedMissing));
             }
         }
 
@@ -1105,6 +1679,32 @@ final class MultiblockInputTransaction {
                         rec.leafTank, GTUtility.copy(unreturned, rec.originalFluid), commitColor);
             }
         }
+    }
+
+    private static NetItemBucket findOrCreateItemBucket(@NotNull List<NetItemBucket> buckets,
+                                                        int channelColor,
+                                                        @NotNull ItemStack stack) {
+        for (NetItemBucket b : buckets) {
+            if (b.channelColor == channelColor && ItemHandlerHelper.canItemStacksStack(b.template, stack)) {
+                return b;
+            }
+        }
+        NetItemBucket created = new NetItemBucket(channelColor, stack.copy());
+        buckets.add(created);
+        return created;
+    }
+
+    private static NetFluidBucket findOrCreateFluidBucket(@NotNull List<NetFluidBucket> buckets,
+                                                          int channelColor,
+                                                          @NotNull FluidStack fluid) {
+        for (NetFluidBucket b : buckets) {
+            if (b.channelColor == channelColor && b.template.isFluidEqual(fluid)) {
+                return b;
+            }
+        }
+        NetFluidBucket created = new NetFluidBucket(channelColor, fluid.copy());
+        buckets.add(created);
+        return created;
     }
 
     private ItemStack insertSameColorOtherSlot(@NotNull IItemHandlerModifiable importInventory,
