@@ -99,9 +99,9 @@ public class TooltipBuilder {
         return this;
     }
 
-    public TooltipBuilder addPollution(double pollutionAmount, int ticks) {
-        if (ConfigHolder.machines.enablePollution && pollutionAmount > 0)
-            components.add(new PollutionComponent(pollutionAmount, ticks));
+    public TooltipBuilder addPollution(double pollutionPerSecond) {
+        if (ConfigHolder.machines.enablePollution && pollutionPerSecond > 0)
+            components.add(new PollutionComponent(pollutionPerSecond));
         return this;
     }
 

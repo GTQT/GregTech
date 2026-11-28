@@ -15,7 +15,7 @@ public interface IBoilerType {
 
     int runtimeBoost(int ticks);
 
-    double getPollutionAmount();
+    double getPollutionPerSecond();
 
     GTGuiTheme getUITheme();
 

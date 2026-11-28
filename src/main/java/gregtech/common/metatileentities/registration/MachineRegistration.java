@@ -397,7 +397,7 @@ public final class MachineRegistration {
                 new SimpleGeneratorMetaTileEntity(gregtechId("rtg.lv"), RecipeMaps.RTG_RECIPES, Textures.RTG_OVERLAY,
                         1, GTUtility.genericGeneratorTankSizeFunction, 1) {
                     @Override
-                    public double getPollutionAmount() {
+                    public double getPollutionPerSecond() {
                         return 0;
                     }
                 });
@@ -405,7 +405,7 @@ public final class MachineRegistration {
                 new SimpleGeneratorMetaTileEntity(gregtechId("rtg.mv"), RecipeMaps.RTG_RECIPES, Textures.RTG_OVERLAY,
                         2, GTUtility.genericGeneratorTankSizeFunction, 1) {
                     @Override
-                    public double getPollutionAmount() {
+                    public double getPollutionPerSecond() {
                         return 0;
                     }
                 });
@@ -413,7 +413,7 @@ public final class MachineRegistration {
                 new SimpleGeneratorMetaTileEntity(gregtechId("rtg.hv"), RecipeMaps.RTG_RECIPES, Textures.RTG_OVERLAY,
                         3, GTUtility.genericGeneratorTankSizeFunction, 1) {
                     @Override
-                    public double getPollutionAmount() {
+                    public double getPollutionPerSecond() {
                         return 0;
                     }
                 });

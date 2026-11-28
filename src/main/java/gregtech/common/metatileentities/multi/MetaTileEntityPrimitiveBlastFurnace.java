@@ -205,7 +205,7 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
                 VanillaParticleEffects.PBF_SMOKE.runEffect(this);
             } else {
                 damageEntitiesAndBreakSnow();
-                pollution(this.getPollutionAmount(), this.getPollutionTicks());
+                pollution(this.getPollutionPerSecond());
             }
         }
     }
@@ -243,7 +243,7 @@ public class MetaTileEntityPrimitiveBlastFurnace extends RecipeMapPrimitiveMulti
     }
 
     @Override
-    public double getPollutionAmount() {
-        return 0.005;
+    public double getPollutionPerSecond() {
+        return 200.0D;
     }
 }

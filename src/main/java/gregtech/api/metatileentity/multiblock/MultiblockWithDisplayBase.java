@@ -98,6 +98,13 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
      * Hammer, 4=Wire Cutter, 5=Crowbar
      */
     protected byte maintenance_problems;
+
+    /**
+     * Flux contamination accumulated while the machine is exposed to a Thaumcraft rift.
+     * 0-100. Values at or above 75 lock the machine until it is cleaned.
+     */
+    protected float fluxContamination;
+
     // Used for tracking if this is the initial state of the machine, for maintenance hatches which automatically fix
     // initial issues.
     private boolean initialMaintenanceDone;
@@ -122,6 +129,40 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     @Override
     public void setMaintenance(byte maintenance) {
         this.maintenance_problems = maintenance;
+    }
+
+    public float getFluxContamination() {
+        return fluxContamination;
+    }
+
+    public void setFluxContamination(float fluxContamination) {
+        this.fluxContamination = Math.max(0.0F, Math.min(100.0F, fluxContamination));
+    }
+
+    public void addFluxContamination(float amount) {
+        setFluxContamination(this.fluxContamination + amount);
+    }
+
+    public boolean isFluxLocked() {
+        return this.fluxContamination >= 75.0F;
+    }
+
+    /**
+     * 咒波污染造成的能耗惩罚：0% 时 1.0，100% 时 2.0。
+     * 只在配方逻辑中乘到 EU/t 上，不改变配方本身。
+     */
+    public double getFluxContaminationPenalty() {
+        return 1.0D + Math.min(1.0D, this.fluxContamination / 100.0D);
+    }
+
+    /**
+     * 高污染区机器的产出损失：50% 以下不损失，100% 时损失 25%。
+     */
+    public double getFluxOutputLoss() {
+        if (this.fluxContamination <= 50.0F) {
+            return 0.0D;
+        }
+        return 0.25D * Math.min(1.0D, (this.fluxContamination - 50.0D) / 50.0D);
     }
 
     @Override
@@ -167,7 +208,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
     @Override
     public boolean isStructureObstructed() {
-        return hasMufflerMechanics() && !isMufflerReady();
+        return isFluxLocked() || (hasMufflerMechanics() && !isMufflerReady());
     }
 
     @Override
@@ -246,32 +287,54 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
     }
 
     /**
-     * @return whether the muffler hatch's front face is free
+     * @return whether every muffler hatch is present, has a free front face, and is not full
      */
     public boolean isMufflerReady(){
-        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).size() == 0)
+        if (!isStructureFormed() || !hasMufflerMechanics()) {
             return false;
-
-        return isStructureFormed() && hasMufflerMechanics() &&
-                getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isFrontFaceFree()
-                &&!getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isMufflerFull();
-
+        }
+        List<IMufflerHatch> hatches = getAbilities(MultiblockAbility.MUFFLER_HATCH);
+        if (hatches.isEmpty()) {
+            return false;
+        }
+        for (IMufflerHatch hatch : hatches) {
+            if (!hatch.isFrontFaceFree() || hatch.isMufflerFull()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean isMufflerFaceFree() {
-        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).isEmpty())
+        if (!isStructureFormed() || !hasMufflerMechanics()) {
             return false;
-
-        return isStructureFormed() && hasMufflerMechanics() &&
-                getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isFrontFaceFree();
+        }
+        List<IMufflerHatch> hatches = getAbilities(MultiblockAbility.MUFFLER_HATCH);
+        if (hatches.isEmpty()) {
+            return false;
+        }
+        for (IMufflerHatch hatch : hatches) {
+            if (!hatch.isFrontFaceFree()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     public boolean isMufflerEmpty() {
-        if (hasMufflerMechanics() && getAbilities(MultiblockAbility.MUFFLER_HATCH).isEmpty())
+        if (!isStructureFormed() || !hasMufflerMechanics()) {
             return false;
-
-        return isStructureFormed() && hasMufflerMechanics() &&
-                !getAbilities(MultiblockAbility.MUFFLER_HATCH).get(0).isMufflerFull();
+        }
+        List<IMufflerHatch> hatches = getAbilities(MultiblockAbility.MUFFLER_HATCH);
+        if (hatches.isEmpty()) {
+            return false;
+        }
+        for (IMufflerHatch hatch : hatches) {
+            if (hatch.isMufflerFull()) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @SideOnly(Side.CLIENT)
@@ -538,6 +601,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
         data.setByte("Maintenance", maintenance_problems);
         data.setBoolean("InitialMaintenance", initialMaintenanceDone);
         data.setInteger("ActiveTimer", timeActive);
+        data.setFloat("FluxContamination", fluxContamination);
         data.setBoolean(NBT_VOIDING_ITEMS, voidingItems);
         data.setBoolean(NBT_VOIDING_FLUIDS, voidingFluids);
         data.setInteger(NBT_VOIDING_MODE, voidingMode.ordinal());
@@ -550,6 +614,7 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
         maintenance_problems = data.getByte("Maintenance");
         initialMaintenanceDone = data.getBoolean("InitialMaintenance");
         timeActive = data.getInteger("ActiveTimer");
+        fluxContamination = data.getFloat("FluxContamination");
         if (data.hasKey(NBT_VOIDING_ITEMS)) {
             voidingItems = data.getBoolean(NBT_VOIDING_ITEMS);
         }
@@ -693,6 +758,13 @@ public abstract class MultiblockWithDisplayBase extends MultiblockControllerBase
      */
     protected void addDisplayText(List<ITextComponent> textList) {
         MultiblockDisplayText.builder(textList, isStructureFormed());
+        if (isStructureFormed() && fluxContamination > 0.0F) {
+            TextFormatting color = isFluxLocked() ? TextFormatting.RED : TextFormatting.GRAY;
+            textList.add(new TextComponentTranslation(
+                    "gregtech.multiblock.flux_contamination",
+                    String.format("%.1f", fluxContamination))
+                            .setStyle(new Style().setColor(color)));
+        }
         addMissingStructureAbilityText(textList);
     }
 

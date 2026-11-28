@@ -28,9 +28,12 @@ public class PollutionInfoProvider implements IProbeInfoProvider {
             if (te instanceof IGregTechTileEntity ignite) {
                 MetaTileEntity mte = ignite.getMetaTileEntity();
 
-                double amount = mte.getPollutionAmount();
-                int time = mte.getPollutionTicks();
-                if(amount!=0)iProbeInfo.text("{*gregtech.top.pollution*}" + " " + amount + "/" + time + "tick");
+                double amount = mte.getPollutionPerSecond();
+                if (amount != 0) {
+                    iProbeInfo.text("{*gregtech.top.pollution*}" + " " + String.format(java.util.Locale.ROOT,
+                            "%.2f", amount) + "/s (" + String.format(java.util.Locale.ROOT, "%.3f",
+                            amount / 400.0D) + " flux/s)");
+                }
             }
         }
     }

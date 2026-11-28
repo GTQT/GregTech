@@ -91,3 +91,4 @@ run/
 logs/
 
 libs/
+docs/*

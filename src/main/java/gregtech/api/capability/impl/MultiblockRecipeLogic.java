@@ -198,6 +198,33 @@ public class MultiblockRecipeLogic extends AbstractRecipeLogic {
         super.update();
     }
 
+    @Override
+    public double getEnergyEfficiency() {
+        double base = super.getEnergyEfficiency();
+        if (this.metaTileEntity instanceof MultiblockWithDisplayBase displayBase) {
+            return base * displayBase.getFluxContaminationPenalty();
+        }
+        return base;
+    }
+
+    @Override
+    protected void outputRecipeOutputs() {
+        if (this.metaTileEntity instanceof MultiblockWithDisplayBase) {
+            MultiblockWithDisplayBase controller = (MultiblockWithDisplayBase) this.metaTileEntity;
+            double loss = controller.getFluxOutputLoss();
+            if (loss > 0.0D) {
+                for (ItemStack stack : this.itemOutputs) {
+                    if (stack.isEmpty()) {
+                        continue;
+                    }
+                    int count = (int) Math.floor(stack.getCount() * (1.0D - loss));
+                    stack.setCount(Math.max(0, count));
+                }
+            }
+        }
+        super.outputRecipeOutputs();
+    }
+
     /**
      * 控制并行是否将电力需求乘以并行数。
      * {@link #overclockAndStartSlot}。

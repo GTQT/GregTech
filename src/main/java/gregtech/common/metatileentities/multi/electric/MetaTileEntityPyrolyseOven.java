@@ -173,6 +173,19 @@ public class MetaTileEntityPyrolyseOven extends RecipeMapMultiblockController {
     }
 
     @Override
+    public void update() {
+        super.update();
+        if (isActive() && !getWorld().isRemote) {
+            pollution(getPollutionPerSecond());
+        }
+    }
+
+    @Override
+    public double getPollutionPerSecond() {
+        return 300.0D;
+    }
+
+    @Override
     public boolean canBeDistinct() {
         return true;
     }

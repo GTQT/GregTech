@@ -77,6 +77,19 @@ public class MetaTileEntityImplosionCompressor extends RecipeMapMultiblockContro
     }
 
     @Override
+    public void update() {
+        super.update();
+        if (isActive() && !getWorld().isRemote) {
+            pollution(getPollutionPerSecond());
+        }
+    }
+
+    @Override
+    public double getPollutionPerSecond() {
+        return 10_000.0D;
+    }
+
+    @Override
     public boolean canBeDistinct() {
         return true;
     }

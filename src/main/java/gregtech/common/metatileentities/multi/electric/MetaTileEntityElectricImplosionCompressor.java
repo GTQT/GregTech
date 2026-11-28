@@ -85,6 +85,19 @@ public class MetaTileEntityElectricImplosionCompressor extends GCYMRecipeMapMult
     }
 
     @Override
+    public void update() {
+        super.update();
+        if (isActive() && !getWorld().isRemote) {
+            pollution(getPollutionPerSecond());
+        }
+    }
+
+    @Override
+    public double getPollutionPerSecond() {
+        return 10_000.0D;
+    }
+
+    @Override
     public ICubeRenderer getBaseTexture(IMultiblockPart iMultiblockPart) {
         return Textures.NAQUADAH_REINFORCED_CASING;
     }

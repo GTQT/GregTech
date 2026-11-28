@@ -119,17 +119,24 @@ public class MetaTileEntityGasHatch extends MetaTileEntityMultiblockPart impleme
         if (getWorld().isRemote && getController() instanceof MultiblockWithDisplayBase controller &&
                 controller.isActive()) {
             VanillaParticleEffects.mufflerEffect(this, controller.getMufflerParticle());
-            pollution(this.getPollutionAmount(), this.getPollutionTicks());
         }
     }
 
     @Override
-    public double getPollutionAmount() {
-        //没有控制器 排放0
-        //如果有控制器 控制器自己定义了污染那就按控制器的来，否则按照消声仓自己的来
-        if (getController() == null) return 0;
-        else return (1 - getTier() * 0.1) *
-                (getController().getPollutionAmount() == 0 ? getController().getPollutionAmount() : 0.001);
+    public double getPollutionPerSecond() {
+        if (getController() == null) {
+            return 0;
+        }
+        return getController().getPollutionPerSecond();
+    }
+
+    @Override
+    public double getPollutionReduction() {
+        int tier = getTier();
+        if (tier < 2) {
+            return 1.0D;
+        }
+        return Math.max(0.0D, 1.0D - 0.125D * (tier - 1));
     }
 
     @Override

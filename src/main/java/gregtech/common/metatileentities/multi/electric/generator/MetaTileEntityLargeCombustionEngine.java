@@ -387,8 +387,17 @@ public class MetaTileEntityLargeCombustionEngine extends FuelMultiblockControlle
     }
 
     @Override
-    public double getPollutionAmount() {
-        return isExtreme ? 0.025 : 0.02;
+    public void update() {
+        super.update();
+        if (isActive() && !getWorld().isRemote) {
+            pollution(getPollutionPerSecond());
+        }
+    }
+
+    @Override
+    public double getPollutionPerSecond() {
+        // 极端模式燃烧更剧烈，排放约为普通模式的 1.25 倍
+        return isExtreme ? 375.0D : 300.0D;
     }
 
     private static class LargeCombustionEngineWorkableHandler extends MultiblockFuelRecipeLogic {
