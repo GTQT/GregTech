@@ -683,6 +683,19 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         return fluidInputNBT(new GTRecipeFluidInput(fluid, amount), matcher, condition);
     }
 
+    public R notConsumableFluidNBT(@NotNull Fluid fluid, int amount, NBTMatcher matcher, NBTCondition condition) {
+        return fluidInputNBT(new GTRecipeFluidInput(fluid, amount).setNonConsumable(), matcher, condition);
+    }
+
+    public R notConsumableFluidNBT(@NotNull Fluid fluid, NBTMatcher matcher, NBTCondition condition) {
+        return notConsumableFluidNBT(fluid, 1, matcher, condition);
+    }
+
+    public R notConsumableFluidNBT(@NotNull FluidStack stack, NBTMatcher matcher, NBTCondition condition) {
+        FluidStack stripped = new FluidStack(stack.getFluid(), stack.amount);
+        return fluidInputNBT(new GTRecipeFluidInput(stripped).setNonConsumable(), matcher, condition);
+    }
+
     public R fluidInputs(FluidStack input) {
         if (input != null && input.amount > 0) {
             this.fluidInputs.add(new GTRecipeFluidInput(input));

@@ -79,7 +79,8 @@ public class RecipeIterator implements Iterator<Recipe> {
 
         while (index < ingredients.size()) {
             Recipe r = recipeMap.recurseIngredientTreeFindRecipe(
-                    ingredients, recipeMap.getLookup(), filteredCanHandle, index, 0, (1L << index));
+                    ingredients, recipeMap.getLookup(), filteredCanHandle, index, 0,
+                    recipeMap.initialSkipMask(ingredients, index));
             if (r != null) {
                 cachedNext = r;
                 return true;

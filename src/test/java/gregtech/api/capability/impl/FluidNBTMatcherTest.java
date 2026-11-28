@@ -6,7 +6,6 @@ import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeIterator;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.builders.SimpleRecipeBuilder;
-import gregtech.api.recipes.ingredients.GTRecipeFluidInput;
 import gregtech.api.recipes.ingredients.nbtmatch.NBTCondition;
 import gregtech.api.recipes.ingredients.nbtmatch.NBTMatcher;
 import gregtech.api.recipes.ingredients.nbtmatch.NBTTagType;
@@ -80,6 +79,30 @@ class FluidNBTMatcherTest {
 
         assertEquals(grade1Lv, grade1Lv.copy());
         assertNotEquals(anyHv, plainLv);
+        assertTrue(grade1Lv.hasInputFluid(taggedWater(1000, "grade", 1)));
+        assertFalse(grade1Lv.hasInputFluid(taggedWater(1000, "grade", 2)));
+        assertFalse(grade1Lv.hasInputFluid(null));
+
+        NBTCondition cleanCond = NBTCondition.create(NBTTagType.BOOLEAN, "clean", true);
+        Recipe dualAB = map.recipeBuilder()
+                .fluidInputNBT(FluidRegistry.WATER, 1000, NBTMatcher.ANY, NBTCondition.ANY)
+                .fluidInputNBT(FluidRegistry.WATER, 1000, NBTMatcher.RECURSIVE_EQUAL_TO, cleanCond)
+                .outputs(new ItemStack(Items.DIAMOND, 1))
+                .duration(4).EUt(16).build().getResult();
+        Recipe dualBA = map.recipeBuilder()
+                .fluidInputNBT(FluidRegistry.WATER, 1000, NBTMatcher.RECURSIVE_EQUAL_TO, cleanCond)
+                .fluidInputNBT(FluidRegistry.WATER, 1000, NBTMatcher.ANY, NBTCondition.ANY)
+                .outputs(new ItemStack(Items.DIAMOND, 1))
+                .duration(4).EUt(16).build().getResult();
+        assertEquals(dualAB, dualBA);
+        assertEquals(dualAB.hashCode(), dualBA.hashCode());
+
+        Recipe cleanPlusPlain = map.recipeBuilder()
+                .fluidInputNBT(FluidRegistry.WATER, 1000, NBTMatcher.RECURSIVE_EQUAL_TO, cleanCond)
+                .fluidInputs(new FluidStack(FluidRegistry.WATER, 1000))
+                .outputs(new ItemStack(Items.COAL, 1))
+                .duration(4).EUt(16).build().getResult();
+        assertTrue(cleanPlusPlain.hasInputFluid(new FluidStack(FluidRegistry.WATER, 1000)));
         assertSame(grade1Lv, map.findRecipe(32L, Collections.emptyList(),
                 Collections.singletonList(taggedWater(1000, "grade", 1))));
         assertNull(map.findRecipe(32L, Collections.emptyList(),
@@ -113,11 +136,24 @@ class FluidNBTMatcherTest {
                 .outputs(new ItemStack(Items.DIAMOND, 1))
                 .duration(4).EUt(16).build().getResult();
         Recipe ncRecipe = map.recipeBuilder()
-                .fluidInputNBT(new GTRecipeFluidInput(FluidRegistry.WATER, 1000).setNonConsumable(),
-                        NBTMatcher.RECURSIVE_EQUAL_TO, cleanCond)
+                .notConsumableFluidNBT(FluidRegistry.WATER, 1000, NBTMatcher.RECURSIVE_EQUAL_TO, cleanCond)
                 .fluidInputNBT(FluidRegistry.WATER, 1000, NBTMatcher.ANY, NBTCondition.ANY)
                 .outputs(new ItemStack(Items.EMERALD, 1))
                 .duration(4).EUt(16).build().getResult();
+        Recipe plainNcRecipe = map.recipeBuilder()
+                .notConsumable(FluidRegistry.WATER, 1000)
+                .fluidInputs(new FluidStack(FluidRegistry.WATER, 1000))
+                .outputs(new ItemStack(Items.COAL, 1))
+                .duration(4).EUt(16).build().getResult();
+
+        List<FluidStack> criticalPlain = new ArrayList<>(
+                Collections.singletonList(new FluidStack(FluidRegistry.WATER, 1000)));
+        assertFalse(plainNcRecipe.matches(true, Collections.emptyList(), criticalPlain));
+        assertEquals(1000, criticalPlain.get(0).amount);
+        List<FluidStack> sufficientPlain = new ArrayList<>(
+                Collections.singletonList(new FluidStack(FluidRegistry.WATER, 2000)));
+        assertTrue(plainNcRecipe.matches(true, Collections.emptyList(), sufficientPlain));
+        assertEquals(1000, sufficientPlain.get(0).amount);
 
         for (boolean cleanFirst : new boolean[] { true, false }) {
             List<FluidStack> tanks = new ArrayList<>(Arrays.asList(
@@ -174,6 +210,8 @@ class FluidNBTMatcherTest {
                 .outputs(new ItemStack(Items.DIAMOND, 1))
                 .duration(4).EUt(16).buildAndRegister();
 
+        assertNotNull(map.findRecipe(32L, Collections.emptyList(), Collections.singletonList(cleanWater(2000))));
+
         for (int mode = 0; mode < 3; mode++) {
             MultiblockRecipeLockAndInvalidationTest.TestController ctrl =
                     new MultiblockRecipeLockAndInvalidationTest.TestController(map);
@@ -204,10 +242,9 @@ class FluidNBTMatcherTest {
         }
 
         RecipeMap<SimpleRecipeBuilder> ncMap = new RecipeMap<>(
-                "test_fluid_nbt_nc_multi_map", new SimpleRecipeBuilder(), r -> null, 0, 2, 2, 2);
+                "test_fluid_nbt_nc_multi_map", new SimpleRecipeBuilder(), r -> null, 0, 2, 3, 2);
         ncMap.recipeBuilder()
-                .fluidInputNBT(new GTRecipeFluidInput(FluidRegistry.WATER, 1000).setNonConsumable(),
-                        NBTMatcher.RECURSIVE_EQUAL_TO, cleanCond)
+                .notConsumableFluidNBT(FluidRegistry.WATER, 1000, NBTMatcher.RECURSIVE_EQUAL_TO, cleanCond)
                 .fluidInputNBT(FluidRegistry.WATER, 1000, NBTMatcher.ANY, NBTCondition.ANY)
                 .outputs(new ItemStack(Items.EMERALD, 1))
                 .duration(4).EUt(16).buildAndRegister();
@@ -231,6 +268,39 @@ class FluidNBTMatcherTest {
             assertEquals(1000, cleanCatalyst.getFluidAmount());
             assertEquals(0, plainFeed.getFluidAmount());
             assertEquals(1, ncOut.getExportItems().getStackInSlot(0).getCount());
+        }
+
+        // Dual non-consumable catalysts + ANY consumable requiring 500 mB + 500 mB intermediate cross-tank split
+        RecipeMap<SimpleRecipeBuilder> splitNcMap = new RecipeMap<>(
+                "test_fluid_nbt_dual_nc_split_map", new SimpleRecipeBuilder(), r -> null, 0, 2, 3, 2);
+        splitNcMap.recipeBuilder()
+                .notConsumableFluidNBT(FluidRegistry.WATER, 1000, NBTMatcher.RECURSIVE_EQUAL_TO,
+                        NBTCondition.create(NBTTagType.INT, "grade", 1))
+                .notConsumableFluidNBT(taggedWater(1000, "grade", 99), NBTMatcher.RECURSIVE_EQUAL_TO,
+                        NBTCondition.create(NBTTagType.INT, "grade", 2))
+                .fluidInputNBT(FluidRegistry.WATER, 1000, NBTMatcher.ANY, NBTCondition.ANY)
+                .outputs(new ItemStack(Items.DIAMOND, 1))
+                .duration(4).EUt(16).buildAndRegister();
+        for (int threads : new int[] { 1, 2 }) {
+            MultiblockRecipeLockAndInvalidationTest.TestController splitCtrl =
+                    new MultiblockRecipeLockAndInvalidationTest.TestController(splitNcMap);
+            splitCtrl.getTestLogic().setAllowOverclocking(false);
+            splitCtrl.getTestLogic().setThreadLimit(threads);
+            FluidTank grade1Tank = new FluidTank(taggedWater(1500, "grade", 1), 2000);
+            FluidTank grade2Tank = new FluidTank(taggedWater(1500, "grade", 2), 2000);
+            MetaTileEntityItemBus splitOut = new MetaTileEntityItemBus(
+                    new ResourceLocation("gregtech", "test_fnbt_split_out_" + threads), 1, true);
+            splitCtrl.addPart(new MultiblockInputRollbackTest.TestPaintableFluidHatchPart(
+                    "test_fnbt_split_g1_" + threads, grade1Tank, null));
+            splitCtrl.addPart(new MultiblockInputRollbackTest.TestPaintableFluidHatchPart(
+                    "test_fnbt_split_g2_" + threads, grade2Tank, null));
+            splitCtrl.addPart(splitOut);
+            for (int t = 0; t < 8; t++) {
+                splitCtrl.getTestLogic().updateWorkable();
+            }
+            assertEquals(1000, grade1Tank.getFluidAmount());
+            assertEquals(1000, grade2Tank.getFluidAmount());
+            assertEquals(1, splitOut.getExportItems().getStackInSlot(0).getCount());
         }
     }
 

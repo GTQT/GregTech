@@ -631,13 +631,26 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
      * @param canHandle   if the found recipe is valid
      * @return a recipe
      */
+    long initialSkipMask(@NotNull List<List<AbstractMapIngredient>> ingredients, int index) {
+        return shouldSkipIngredientIndex(ingredients, index) ? (1L << index) : 0L;
+    }
+
+    private boolean shouldSkipIngredientIndex(@NotNull List<List<AbstractMapIngredient>> ingredients, int index) {
+        if (!hasNBTMatcherFluidInputs) {
+            return true;
+        }
+        List<AbstractMapIngredient> slot = ingredients.get(index);
+        return slot.isEmpty() || !(slot.get(0) instanceof MapFluidIngredient);
+    }
+
     @Nullable
     private Recipe recurseIngredientTreeFindRecipe(@NotNull List<List<AbstractMapIngredient>> ingredients,
                                                    @NotNull Branch branchRoot, @NotNull Predicate<Recipe> canHandle) {
         // Try each ingredient as a starting point, adding it to the skip-list.
         // The skip-list is a packed long, where each 1 bit represents an index to skip
         for (int i = 0; i < ingredients.size(); i++) {
-            Recipe r = recurseIngredientTreeFindRecipe(ingredients, branchRoot, canHandle, i, 0, (1L << i));
+            Recipe r = recurseIngredientTreeFindRecipe(ingredients, branchRoot, canHandle, i, 0,
+                    initialSkipMask(ingredients, i));
             if (r != null) {
                 return r;
             }
@@ -661,7 +674,7 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
                                            @NotNull Branch branchMap, @NotNull Predicate<Recipe> canHandle,
                                            int index, int count, long skip) {
         // exhausted all the ingredients, and didn't find anything
-        if (count == ingredients.size()) return null;
+        if (!hasNBTMatcherFluidInputs && count == ingredients.size()) return null;
 
         // Iterate over current level of nodes.
         for (AbstractMapIngredient obj : ingredients.get(index)) {
@@ -728,21 +741,19 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
                                                 long skip) {
         // We loop around ingredients.size() if we reach the end.
         // only end when all ingredients are exhausted, or a recipe is found
-        int i = (currentIndex + 1) % ingredients.size();
-        while (i != currentIndex) {
+        int size = ingredients.size();
+        for (int step = 0; step < size; step++) {
+            int i = (currentIndex + 1 + step) % size;
             // Have we already used this ingredient? If so, skip this one.
-            if (((skip & (1L << i)) == 0)) {
+            if ((skip & (1L << i)) == 0) {
                 // Recursive call
-                // Increase the count, so the recursion can terminate if needed (ingredients is exhausted)
-                // Append the current index to the skip list
-                Recipe found = recurseIngredientTreeFindRecipe(ingredients, map, canHandle, i, count + 1,
-                        skip | (1L << i));
+                // Append the current index to the skip list when it cannot satisfy multiple tree edges
+                long nextSkip = shouldSkipIngredientIndex(ingredients, i) ? (skip | (1L << i)) : skip;
+                Recipe found = recurseIngredientTreeFindRecipe(ingredients, map, canHandle, i, count + 1, nextSkip);
                 if (found != null) {
                     return found;
                 }
             }
-            // increment the index if the current index is skipped, or the recipe is not found
-            i = (i + 1) % ingredients.size();
         }
         return null;
     }

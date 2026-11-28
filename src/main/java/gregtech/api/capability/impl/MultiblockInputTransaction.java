@@ -33,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
@@ -490,18 +491,23 @@ final class MultiblockInputTransaction {
         // 1. Fast Path: single greedy pass in constrained ingredient order
         long[][] fastItems = new long[mItems][slotCount];
         long[][] fastFluids = new long[mFluids][tankCount];
+        int[] fastProbedIPlan = null;
+        int[] fastProbedFPlan = null;
         if (tryGreedyItems(itemInputs, parallelCount, slotSnapshots, extractableCounts, itemOrder, fastItems) &&
                 tryGreedyFluids(fluidInputs, parallelCount, tankSnapshots, drainableAmounts, fluidOrder, fastFluids)) {
             int[] iPlan = sumMatrixColumns(fastItems, mItems, slotCount);
             int[] fPlan = sumMatrixColumns(fastFluids, mFluids, tankCount);
             if (canSimulateItemPlan(importInventory, iPlan, slotSnapshots) &&
                     canSimulateFluidPlan(tanks, fPlan, tankSnapshots) &&
-                    preservesNonConsumables(recipe, importInventory, iPlan, tanks, fPlan) &&
-                    invokeHolderCheckWithOverlay(recipe, false, importInventory, iPlan, slotSnapshots,
-                            tanks, fPlan, tankSnapshots)) {
-                this.resumeGroupLeafOffset = 0;
-                this.resumeLeafOffset = 0;
-                return new JointPlan(fastItems, iPlan, fastFluids, fPlan);
+                    preservesNonConsumables(recipe, importInventory, iPlan, tanks, fPlan)) {
+                if (invokeHolderCheckWithOverlay(recipe, false, importInventory, iPlan, slotSnapshots,
+                        tanks, fPlan, tankSnapshots)) {
+                    this.resumeGroupLeafOffset = 0;
+                    this.resumeLeafOffset = 0;
+                    return new JointPlan(fastItems, iPlan, fastFluids, fPlan);
+                }
+                fastProbedIPlan = iPlan;
+                fastProbedFPlan = fPlan;
             }
         } else if ((mItems <= 1 && mFluids <= 1) ||
                 !hasSufficientIndividualItemSupply(itemInputs, parallelCount, slotSnapshots, extractableCounts) ||
@@ -509,6 +515,32 @@ final class MultiblockInputTransaction {
             this.resumeGroupLeafOffset = 0;
             this.resumeLeafOffset = 0;
             return null;
+        }
+
+        // 1b. Exact Joint Bipartite Allocation (consumables + non-consumables, handles intermediate multi-tank/slot splits)
+        long[][] exactItems = solveExactBipartiteItems(
+                recipe, itemInputs, parallelCount, importInventory, slotSnapshots, extractableCounts);
+        long[][] exactFluids = exactItems == null ? null : solveExactBipartiteFluids(
+                recipe, fluidInputs, parallelCount, tanks, tankSnapshots, drainableAmounts);
+        if (exactItems == null || exactFluids == null) {
+            this.resumeGroupLeafOffset = 0;
+            this.resumeLeafOffset = 0;
+            return null;
+        }
+        int[] exactIPlan = sumMatrixColumns(exactItems, mItems, slotCount);
+        int[] exactFPlan = sumMatrixColumns(exactFluids, mFluids, tankCount);
+        boolean alreadyProbedSamePlan = fastProbedIPlan != null &&
+                Arrays.equals(exactIPlan, fastProbedIPlan) &&
+                Arrays.equals(exactFPlan, fastProbedFPlan);
+        if (!alreadyProbedSamePlan &&
+                canSimulateItemPlan(importInventory, exactIPlan, slotSnapshots) &&
+                canSimulateFluidPlan(tanks, exactFPlan, tankSnapshots) &&
+                preservesNonConsumables(recipe, importInventory, exactIPlan, tanks, exactFPlan) &&
+                invokeHolderCheckWithOverlay(recipe, false, importInventory, exactIPlan, slotSnapshots,
+                        tanks, exactFPlan, tankSnapshots)) {
+            this.resumeGroupLeafOffset = 0;
+            this.resumeLeafOffset = 0;
+            return new JointPlan(exactItems, exactIPlan, exactFluids, exactFPlan);
         }
 
         long sig = computePlanSignature(recipe, parallelCount, slotSnapshots, extractableCounts,
@@ -590,6 +622,152 @@ final class MultiblockInputTransaction {
             }
         }
         return true;
+    }
+
+    @Nullable
+    private static long[][] solveExactBipartiteItems(@NotNull Recipe recipe,
+                                                     @NotNull List<GTRecipeInput> consumableInputs,
+                                                     int parallelCount,
+                                                     @NotNull IItemHandlerModifiable importInventory,
+                                                     @NotNull ItemStack[] slotSnapshots,
+                                                     @NotNull int[] extractableCounts) {
+        int mCons = consumableInputs.size();
+        int slotCount = slotSnapshots.length;
+        List<GTRecipeInput> ncItems = null;
+        for (GTRecipeInput in : recipe.getInputs()) {
+            if (in.isNonConsumable() && in.getAmount() > 0) {
+                if (ncItems == null) ncItems = new ArrayList<>();
+                ncItems.add(in);
+            }
+        }
+        int mNc = ncItems == null ? 0 : ncItems.size();
+        if (mCons == 0 && mNc == 0) {
+            return new long[0][slotCount];
+        }
+        if (slotCount == 0) {
+            return null;
+        }
+
+        int totalRows = mCons + mNc;
+        int cols = mNc > 0 ? slotCount * 2 : slotCount;
+        long[] demands = new long[totalRows];
+        long[] supplies = new long[cols];
+        boolean[][] compat = new boolean[totalRows][cols];
+
+        for (int j = 0; j < slotCount; j++) {
+            supplies[j] = Math.max(0, extractableCounts[j]);
+            if (mNc > 0) {
+                ItemStack raw = importInventory.getStackInSlot(j);
+                int rawCount = raw.isEmpty() ? 0 : raw.getCount();
+                supplies[slotCount + j] = Math.max(0, rawCount - extractableCounts[j]);
+            }
+        }
+        for (int k = 0; k < mCons; k++) {
+            GTRecipeInput req = consumableInputs.get(k);
+            demands[k] = (long) Math.max(0, req.getAmount()) * parallelCount;
+            for (int j = 0; j < slotCount; j++) {
+                if (supplies[j] > 0L && !slotSnapshots[j].isEmpty()) {
+                    compat[k][j] = req.acceptsStack(slotSnapshots[j]);
+                }
+            }
+        }
+        for (int i = 0; i < mNc; i++) {
+            GTRecipeInput req = ncItems.get(i);
+            int row = mCons + i;
+            demands[row] = req.getAmount();
+            for (int j = 0; j < slotCount; j++) {
+                if (supplies[j] > 0L && !slotSnapshots[j].isEmpty()) {
+                    compat[row][j] = req.acceptsStack(slotSnapshots[j]);
+                }
+                if (supplies[slotCount + j] > 0L) {
+                    ItemStack raw = importInventory.getStackInSlot(j);
+                    compat[row][slotCount + j] = !raw.isEmpty() && req.acceptsStack(raw);
+                }
+            }
+        }
+
+        long[][] flow = FluidAllocationHelper.solveBipartiteAllocation(demands, supplies, compat);
+        if (flow == null) {
+            return null;
+        }
+        long[][] consMatrix = new long[mCons][slotCount];
+        for (int k = 0; k < mCons; k++) {
+            System.arraycopy(flow[k], 0, consMatrix[k], 0, slotCount);
+        }
+        return consMatrix;
+    }
+
+    @Nullable
+    private static long[][] solveExactBipartiteFluids(@NotNull Recipe recipe,
+                                                      @NotNull List<GTRecipeInput> consumableInputs,
+                                                      int parallelCount,
+                                                      @NotNull List<IMultipleTankHandler.ITankEntry> tanks,
+                                                      @NotNull FluidStack[] tankSnapshots,
+                                                      @NotNull int[] drainableAmounts) {
+        int mCons = consumableInputs.size();
+        int tankCount = tankSnapshots.length;
+        List<GTRecipeInput> ncFluids = null;
+        for (GTRecipeInput in : recipe.getFluidInputs()) {
+            if (in.isNonConsumable() && in.getAmount() > 0) {
+                if (ncFluids == null) ncFluids = new ArrayList<>();
+                ncFluids.add(in);
+            }
+        }
+        int mNc = ncFluids == null ? 0 : ncFluids.size();
+        if (mCons == 0 && mNc == 0) {
+            return new long[0][tankCount];
+        }
+        if (tankCount == 0) {
+            return null;
+        }
+
+        int totalRows = mCons + mNc;
+        int cols = mNc > 0 ? tankCount * 2 : tankCount;
+        long[] demands = new long[totalRows];
+        long[] supplies = new long[cols];
+        boolean[][] compat = new boolean[totalRows][cols];
+
+        for (int j = 0; j < tankCount; j++) {
+            supplies[j] = Math.max(0, drainableAmounts[j]);
+            if (mNc > 0) {
+                FluidStack raw = tanks.get(j).getFluid();
+                int rawAmt = raw == null ? 0 : Math.max(0, raw.amount);
+                supplies[tankCount + j] = Math.max(0, rawAmt - drainableAmounts[j]);
+            }
+        }
+        for (int k = 0; k < mCons; k++) {
+            GTRecipeInput req = consumableInputs.get(k);
+            demands[k] = (long) Math.max(0, req.getAmount()) * parallelCount;
+            for (int j = 0; j < tankCount; j++) {
+                if (supplies[j] > 0L && tankSnapshots[j] != null) {
+                    compat[k][j] = req.acceptsFluid(tankSnapshots[j]);
+                }
+            }
+        }
+        for (int i = 0; i < mNc; i++) {
+            GTRecipeInput req = ncFluids.get(i);
+            int row = mCons + i;
+            demands[row] = req.getAmount();
+            for (int j = 0; j < tankCount; j++) {
+                if (supplies[j] > 0L && tankSnapshots[j] != null) {
+                    compat[row][j] = req.acceptsFluid(tankSnapshots[j]);
+                }
+                if (supplies[tankCount + j] > 0L) {
+                    FluidStack raw = tanks.get(j).getFluid();
+                    compat[row][tankCount + j] = raw != null && req.acceptsFluid(raw);
+                }
+            }
+        }
+
+        long[][] flow = FluidAllocationHelper.solveBipartiteAllocation(demands, supplies, compat);
+        if (flow == null) {
+            return null;
+        }
+        long[][] consMatrix = new long[mCons][tankCount];
+        for (int k = 0; k < mCons; k++) {
+            System.arraycopy(flow[k], 0, consMatrix[k], 0, tankCount);
+        }
+        return consMatrix;
     }
 
     private static boolean hasSufficientIndividualFluidSupply(@NotNull List<GTRecipeInput> inputs,
