@@ -653,6 +653,49 @@ public class RecipeBuilder<R extends RecipeBuilder<R>> {
         return (R) this;
     }
 
+    public R fluidInputNBT(@NotNull GTRecipeInput fluidIngredient, NBTMatcher matcher, NBTCondition condition) {
+        if (fluidIngredient.getAmount() <= 0) {
+            GTLog.logger.error("Fluid Input count cannot be less than 1. Actual: {}.",
+                    fluidIngredient.getAmount(), new Throwable());
+            recipeStatus = EnumValidationResult.INVALID;
+            return (R) this;
+        }
+        if (matcher == null) {
+            GTLog.logger.error("NBTMatcher must not be null", new Throwable());
+            recipeStatus = EnumValidationResult.INVALID;
+            return (R) this;
+        }
+        if (condition == null) {
+            GTLog.logger.error("NBTCondition must not be null", new Throwable());
+            recipeStatus = EnumValidationResult.INVALID;
+            return (R) this;
+        }
+        this.fluidInputs.add(fluidIngredient.setNBTMatchingCondition(matcher, condition));
+        return (R) this;
+    }
+
+    public R fluidInputNBT(@NotNull FluidStack stack, NBTMatcher matcher, NBTCondition condition) {
+        FluidStack stripped = new FluidStack(stack.getFluid(), stack.amount);
+        return fluidInputNBT(new GTRecipeFluidInput(stripped), matcher, condition);
+    }
+
+    public R fluidInputNBT(@NotNull Fluid fluid, int amount, NBTMatcher matcher, NBTCondition condition) {
+        return fluidInputNBT(new GTRecipeFluidInput(fluid, amount), matcher, condition);
+    }
+
+    public R notConsumableFluidNBT(@NotNull Fluid fluid, int amount, NBTMatcher matcher, NBTCondition condition) {
+        return fluidInputNBT(new GTRecipeFluidInput(fluid, amount).setNonConsumable(), matcher, condition);
+    }
+
+    public R notConsumableFluidNBT(@NotNull Fluid fluid, NBTMatcher matcher, NBTCondition condition) {
+        return notConsumableFluidNBT(fluid, 1, matcher, condition);
+    }
+
+    public R notConsumableFluidNBT(@NotNull FluidStack stack, NBTMatcher matcher, NBTCondition condition) {
+        FluidStack stripped = new FluidStack(stack.getFluid(), stack.amount);
+        return fluidInputNBT(new GTRecipeFluidInput(stripped).setNonConsumable(), matcher, condition);
+    }
+
     public R fluidInputs(FluidStack input) {
         if (input != null && input.amount > 0) {
             this.fluidInputs.add(new GTRecipeFluidInput(input));

@@ -38,6 +38,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Class that represent machine recipe.
@@ -333,10 +334,15 @@ public class Recipe {
     }
 
     private Pair<Boolean, int[]> matchesFluid(List<FluidStack> fluidInputs) {
+        List<GTRecipeInput> gtRecipeInputs = this.fluidInputs;
+        if (gtRecipeInputs.size() > 1 &&
+                (hasAnyFluidNBTMatcher(gtRecipeInputs) || hasAnyNonConsumable(gtRecipeInputs))) {
+            return matchesFluidExact(fluidInputs, gtRecipeInputs);
+        }
+
         int[] fluidAmountInTank = new int[fluidInputs.size()];
         int indexed = 0;
 
-        List<GTRecipeInput> gtRecipeInputs = this.fluidInputs;
         for (GTRecipeInput fluid : gtRecipeInputs) {
             int fluidAmount = fluid.getAmount();
             for (int j = 0; j < fluidInputs.size(); j++) {
@@ -361,6 +367,66 @@ public class Recipe {
         System.arraycopy(fluidAmountInTank, 0, retfluidAmountInTank, 0, indexed);
 
         return Pair.of(true, retfluidAmountInTank);
+    }
+
+    private static boolean hasAnyFluidNBTMatcher(@NotNull List<GTRecipeInput> inputs) {
+        for (GTRecipeInput input : inputs) {
+            if (input.hasNBTMatchingCondition()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasAnyNonConsumable(@NotNull List<GTRecipeInput> inputs) {
+        for (GTRecipeInput input : inputs) {
+            if (input.isNonConsumable()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static Pair<Boolean, int[]> matchesFluidExact(@NotNull List<FluidStack> tankFluids,
+                                                          @NotNull List<GTRecipeInput> recipeFluids) {
+        int n = tankFluids.size();
+        int[] initial = new int[n];
+        long[] supplies = new long[n];
+        for (int j = 0; j < n; j++) {
+            FluidStack f = tankFluids.get(j);
+            int amt = (f == null || f.amount <= 0) ? 0 : f.amount;
+            initial[j] = amt;
+            supplies[j] = amt;
+        }
+        if (n == 0) {
+            return Pair.of(false, initial);
+        }
+
+        int m = recipeFluids.size();
+        long[] allDemands = new long[m];
+        boolean[][] allCompat = new boolean[m][n];
+        for (int i = 0; i < m; i++) {
+            GTRecipeInput req = recipeFluids.get(i);
+            allDemands[i] = Math.max(0, req.getAmount());
+            for (int j = 0; j < n; j++) {
+                FluidStack f = tankFluids.get(j);
+                allCompat[i][j] = f != null && f.amount > 0 && req.acceptsFluid(f);
+            }
+        }
+
+        long[][] fullFlow = FluidAllocationHelper.solveBipartiteAllocation(allDemands, supplies, allCompat);
+        if (fullFlow != null) {
+            int[] remaining = initial.clone();
+            for (int i = 0; i < m; i++) {
+                if (recipeFluids.get(i).isNonConsumable()) continue;
+                for (int j = 0; j < n; j++) {
+                    remaining[j] -= (int) fullFlow[i][j];
+                }
+            }
+            return Pair.of(true, remaining);
+        }
+
+        return Pair.of(false, initial);
     }
 
     @Override
@@ -415,12 +481,15 @@ public class Recipe {
     public static int hashFluidList(@NotNull List<GTRecipeInput> fluids) {
         int hash = 0;
         for (GTRecipeInput fluidInput : fluids) {
-            hash = 31 * hash + fluidInput.hashCode();
+            hash += fluidInput.hashCode();
         }
         return hash;
     }
 
     private boolean hasSameFluidInputs(Recipe otherRecipe) {
+        if (hasAnyFluidNBTMatcher(this.fluidInputs) || hasAnyFluidNBTMatcher(otherRecipe.fluidInputs)) {
+            return hasSameFluidInputMultiset(this.fluidInputs, otherRecipe.fluidInputs);
+        }
         List<FluidStack> otherFluidList = new ObjectArrayList<>(otherRecipe.fluidInputs.size());
         for (GTRecipeInput otherInputs : otherRecipe.fluidInputs) {
             FluidStack fluidStack = otherInputs.getInputFluidStack();
@@ -436,6 +505,30 @@ public class Recipe {
             thisFluidsList.add(fluidStack);
         }
         return otherRecipe.matchesFluid(thisFluidsList).getLeft();
+    }
+
+    private static boolean hasSameFluidInputMultiset(@NotNull List<GTRecipeInput> a,
+                                                     @NotNull List<GTRecipeInput> b) {
+        int size = a.size();
+        if (size != b.size()) {
+            return false;
+        }
+        boolean[] matched = new boolean[size];
+        for (int i = 0; i < size; i++) {
+            GTRecipeInput target = a.get(i);
+            boolean found = false;
+            for (int j = 0; j < size; j++) {
+                if (!matched[j] && Objects.equals(target, b.get(j))) {
+                    matched[j] = true;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -586,11 +679,13 @@ public class Recipe {
         return chancedFluidOutputs;
     }
 
-    public boolean hasInputFluid(FluidStack fluid) {
+    public boolean hasInputFluid(@Nullable FluidStack fluid) {
+        if (fluid == null) {
+            return false;
+        }
         for (GTRecipeInput fluidInput : fluidInputs) {
-            FluidStack fluidStack = fluidInput.getInputFluidStack();
-            if (fluid.getFluid() == fluidStack.getFluid()) {
-                return fluidStack.isFluidEqual(fluid);
+            if (fluidInput.acceptsFluid(fluid)) {
+                return true;
             }
         }
         return false;

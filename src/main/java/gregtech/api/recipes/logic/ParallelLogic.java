@@ -2,7 +2,9 @@ package gregtech.api.recipes.logic;
 
 import gregtech.api.capability.IMultipleTankHandler;
 import gregtech.api.metatileentity.IVoidable;
+import gregtech.api.recipes.FluidAllocationHelper;
 import gregtech.api.recipes.Recipe;
+import gregtech.api.recipes.RecipeIterator;
 import gregtech.api.recipes.RecipeBuilder;
 import gregtech.api.recipes.RecipeMap;
 import gregtech.api.recipes.ingredients.GTRecipeInput;
@@ -378,10 +380,33 @@ public abstract class ParallelLogic {
         return minMultiplier;
     }
 
+    private static final class MergedFluidDemand {
+
+        final GTRecipeInput input;
+        long amount;
+
+        MergedFluidDemand(@NotNull GTRecipeInput input, long amount) {
+            this.input = input;
+            this.amount = amount;
+        }
+    }
+
+    private static void mergeFluidDemand(@NotNull List<MergedFluidDemand> list, @NotNull GTRecipeInput input) {
+        int amt = input.getAmount();
+        if (amt <= 0) return;
+        for (MergedFluidDemand existing : list) {
+            if (existing.input.equalIgnoreAmount(input)) {
+                existing.amount += amt;
+                return;
+            }
+        }
+        list.add(new MergedFluidDemand(input, amt));
+    }
+
     /**
      * Finds the maximum number of a specific recipe that can be performed based upon the fluids in the fluid inputs
      *
-     * @param countFluid     a {@link Set} of {@link FluidStack}s that is the result of calling
+     * @param countFluid     a {@link Map} of {@link FluidStack}s that is the result of calling
      *                       {@link GTHashMaps#fromFluidHandler(IFluidHandler)}
      * @param recipe         The {@link Recipe} for which to find the maximum that can be run simultaneously
      * @param parallelAmount The limit on the amount of recipes that can be performed at one time
@@ -389,82 +414,145 @@ public abstract class ParallelLogic {
      */
     protected static int getMaxRatioFluid(@NotNull Object2IntMap<FluidStack> countFluid, @NotNull Recipe recipe,
                                           int parallelAmount) {
-        int minMultiplier = Integer.MAX_VALUE;
-        // map the recipe input fluids to account for duplicated fluids,
-        // so their sum is counted against the total of fluids available in the input
-        Object2IntMap<FluidStack> fluidCountMap = GTHashMaps.createFluidStackMap(true);
-        Object2IntMap<FluidStack> notConsumableMap = GTHashMaps.createFluidStackMap(true);
+        if (parallelAmount <= 0) {
+            return 0;
+        }
+        List<MergedFluidDemand> nonConsumables = new ArrayList<>();
+        List<MergedFluidDemand> consumables = new ArrayList<>();
         for (GTRecipeInput fluidInput : recipe.getFluidInputs()) {
-            int fluidAmount = fluidInput.getAmount();
             if (fluidInput.isNonConsumable()) {
-                notConsumableMap.merge(fluidInput.getInputFluidStack(), fluidAmount, Integer::sum);
+                mergeFluidDemand(nonConsumables, fluidInput);
             } else {
-                fluidCountMap.merge(fluidInput.getInputFluidStack(), fluidAmount, Integer::sum);
+                mergeFluidDemand(consumables, fluidInput);
+            }
+        }
+        if (nonConsumables.isEmpty() && consumables.isEmpty()) {
+            return Integer.MAX_VALUE;
+        }
+
+        int bucketCount = 0;
+        for (Object2IntMap.Entry<FluidStack> e : countFluid.object2IntEntrySet()) {
+            if (e.getKey() != null && e.getIntValue() > 0) {
+                bucketCount++;
+            }
+        }
+        if (bucketCount == 0) {
+            return 0;
+        }
+
+        FluidStack[] stacks = new FluidStack[bucketCount];
+        long[] supplies = new long[bucketCount];
+        int idx = 0;
+        for (Object2IntMap.Entry<FluidStack> e : countFluid.object2IntEntrySet()) {
+            if (e.getKey() != null && e.getIntValue() > 0) {
+                stacks[idx] = e.getKey();
+                supplies[idx] = e.getIntValue();
+                idx++;
             }
         }
 
-        FluidStackHashStrategy fluidStrategy = FluidStackHashStrategy.comparingAllButAmount();
+        int ncCount = nonConsumables.size();
+        int cCount = consumables.size();
+        int totalRows = ncCount + cCount;
+        boolean[][] allCompat = new boolean[totalRows][bucketCount];
+        int[] bucketUsers = new int[bucketCount];
+        boolean hasOverlap = false;
+        long totalNcDemand = 0L;
 
-        // Iterate through the recipe inputs, excluding the not consumable fluids from the fluid inventory map
-        for (FluidStack notConsumableFluid : notConsumableMap.keySet()) {
-            int needed = notConsumableMap.getInt(notConsumableFluid);
-            int available = 0;
-            // For every fluid gathered from the fluid inputs.
-            for (FluidStack inputFluid : countFluid.keySet()) {
-                // Strip the Non-consumable tags here, as FluidKey compares the tags, which causes finding matching
-                // fluids
-                // in the input tanks to fail, because there is nothing in those hatches with a non-consumable tag
-                if (fluidStrategy.equals(notConsumableFluid, inputFluid)) {
-                    available = countFluid.getInt(inputFluid);
-                    if (available > needed) {
-                        countFluid.replace(inputFluid, available - needed);
-                        needed -= available;
-                        break;
-                    } else {
-                        countFluid.replace(inputFluid, 0);
-                        notConsumableMap.replace(notConsumableFluid, needed - available);
-                        needed -= available;
+        for (int i = 0; i < ncCount; i++) {
+            MergedFluidDemand nc = nonConsumables.get(i);
+            totalNcDemand += nc.amount;
+            long avail = 0L;
+            for (int j = 0; j < bucketCount; j++) {
+                if (nc.input.acceptsFluid(stacks[j])) {
+                    allCompat[i][j] = true;
+                    avail += supplies[j];
+                    if (++bucketUsers[j] > 1) {
+                        hasOverlap = true;
                     }
                 }
             }
-            // We need to check >= available here because of Non-Consumable inputs with stack size. If there is a NC
-            // input
-            // with size 1000, and only 500 in the input, needed will be equal to available, but this situation should
-            // still fail
-            // as not all inputs are present
-            if (needed >= available) {
+            if (avail < nc.amount) {
                 return 0;
             }
         }
 
-        // Return the maximum parallel limit here if there are only non-consumed inputs, which are all found in the
-        // input bus
-        // At this point, we would have already returned 0 if we were missing any non-consumable inputs, so we can omit
-        // that check
-        if (fluidCountMap.isEmpty() && !notConsumableMap.isEmpty()) {
-            return parallelAmount;
+        if (cCount == 0) {
+            if (!hasOverlap) {
+                return parallelAmount;
+            }
+            long[] ncDemands = new long[ncCount];
+            for (int i = 0; i < ncCount; i++) {
+                ncDemands[i] = nonConsumables.get(i).amount;
+            }
+            return FluidAllocationHelper.solveBipartiteAllocation(ncDemands, supplies, allCompat) != null ?
+                    parallelAmount : 0;
         }
 
-        // Iterate through the fluid inputs in the recipe
-        for (FluidStack stack : fluidCountMap.keySet()) {
-            int needed = fluidCountMap.getInt(stack);
-            int available = 0;
-            // For every fluid gathered from the fluid inputs.
-            for (FluidStack inputFluid : countFluid.keySet()) {
-                if (fluidStrategy.equals(stack, inputFluid)) {
-                    available += countFluid.getInt(inputFluid);
+        int hi = parallelAmount;
+        long totalUnitDemand = 0L;
+        for (int i = 0; i < cCount; i++) {
+            MergedFluidDemand c = consumables.get(i);
+            totalUnitDemand += c.amount;
+            int row = ncCount + i;
+            long avail = 0L;
+            for (int j = 0; j < bucketCount; j++) {
+                if (c.input.acceptsFluid(stacks[j])) {
+                    allCompat[row][j] = true;
+                    avail += supplies[j];
+                    if (++bucketUsers[j] > 1) {
+                        hasOverlap = true;
+                    }
                 }
             }
-            if (available >= needed) {
-                int ratio = Math.min(parallelAmount, available / needed);
-                if (ratio < minMultiplier) {
-                    minMultiplier = ratio;
-                }
+            long ratio = avail / c.amount;
+            if (ratio <= 0L) {
+                return 0;
+            }
+            if (ratio < hi) {
+                hi = (int) ratio;
+            }
+        }
+
+        if (!hasOverlap) {
+            return hi;
+        }
+
+        // Tighten upper bound by aggregate pool over shared buckets and binary-search exact max-flow multiplier
+        long totalMatchedSupply = 0L;
+        for (int j = 0; j < bucketCount; j++) {
+            if (bucketUsers[j] > 0) {
+                totalMatchedSupply += supplies[j];
+            }
+        }
+        if (totalMatchedSupply < totalNcDemand + totalUnitDemand) {
+            return 0;
+        }
+        if (totalUnitDemand > 0L) {
+            long aggCap = (totalMatchedSupply - totalNcDemand) / totalUnitDemand;
+            if (aggCap <= 0L) return 0;
+            if (aggCap < hi) hi = (int) aggCap;
+        }
+
+        int best = 0;
+        int lo = 1;
+        long[] combinedDemands = new long[totalRows];
+        for (int i = 0; i < ncCount; i++) {
+            combinedDemands[i] = nonConsumables.get(i).amount;
+        }
+        while (lo <= hi) {
+            int mid = lo + (hi - lo) / 2;
+            for (int i = 0; i < cCount; i++) {
+                combinedDemands[ncCount + i] = consumables.get(i).amount * mid;
+            }
+            if (FluidAllocationHelper.solveBipartiteAllocation(combinedDemands, supplies, allCompat) != null) {
+                best = mid;
+                lo = mid + 1;
             } else {
-                return 0;
+                hi = mid - 1;
             }
         }
-        return minMultiplier;
+        return best;
     }
 
     // At this point, the recipe is already trimmed according to the item and fluid output limit, so we just need to
@@ -605,43 +693,52 @@ public abstract class ParallelLogic {
                                                       @NotNull IMultipleTankHandler importFluids,
                                                       @NotNull IMultipleTankHandler exportFluids,
                                                       int parallelAmount, long maxVoltage, IVoidable voidable) {
+        if (parallelAmount <= 0) {
+            return null;
+        }
+        List<? extends IFluidTank> tanks = importFluids.getFluidTanks();
+        List<FluidStack> remainingFluids = new ArrayList<>(tanks.size());
+        for (IFluidTank tank : tanks) {
+            FluidStack fluid = tank.getFluid();
+            if (fluid != null && fluid.amount > 0) {
+                remainingFluids.add(fluid.copy());
+            }
+        }
+        if (remainingFluids.isEmpty()) {
+            return null;
+        }
+
+        RecipeIterator iterator = recipeMap.findRecipeIterator(
+                Collections.emptyList(),
+                remainingFluids,
+                r -> r.getEUt() <= maxVoltage &&
+                        r.getInputs().isEmpty() &&
+                        r.matches(false, Collections.emptyList(), remainingFluids));
+        if (iterator == null) {
+            return null;
+        }
+
         RecipeBuilder<?> recipeBuilder = null;
         OverlayedFluidHandler overlayedFluidHandler = new OverlayedFluidHandler(exportFluids);
         int engagedRecipes = 0;
         List<FluidStack> accumulatedFluidOutputs = new ArrayList<>();
+        boolean canVoidFluids = voidable.canVoidRecipeFluidOutputs();
 
-        // Find recipes from fluid inputs only
-        for (IFluidTank tank : importFluids.getFluidTanks()) {
-            if (engagedRecipes >= parallelAmount) break;
-
-            FluidStack fluid = tank.getFluid();
-            if (fluid == null || fluid.amount == 0) continue;
-
-            Recipe matchingRecipe = recipeMap.findRecipe(maxVoltage,
-                    Collections.emptyList(),
-                    Collections.singletonList(fluid));
-
-            if (matchingRecipe == null) continue;
-
-            // Skip recipes that require item inputs
-            if (!matchingRecipe.getInputs().isEmpty()) continue;
-
-            // Initialize recipe builder if needed
-            if (recipeBuilder == null) {
-                recipeBuilder = recipeMap.recipeBuilder().EUt(0).duration(0);
-            }
+        while (engagedRecipes < parallelAmount && iterator.hasNext()) {
+            Recipe matchingRecipe = iterator.next();
+            if (matchingRecipe == null || !matchingRecipe.getInputs().isEmpty()) continue;
 
             // Trim recipe outputs according to machine limits
             matchingRecipe = Recipe.trimRecipeOutputs(matchingRecipe, recipeMap,
                     voidable.getItemOutputLimit(), voidable.getFluidOutputLimit());
+            if (matchingRecipe == null) continue;
 
-            // Get voiding permissions
-            boolean canVoidFluids = voidable.canVoidRecipeFluidOutputs();
-
-            // Calculate maximum multiplier based on fluid inputs
-            int multiplierByInputs = getMaxFluidRecipeMultiplier(matchingRecipe, importFluids, parallelAmount - engagedRecipes);
-
-            if (multiplierByInputs == 0) continue;
+            // Calculate maximum multiplier based on remaining unallocated fluid inputs
+            int remainingBudget = parallelAmount - engagedRecipes;
+            int ratio = getMaxRatioFluid(
+                    GTHashMaps.fromFluidCollection(remainingFluids), matchingRecipe, remainingBudget);
+            int multiplierByInputs = ratio == Integer.MAX_VALUE ? 0 : Math.min(ratio, remainingBudget);
+            if (multiplierByInputs <= 0) continue;
 
             // Calculate output limitations
             int limitByFluids = canVoidFluids ? multiplierByInputs :
@@ -656,13 +753,16 @@ public abstract class ParallelLogic {
 
             // Determine actual multiplier considering all constraints
             int actualMultiplier = Math.min(multiplierByInputs, Math.min(limitByFluids, limitByEnergy));
-            actualMultiplier = Math.min(actualMultiplier, parallelAmount - engagedRecipes);
+            actualMultiplier = Math.min(actualMultiplier, remainingBudget);
 
             if (actualMultiplier > 0) {
+                if (recipeBuilder == null) {
+                    recipeBuilder = recipeMap.recipeBuilder().EUt(0).duration(0);
+                }
                 recipeBuilder.append(matchingRecipe, actualMultiplier, false);
                 engagedRecipes += actualMultiplier;
 
-                // Update accumulated outputs
+                deductConsumedFluids(matchingRecipe, actualMultiplier, remainingFluids);
                 updateAccumulatedFluidOutputs(matchingRecipe, accumulatedFluidOutputs,
                         actualMultiplier, overlayedFluidHandler);
             }
@@ -671,29 +771,44 @@ public abstract class ParallelLogic {
         return recipeBuilder;
     }
 
-    /**
-     * Calculate the maximum number of times a fluid-only recipe can be performed
-     */
-    private static int getMaxFluidRecipeMultiplier(Recipe recipe, IMultipleTankHandler importFluids, int maxParallel) {
-        int fluidLimit = Integer.MAX_VALUE;
+    private static void deductConsumedFluids(@NotNull Recipe recipe, int multiplier,
+                                             @NotNull List<FluidStack> remainingFluids) {
+        List<GTRecipeInput> reqs = recipe.getFluidInputs();
+        int m = reqs.size();
+        int n = remainingFluids.size();
+        if (m == 0 || n == 0 || multiplier <= 0) return;
 
-        // Calculate limitations from fluid inputs only
-        for (GTRecipeInput fluidInput : recipe.getFluidInputs()) {
-            int available = 0;
-            for (IFluidTank tank : importFluids.getFluidTanks()) {
-                FluidStack fluid = tank.getFluid();
-                if (fluid != null && fluidInput.acceptsFluid(fluid)) {
-                    available += fluid.amount;
+        long[] demands = new long[m];
+        long[] supplies = new long[n];
+        boolean[][] compat = new boolean[m][n];
+        for (int j = 0; j < n; j++) {
+            FluidStack f = remainingFluids.get(j);
+            supplies[j] = (f == null || f.amount <= 0) ? 0L : f.amount;
+        }
+        for (int i = 0; i < m; i++) {
+            GTRecipeInput req = reqs.get(i);
+            demands[i] = req.isNonConsumable() ? Math.max(0, req.getAmount()) :
+                    (long) Math.max(0, req.getAmount()) * multiplier;
+            for (int j = 0; j < n; j++) {
+                FluidStack f = remainingFluids.get(j);
+                compat[i][j] = f != null && f.amount > 0 && req.acceptsFluid(f);
+            }
+        }
+        long[][] flow = FluidAllocationHelper.solveBipartiteAllocation(demands, supplies, compat);
+        if (flow == null) return;
+        for (int i = 0; i < m; i++) {
+            if (reqs.get(i).isNonConsumable()) continue;
+            for (int j = 0; j < n; j++) {
+                long used = flow[i][j];
+                if (used <= 0L) continue;
+                FluidStack f = remainingFluids.get(j);
+                if (f == null) continue;
+                f.amount -= (int) Math.min(f.amount, used);
+                if (f.amount <= 0) {
+                    remainingFluids.set(j, null);
                 }
             }
-            if (available < fluidInput.getAmount()) {
-                return 0; // Not enough of this fluid
-            }
-            int maxForFluid = available / fluidInput.getAmount();
-            fluidLimit = Math.min(fluidLimit, maxForFluid);
         }
-
-        return Math.min(fluidLimit, maxParallel);
     }
 
     /**

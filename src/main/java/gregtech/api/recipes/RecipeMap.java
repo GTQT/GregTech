@@ -15,6 +15,7 @@ import gregtech.api.recipes.map.AbstractMapIngredient;
 import gregtech.api.recipes.map.Branch;
 import gregtech.api.recipes.map.Either;
 import gregtech.api.recipes.map.MapFluidIngredient;
+import gregtech.api.recipes.map.MapFluidNBTIngredient;
 import gregtech.api.recipes.map.MapItemStackIngredient;
 import gregtech.api.recipes.map.MapItemStackNBTIngredient;
 import gregtech.api.recipes.map.MapOreDictIngredient;
@@ -102,6 +103,7 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
     private final Branch lookup = new Branch();
     private boolean hasOreDictedInputs = false;
     private boolean hasNBTMatcherInputs = false;
+    private boolean hasNBTMatcherFluidInputs = false;
     private static final WeakHashMap<AbstractMapIngredient, WeakReference<AbstractMapIngredient>> ingredientRoot = new WeakHashMap<>();
     private final WeakHashMap<AbstractMapIngredient, WeakReference<AbstractMapIngredient>> fluidIngredientRoot = new WeakHashMap<>();
 
@@ -629,13 +631,26 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
      * @param canHandle   if the found recipe is valid
      * @return a recipe
      */
+    long initialSkipMask(@NotNull List<List<AbstractMapIngredient>> ingredients, int index) {
+        return shouldSkipIngredientIndex(ingredients, index) ? (1L << index) : 0L;
+    }
+
+    private boolean shouldSkipIngredientIndex(@NotNull List<List<AbstractMapIngredient>> ingredients, int index) {
+        if (!hasNBTMatcherFluidInputs) {
+            return true;
+        }
+        List<AbstractMapIngredient> slot = ingredients.get(index);
+        return slot.isEmpty() || !(slot.get(0) instanceof MapFluidIngredient);
+    }
+
     @Nullable
     private Recipe recurseIngredientTreeFindRecipe(@NotNull List<List<AbstractMapIngredient>> ingredients,
                                                    @NotNull Branch branchRoot, @NotNull Predicate<Recipe> canHandle) {
         // Try each ingredient as a starting point, adding it to the skip-list.
         // The skip-list is a packed long, where each 1 bit represents an index to skip
         for (int i = 0; i < ingredients.size(); i++) {
-            Recipe r = recurseIngredientTreeFindRecipe(ingredients, branchRoot, canHandle, i, 0, (1L << i));
+            Recipe r = recurseIngredientTreeFindRecipe(ingredients, branchRoot, canHandle, i, 0,
+                    initialSkipMask(ingredients, i));
             if (r != null) {
                 return r;
             }
@@ -659,22 +674,49 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
                                            @NotNull Branch branchMap, @NotNull Predicate<Recipe> canHandle,
                                            int index, int count, long skip) {
         // exhausted all the ingredients, and didn't find anything
-        if (count == ingredients.size()) return null;
+        if (!hasNBTMatcherFluidInputs && count == ingredients.size()) return null;
 
         // Iterate over current level of nodes.
         for (AbstractMapIngredient obj : ingredients.get(index)) {
-            // determine the root nodes
-            Map<AbstractMapIngredient, Either<Recipe, Branch>> targetMap = determineRootNodes(obj, branchMap);
+            if (!obj.isSpecialIngredient()) {
+                if (!branchMap.hasNodes()) continue;
+                Either<Recipe, Branch> result = branchMap.getNodes().get(obj);
+                if (result != null) {
+                    Recipe r = result.map(potentialRecipe -> canHandle.test(potentialRecipe) ? potentialRecipe : null,
+                            potentialBranch -> diveIngredientTreeFindRecipe(ingredients, potentialBranch, canHandle,
+                                    index, count, skip));
+                    if (r != null) {
+                        return r;
+                    }
+                }
+                continue;
+            }
 
-            Either<Recipe, Branch> result = targetMap.get(obj);
-            if (result != null) {
-                // if there is a recipe (left mapping), return it immediately as found, if it can be handled
-                // Otherwise, recurse and go to the next branch.
-                Recipe r = result.map(potentialRecipe -> canHandle.test(potentialRecipe) ? potentialRecipe : null,
-                        potentialBranch -> diveIngredientTreeFindRecipe(ingredients, potentialBranch, canHandle, index,
-                                count, skip));
-                if (r != null) {
-                    return r;
+            if (!branchMap.hasSpecialNodes()) continue;
+            Map<AbstractMapIngredient, Either<Recipe, Branch>> targetMap = branchMap.getSpecialNodes();
+            Either<Recipe, Branch> direct = targetMap.get(obj);
+            if (direct == null) continue;
+
+            Recipe r = direct.map(potentialRecipe -> canHandle.test(potentialRecipe) ? potentialRecipe : null,
+                    potentialBranch -> diveIngredientTreeFindRecipe(ingredients, potentialBranch, canHandle, index,
+                            count, skip));
+            if (r != null) {
+                return r;
+            }
+            if (targetMap.size() > 1) {
+                int targetHash = obj.hashCode();
+                for (Map.Entry<AbstractMapIngredient, Either<Recipe, Branch>> entry : targetMap.entrySet()) {
+                    Either<Recipe, Branch> candidate = entry.getValue();
+                    if (candidate == direct) continue;
+                    AbstractMapIngredient storedKey = entry.getKey();
+                    if (storedKey.hashCode() == targetHash && obj.equals(storedKey)) {
+                        r = candidate.map(potentialRecipe -> canHandle.test(potentialRecipe) ? potentialRecipe : null,
+                                potentialBranch -> diveIngredientTreeFindRecipe(ingredients, potentialBranch, canHandle,
+                                        index, count, skip));
+                        if (r != null) {
+                            return r;
+                        }
+                    }
                 }
             }
         }
@@ -699,21 +741,19 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
                                                 long skip) {
         // We loop around ingredients.size() if we reach the end.
         // only end when all ingredients are exhausted, or a recipe is found
-        int i = (currentIndex + 1) % ingredients.size();
-        while (i != currentIndex) {
+        int size = ingredients.size();
+        for (int step = 0; step < size; step++) {
+            int i = (currentIndex + 1 + step) % size;
             // Have we already used this ingredient? If so, skip this one.
-            if (((skip & (1L << i)) == 0)) {
+            if ((skip & (1L << i)) == 0) {
                 // Recursive call
-                // Increase the count, so the recursion can terminate if needed (ingredients is exhausted)
-                // Append the current index to the skip list
-                Recipe found = recurseIngredientTreeFindRecipe(ingredients, map, canHandle, i, count + 1,
-                        skip | (1L << i));
+                // Append the current index to the skip list when it cannot satisfy multiple tree edges
+                long nextSkip = shouldSkipIngredientIndex(ingredients, i) ? (skip | (1L << i)) : skip;
+                Recipe found = recurseIngredientTreeFindRecipe(ingredients, map, canHandle, i, count + 1, nextSkip);
                 if (found != null) {
                     return found;
                 }
             }
-            // increment the index if the current index is skipped, or the recipe is not found
-            i = (i + 1) % ingredients.size();
         }
         return null;
     }
@@ -769,18 +809,31 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
         List<AbstractMapIngredient> wr = ingredients.get(index);
         // Iterate over current level of nodes.
         for (AbstractMapIngredient obj : wr) {
-            // determine the root nodes
-            Map<AbstractMapIngredient, Either<Recipe, Branch>> targetMap = determineRootNodes(obj, branchMap);
-
-            Either<Recipe, Branch> result = targetMap.get(obj);
-            if (result != null) {
-                // if there is a recipe (left mapping), return it immediately as found
-                // Otherwise, recurse and go to the next branch.
-                Recipe r = result.map(recipe -> recipe,
-                        right -> diveIngredientTreeFindRecipeCollisions(ingredients, right, index, count, skip,
-                                collidingRecipes));
-                if (r != null) {
-                    collidingRecipes.add(r);
+            if (!obj.isSpecialIngredient()) {
+                if (!branchMap.hasNodes()) continue;
+                Either<Recipe, Branch> result = branchMap.getNodes().get(obj);
+                if (result != null) {
+                    Recipe r = result.map(recipe -> recipe,
+                            right -> diveIngredientTreeFindRecipeCollisions(ingredients, right, index, count, skip,
+                                    collidingRecipes));
+                    if (r != null) {
+                        collidingRecipes.add(r);
+                    }
+                }
+                continue;
+            }
+            if (!branchMap.hasSpecialNodes()) continue;
+            Map<AbstractMapIngredient, Either<Recipe, Branch>> targetMap = branchMap.getSpecialNodes();
+            int targetHash = obj.hashCode();
+            for (Map.Entry<AbstractMapIngredient, Either<Recipe, Branch>> entry : targetMap.entrySet()) {
+                AbstractMapIngredient storedKey = entry.getKey();
+                if (storedKey.hashCode() == targetHash && obj.equals(storedKey)) {
+                    Recipe r = entry.getValue().map(recipe -> recipe,
+                            right -> diveIngredientTreeFindRecipeCollisions(ingredients, right, index, count, skip,
+                                    collidingRecipes));
+                    if (r != null) {
+                        collidingRecipes.add(r);
+                    }
                 }
             }
         }
@@ -1059,7 +1112,13 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
     protected void buildFromRecipeFluids(@NotNull List<List<AbstractMapIngredient>> list,
                                          @NotNull List<GTRecipeInput> fluidInputs) {
         for (GTRecipeInput fluidInput : fluidInputs) {
-            AbstractMapIngredient ingredient = new MapFluidIngredient(fluidInput);
+            AbstractMapIngredient ingredient;
+            if (fluidInput.hasNBTMatchingCondition()) {
+                hasNBTMatcherFluidInputs = true;
+                ingredient = new MapFluidNBTIngredient(fluidInput);
+            } else {
+                ingredient = new MapFluidIngredient(fluidInput);
+            }
             retrieveCachedIngredient(list, ingredient, fluidIngredientRoot);
         }
     }
@@ -1092,7 +1151,14 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
     protected void buildFromFluidStacks(@NotNull List<List<AbstractMapIngredient>> list,
                                         @NotNull Iterable<FluidStack> ingredients) {
         for (FluidStack t : ingredients) {
-            list.add(Collections.singletonList(new MapFluidIngredient(t)));
+            if (hasNBTMatcherFluidInputs) {
+                List<AbstractMapIngredient> ls = new ObjectArrayList<>(2);
+                ls.add(new MapFluidIngredient(t));
+                ls.add(new MapFluidNBTIngredient(t));
+                list.add(ls);
+            } else {
+                list.add(Collections.singletonList(new MapFluidIngredient(t)));
+            }
         }
     }
 
@@ -1110,7 +1176,7 @@ public class RecipeMap<R extends RecipeBuilder<R>> {
             buildFromRecipeItems(list, uniqueIngredientsList(r.getInputs()));
         }
         if (r.getFluidInputs().size() > 0) {
-            buildFromRecipeFluids(list, r.getFluidInputs());
+            buildFromRecipeFluids(list, uniqueIngredientsList(r.getFluidInputs()));
         }
         return list;
     }
